@@ -327,7 +327,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   },
   progressFill: {
     height: 7,
-    backgroundColor: '#A99BFF',
+    backgroundColor: colors.primary,
     borderRadius: 10,
   },
   questionCard: {
