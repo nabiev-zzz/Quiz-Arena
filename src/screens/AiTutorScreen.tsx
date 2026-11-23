@@ -382,7 +382,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     justifyContent: 'center',
   },
   headerAvatarText: {
-    color: colors.text,
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '900',
   },
