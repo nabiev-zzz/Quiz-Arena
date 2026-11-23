@@ -118,7 +118,7 @@ export default function QuizScreen({
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#A99BFF" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>
           AI Ustoz savollar tayyorlamoqda...
         </Text>
@@ -415,7 +415,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     marginTop: 18,
   },
   buttonText: {
-    color: colors.text,
+    color: '#FFFFFF',
     fontWeight: '800',
   },
   scoreText: {
