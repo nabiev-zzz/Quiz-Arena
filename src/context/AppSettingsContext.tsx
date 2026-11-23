@@ -7,6 +7,7 @@ import React, {
   useState,
 } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 export type AppLanguage = 'uz' | 'ru' | 'en';
 export type AppTheme = 'dark' | 'light';
@@ -33,6 +34,40 @@ interface AppSettingsContextValue extends AppSettings {
 
 const STORAGE_KEY = 'quiz_arena_preferences';
 
+type BrowserPreferenceStorage = {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+};
+
+function getBrowserPreferenceStorage() {
+  return (globalThis as typeof globalThis & {
+    localStorage?: BrowserPreferenceStorage;
+  }).localStorage;
+}
+
+async function readPreferences() {
+  if (Platform.OS === 'web') {
+    return getBrowserPreferenceStorage()?.getItem(STORAGE_KEY) ?? null;
+  }
+
+  return SecureStore.getItemAsync(STORAGE_KEY);
+}
+
+async function writePreferences(value: string) {
+  if (Platform.OS === 'web') {
+    const storage = getBrowserPreferenceStorage();
+
+    if (!storage) {
+      throw new Error('Brauzer xotirasi mavjud emas.');
+    }
+
+    storage.setItem(STORAGE_KEY, value);
+    return;
+  }
+
+  await SecureStore.setItemAsync(STORAGE_KEY, value);
+}
+
 const defaultSettings: AppSettings = {
   language: 'uz',
   theme: 'dark',
@@ -58,7 +93,7 @@ export function AppSettingsProvider({
 
     const restoreSettings = async () => {
       try {
-        const stored = await SecureStore.getItemAsync(STORAGE_KEY);
+        const stored = await readPreferences();
 
         if (stored) {
           const parsed = JSON.parse(stored) as Partial<AppSettings>;
@@ -93,10 +128,7 @@ export function AppSettingsProvider({
       setSettings(updated);
 
       try {
-        await SecureStore.setItemAsync(
-          STORAGE_KEY,
-          JSON.stringify(updated),
-        );
+        await writePreferences(JSON.stringify(updated));
       } catch {
         throw new Error('Sozlamalarni saqlab bo‘lmadi.');
       }
