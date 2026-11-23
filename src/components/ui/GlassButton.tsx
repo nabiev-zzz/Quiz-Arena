@@ -1,0 +1,102 @@
+﻿import React from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  Text,
+  ViewStyle,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../../theme/ThemeContext';
+
+type Props = {
+  title: string;
+  onPress: () => void;
+  variant?: 'primary' | 'secondary' | 'outline';
+  disabled?: boolean;
+  loading?: boolean;
+  style?: StyleProp<ViewStyle>;
+};
+
+export default function GlassButton({
+  title,
+  onPress,
+  variant = 'primary',
+  disabled = false,
+  loading = false,
+  style,
+}: Props) {
+  const { isDark, tokens } = useTheme();
+  const inactive = disabled || loading;
+
+  const contentColor =
+    variant === 'primary'
+      ? '#FFFFFF'
+      : tokens.colors.text;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: inactive, busy: loading }}
+      disabled={inactive}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.wrapper,
+        {
+          height: tokens.component.buttonHeight,
+          borderRadius: tokens.radius.md,
+          opacity: inactive ? tokens.opacity.disabled : pressed ? tokens.opacity.pressed : 1,
+          borderWidth: variant === 'outline' ? 1 : 0,
+          borderColor: tokens.colors.borderStrong,
+          backgroundColor:
+            variant === 'secondary'
+              ? tokens.colors.surfaceElevated
+              : 'transparent',
+        },
+        style,
+      ]}
+    >
+      {variant === 'primary' ? (
+        <LinearGradient
+          colors={[...tokens.gradients.primary]}
+          style={styles.gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={[styles.label, { color: contentColor }]}>
+              {title}
+            </Text>
+          )}
+        </LinearGradient>
+      ) : loading ? (
+        <ActivityIndicator color={tokens.colors.primary} />
+      ) : (
+        <Text style={[styles.label, { color: contentColor }]}>
+          {title}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrapper: {
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gradient: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+});

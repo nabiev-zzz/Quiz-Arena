@@ -39,3 +39,14 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# QUIZ ARENA security and local backups
+.env.*
+!.env.example
+*.bak_*
+BATTLE_AUDIT_BUNDLE.txt
+.env
+
+# Local backend backups and archives
+/apps/api/api/backup/
+/apps/api/api/battle_source.zip
