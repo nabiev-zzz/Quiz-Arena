@@ -419,7 +419,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     marginRight: 8,
   },
   avatarText: {
-    color: colors.text,
+    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '900',
   },
@@ -443,7 +443,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     fontSize: 14,
     lineHeight: 22,
   },
-  userMessageText: { color: colors.text },
+  userMessageText: { color: '#FFFFFF' },
   assistantMessageText: { color: colors.text },
   messageRetryButton: {
     alignSelf: 'flex-end',
@@ -484,7 +484,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   welcomeDescription: {
     fontSize: 14,
     lineHeight: 22,
-    color: '#A5AEC2',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 12,
     marginBottom: 22,
@@ -567,7 +567,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   },
   sendButtonDisabled: { opacity: 0.45 },
   sendButtonText: {
-    color: colors.text,
+    color: '#FFFFFF',
     fontSize: 25,
     fontWeight: '700',
   },
