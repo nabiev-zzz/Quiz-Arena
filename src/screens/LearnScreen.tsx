@@ -10,12 +10,17 @@ import {
 
 import { subjects } from '../data/subjects';
 import type { Subject, Topic } from '../types';
+import { useTheme } from '../theme/ThemeContext';
 
 interface LearnScreenProps {
   onTopicSelect?: (subject: Subject, topic: Topic) => void;
 }
 
 export default function LearnScreen({ onTopicSelect }: LearnScreenProps) {
+  const { tokens } = useTheme();
+  const colors = tokens.colors;
+  const styles = makeStyles(colors);
+
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
 
   return (
@@ -151,10 +156,11 @@ export default function LearnScreen({ onTopicSelect }: LearnScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#080D1D',
+    backgroundColor: colors.background,
   },
   content: {
     paddingHorizontal: 18,
@@ -166,43 +172,43 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   eyebrow: {
-    color: '#8B7CFF',
+    color: colors.primary,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 2,
     marginBottom: 12,
   },
   title: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 26,
     lineHeight: 33,
     fontWeight: '800',
     letterSpacing: -0.6,
   },
   subtitle: {
-    color: '#929BB5',
+    color: colors.textMuted,
     fontSize: 14,
     lineHeight: 21,
     marginTop: 8,
   },
   summaryCard: {
-    backgroundColor: '#171F39',
+    backgroundColor: colors.surface,
     borderRadius: 21,
     padding: 17,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#293354',
+    borderColor: colors.border,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   summaryNumber: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 30,
     fontWeight: '800',
   },
   summaryLabel: {
-    color: '#A5AEC8',
+    color: colors.textSecondary,
     fontSize: 13,
     marginTop: 2,
   },
@@ -210,12 +216,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: '#8B7CFF25',
+    backgroundColor: colors.primary + '22',
     alignItems: 'center',
     justifyContent: 'center',
   },
   summaryIconText: {
-    color: '#A99EFF',
+    color: colors.primary,
     fontSize: 27,
   },
   sectionHeader: {
@@ -225,12 +231,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   sectionTitle: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 19,
     fontWeight: '800',
   },
   sectionCount: {
-    color: '#818BA8',
+    color: colors.textMuted,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -242,12 +248,12 @@ const styles = StyleSheet.create({
   subjectCard: {
     width: '48%',
     minHeight: 154,
-    backgroundColor: '#151C32',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#252E49',
+    borderColor: colors.border,
   },
   iconBox: {
     width: 46,
@@ -262,12 +268,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   subjectName: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 14,
     fontWeight: '800',
   },
   subjectTopics: {
-    color: '#8994B1',
+    color: colors.textMuted,
     fontSize: 11,
     marginTop: 6,
   },
@@ -277,7 +283,7 @@ const styles = StyleSheet.create({
     top: 13,
   },
   arrow: {
-    color: '#7783A3',
+    color: colors.textMuted,
     fontSize: 25,
     fontWeight: '400',
   },
@@ -290,7 +296,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   backText: {
-    color: '#A99EFF',
+    color: colors.primary,
     fontSize: 15,
     fontWeight: '700',
   },
@@ -314,24 +320,24 @@ const styles = StyleSheet.create({
     minHeight: 82,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#151C32',
+    backgroundColor: colors.surface,
     borderRadius: 18,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#252E49',
+    borderColor: colors.border,
   },
   topicNumber: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#252D49',
+    backgroundColor: colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 13,
   },
   numberText: {
-    color: '#A99EFF',
+    color: colors.primary,
     fontSize: 13,
     fontWeight: '800',
   },
@@ -339,17 +345,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topicName: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 15,
     fontWeight: '700',
   },
   topicDescription: {
-    color: '#929BB5',
+    color: colors.textMuted,
     fontSize: 12,
     marginTop: 4,
   },
   questionCount: {
-    color: '#8B7CFF',
+    color: colors.primary,
     fontSize: 11,
     fontWeight: '600',
     marginTop: 7,
@@ -357,4 +363,5 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.72,
   },
-});
+  });
+}
