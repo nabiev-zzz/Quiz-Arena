@@ -532,7 +532,8 @@ const styles = StyleSheet.create({
     color: '#B7BED0',
     fontSize: 12,
     marginTop: 9,
-  },  infoCard: { minHeight: 74, flexDirection: 'row', alignItems: 'center', backgroundColor: '#151D33', borderRadius: 18, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: '#293553', gap: 13 },
+  },
+  infoCard: { minHeight: 74, flexDirection: 'row', alignItems: 'center', backgroundColor: '#151D33', borderRadius: 18, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: '#293553', gap: 13 },
   infoTextContainer: {
     flex: 1,
   },
