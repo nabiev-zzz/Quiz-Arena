@@ -184,7 +184,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     opacity: 0.6,
   },
   buttonText: {
-    color: colors.text,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
