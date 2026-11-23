@@ -18,6 +18,7 @@ import {
   getTutorHistory,
   sendTutorMessage,
 } from '../services/aiTutorService';
+import { useTheme } from '../theme/ThemeContext';
 
 interface AiTutorScreenProps {
   onBack: () => void;
@@ -27,6 +28,10 @@ const CONNECTION_ERROR =
   'Serverga ulanib bo‘lmadi. Internetni tekshirib, qayta urinib ko‘ring.';
 
 export default function AiTutorScreen({ onBack }: AiTutorScreenProps) {
+  const { tokens } = useTheme();
+  const colors = tokens.colors;
+  const styles = makeStyles(colors);
+
   const [messages, setMessages] = useState<AiTutorMessage[]>([]);
   const [input, setInput] = useState('');
   const [loadingHistory, setLoadingHistory] = useState(true);
@@ -203,7 +208,7 @@ export default function AiTutorScreen({ onBack }: AiTutorScreenProps) {
 
         {loadingHistory ? (
           <View style={styles.center}>
-            <ActivityIndicator size="large" color="#A88FFF" />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.loadingText}>
               Suhbat tarixi yuklanmoqda...
             </Text>
@@ -253,7 +258,7 @@ export default function AiTutorScreen({ onBack }: AiTutorScreenProps) {
             ListFooterComponent={
               sending ? (
                 <View style={styles.typingRow}>
-                  <ActivityIndicator size="small" color="#A88FFF" />
+                  <ActivityIndicator size="small" color={colors.primary} />
                   <Text style={styles.typingText}>
                     AI Ustoz javob tayyorlamoqda...
                   </Text>
@@ -278,9 +283,9 @@ export default function AiTutorScreen({ onBack }: AiTutorScreenProps) {
           <TextInput
             style={styles.input}
             placeholder="Savolingizni yozing..."
-            placeholderTextColor="#8B90A7"
-            selectionColor="#A88FFF"
-            cursorColor="#A88FFF"
+            placeholderTextColor={colors.textMuted}
+            selectionColor={colors.primary}
+            cursorColor={colors.primary}
             value={input}
             onChangeText={setInput}
             multiline
@@ -314,10 +319,11 @@ export default function AiTutorScreen({ onBack }: AiTutorScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B1020',
+    backgroundColor: colors.background,
   },
   keyboardContainer: { flex: 1 },
   header: {
@@ -325,22 +331,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#11182A',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#252D41',
+    borderBottomColor: colors.border,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 15,
-    backgroundColor: '#252044',
+    backgroundColor: colors.primary + '22',
     alignItems: 'center',
     justifyContent: 'center',
   },
   backText: {
     fontSize: 34,
     lineHeight: 38,
-    color: '#A88FFF',
+    color: colors.primary,
   },
   headerInfo: {
     flex: 1,
@@ -349,7 +355,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: colors.text,
   },
   onlineRow: {
     flexDirection: 'row',
@@ -365,7 +371,7 @@ const styles = StyleSheet.create({
   },
   onlineText: {
     fontSize: 12,
-    color: '#8993AA',
+    color: colors.textMuted,
   },
   headerAvatar: {
     width: 42,
@@ -376,7 +382,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerAvatarText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 14,
     fontWeight: '900',
   },
@@ -387,7 +393,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    color: '#8993AA',
+    color: colors.textMuted,
     fontSize: 13,
   },
   messageScroll: { flex: 1 },
@@ -413,7 +419,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   avatarText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 10,
     fontWeight: '900',
   },
@@ -428,24 +434,24 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 5,
   },
   assistantBubble: {
-    backgroundColor: '#171F34',
+    backgroundColor: colors.surface,
     borderBottomLeftRadius: 5,
     borderWidth: 1,
-    borderColor: '#29334B',
+    borderColor: colors.border,
   },
   messageText: {
     fontSize: 14,
     lineHeight: 22,
   },
-  userMessageText: { color: '#FFFFFF' },
-  assistantMessageText: { color: '#E5E7F0' },
+  userMessageText: { color: colors.text },
+  assistantMessageText: { color: colors.text },
   messageRetryButton: {
     alignSelf: 'flex-end',
     paddingVertical: 6,
     paddingHorizontal: 9,
   },
   messageRetryText: {
-    color: '#C3B5FF',
+    color: colors.primary,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -460,19 +466,19 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 22,
-    backgroundColor: '#252044',
+    backgroundColor: colors.primary + '22',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 18,
   },
   welcomeIconText: {
     fontSize: 34,
-    color: '#A88FFF',
+    color: colors.primary,
   },
   welcomeTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: colors.text,
     textAlign: 'center',
   },
   welcomeDescription: {
@@ -490,13 +496,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 14,
-    backgroundColor: '#171F34',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#29334B',
+    borderColor: colors.border,
     marginTop: 9,
   },
   suggestionText: {
-    color: '#C3B5FF',
+    color: colors.primary,
     fontSize: 13,
     textAlign: 'center',
   },
@@ -507,7 +513,7 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   typingText: {
-    color: '#8993AA',
+    color: colors.textMuted,
     fontSize: 12,
   },
   errorContainer: {
@@ -515,14 +521,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: '#351F32',
+    backgroundColor: colors.dangerSurface,
   },
   errorText: {
-    color: '#FF9DAA',
+    color: colors.danger,
     fontSize: 12,
   },
   retryText: {
-    color: '#C3B5FF',
+    color: colors.primary,
     fontSize: 12,
     fontWeight: '700',
     marginTop: 5,
@@ -534,9 +540,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     marginTop: 8,
     padding: 7,
-    backgroundColor: '#171F34',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#29334B',
+    borderColor: colors.border,
     borderRadius: 19,
   },
   input: {
@@ -545,7 +551,7 @@ const styles = StyleSheet.create({
     maxHeight: 112,
     paddingHorizontal: 11,
     paddingVertical: 10,
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 14,
     backgroundColor: 'transparent',
     textAlignVertical: 'center',
@@ -561,15 +567,16 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: { opacity: 0.45 },
   sendButtonText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 25,
     fontWeight: '700',
   },
   footerText: {
     fontSize: 10,
-    color: '#8993AA',
+    color: colors.textMuted,
     textAlign: 'center',
     paddingVertical: 8,
     paddingHorizontal: 10,
   },
-});
+  });
+}
