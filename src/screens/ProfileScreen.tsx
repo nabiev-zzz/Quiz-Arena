@@ -533,7 +533,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   followDivider: {
     width: 1,
     height: 35,
-    backgroundColor: '#35405B',
+    backgroundColor: colors.borderStrong,
   },
   editButton: {
     width: '100%',
