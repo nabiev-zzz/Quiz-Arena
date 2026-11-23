@@ -36,6 +36,9 @@ export class BattleMatch {
   questionResults: Record<string, unknown>[];
 
   @Column({ type: 'jsonb', default: () => "'{}'::jsonb" })
+  rankChanges: Record<string, unknown>;
+
+  @Column({ type: 'jsonb', default: () => "'{}'::jsonb" })
   scores: Record<string, number>;
 
   @Column({ type: 'timestamptz', nullable: true })
