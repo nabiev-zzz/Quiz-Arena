@@ -1,5 +1,6 @@
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
@@ -33,6 +34,9 @@ import {
 
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { GlassSurface } from './src/components/ui';
+import AnimatedSplash from './src/components/AnimatedSplash';
+
+void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 import type { Subject, Topic } from './src/types';
 
@@ -493,16 +497,32 @@ function AppContent() {
 }
 
 export default function App() {
+  const [done, setDone] = useState(false);
+  const nativeSplashHidden = useRef(false);
+
+  const handleRootLayout = () => {
+    if (nativeSplashHidden.current) {
+      return;
+    }
+
+    nativeSplashHidden.current = true;
+    void SplashScreen.hideAsync().catch(() => undefined);
+  };
+
   return (
-    <SafeAreaProvider>
-      <AppSettingsProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
-        </ThemeProvider>
-      </AppSettingsProvider>
-    </SafeAreaProvider>
+    <View style={{ flex: 1 }} onLayout={handleRootLayout}>
+      <SafeAreaProvider>
+        <AppSettingsProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </ThemeProvider>
+        </AppSettingsProvider>
+      </SafeAreaProvider>
+
+      {!done && <AnimatedSplash onFinish={() => setDone(true)} />}
+    </View>
   );
 }
 
