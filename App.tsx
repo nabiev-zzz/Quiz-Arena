@@ -120,9 +120,9 @@ function AppContent() {
           },
         ]}
       >
-        <Text style={styles.heroTag}>QUIZ ARENA</Text>
-        <Text style={styles.heroTitle}>Bilimingni sinab ko'r!</Text>
-        <Text style={styles.heroDescription}>
+        <Text style={[styles.heroTag, { color: isDark ? "#C5B8FF" : tokens.colors.primary }]}>QUIZ ARENA</Text>
+        <Text style={[styles.heroTitle, { color: textColor }]}>Bilimingni sinab ko'r!</Text>
+        <Text style={[styles.heroDescription, { color: isDark ? "#D1C9F0" : tokens.colors.textSecondary }]}>
           O'rgan. Rivojlan. Raqobatlash.
         </Text>
 
@@ -185,8 +185,8 @@ function AppContent() {
         style={styles.tutorPressable}
         onPress={() => openTab('tutor')}
       >
-        <View style={styles.tutorIcon}>
-          <Ionicons name="sparkles" size={26} color="#C9B9FF" />
+        <View style={[styles.tutorIcon, { backgroundColor: isDark ? "#33446B" : "#E9E4FF" }]}>
+          <Ionicons name="sparkles" size={26} color={isDark ? "#C9B9FF" : tokens.colors.primary} />
         </View>
 
         <View style={styles.tutorTextContainer}>
@@ -305,7 +305,7 @@ function AppContent() {
 
     return (
       <View style={styles.emptyPage}>
-        <Ionicons name={page.icon} size={65} color="#A88FFF" />
+        <Ionicons name={page.icon} size={65} color={tokens.colors.primary} />
         <Text style={[styles.pageTitle, { color: textColor }]}>
           {page.title}
         </Text>
