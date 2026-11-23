@@ -420,7 +420,10 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
         }
 
         if (match.status === 'finished') {
-          return Object.assign(match, { rankChanges: {} });
+          return Object.assign(match, {
+            rankChanges: (match.rankChanges ??
+              {}) as Record<string, BattleRankChange>,
+          });
         }
 
         if (match.status === 'cancelled') {
@@ -620,6 +623,10 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
             };
           }
         }
+
+        // RP natijasi match bilan bir tranzaksiyada saqlanadi.
+        // Shu sababli qayta urinishlarda aynan shu natija qaytariladi.
+        match.rankChanges = rankChanges as unknown as Record<string, unknown>;
 
         const saved = await matchRepo.save(match);
 
