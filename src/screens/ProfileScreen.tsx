@@ -337,7 +337,7 @@ export default function ProfileScreen({
               <Text style={styles.modalTitle}>Profilni tahrirlash</Text>
 
               <Pressable onPress={() => setEditVisible(false)}>
-                <Ionicons name="close" size={25} color="#FFFFFF" />
+                <Ionicons name="close" size={25} color={colors.text} />
               </Pressable>
             </View>
 
@@ -546,7 +546,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     gap: 9,
   },
   editButtonText: {
-    color: colors.text,
+    color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 15,
   },
@@ -729,7 +729,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     marginTop: 23,
   },
   saveButtonText: {
-    color: colors.text,
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
   },
