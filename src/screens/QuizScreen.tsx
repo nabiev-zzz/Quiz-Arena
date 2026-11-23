@@ -15,6 +15,7 @@ import {
 } from '../data/questions';
 import type { Subject, Topic } from '../types';
 import { API_BASE_URL } from '../config/api';
+import { useTheme } from '../theme/ThemeContext';
 
 interface QuizScreenProps {
   subject: Subject;
@@ -27,6 +28,10 @@ export default function QuizScreen({
   topic,
   onBack,
 }: QuizScreenProps) {
+  const { tokens } = useTheme();
+  const colors = tokens.colors;
+  const styles = makeStyles(colors);
+
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -253,10 +258,11 @@ export default function QuizScreen({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#080D1D',
+    backgroundColor: colors.background,
   },
   content: {
     paddingHorizontal: 18,
@@ -266,30 +272,30 @@ const styles = StyleSheet.create({
   center: {
     flex: 1,
     minHeight: 450,
-    backgroundColor: '#080D1D',
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 25,
     gap: 14,
   },
   loadingText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 17,
     fontWeight: '700',
   },
   muted: {
-    color: '#929BB3',
+    color: colors.textMuted,
     fontSize: 13,
     textAlign: 'center',
   },
   eyebrow: {
-    color: '#A99BFF',
+    color: colors.primary,
     fontSize: 12,
     fontWeight: '800',
     marginBottom: 8,
   },
   title: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 25,
     fontWeight: '800',
     marginBottom: 20,
@@ -301,12 +307,12 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   backText: {
-    color: '#A99BFF',
+    color: colors.primary,
     fontWeight: '700',
     fontSize: 14,
   },
   progressCard: {
-    backgroundColor: '#171C36',
+    backgroundColor: colors.surface,
     minHeight: 66,
     padding: 16,
     borderRadius: 17,
@@ -314,7 +320,7 @@ const styles = StyleSheet.create({
   },
   progressBackground: {
     height: 7,
-    backgroundColor: '#303653',
+    backgroundColor: colors.borderStrong,
     borderRadius: 10,
     marginTop: 12,
     overflow: 'hidden',
@@ -326,26 +332,26 @@ const styles = StyleSheet.create({
   },
   questionCard: {
     minHeight: 138,
-    backgroundColor: '#171C36',
+    backgroundColor: colors.surface,
     borderRadius: 21,
     padding: 20,
     marginBottom: 20,
     justifyContent: 'center',
   },
   questionLabel: {
-    color: '#A99BFF',
+    color: colors.primary,
     fontSize: 11,
     fontWeight: '800',
     marginBottom: 12,
   },
   questionText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 18,
     fontWeight: '700',
     lineHeight: 27,
   },
   sectionTitle: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 12,
@@ -354,47 +360,47 @@ const styles = StyleSheet.create({
     minHeight: 58,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#171C36',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#303653',
+    borderColor: colors.borderStrong,
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 13,
     marginBottom: 10,
   },
   optionLetter: {
-    color: '#A99BFF',
+    color: colors.primary,
     fontWeight: '800',
     marginRight: 13,
   },
   optionText: {
-    color: '#FFFFFF',
+    color: colors.text,
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
   },
   correctOption: {
     borderColor: '#36C98F',
-    backgroundColor: '#15392F',
+    backgroundColor: colors.successSurface,
   },
   wrongOption: {
     borderColor: '#F06B78',
-    backgroundColor: '#3B202B',
+    backgroundColor: colors.dangerSurface,
   },
   explanationCard: {
-    backgroundColor: '#202744',
+    backgroundColor: colors.surfaceElevated,
     borderRadius: 16,
     padding: 17,
     marginTop: 12,
   },
   explanationTitle: {
-    color: '#A99BFF',
+    color: colors.primary,
     fontWeight: '800',
     fontSize: 16,
     marginBottom: 9,
   },
   explanationText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 14,
     lineHeight: 22,
   },
@@ -409,17 +415,17 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontWeight: '800',
   },
   scoreText: {
-    color: '#A99BFF',
+    color: colors.primary,
     textAlign: 'center',
     marginTop: 20,
     fontWeight: '700',
   },
   score: {
-    color: '#A99BFF',
+    color: colors.primary,
     fontSize: 45,
     fontWeight: '900',
   },
@@ -427,8 +433,9 @@ const styles = StyleSheet.create({
     fontSize: 55,
   },
   errorTitle: {
-    color: '#F06B78',
+    color: colors.danger,
     fontSize: 20,
     fontWeight: '800',
   },
-});
+  });
+}
