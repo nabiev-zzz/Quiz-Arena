@@ -44,6 +44,7 @@ describe('BattleService — Rank tizimi', () => {
       mode,
       status: 'active',
       questionResults: [],
+      rankChanges: {},
       scores: {},
       winnerId: null,
       finishedAt: null,
@@ -254,7 +255,10 @@ describe('BattleService — Rank tizimi', () => {
       results,
     );
 
-    expect(secondResponse.rankChanges).toEqual({});
+    expect(secondResponse.rankChanges).toEqual(firstResponse.rankChanges);
+    expect(secondResponse.rankChanges[playerOneId].rankPoints).toBe(127);
+    expect(secondResponse.rankChanges[playerTwoId].rankPoints).toBe(73);
     expect(users.get(playerOneId).rankPoints).toBe(127);
+    expect(users.get(playerTwoId).rankPoints).toBe(73);
   });
 });
