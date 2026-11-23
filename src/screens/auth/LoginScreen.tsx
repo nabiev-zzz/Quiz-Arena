@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useTheme } from '../../theme/ThemeContext';
 
 interface Props {
   onLogin: (username: string, password: string) => Promise<void>;
@@ -22,6 +23,10 @@ export default function LoginScreen({
   onLogin,
   onRegisterPress,
 }: Props) {
+  const { tokens } = useTheme();
+  const colors = tokens.colors;
+  const styles = makeStyles(colors);
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -69,9 +74,9 @@ export default function LoginScreen({
         <TextInput
           style={styles.input}
           placeholder="Username kiriting"
-          placeholderTextColor="#8B90A7"
-          selectionColor="#A88FFF"
-          cursorColor="#A88FFF"
+          placeholderTextColor={colors.textMuted}
+          selectionColor={colors.primary}
+          cursorColor={colors.primary}
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"
@@ -85,9 +90,9 @@ export default function LoginScreen({
         <TextInput
           style={styles.input}
           placeholder="Parolingizni kiriting"
-          placeholderTextColor="#8B90A7"
-          selectionColor="#A88FFF"
-          cursorColor="#A88FFF"
+          placeholderTextColor={colors.textMuted}
+          selectionColor={colors.primary}
+          cursorColor={colors.primary}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -121,10 +126,11 @@ export default function LoginScreen({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B1020',
+    backgroundColor: colors.background,
   },
   content: {
     flexGrow: 1,
@@ -133,25 +139,25 @@ const styles = StyleSheet.create({
     paddingVertical: 35,
   },
   logo: {
-    color: '#A88FFF',
+    color: colors.primary,
     fontSize: 13,
     fontWeight: 'bold',
     letterSpacing: 4,
     marginBottom: 35,
   },
   title: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 30,
     fontWeight: 'bold',
   },
   subtitle: {
-    color: '#8993AA',
+    color: colors.textMuted,
     fontSize: 14,
     marginTop: 9,
     marginBottom: 35,
   },
   label: {
-    color: '#DDE2F0',
+    color: colors.textSecondary,
     fontSize: 13,
     marginBottom: 9,
     marginTop: 15,
@@ -159,11 +165,11 @@ const styles = StyleSheet.create({
   input: {
     height: 54,
     borderRadius: 14,
-    backgroundColor: '#171F34',
+    backgroundColor: colors.inputBackground,
     borderWidth: 1,
-    borderColor: '#29334B',
+    borderColor: colors.border,
     paddingHorizontal: 16,
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 15,
   },
   button: {
@@ -178,7 +184,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -188,12 +194,13 @@ const styles = StyleSheet.create({
     marginTop: 27,
   },
   footerText: {
-    color: '#8993AA',
+    color: colors.textMuted,
     fontSize: 13,
   },
   link: {
-    color: '#A88FFF',
+    color: colors.primary,
     fontSize: 13,
     fontWeight: 'bold',
   },
-});
+  });
+}
