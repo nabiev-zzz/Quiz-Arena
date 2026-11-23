@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useTheme } from '../../theme/ThemeContext';
 
 interface Props {
   onRegister: (input: {
@@ -27,6 +28,10 @@ export default function RegisterScreen({
   onRegister,
   onLoginPress,
 }: Props) {
+  const { tokens } = useTheme();
+  const colors = tokens.colors;
+  const styles = makeStyles(colors);
+
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -118,9 +123,9 @@ export default function RegisterScreen({
         <TextInput
           style={styles.input}
           placeholder="Masalan: Ali Valiyev"
-          placeholderTextColor="#8B90A7"
-          selectionColor="#A88FFF"
-          cursorColor="#A88FFF"
+          placeholderTextColor={colors.textMuted}
+          selectionColor={colors.primary}
+          cursorColor={colors.primary}
           value={displayName}
           onChangeText={setDisplayName}
           maxLength={100}
@@ -133,9 +138,9 @@ export default function RegisterScreen({
         <TextInput
           style={styles.input}
           placeholder="Masalan: ali_2026"
-          placeholderTextColor="#8B90A7"
-          selectionColor="#A88FFF"
-          cursorColor="#A88FFF"
+          placeholderTextColor={colors.textMuted}
+          selectionColor={colors.primary}
+          cursorColor={colors.primary}
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"
@@ -150,9 +155,9 @@ export default function RegisterScreen({
         <TextInput
           style={styles.input}
           placeholder="example@mail.com"
-          placeholderTextColor="#8B90A7"
-          selectionColor="#A88FFF"
-          cursorColor="#A88FFF"
+          placeholderTextColor={colors.textMuted}
+          selectionColor={colors.primary}
+          cursorColor={colors.primary}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -167,9 +172,9 @@ export default function RegisterScreen({
         <TextInput
           style={styles.input}
           placeholder="Kamida 8 ta belgi"
-          placeholderTextColor="#8B90A7"
-          selectionColor="#A88FFF"
-          cursorColor="#A88FFF"
+          placeholderTextColor={colors.textMuted}
+          selectionColor={colors.primary}
+          cursorColor={colors.primary}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -183,9 +188,9 @@ export default function RegisterScreen({
         <TextInput
           style={styles.input}
           placeholder="Parolni qayta kiriting"
-          placeholderTextColor="#8B90A7"
-          selectionColor="#A88FFF"
-          cursorColor="#A88FFF"
+          placeholderTextColor={colors.textMuted}
+          selectionColor={colors.primary}
+          cursorColor={colors.primary}
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secureTextEntry
@@ -218,10 +223,11 @@ export default function RegisterScreen({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B1020',
+    backgroundColor: colors.background,
   },
   content: {
     flexGrow: 1,
@@ -230,25 +236,25 @@ const styles = StyleSheet.create({
     paddingVertical: 35,
   },
   logo: {
-    color: '#A88FFF',
+    color: colors.primary,
     fontSize: 13,
     fontWeight: 'bold',
     letterSpacing: 4,
     marginBottom: 25,
   },
   title: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 29,
     fontWeight: 'bold',
   },
   subtitle: {
-    color: '#8993AA',
+    color: colors.textMuted,
     fontSize: 14,
     marginTop: 9,
     marginBottom: 20,
   },
   label: {
-    color: '#DDE2F0',
+    color: colors.textSecondary,
     fontSize: 13,
     marginBottom: 8,
     marginTop: 13,
@@ -256,11 +262,11 @@ const styles = StyleSheet.create({
   input: {
     height: 52,
     borderRadius: 13,
-    backgroundColor: '#171F34',
+    backgroundColor: colors.inputBackground,
     borderWidth: 1,
-    borderColor: '#29334B',
+    borderColor: colors.border,
     paddingHorizontal: 15,
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 14,
   },
   button: {
@@ -275,7 +281,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 15,
     fontWeight: 'bold',
   },
@@ -285,12 +291,13 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   footerText: {
-    color: '#8993AA',
+    color: colors.textMuted,
     fontSize: 13,
   },
   link: {
-    color: '#A88FFF',
+    color: colors.primary,
     fontSize: 13,
     fontWeight: 'bold',
   },
-});
+  });
+}
