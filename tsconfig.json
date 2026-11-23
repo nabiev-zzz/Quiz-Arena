@@ -1,11 +1,5 @@
-
 {
   "extends": "expo/tsconfig.base",
-  "compilerOptions": {
-    "strict": true
-  },
-  "exclude": [
-    "node_modules",
-    "apps/api/api"
-  ]
+  "compilerOptions": { "strict": true },
+  "exclude": ["node_modules", "apps/api/api", "backup_*", "**/backup_*"]
 }

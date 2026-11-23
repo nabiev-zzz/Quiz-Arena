@@ -424,40 +424,15 @@ export default function SettingsScreen({
 }
 
 const styles = StyleSheet.create({
-  content: {
-    padding: 20,
-    paddingBottom: 45,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginBottom: 28,
-  },
-  backButton: {
-    width: 43,
-    height: 43,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  content: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 48 },
+  header: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 22 },
+  backButton: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   headerTitle: {
     fontSize: 24,
     fontWeight: '800',
   },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    marginTop: 23,
-    marginBottom: 11,
-  },
-  groupCard: {
-    borderRadius: 17,
-    borderWidth: 1,
-    padding: 15,
-    marginBottom: 5,
-  },
+  sectionTitle: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2, marginTop: 21, marginBottom: 11 },
+  groupCard: { borderRadius: 18, borderWidth: 1, padding: 15, marginBottom: 5 },
   optionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -472,12 +447,7 @@ const styles = StyleSheet.create({
     marginTop: 7,
     marginLeft: 34,
   },
-  languageRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 11,
-    gap: 12,
-  },
+  languageRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12 },
   flag: {
     fontSize: 22,
   },
@@ -491,44 +461,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  fontButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 11,
-    alignItems: 'center',
-  },
+  fontButton: { flex: 1, minHeight: 46, paddingVertical: 11, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   fontButtonText: {
     fontSize: 12,
     fontWeight: '700',
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 14,
-    marginBottom: 9,
-    gap: 12,
-  },
-  rowIcon: {
-    width: 39,
-    height: 39,
-    borderRadius: 12,
-    backgroundColor: 'rgba(139,92,246,0.13)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  row: { minHeight: 70, flexDirection: 'row', alignItems: 'center', borderRadius: 17, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 13, marginBottom: 9, gap: 12 },
+  rowIcon: { width: 42, height: 42, borderRadius: 13, backgroundColor: 'rgba(139,92,246,0.13)', alignItems: 'center', justifyContent: 'center' },
   rowContent: {
     flex: 1,
   },
-  rowTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  rowDescription: {
-    fontSize: 11,
-    marginTop: 4,
-  },
+  rowTitle: { fontSize: 14, fontWeight: '700' },
+  rowDescription: { fontSize: 12, lineHeight: 17, marginTop: 4 },
   version: {
     fontSize: 11,
     textAlign: 'center',

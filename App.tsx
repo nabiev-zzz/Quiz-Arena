@@ -464,15 +464,13 @@ function AppContent() {
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={item.label}
               >
-                <Ionicons
-                  name={
-                    active
-                      ? (item.icon.replace('-outline', '') as never)
-                      : item.icon
-                  }
-                  size={22}
-                  color={active ? '#A88FFF' : mutedColor}
-                />
+                <View style={[styles.navIconWrap, active && styles.activeNavIconWrap]}>
+                  <Ionicons
+                    name={active ? (item.icon.replace('-outline', '') as never) : item.icon}
+                    size={22}
+                    color={active ? '#A88FFF' : mutedColor}
+                  />
+                </View>
 
                 <Text
                   style={[
@@ -547,16 +545,8 @@ const styles = StyleSheet.create({
   scroll: {
     flex: 1,
   },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 25,
-    gap: 12,
-  },
+  content: { paddingHorizontal: 18, paddingTop: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 12 },
   greetingContainer: {
     flex: 1,
     minWidth: 0,
@@ -565,13 +555,7 @@ const styles = StyleSheet.create({
     color: '#8993AA',
     fontSize: 12,
   },
-  heading: {
-    color: '#FFFFFF',
-    fontSize: 23,
-    fontWeight: 'bold',
-    marginTop: 5,
-    flexShrink: 1,
-  },
+  heading: { color: '#FFFFFF', fontSize: 23, fontWeight: 'bold', marginTop: 5, flexShrink: 1, letterSpacing: -0.3 },
   avatar: {
     width: 45,
     height: 45,
@@ -586,41 +570,16 @@ const styles = StyleSheet.create({
     fontSize: 21,
     fontWeight: 'bold',
   },
-  hero: {
-    borderRadius: 25,
-    padding: 23,
-    marginBottom: 18,
-    overflow: 'hidden',
-  },
+  hero: { borderRadius: 26, padding: 22, marginBottom: 16, overflow: 'hidden' },
   heroTag: {
     color: '#C5B8FF',
     fontSize: 11,
     fontWeight: 'bold',
     letterSpacing: 2,
   },
-  heroTitle: {
-    color: '#FFFFFF',
-    fontSize: 27,
-    fontWeight: 'bold',
-    marginTop: 15,
-    maxWidth: 240,
-  },
-  heroDescription: {
-    color: '#D1C9F0',
-    fontSize: 14,
-    marginTop: 8,
-  },
-  primaryButton: {
-    backgroundColor: '#9678FF',
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 13,
-    alignSelf: 'flex-start',
-    marginTop: 22,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-  },
+  heroTitle: { color: '#FFFFFF', fontSize: 26, lineHeight: 33, fontWeight: 'bold', marginTop: 12, maxWidth: 240, letterSpacing: -0.5 },
+  heroDescription: { color: '#D1C9F0', fontSize: 14, lineHeight: 20, marginTop: 7 },
+  primaryButton: { minHeight: 50, backgroundColor: '#9678FF', paddingVertical: 13, paddingHorizontal: 20, borderRadius: 15, alignSelf: 'flex-start', marginTop: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   primaryButtonText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
@@ -632,35 +591,11 @@ const styles = StyleSheet.create({
     top: 48,
     opacity: 0.35,
   },
-  stats: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 18,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: 0,
-    borderRadius: 17,
-    padding: 13,
-  },
-  statNumber: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  tutorCard: {
-    borderRadius: 18,
-    padding: 0,
-    marginBottom: 27,
-  },
-  tutorPressable: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    gap: 12,
-  },
+  stats: { flexDirection: 'row', gap: 9, marginBottom: 16 },
+  statCard: { flex: 1, minWidth: 0, minHeight: 100, borderRadius: 18, padding: 11, justifyContent: 'center' },
+  statNumber: { color: '#FFFFFF', fontSize: 13, fontWeight: 'bold', marginTop: 8, marginBottom: 4 },
+  tutorCard: { borderRadius: 20, padding: 0, marginBottom: 24, overflow: 'hidden' },
+  tutorPressable: { minHeight: 78, flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
   tutorIcon: {
     width: 48,
     height: 48,
@@ -679,37 +614,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 5,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    color: '#FFFFFF',
-    fontSize: 19,
-    fontWeight: 'bold',
-  },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 13 },
+  sectionTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
   link: {
     color: '#A68DFF',
     fontSize: 13,
   },
-  subjectGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  subjectCard: {
-    width: '48%',
-    minHeight: 125,
-    borderRadius: 18,
-  },
-  subjectPressable: {
-    flex: 1,
-    minHeight: 125,
-    padding: 15,
-    justifyContent: 'center',
-  },
+  subjectGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
+  subjectCard: { width: '47.5%', minHeight: 136, borderRadius: 19, overflow: 'hidden' },
+  subjectPressable: { flex: 1, minHeight: 136, padding: 14, justifyContent: 'center' },
   subjectIcon: {
     marginBottom: 12,
   },
@@ -723,30 +636,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 5,
   },
-  bottomNavGlass: {
-    marginHorizontal: 12,
-    marginBottom: 8,
-    borderRadius: 22,
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-    borderTopWidth: 0,
-    paddingTop: 10,
-  },
-  navItem: {
-    flex: 1,
-    minWidth: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingHorizontal: 2,
-  },
-  navLabel: {
-    color: '#758098',
-    fontSize: 9,
-    textAlign: 'center',
-  },
+  bottomNavGlass: { marginHorizontal: 12, marginBottom: 6, borderRadius: 23, overflow: 'hidden' },
+  bottomNav: { minHeight: 64, flexDirection: 'row', alignItems: 'stretch', backgroundColor: 'transparent', borderTopWidth: 0, paddingTop: 6, paddingHorizontal: 4 },
+  navItem: { flex: 1, minWidth: 0, minHeight: 54, alignItems: 'center', justifyContent: 'center', gap: 3, paddingHorizontal: 2, paddingVertical: 4 },
+  navIconWrap: { width: 36, height: 31, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  activeNavIconWrap: { backgroundColor: 'rgba(168, 143, 255, 0.15)' },
+  navLabel: { color: '#758098', fontSize: 10, lineHeight: 13, textAlign: 'center' },
   activeNavLabel: {
     fontWeight: 'bold',
   },

@@ -139,7 +139,7 @@ export default function BattleScreen({
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'MaвЂ™lumotlarni olishda xato.',
+        err instanceof Error ? err.message : 'Ma’lumotlarni olishda xato.',
       );
     } finally {
       setLoadingData(false);
@@ -302,7 +302,7 @@ export default function BattleScreen({
         socket.on('battle:reconnect:failed', (data: {
           message?: string;
         }) => {
-          setError(data.message || 'Battlega qayta ulanib boвЂlmadi.');
+          setError(data.message || 'Battlega qayta ulanib bo‘lmadi.');
           clearMatchState();
         });
 
@@ -361,7 +361,7 @@ export default function BattleScreen({
     const socket = socketRef.current;
 
     if (!socket || !socket.connected) {
-      setError('Serverga ulanish kutilmoqda. Birozdan soвЂng urinib koвЂring.');
+      setError('Serverga ulanish kutilmoqda. Birozdan so‘ng urinib ko‘ring.');
       return;
     }
 
@@ -426,7 +426,7 @@ export default function BattleScreen({
       'Battle dan chiqish',
       'Haqiqatan ham joriy Battle ni bekor qilmoqchimisiz?',
       [
-        { text: 'YoвЂq', style: 'cancel' },
+        { text: 'Yo‘q', style: 'cancel' },
         {
           text: 'Ha, chiqish',
           style: 'destructive',
@@ -466,7 +466,7 @@ export default function BattleScreen({
       return (
         <View style={styles.card}>
           <Text style={styles.resultEmoji}>
-            {finished.draw ? 'рџ¤ќ' : 'рџЏ†'}
+            {finished.draw ? '🤝' : '🏆'}
           </Text>
           <Text style={styles.cardTitle}>{title}</Text>
           <Text style={styles.muted}>Xona: {finished.roomCode}</Text>
@@ -493,8 +493,8 @@ export default function BattleScreen({
           {Object.entries(finished.scores || {}).map(([id, score]) => (
             <Text key={id} style={styles.scoreLine}>
               {match?.players.find((player) => player.id === id)?.username ||
-                `OвЂyinchi ${id.slice(0, 6)}`}
-              {' вЂ” '}
+                `O‘yinchi ${id.slice(0, 6)}`}
+              {' — '}
               {score} ball
             </Text>
           ))}
@@ -514,10 +514,10 @@ export default function BattleScreen({
       return (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
-            {correct ? 'ToвЂgвЂri javob!' : 'Keyingi safar omad!'}
+            {correct ? 'To‘g‘ri javob!' : 'Keyingi safar omad!'}
           </Text>
           <Text style={styles.muted}>
-            ToвЂgвЂri javob: {result.correctAnswer + 1}-variant
+            To‘g‘ri javob: {result.correctAnswer + 1}-variant
           </Text>
           <Text style={styles.bodyText}>{result.explanation}</Text>
 
@@ -525,8 +525,8 @@ export default function BattleScreen({
           {Object.entries(result.scores || {}).map(([id, score]) => (
             <Text key={id} style={styles.scoreLine}>
               {match?.players.find((player) => player.id === id)?.username ||
-                `OвЂyinchi ${id.slice(0, 6)}`}
-              {' вЂ” '}
+                `O‘yinchi ${id.slice(0, 6)}`}
+              {' — '}
               {score} ball
             </Text>
           ))}
@@ -583,7 +583,7 @@ export default function BattleScreen({
                 </Text>
                 <Text style={styles.optionText}>{option}</Text>
                 {selected ? (
-                  <Text style={styles.optionLetter}>вњ“</Text>
+                  <Text style={styles.optionLetter}>✓</Text>
                 ) : null}
               </Pressable>
             );
@@ -617,7 +617,7 @@ export default function BattleScreen({
     if (started || match) {
       return (
         <View style={styles.card}>
-          <Text style={styles.resultEmoji}>вљ”пёЏ</Text>
+          <Text style={styles.resultEmoji}>✅</Text>
           <Text style={styles.cardTitle}>
             {started ? 'Battle boshlandi!' : 'Raqib topildi!'}
           </Text>
@@ -669,24 +669,24 @@ export default function BattleScreen({
 
     return (
       <View style={styles.card}>
-        <Text style={styles.resultEmoji}>вљ”пёЏ</Text>
+        <Text style={styles.resultEmoji}>✅</Text>
         <Text style={styles.cardTitle}>1 ga 1 Battle</Text>
         <Text style={styles.bodyText}>
-          Boshqa oвЂyinchi bilan real vaqt rejimida bilim sinovi.
+          Boshqa o‘yinchi bilan real vaqt rejimida bilim sinovi.
           Har bir savol uchun 20 soniya vaqt beriladi.
         </Text>
 
-        <Text style={styles.scoreTitle}>OвЂyin rejimini tanlang</Text>
+        <Text style={styles.scoreTitle}>O‘yin rejimini tanlang</Text>
 
         <ActionButton
-          title="Casual вЂ” oddiy oвЂyin"
+          title="Casual — oddiy o‘yin"
           onPress={() => joinQueue('casual')}
           styles={styles}
           disabled={!connected || connecting}
         />
 
         <ActionButton
-          title="Ranked вЂ” reyting uchun"
+          title="Ranked — reyting uchun"
           onPress={() => joinQueue('ranked')}
           styles={styles}
           disabled={!connected || connecting}
@@ -709,19 +709,19 @@ export default function BattleScreen({
     }
 
     if (!history.length) {
-      return <Text style={styles.muted}>Battle tarixi hozircha yoвЂq.</Text>;
+      return <Text style={styles.muted}>Battle tarixi hozircha yo‘q.</Text>;
     }
 
     return history.map((item) => (
       <View key={item.id} style={styles.listCard}>
         <Text style={styles.cardTitle}>
-          {item.mode === 'ranked' ? 'Ranked' : 'Casual'} В· {item.roomCode}
+          {item.mode === 'ranked' ? 'Ranked' : 'Casual'} · {item.roomCode}
         </Text>
         <Text style={styles.muted}>
-          Holati: {item.status} В· {new Date(item.createdAt).toLocaleString()}
+          Holati: {item.status} · {new Date(item.createdAt).toLocaleString()}
         </Text>
         <Text style={styles.bodyText}>
-          {item.winnerId ? `GвЂolib ID: ${item.winnerId}` : 'GвЂolib: aniqlanmagan'}
+          {item.winnerId ? `G‘olib ID: ${item.winnerId}` : 'G‘olib: aniqlanmagan'}
         </Text>
       </View>
     ));
@@ -781,10 +781,10 @@ export default function BattleScreen({
             #{player.rank ?? index + 1} {player.username}
           </Text>
           <Text style={styles.rankResultTier}>
-            {rankTier} В· {rankPoints} RP
+            {rankTier} · {rankPoints} RP
           </Text>
           <Text style={styles.bodyText}>
-            G'alaba: {player.wins} В· Mag'lubiyat: {player.losses} В·
+            G'alaba: {player.wins} · Mag'lubiyat: {player.losses} ·
             Durang: {player.draws}
           </Text>
           <Text style={styles.muted}>Battle ball: {player.points}</Text>
@@ -798,13 +798,13 @@ export default function BattleScreen({
       <View style={styles.header}>
         {onBack ? (
           <Pressable onPress={onBack} style={styles.backButton}>
-            <Text style={styles.backText}>вЂ№</Text>
+            <Text style={styles.backText}>‹</Text>
           </Pressable>
         ) : null}
         <View style={{ flex: 1 }}>
           <Text style={styles.heading}>Battle Arena</Text>
           <Text style={styles.muted}>
-            {connected ? 'в—Џ Ulangan' : 'в—‹ Ulanmagan'}
+            {connected ? '● Ulangan' : '○ Ulanmagan'}
           </Text>
         </View>
       </View>
@@ -890,87 +890,34 @@ function makeStyles(colors: typeof COLORS) {
       flex: 1,
       backgroundColor: colors.background,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 18,
-      paddingTop: 12,
-      paddingBottom: 14,
-      gap: 12,
-    },
-    backButton: {
-      width: 38,
-      height: 38,
-      borderRadius: 12,
-      backgroundColor: colors.card,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingTop: 14, paddingBottom: 12, gap: 12 },
+    backButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
     backText: {
       color: colors.text,
       fontSize: 30,
       lineHeight: 34,
     },
-    heading: {
-      color: colors.text,
-      fontSize: 23,
-      fontWeight: '800',
-    },
+    heading: { color: colors.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
     muted: {
       color: colors.muted,
       fontSize: 13,
       marginTop: 5,
     },
-    tabs: {
-      flexDirection: 'row',
-      marginHorizontal: 12,
-      marginBottom: 12,
-      backgroundColor: colors.card,
-      borderRadius: 14,
-      padding: 4,
-    },
-    tab: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 10,
-      borderRadius: 10,
-    },
+    tabs: { flexDirection: 'row', marginHorizontal: 14, marginBottom: 14, backgroundColor: colors.card, borderRadius: 15, padding: 4, gap: 2 },
+    tab: { flex: 1, minWidth: 0, minHeight: 43, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, paddingVertical: 8, borderRadius: 11 },
     activeTab: {
       backgroundColor: colors.primary,
     },
-    tabText: {
-      color: colors.muted,
-      fontSize: 11,
-      fontWeight: '700',
-    },
+    tabText: { color: colors.muted, fontSize: 10, fontWeight: '700', textAlign: 'center' },
     activeTabText: {
       color: '#FFFFFF',
     },
     content: {
       flex: 1,
     },
-    contentInner: {
-      padding: 14,
-      paddingBottom: 30,
-      gap: 12,
-    },
-    card: {
-      backgroundColor: colors.card,
-      borderRadius: 20,
-      padding: 20,
-      alignItems: 'stretch',
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    listCard: {
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: colors.border,
-      marginBottom: 10,
-    },
+    contentInner: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 36, gap: 12 },
+    card: { backgroundColor: colors.card, borderRadius: 22, padding: 18, alignItems: 'stretch', borderWidth: 1, borderColor: colors.border },
+    listCard: { backgroundColor: colors.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 10 },
     rankResultCard: {
       marginTop: 14,
       padding: 16,
@@ -1040,17 +987,7 @@ function makeStyles(colors: typeof COLORS) {
       lineHeight: 27,
       marginVertical: 12,
     },
-    option: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.background,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 13,
-      padding: 14,
-      marginTop: 9,
-      gap: 10,
-    },
+    option: { minHeight: 58, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 15, paddingHorizontal: 15, paddingVertical: 13, marginTop: 9, gap: 10 },
     selectedOption: {
       borderColor: colors.primary,
       backgroundColor: colors.primary + '20',
@@ -1068,14 +1005,7 @@ function makeStyles(colors: typeof COLORS) {
       fontSize: 14,
       flex: 1,
     },
-    actionButton: {
-      backgroundColor: colors.primary,
-      paddingVertical: 15,
-      paddingHorizontal: 14,
-      borderRadius: 13,
-      alignItems: 'center',
-      marginTop: 12,
-    },
+    actionButton: { minHeight: 52, backgroundColor: colors.primary, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
     dangerButton: {
       backgroundColor: colors.danger,
     },
