@@ -12,6 +12,7 @@ import { BattleModule } from './battle/battle.module';
 import { CreateUsersTable20261122173000 } from './database/migrations/CreateUsersTable';
 import { CreateAiTutorMessages20261122180000 } from './database/migrations/CreateAiTutorMessages';
 import { AddUserProfileFields20261122192000 } from './database/migrations/AddUserProfileFields';
+import { AddUserRankPoints20261124002500 } from './database/migrations/AddUserRankPoints';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
 
@@ -36,6 +37,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         CreateUsersTable20261122173000,
         CreateAiTutorMessages20261122180000,
         AddUserProfileFields20261122192000,
+        AddUserRankPoints20261124002500,
         CreateBattleMatches20261122210000,
         CreateBattleQuestions20261122220000,
       ],

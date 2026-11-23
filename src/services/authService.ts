@@ -15,6 +15,8 @@ export interface AuthUser {
   status: 'active' | 'blocked';
   xp: number;
   level: number;
+  rankPoints?: number;
+  rankTier?: string;
   avatarUrl: string | null;
   bio: string | null;
   profileFrame: string | null;

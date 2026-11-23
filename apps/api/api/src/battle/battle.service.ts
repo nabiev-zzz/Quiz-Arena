@@ -35,6 +35,27 @@ export interface BattleQuestionResult {
   explanation: string;
 }
 
+export interface BattleRankChange {
+  userId: string;
+  previousPoints: number;
+  rankPoints: number;
+  delta: number;
+  rankTier: string;
+}
+
+export type FinishedBattleResult = BattleMatch & {
+  rankChanges: Record<string, BattleRankChange>;
+};
+
+function getBattleRankTier(points: number): string {
+  if (points >= 1400) return 'Grandmaster';
+  if (points >= 1100) return 'Master';
+  if (points >= 800) return 'Diamond';
+  if (points >= 600) return 'Platinum';
+  if (points >= 400) return 'Gold';
+  if (points >= 200) return 'Silver';
+  return 'Bronze';
+}
 interface BattleRankingEntry {
   userId: string;
   displayName: string;
@@ -46,6 +67,8 @@ interface BattleRankingEntry {
   draws: number;
   points: number;
   winRate: number;
+  rankPoints: number;
+  rankTier: string;
 }
 
 @Injectable()
@@ -338,67 +361,276 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
     return allQuestions;
   }
 
+
   async saveProgress(
     matchId: string,
     results: BattleQuestionResult[],
     scores: Record<string, number>,
   ): Promise<BattleMatch> {
-    const match = await this.getMatch(matchId);
+    return this.matchRepository.manager.transaction(
+      async (manager): Promise<BattleMatch> => {
+        const matchRepo = manager.getRepository(BattleMatch);
 
-    if (match.status === 'finished' || match.status === 'cancelled') {
-      throw new BadRequestException('Battle yakunlangan.');
-    }
+        const match = await matchRepo.findOne({
+          where: { id: matchId },
+          lock: { mode: 'pessimistic_write' },
+        });
 
-    match.questionResults =
-      results as unknown as Record<string, unknown>[];
-    match.scores = scores;
+        if (!match) {
+          throw new NotFoundException('Battle topilmadi.');
+        }
 
-    return this.matchRepository.save(match);
+        if (
+          match.status === 'finished' ||
+          match.status === 'cancelled'
+        ) {
+          throw new BadRequestException(
+            'Yakunlangan Battle natijasini o‘zgartirib bo‘lmaydi.',
+          );
+        }
+
+        match.questionResults =
+          results as unknown as Record<string, unknown>[];
+
+        match.scores = { ...scores };
+
+        return matchRepo.save(match);
+      },
+    );
   }
+
 
   async finishMatch(
     matchId: string,
     scores: Record<string, number>,
-  ): Promise<BattleMatch> {
-    const match = await this.getMatch(matchId);
+    results?: BattleQuestionResult[],
+  ): Promise<FinishedBattleResult> {
+    return this.matchRepository.manager.transaction(
+      async (manager): Promise<FinishedBattleResult> => {
+        const matchRepo = manager.getRepository(BattleMatch);
+        const userRepo = manager.getRepository(User);
 
-    if (match.status === 'finished') {
-      return match;
-    }
+        const match = await matchRepo.findOne({
+          where: { id: matchId },
+          lock: { mode: 'pessimistic_write' },
+        });
 
-    if (match.status === 'cancelled') {
-      throw new BadRequestException(
-        'Bekor qilingan Battle yakunlana olmaydi.',
-      );
-    }
+        if (!match) {
+          throw new NotFoundException('Battle topilmadi.');
+        }
 
-    const playerOneScore = scores[match.playerOneId] || 0;
-    const playerTwoScore = match.playerTwoId
-      ? scores[match.playerTwoId] || 0
-      : 0;
+        if (match.status === 'finished') {
+          return Object.assign(match, { rankChanges: {} });
+        }
 
-    let winnerId: string | null = null;
+        if (match.status === 'cancelled') {
+          throw new BadRequestException(
+            'Bekor qilingan Battle yakunlana olmaydi.',
+          );
+        }
 
-    if (playerOneScore > playerTwoScore) {
-      winnerId = match.playerOneId;
-    } else if (playerTwoScore > playerOneScore) {
-      winnerId = match.playerTwoId;
-    }
+        const playerOneScore = scores[match.playerOneId] ?? 0;
+        const playerTwoScore = match.playerTwoId
+          ? scores[match.playerTwoId] ?? 0
+          : 0;
 
-    match.scores = scores;
-    match.winnerId = winnerId;
-    match.status = 'finished';
-    match.finishedAt = new Date();
+        let winnerId: string | null = null;
 
-    const saved = await this.matchRepository.save(match);
+        if (playerOneScore > playerTwoScore) {
+          winnerId = match.playerOneId;
+        } else if (playerTwoScore > playerOneScore) {
+          winnerId = match.playerTwoId;
+        }
 
-    this.logger.log(
-      `Battle ${match.roomCode} yakunlandi. G‘olib: ${winnerId || 'Durang'}`,
+        const questionResults =
+          results ?? (match.questionResults as unknown as BattleQuestionResult[]);
+
+        // Ranked jang uchun aynan 10 ta savol natijasi shart.
+        if (match.mode === 'ranked' && match.playerTwoId) {
+          if (
+            !Array.isArray(questionResults) ||
+            questionResults.length !== 10
+          ) {
+            throw new BadRequestException(
+              'Ranked Battle uchun 10 ta savolning barchasi yakunlanishi shart.',
+            );
+          }
+
+          const questionIndexes = new Set<number>();
+          const playerIds = [match.playerOneId, match.playerTwoId];
+
+          for (const result of questionResults) {
+            if (
+              !result ||
+              typeof result.questionId !== 'string' ||
+              !result.questionId.trim() ||
+              !Number.isInteger(result.questionIndex) ||
+              result.questionIndex < 0 ||
+              result.questionIndex > 9 ||
+              questionIndexes.has(result.questionIndex) ||
+              !Number.isInteger(result.correctAnswer) ||
+              result.correctAnswer < 0 ||
+              !result.answers ||
+              typeof result.answers !== 'object'
+            ) {
+              throw new BadRequestException(
+                'Ranked Battle savol natijalari noto‘g‘ri.',
+              );
+            }
+
+            questionIndexes.add(result.questionIndex);
+
+            for (const playerId of playerIds) {
+              if (
+                !Object.prototype.hasOwnProperty.call(
+                  result.answers,
+                  playerId,
+                )
+              ) {
+                throw new BadRequestException(
+                  'Ranked Battle ishtirokchisining javobi topilmadi.',
+                );
+              }
+
+              const answer = result.answers[playerId];
+
+              if (
+                answer !== null &&
+                (!Number.isInteger(answer) || answer < 0)
+              ) {
+                throw new BadRequestException(
+                  'Ranked Battle javob formati noto‘g‘ri.',
+                );
+              }
+            }
+          }
+
+          if (questionIndexes.size !== 10) {
+            throw new BadRequestException(
+              'Ranked Battle savollari to‘liq emas.',
+            );
+          }
+        }
+
+        if (results) {
+          match.questionResults =
+            results as unknown as Record<string, unknown>[];
+        }
+
+        match.scores = scores;
+        match.winnerId = winnerId;
+        match.status = 'finished';
+        match.finishedAt = new Date();
+
+        const rankChanges: Record<string, BattleRankChange> = {};
+
+        if (match.mode === 'ranked' && match.playerTwoId) {
+          const playerIds = [
+            match.playerOneId,
+            match.playerTwoId,
+          ].sort();
+
+          const lockedUsers = new Map<string, User>();
+
+          for (const playerId of playerIds) {
+            const user = await userRepo.findOne({
+              where: { id: playerId },
+              lock: { mode: 'pessimistic_write' },
+            });
+
+            if (!user) {
+              throw new NotFoundException(
+                'Battle ishtirokchilaridan biri topilmadi.',
+              );
+            }
+
+            lockedUsers.set(playerId, user);
+          }
+
+          const correctCounts: Record<string, number> = {
+            [match.playerOneId]: 0,
+            [match.playerTwoId]: 0,
+          };
+
+          for (const result of questionResults) {
+            for (const playerId of playerIds) {
+              if (
+                result.answers?.[playerId] !== null &&
+                result.answers?.[playerId] !== undefined &&
+                result.answers[playerId] === result.correctAnswer
+              ) {
+                correctCounts[playerId]++;
+              }
+            }
+          }
+
+          for (const playerId of playerIds) {
+            const user = lockedUsers.get(playerId)!;
+            const opponentId =
+              playerId === match.playerOneId
+                ? match.playerTwoId
+                : match.playerOneId;
+
+            const accuracy =
+              (correctCounts[playerId] / questionResults.length) * 100;
+
+            const base =
+              winnerId === null
+                ? 8
+                : winnerId === playerId
+                  ? 18
+                  : -10;
+
+            const performance = Math.round(
+              (accuracy - 50) * 0.2,
+            );
+
+            const relative = Math.max(
+              -5,
+              Math.min(
+                5,
+                Math.round(
+                  (correctCounts[playerId] -
+                    correctCounts[opponentId]) *
+                    0.5,
+                ),
+              ),
+            );
+
+            const calculatedDelta = Math.max(
+              -15,
+              Math.min(30, base + performance + relative),
+            );
+
+            const previousPoints = user.rankPoints ?? 0;
+            const newPoints = Math.max(
+              0,
+              previousPoints + calculatedDelta,
+            );
+
+            user.rankPoints = newPoints;
+            await userRepo.save(user);
+
+            rankChanges[playerId] = {
+              userId: playerId,
+              previousPoints,
+              rankPoints: newPoints,
+              delta: newPoints - previousPoints,
+              rankTier: getBattleRankTier(newPoints),
+            };
+          }
+        }
+
+        const saved = await matchRepo.save(match);
+
+        this.logger.log(
+          `Battle ${match.roomCode} yakunlandi. G'olib: ${winnerId || 'Durang'}. Rank: ${Object.keys(rankChanges).length} ishtirokchi.`,
+        );
+
+        return Object.assign(saved, { rankChanges });
+      },
     );
-
-    return saved;
   }
-
   async cancelMatch(matchId: string): Promise<void> {
     const match = await this.getMatch(matchId);
 
@@ -558,7 +790,10 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
     const limit = Math.min(Math.max(Number(requestedLimit) || 50, 1), 100);
 
     const matches = await this.matchRepository.find({
-      where: { status: 'finished' },
+      where: {
+  status: 'finished',
+  mode: 'ranked',
+},
       order: { finishedAt: 'DESC' },
     });
 
@@ -616,6 +851,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
         displayName: true,
         username: true,
         avatarUrl: true,
+        rankPoints: true,
       },
     });
 
@@ -635,6 +871,8 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
           displayName: user.displayName,
           username: user.username,
           avatarUrl: user.avatarUrl,
+          rankPoints: user.rankPoints ?? 0,
+          rankTier: getBattleRankTier(user.rankPoints ?? 0),
           matches: stats.matches,
           wins: stats.wins,
           losses: stats.losses,
@@ -649,6 +887,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
       .filter((entry): entry is BattleRankingEntry => entry !== null)
       .sort(
         (a, b) =>
+          b.rankPoints - a.rankPoints ||
           b.wins - a.wins ||
           b.winRate - a.winRate ||
           b.points - a.points ||

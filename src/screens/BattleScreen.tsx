@@ -10,6 +10,8 @@ import {
   View,
 } from 'react-native';
 
+import { useAuth } from '../context/AuthContext';
+
 import {
   BattleFinished,
   BattleHistoryItem,
@@ -52,6 +54,8 @@ export default function BattleScreen({
   onBack,
   initialSection = 'battle',
 }: BattleScreenProps) {
+  const { user, refreshUser } = useAuth();
+
   const [section, setSection] = useState<Section>(initialSection);
   const [mode, setMode] = useState<BattleMode>('casual');
 
@@ -279,6 +283,8 @@ export default function BattleScreen({
           setSearching(false);
           matchIdRef.current = null;
           questionIndexRef.current = null;
+
+          void refreshUser().catch(() => undefined);
         });
 
         socket.on('battle:reconnected', (data: {
@@ -447,6 +453,10 @@ export default function BattleScreen({
 
   function renderBattle() {
     if (finished) {
+      const myRankChange = user
+        ? finished.rankChanges?.[user.id]
+        : undefined;
+
       const title = finished.draw
         ? 'Durang!'
         : finished.winnerId
@@ -460,6 +470,24 @@ export default function BattleScreen({
           </Text>
           <Text style={styles.cardTitle}>{title}</Text>
           <Text style={styles.muted}>Xona: {finished.roomCode}</Text>
+
+          {myRankChange ? (
+            <View style={styles.rankResultCard}>
+              <Text style={styles.rankResultTitle}>
+                RANK NATIJASI
+              </Text>
+              <Text style={[
+                styles.rankResultDelta,
+                { color: myRankChange.delta >= 0 ? '#22C55E' : '#F87171' },
+              ]}>
+                {myRankChange.delta > 0 ? '+' : ''}
+                {myRankChange.delta} RP
+              </Text>
+              <Text style={styles.rankResultTier}>
+                {myRankChange.rankTier} · {myRankChange.rankPoints} RP
+              </Text>
+            </View>
+          ) : null}
 
           <Text style={styles.scoreTitle}>Yakuniy hisob</Text>
           {Object.entries(finished.scores || {}).map(([id, score]) => (
@@ -733,21 +761,36 @@ export default function BattleScreen({
     }
 
     if (!leaderboard.length) {
-      return <Text style={styles.muted}>Reyting hozircha boвЂsh.</Text>;
+      return <Text style={styles.muted}>Reyting hozircha bo'sh.</Text>;
     }
 
-    return leaderboard.map((player, index) => (
-      <View key={player.userId || String(index)} style={styles.listCard}>
-        <Text style={styles.cardTitle}>
-          #{index + 1} {player.username}
-        </Text>
-        <Text style={styles.bodyText}>
-          GвЂalaba: {player.wins} В· MagвЂlubiyat: {player.losses} В·
-          Durang: {player.draws}
-        </Text>
-        <Text style={styles.muted}>Ball: {player.points}</Text>
-      </View>
-    ));
+    return leaderboard.map((player, index) => {
+      const rankPoints = Math.max(0, Number(player.rankPoints ?? 0));
+      const rankTier =
+        player.rankTier ||
+        (rankPoints >= 1400 ? 'Grandmaster' :
+        rankPoints >= 1100 ? 'Master' :
+        rankPoints >= 800 ? 'Diamond' :
+        rankPoints >= 600 ? 'Platinum' :
+        rankPoints >= 400 ? 'Gold' :
+        rankPoints >= 200 ? 'Silver' : 'Bronze');
+
+      return (
+        <View key={player.userId || String(index)} style={styles.listCard}>
+          <Text style={styles.cardTitle}>
+            #{player.rank ?? index + 1} {player.username}
+          </Text>
+          <Text style={styles.rankResultTier}>
+            {rankTier} В· {rankPoints} RP
+          </Text>
+          <Text style={styles.bodyText}>
+            G'alaba: {player.wins} В· Mag'lubiyat: {player.losses} В·
+            Durang: {player.draws}
+          </Text>
+          <Text style={styles.muted}>Battle ball: {player.points}</Text>
+        </View>
+      );
+    });
   }
 
   return (
@@ -927,6 +970,31 @@ function makeStyles(colors: typeof COLORS) {
       borderWidth: 1,
       borderColor: colors.border,
       marginBottom: 10,
+    },
+    rankResultCard: {
+      marginTop: 14,
+      padding: 16,
+      borderRadius: 18,
+      backgroundColor: '#F2EDFF',
+      borderWidth: 1,
+      borderColor: '#C9B8F5',
+    },
+    rankResultTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#5940A8',
+    },
+    rankResultDelta: {
+      marginTop: 8,
+      fontSize: 28,
+      fontWeight: '800',
+      color: '#6848D8',
+    },
+    rankResultTier: {
+      marginTop: 5,
+      fontSize: 13,
+      fontWeight: '600',
+      color: '#625A78',
     },
     resultEmoji: {
       fontSize: 44,

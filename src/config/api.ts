@@ -1,7 +1,9 @@
-
 import Constants from 'expo-constants';
 
 const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+
+const PRODUCTION_API_URL =
+  'https://humorous-imagination-production.up.railway.app';
 
 function getDevelopmentApiUrl(): string {
   const hostUri = Constants.expoConfig?.hostUri;
@@ -19,5 +21,5 @@ function getDevelopmentApiUrl(): string {
 
 export const API_BASE_URL = (
   configuredApiUrl ||
-  (__DEV__ ? getDevelopmentApiUrl() : 'http://localhost:3000')
+  (__DEV__ ? getDevelopmentApiUrl() : PRODUCTION_API_URL)
 ).replace(/\/+$/, '');

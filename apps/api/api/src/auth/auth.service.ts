@@ -28,6 +28,15 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  private getRankTier(points: number): string {
+    if (points >= 1400) return 'Grandmaster';
+    if (points >= 1100) return 'Master';
+    if (points >= 800) return 'Diamond';
+    if (points >= 600) return 'Platinum';
+    if (points >= 400) return 'Gold';
+    if (points >= 200) return 'Silver';
+    return 'Bronze';
+  }
   private getSafeUser(user: User) {
     return {
       id: user.id,
@@ -37,6 +46,8 @@ export class AuthService {
       role: user.role,
       status: user.status,
       xp: user.xp,
+      rankPoints: user.rankPoints,
+      rankTier: this.getRankTier(user.rankPoints),
       level: user.level,
       avatarUrl: user.avatarUrl,
       bio: user.bio,

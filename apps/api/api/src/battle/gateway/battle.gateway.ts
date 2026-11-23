@@ -1,3 +1,4 @@
+
 import {
   ConnectedSocket,
   MessageBody,
@@ -59,6 +60,8 @@ interface ActiveBattle {
   disconnectTimers: Map<string, ReturnType<typeof setTimeout>>;
   resolving: boolean;
   questionResolved: boolean;
+  finishing?: boolean;
+  finishAttempts?: number;
   readyPlayers: Set<string>;
 }
 
@@ -178,7 +181,6 @@ export class BattleGateway
         continue;
       }
 
-      // Faqat aynan faol socket uzilgan bo‘lsa, uni o‘chiramiz.
       if (battle.socketIds[userId] !== client.id) {
         continue;
       }
@@ -227,7 +229,6 @@ export class BattleGateway
     const queueKey = `battle:queue:${mode}:${categoryId}`;
 
     try {
-      // Shu socket avval boshqa navbatda bo‘lsa, uni tozalaymiz.
       const previousQueue = this.queuedSockets.get(client.id);
 
       if (previousQueue) {
@@ -392,7 +393,6 @@ export class BattleGateway
         throw new Error('Battle uchun 10 ta savol tayyorlanmadi.');
       }
 
-      // Jang boshlangan vaqtni bazaga yozamiz.
       await this.battleService.markMatchStarted(matchId);
 
       const room = `battle:${roomCode}`;
@@ -607,6 +607,12 @@ export class BattleGateway
 
     const question = battle.questions[battle.questionIndex];
 
+    if (!question) {
+      battle.resolving = false;
+      await this.completeBattle(battle);
+      return;
+    }
+
     const answers: Record<string, number | null> = {};
     const points: Record<string, number> = {};
 
@@ -645,10 +651,29 @@ export class BattleGateway
         battle.scores,
       );
     } catch (error) {
+      battle.results.pop();
+
+      for (const playerId of battle.playerIds) {
+        battle.scores[playerId] -= points[playerId] ?? 0;
+      }
+
+      battle.resolving = false;
+
       this.logger.error(
         'Battle natijasini saqlashda xato:',
         error instanceof Error ? error.stack : String(error),
       );
+
+      this.server.to(battle.room).emit('battle:error', {
+        message:
+          'Natijani saqlashda xatolik yuz berdi. Iltimos, qayta urinib ko‘ring.',
+      });
+
+      battle.timer = setTimeout(() => {
+        void this.resolveQuestion(battle);
+      }, 3000);
+
+      return;
     }
 
     this.server.to(battle.room).emit('battle:question:result', {
@@ -761,24 +786,34 @@ export class BattleGateway
       return;
     }
 
+    if (battle.finishing) {
+      return;
+    }
+
+    battle.finishing = true;
+
     if (battle.timer) {
       clearTimeout(battle.timer);
+      battle.timer = null;
     }
 
     if (battle.nextTimer) {
       clearTimeout(battle.nextTimer);
+      battle.nextTimer = null;
     }
 
     try {
       const match = await this.battleService.finishMatch(
         battle.matchId,
         battle.scores,
+        battle.results,
       );
 
       this.server.to(battle.room).emit('battle:finished', {
         matchId: battle.matchId,
         roomCode: battle.roomCode,
         scores: battle.scores,
+        rankChanges: match.rankChanges,
         winnerId: match.winnerId,
         draw: match.winnerId === null,
         totalQuestions: battle.questions.length,
@@ -789,18 +824,36 @@ export class BattleGateway
       });
 
       this.logger.log(`Battle yakunlandi: ${battle.roomCode}`);
+
+      this.clearBattleTimers(battle);
+      this.activeBattles.delete(battle.matchId);
     } catch (error) {
+      battle.finishing = false;
+
       this.logger.error(
         'Battle yakunlashda xato:',
         error instanceof Error ? error.stack : String(error),
       );
 
-      this.server.to(battle.room).emit('battle:error', {
-        message: 'Battle natijasini saqlashda xatolik.',
-      });
-    } finally {
-      this.clearBattleTimers(battle);
-      this.activeBattles.delete(battle.matchId);
+      const attempts = (battle.finishAttempts ?? 0) + 1;
+      battle.finishAttempts = attempts;
+
+      if (attempts <= 3) {
+        const delay = attempts * 2000;
+
+        this.logger.warn(
+          `Battle yakunlash qayta uriniladi: ${battle.roomCode}. Urinish ${attempts}/3`,
+        );
+
+        setTimeout(() => {
+          void this.completeBattle(battle);
+        }, delay);
+      } else {
+        this.server.to(battle.room).emit('battle:error', {
+          message:
+            'Battle natijasini saqlashda xatolik. Iltimos, keyinroq qayta urinib ko‘ring.',
+        });
+      }
     }
   }
 
@@ -835,7 +888,6 @@ export class BattleGateway
       battle.disconnectTimers.delete(userId);
     }
 
-    // Yangi socket ID ni faol ulanish sifatida belgilaymiz.
     battle.socketIds[userId] = client.id;
 
     await client.join(battle.room);
@@ -874,6 +926,7 @@ export class BattleGateway
 
       if (battle.questionResolved && battle.results.length > 0) {
         const result = battle.results[battle.results.length - 1];
+
         client.emit('battle:question:result', {
           matchId: battle.matchId,
           questionIndex: result.questionIndex,
@@ -895,7 +948,6 @@ export class BattleGateway
   ): Promise<void> {
     const battle = this.activeBattles.get(matchId);
 
-    // Foydalanuvchi qayta ulangan bo‘lsa, bekor qilmaymiz.
     if (!battle || battle.socketIds[userId]) {
       return;
     }

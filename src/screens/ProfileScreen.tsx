@@ -50,6 +50,31 @@ export default function ProfileScreen({
     );
   }
 
+  const rankPoints = Math.max(0, Number(user.rankPoints ?? 0));
+  const rankTiers = [
+    { name: 'Bronze', min: 0, color: '#CD7F32' },
+    { name: 'Silver', min: 200, color: '#A8B0BD' },
+    { name: 'Gold', min: 400, color: '#F5C542' },
+    { name: 'Platinum', min: 600, color: '#67DCC5' },
+    { name: 'Diamond', min: 800, color: '#60A5FA' },
+    { name: 'Master', min: 1100, color: '#A78BFA' },
+    { name: 'Grandmaster', min: 1400, color: '#F59E0B' },
+  ];
+  const rankIndex = rankTiers.findIndex(
+    (tier, index) =>
+      rankPoints >= tier.min &&
+      (index === rankTiers.length - 1 ||
+        rankPoints < rankTiers[index + 1].min),
+  );
+  const rankInfo = rankTiers[Math.max(0, rankIndex)];
+  const nextRank = rankTiers[rankIndex + 1];
+  const rankProgress = nextRank
+    ? Math.min(
+        100,
+        ((rankPoints - rankInfo.min) /
+          (nextRank.min - rankInfo.min)) * 100,
+      )
+    : 100;
   const chooseAvatar = async () => {
     try {
       const permission =
@@ -209,6 +234,38 @@ export default function ProfileScreen({
         </View>
       </View>
 
+      <View style={styles.rankCard}>
+        <View style={styles.rankTopRow}>
+          <View style={styles.rankIconWrap}>
+            <Ionicons name="medal" size={30} color={rankInfo.color} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rankName}>{rankInfo.name} ligasi</Text>
+            <Text style={styles.rankSubtext}>Battle reytingi</Text>
+          </View>
+          <Text style={[styles.rankPointsText, { color: rankInfo.color }]}>
+            {rankPoints} RP
+          </Text>
+        </View>
+
+        <View style={styles.rankProgressTrack}>
+          <View
+            style={[
+              styles.rankProgressFill,
+              {
+                width: `${rankProgress}%`,
+                backgroundColor: rankInfo.color,
+              },
+            ]}
+          />
+        </View>
+
+        <Text style={styles.rankProgressText}>
+          {nextRank
+            ? `${nextRank.min - rankPoints} RP dan keyingi liga`
+            : 'Eng yuqori liga'}
+        </Text>
+      </View>
       <Text style={styles.sectionTitle}>Mukofotlar</Text>
 
       <View style={styles.infoCard}>
@@ -511,7 +568,58 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 4,
   },
-  infoCard: {
+  rankCard: {
+    backgroundColor: '#151D33',
+    borderRadius: 18,
+    padding: 17,
+    marginTop: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#514078',
+  },
+  rankTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  rankIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 15,
+    backgroundColor: '#25213D',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankName: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  rankPointsText: {
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  rankSubtext: {
+    color: '#929BB0',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  rankProgressTrack: {
+    height: 9,
+    borderRadius: 10,
+    backgroundColor: '#30384D',
+    overflow: 'hidden',
+    marginTop: 18,
+  },
+  rankProgressFill: {
+    height: 9,
+    borderRadius: 10,
+  },
+  rankProgressText: {
+    color: '#B7BED0',
+    fontSize: 12,
+    marginTop: 9,
+  },  infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#151D33',

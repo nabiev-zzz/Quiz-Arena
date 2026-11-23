@@ -44,6 +44,13 @@ export interface BattleFinished {
   draw: boolean;
   totalQuestions: number;
   message: string;
+  rankChanges?: Record<string, {
+    userId: string;
+    previousPoints: number;
+    rankPoints: number;
+    delta: number;
+    rankTier: string;
+  }>;
 }
 
 export interface BattleMatched {
@@ -91,10 +98,17 @@ export interface BattleStats {
 export interface BattleLeaderboardEntry {
   userId: string;
   username: string;
+  displayName?: string;
+  avatarUrl?: string | null;
+  rank?: number;
+  rankPoints: number;
+  rankTier: string;
   wins: number;
   losses: number;
   draws: number;
   points: number;
+  matches?: number;
+  winRate?: number;
   [key: string]: unknown;
 }
 
@@ -164,7 +178,12 @@ export async function getBattleStats(): Promise<BattleStats> {
 export async function getBattleLeaderboard(
   limit = 50,
 ): Promise<BattleLeaderboardEntry[]> {
-  return authenticatedRequest<BattleLeaderboardEntry[]>(
-    `/api/battle/leaderboard?limit=${limit}`,
-  );
+  const response = await authenticatedRequest<
+    | BattleLeaderboardEntry[]
+    | { total: number; leaderboard: BattleLeaderboardEntry[] }
+  >(`/api/battle/leaderboard?limit=${limit}`);
+
+  return Array.isArray(response)
+    ? response
+    : response.leaderboard ?? [];
 }

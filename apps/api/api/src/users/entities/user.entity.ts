@@ -35,7 +35,8 @@ export class User {
 
   @Column({ type: 'integer', default: 0 })
   xp: number;
-
+  @Column({ type: 'integer', default: 0 })
+  rankPoints: number;
   @Column({ type: 'integer', default: 1 })
   level: number;
 
