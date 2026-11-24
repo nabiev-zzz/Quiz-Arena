@@ -15,8 +15,8 @@ import {
   Pressable,
   SafeAreaView,
   StyleSheet,
-  NativeText,
-  NativeTextInput,
+  Text as NativeText,
+  TextInput as NativeTextInput,
   View,
 } from 'react-native';
 
