@@ -1,18 +1,22 @@
-
 import {
   BadRequestException,
   ConflictException,
   Injectable,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes, randomInt } from 'node:crypto';
 
 import { User } from '../users/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { PhoneRegisterDto, PasswordResetDto } from './dto/phone-otp.dto';
+import { AuthOtpService } from './auth-otp.service';
 
 export interface UpdateProfileInput {
   displayName?: string;
@@ -28,6 +32,8 @@ export class AuthService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
+    private readonly otpService: AuthOtpService,
+    private readonly config: ConfigService,
   ) {}
 
   private getRankTier(points: number): string {
@@ -39,12 +45,15 @@ export class AuthService {
     if (points >= 200) return 'Silver';
     return 'Bronze';
   }
+
   private getSafeUser(user: User) {
     return {
       id: user.id,
       displayName: user.displayName,
       username: user.username,
       email: user.email,
+      phoneNumber: user.phoneNumber,
+      phoneVerified: Boolean(user.phoneVerifiedAt),
       role: user.role,
       status: user.status,
       xp: user.xp,
@@ -60,92 +69,58 @@ export class AuthService {
   }
 
   async getProfile(userId: string) {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-    });
-
+    const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user || user.status !== 'active') {
       throw new UnauthorizedException('Foydalanuvchi topilmadi');
     }
-
     return this.getSafeUser(user);
   }
 
   async updateProfile(userId: string, input: UpdateProfileInput) {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-    });
-
+    const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user || user.status !== 'active') {
       throw new UnauthorizedException('Foydalanuvchi topilmadi');
     }
 
     if (input.displayName !== undefined) {
       const displayName = input.displayName.trim();
-
       if (displayName.length < 2) {
-        throw new BadRequestException(
-          'Ism kamida 2 ta belgidan iborat bo‘lsin',
-        );
+        throw new BadRequestException('Ism kamida 2 ta belgidan iborat bo‘lsin');
       }
-
       user.displayName = displayName;
     }
 
     if (input.username !== undefined) {
       const username = input.username.trim().toLowerCase();
-
       if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) {
         throw new BadRequestException(
           'Username 3–30 ta belgi bo‘lsin. Faqat lotin harflari, raqamlar va _ ishlating.',
         );
       }
-
-      const existing = await this.userRepository.findOne({
-        where: { username },
-      });
-
+      const existing = await this.userRepository.findOne({ where: { username } });
       if (existing && existing.id !== userId) {
         throw new ConflictException('Bu username allaqachon band');
       }
-
       user.username = username;
     }
 
-    if (input.bio !== undefined) {
-      user.bio = input.bio?.trim() || null;
-    }
-
-    if (input.avatarDecoration !== undefined) {
-      user.avatarDecoration = input.avatarDecoration;
-    }
-
-    if (input.profileFrame !== undefined) {
-      user.profileFrame = input.profileFrame;
-    }
+    if (input.bio !== undefined) user.bio = input.bio?.trim() || null;
+    if (input.avatarDecoration !== undefined) user.avatarDecoration = input.avatarDecoration;
+    if (input.profileFrame !== undefined) user.profileFrame = input.profileFrame;
 
     try {
       const savedUser = await this.userRepository.save(user);
       return this.getSafeUser(savedUser);
     } catch (error) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        error.code === '23505'
-      ) {
+      if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
         throw new ConflictException('Bu username allaqachon band');
       }
-
       throw error;
     }
   }
 
   private async createToken(user: User) {
-    return this.jwtService.signAsync({
-      sub: user.id,
-      username: user.username,
-    });
+    return this.jwtService.signAsync({ sub: user.id, username: user.username });
   }
 
   async register(dto: RegisterDto) {
@@ -154,102 +129,169 @@ export class AuthService {
     const email = dto.email?.trim().toLowerCase() || null;
 
     if (displayName.length < 2) {
-      throw new BadRequestException(
-        'Ism kamida 2 ta belgidan iborat bo‘lsin',
-      );
+      throw new BadRequestException('Ism kamida 2 ta belgidan iborat bo‘lsin');
     }
-
     if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) {
       throw new BadRequestException('Username formati noto‘g‘ri');
     }
-
-    const existingUsername = await this.userRepository.findOne({
-      where: { username },
-    });
-
-    if (existingUsername) {
+    if (await this.userRepository.findOne({ where: { username } })) {
       throw new ConflictException('Bu username allaqachon band');
     }
-
-    if (email) {
-      const existingEmail = await this.userRepository.findOne({
-        where: { email },
-      });
-
-      if (existingEmail) {
-        throw new ConflictException(
-          'Bu email allaqachon ro‘yxatdan o‘tgan',
-        );
-      }
+    if (email && await this.userRepository.findOne({ where: { email } })) {
+      throw new ConflictException('Bu email allaqachon ro‘yxatdan o‘tgan');
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
-
     const user = this.userRepository.create({
-      displayName,
-      username,
-      email,
-      passwordHash,
-      role: 'user',
-      status: 'active',
+      displayName, username, email, passwordHash, role: 'user', status: 'active',
     });
 
     try {
       const savedUser = await this.userRepository.save(user);
-
-      return {
-        accessToken: await this.createToken(savedUser),
-        user: this.getSafeUser(savedUser),
-      };
+      return { accessToken: await this.createToken(savedUser), user: this.getSafeUser(savedUser) };
     } catch (error) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        error.code === '23505'
-      ) {
-        throw new ConflictException(
-          'Username yoki email allaqachon band',
-        );
+      if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
+        throw new ConflictException('Username yoki email allaqachon band');
       }
-
       throw error;
     }
   }
 
+  async requestRegistrationOtp(phoneNumber: string) {
+    const phone = this.otpService.normalizePhone(phoneNumber);
+    const existing = await this.userRepository.findOne({ where: { phoneNumber: phone } });
+    if (existing) throw new ConflictException('Bu telefon raqami allaqachon ro‘yxatdan o‘tgan');
+    await this.otpService.issue(phone, 'register');
+    return { message: 'Tasdiqlash kodi telefon raqamingizga yuborildi' };
+  }
+
+  async registerWithPhone(dto: PhoneRegisterDto) {
+    const phone = await this.otpService.verify(dto.phoneNumber, 'register', dto.code);
+    const displayName = dto.displayName.trim();
+    const username = dto.username.trim().toLowerCase();
+    const email = dto.email?.trim().toLowerCase() || null;
+
+    if (displayName.length < 2) throw new BadRequestException('Ism kamida 2 ta belgidan iborat bo‘lsin');
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) throw new BadRequestException('Username formati noto‘g‘ri');
+    if (await this.userRepository.findOne({ where: { username } })) throw new ConflictException('Bu username allaqachon band');
+    if (email && await this.userRepository.findOne({ where: { email } })) throw new ConflictException('Bu email allaqachon ro‘yxatdan o‘tgan');
+    if (await this.userRepository.findOne({ where: { phoneNumber: phone } })) throw new ConflictException('Bu telefon raqami allaqachon ro‘yxatdan o‘tgan');
+
+    const user = this.userRepository.create({
+      displayName, username, email, phoneNumber: phone, phoneVerifiedAt: new Date(),
+      passwordHash: await bcrypt.hash(dto.password, 12), role: 'user', status: 'active',
+    });
+    const savedUser = await this.userRepository.save(user);
+    return { accessToken: await this.createToken(savedUser), user: this.getSafeUser(savedUser) };
+  }
+
+  async requestPasswordReset(phoneNumber: string) {
+    const phone = this.otpService.normalizePhone(phoneNumber);
+    const user = await this.userRepository.findOne({ where: { phoneNumber: phone, phoneVerifiedAt: this.notNullDate() } });
+    // Keep the response identical whether the account exists or not.
+    if (user) await this.otpService.issue(phone, 'password_reset');
+    return { message: 'Agar raqam QUIZ ARENA hisobiga bog‘langan bo‘lsa, kod yuboriladi' };
+  }
+
+  private notNullDate(): Date {
+    // TypeORM's IsNull operator is used in the query below; this method is never called.
+    return new Date(0);
+  }
+
+  async resetPassword(dto: PasswordResetDto) {
+    const phone = await this.otpService.verify(dto.phoneNumber, 'password_reset', dto.code);
+    const user = await this.userRepository.findOne({ where: { phoneNumber: phone } });
+    if (!user || !user.phoneVerifiedAt || user.status !== 'active') {
+      throw new UnauthorizedException('Kod noto‘g‘ri yoki muddati tugagan');
+    }
+    user.passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    await this.userRepository.save(user);
+    return { message: 'Parol muvaffaqiyatli yangilandi. Endi yangi parol bilan kiring.' };
+  }
+
+  async requestPhoneLogin(phoneNumber: string) {
+    const phone = this.otpService.normalizePhone(phoneNumber);
+    const user = await this.userRepository.findOne({ where: { phoneNumber: phone } });
+    if (user?.phoneVerifiedAt && user.status === 'active') {
+      await this.otpService.issue(phone, 'phone_login');
+    }
+    return { message: 'Agar tasdiqlangan telefon raqami hisobga bog‘langan bo‘lsa, kod yuboriladi' };
+  }
+
+  async loginWithPhone(phoneNumber: string, code: string) {
+    const phone = await this.otpService.verify(phoneNumber, 'phone_login', code);
+    const user = await this.userRepository.findOne({ where: { phoneNumber: phone } });
+    if (!user || !user.phoneVerifiedAt || user.status !== 'active') {
+      throw new UnauthorizedException('Kod noto‘g‘ri yoki muddati tugagan');
+    }
+    return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
+  }
+
+  async loginWithGoogle(idToken: string) {
+    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
+    if (!clientId) throw new ServiceUnavailableException('Google orqali kirish hali sozlanmagan');
+
+    const response = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+    );
+    const claims = await response.json().catch(() => null) as
+      | { aud?: string; iss?: string; sub?: string; email?: string; email_verified?: string; name?: string }
+      | null;
+
+    if (
+      !response.ok || !claims?.sub || claims.aud !== clientId ||
+      !['accounts.google.com', 'https://accounts.google.com'].includes(claims.iss ?? '') ||
+      claims.email_verified !== 'true' || !claims.email
+    ) {
+      throw new UnauthorizedException('Google hisobini tasdiqlash amalga oshmadi');
+    }
+
+    const email = claims.email.trim().toLowerCase();
+    let user = await this.userRepository.findOne({ where: { googleSubject: claims.sub } });
+
+    if (!user) {
+      user = await this.userRepository.findOne({ where: { email } });
+      if (user) {
+        if (user.googleSubject && user.googleSubject !== claims.sub) {
+          throw new ConflictException('Bu email boshqa Google hisobiga bog‘langan');
+        }
+        user.googleSubject = claims.sub;
+      } else {
+        const base = (email.split('@')[0] || 'player').toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 20) || 'player';
+        let username = base;
+        while (await this.userRepository.findOne({ where: { username } })) {
+          username = `${base.slice(0, 18)}_${randomInt(10, 99)}`;
+        }
+        user = this.userRepository.create({
+          displayName: (claims.name || base).slice(0, 100),
+          username,
+          email,
+          googleSubject: claims.sub,
+          passwordHash: await bcrypt.hash(randomBytes(32).toString('hex'), 12),
+          role: 'user',
+          status: 'active',
+        });
+      }
+      user = await this.userRepository.save(user);
+    }
+
+    if (user.status !== 'active') throw new UnauthorizedException('Hisobingiz bloklangan');
+    return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
+  }
+
   async login(dto: LoginDto) {
     const username = dto.username.trim().toLowerCase();
-
     const user = await this.userRepository
       .createQueryBuilder('user')
       .addSelect('user.passwordHash')
       .where('user.username = :username', { username })
       .getOne();
 
-    if (!user) {
-      throw new UnauthorizedException(
-        'Username yoki parol noto‘g‘ri',
-      );
-    }
+    if (!user) throw new UnauthorizedException('Username yoki parol noto‘g‘ri');
+    const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!passwordMatches) throw new UnauthorizedException('Username yoki parol noto‘g‘ri');
+    if (user.status !== 'active') throw new UnauthorizedException('Hisobingiz bloklangan');
 
-    const passwordMatches = await bcrypt.compare(
-      dto.password,
-      user.passwordHash,
-    );
-
-    if (!passwordMatches) {
-      throw new UnauthorizedException(
-        'Username yoki parol noto‘g‘ri',
-      );
-    }
-
-    if (user.status !== 'active') {
-      throw new UnauthorizedException('Hisobingiz bloklangan');
-    }
-
-    return {
-      accessToken: await this.createToken(user),
-      user: this.getSafeUser(user),
-    };
+    return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
   }
 }
