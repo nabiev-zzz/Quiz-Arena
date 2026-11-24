@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { BadRequestException } from '@nestjs/common';
 import { getPlanEntitlements } from './plan-entitlements';
 import { FeatureUsageService } from './feature-usage.service';
