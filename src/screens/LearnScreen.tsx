@@ -1,7 +1,7 @@
 import { LocalizedText, LocalizedTextInput } from '../i18n/LocalizedText';
 import { useMemo, useState } from 'react';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
-import { StyleSheet, NativeText, View, Pressable, NativeTextInput } from 'react-native';
+import { StyleSheet, Text as NativeText, View, Pressable, TextInput as NativeTextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { subjects } from '../data/subjects';
