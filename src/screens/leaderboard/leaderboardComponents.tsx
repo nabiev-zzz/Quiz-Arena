@@ -1,6 +1,6 @@
 import { LocalizedText } from '../../i18n/LocalizedText';
 import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, NativeText, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text as NativeText, View, type StyleProp, type ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
