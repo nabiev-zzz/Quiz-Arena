@@ -1,6 +1,7 @@
+import { LocalizedText, LocalizedTextInput, showLocalizedAlert } from '../i18n/LocalizedText';
 import React, { useEffect, useState } from 'react';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, NativeText, NativeTextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
@@ -105,7 +106,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Ruxsat kerak', 'Avatar tanlash uchun galereyaga ruxsat bering.');
+        showLocalizedAlert('Ruxsat kerak', 'Avatar tanlash uchun galereyaga ruxsat bering.');
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
@@ -114,26 +115,26 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
         setAvatarUri(uri);
       }
     } catch {
-      Alert.alert('Xatolik', 'Rasm tanlashda xatolik yuz berdi.');
+      showLocalizedAlert('Xatolik', 'Rasm tanlashda xatolik yuz berdi.');
     }
   };
 
   const saveProfile = async () => {
     if (displayName.trim().length < 2) {
-      Alert.alert('Xatolik', 'Ism kamida 2 ta belgidan iborat bo‘lsin.');
+      showLocalizedAlert('Xatolik', 'Ism kamida 2 ta belgidan iborat bo‘lsin.');
       return;
     }
     if (!/^[a-zA-Z0-9_]{3,30}$/.test(username.trim())) {
-      Alert.alert('Xatolik', 'Username 3–30 belgi bo‘lsin. Faqat harf, raqam va _ ishlating.');
+      showLocalizedAlert('Xatolik', 'Username 3–30 belgi bo‘lsin. Faqat harf, raqam va _ ishlating.');
       return;
     }
     setSaving(true);
     try {
       await updateProfile({ displayName: displayName.trim(), username: username.trim(), bio: bio.trim() || null });
       setEditVisible(false);
-      Alert.alert('Saqlandi', 'Profil ma’lumotlari yangilandi.');
+      showLocalizedAlert('Saqlandi', 'Profil ma’lumotlari yangilandi.');
     } catch (error) {
-      Alert.alert('Xatolik', error instanceof Error ? error.message : 'Profilni saqlashda xatolik yuz berdi.');
+      showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Profilni saqlashda xatolik yuz berdi.');
     } finally {
       setSaving(false);
     }
@@ -146,7 +147,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
       await updateProfile(cosmeticType === 'decoration' ? { avatarDecoration: value } : { profileFrame: value });
       setCosmeticType(null);
     } catch (error) {
-      Alert.alert('Xatolik', error instanceof Error ? error.message : 'Bezakni saqlab bo‘lmadi');
+      showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Bezakni saqlab bo‘lmadi');
     } finally {
       setCosmeticSaving(false);
     }
@@ -155,8 +156,8 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const copyUsername = async () => {
     try {
       await Clipboard.setStringAsync('@' + user.username);
-      Alert.alert('Nusxalandi', 'Username buferga nusxalandi.');
-    } catch { Alert.alert('Xatolik', 'Username nusxalanmadi.'); }
+      showLocalizedAlert('Nusxalandi', 'Username buferga nusxalandi.');
+    } catch { showLocalizedAlert('Xatolik', 'Username nusxalanmadi.'); }
   };
 
   const tabs: { key: ProfileTab; label: string }[] = [
@@ -177,7 +178,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
           <Pressable style={styles.headerButton} onPress={onClosePress} accessibilityRole="button" accessibilityLabel="Profilni yopish">
             <Ionicons name="close" size={22} color={C.text} />
           </Pressable>
-          <Text style={styles.headerTitle}>PROFILE</Text>
+          <LocalizedText style={styles.headerTitle}>PROFILE</LocalizedText>
           <Pressable style={styles.headerButton} onPress={onSettingsPress} accessibilityRole="button" accessibilityLabel="Sozlamalar">
             <Ionicons name="settings-outline" size={21} color={C.text} />
           </Pressable>
@@ -186,7 +187,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
         <View style={styles.identity}>
           <View style={styles.avatarWrap}>
             <View style={[styles.avatarFrame, user.profileFrame === 'aurora' && styles.frameAurora, user.profileFrame === 'royal' && styles.frameRoyal, user.profileFrame === 'ocean' && styles.frameOcean]}>
-              {avatarUri ? <Image source={{ uri: avatarUri }} style={styles.avatar} /> : <View style={styles.avatarFallback}><Text style={styles.avatarInitials}>{initials || '?'}</Text></View>}
+              {avatarUri ? <Image source={{ uri: avatarUri }} style={styles.avatar} /> : <View style={styles.avatarFallback}><LocalizedText style={styles.avatarInitials}>{initials || '?'}</LocalizedText></View>}
             </View>
             {user.avatarDecoration ? <View style={styles.decoration}><Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={13} color="#F5D78A" /></View> : null}
             <Pressable style={styles.cameraButton} onPress={chooseAvatar} accessibilityRole="button" accessibilityLabel="Avatarni almashtirish">
@@ -194,11 +195,11 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
             </Pressable>
           </View>
           <View style={styles.nameRow}>
-            <Text style={styles.displayName} numberOfLines={1}>{user.displayName}</Text>
+            <LocalizedText style={styles.displayName} numberOfLines={1}>{user.displayName}</LocalizedText>
             <Ionicons name="chevron-down" size={17} color={C.muted} />
           </View>
           <Pressable style={styles.handleRow} onPress={copyUsername}>
-            <Text style={styles.handle}>@{user.username}</Text>
+            <LocalizedText style={styles.handle}>@{user.username}</LocalizedText>
             <Ionicons name="copy-outline" size={13} color={C.subtle} />
           </Pressable>
           <View style={styles.badges}>
@@ -210,13 +211,13 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
 
         <Pressable style={styles.editButton} onPress={() => setEditVisible(true)}>
           <Ionicons name="create-outline" size={17} color="#FFFFFF" />
-          <Text style={styles.editButtonText}>Edit profile</Text>
+          <LocalizedText style={styles.editButtonText}>Edit profile</LocalizedText>
         </Pressable>
 
         <View style={styles.tabs}>
           {tabs.map((tab) => (
             <Pressable key={tab.key} style={styles.tab} onPress={() => setActiveTab(tab.key)}>
-              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
+              <LocalizedText style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</LocalizedText>
               {activeTab === tab.key ? <View style={styles.tabUnderline} /> : null}
             </Pressable>
           ))}
@@ -228,8 +229,8 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
               <Pressable style={styles.row} onPress={onPremiumPress}>
                 <View style={styles.iconTile}><Ionicons name="diamond-outline" size={21} color={C.purple} /></View>
                 <View style={styles.rowBody}>
-                  <Text style={styles.cardTitle}>Premium</Text>
-                  <Text style={styles.cardSubtitle}>Maxsus imkoniyatlar va tariflar</Text>
+                  <LocalizedText style={styles.cardTitle}>Premium</LocalizedText>
+                  <LocalizedText style={styles.cardSubtitle}>Maxsus imkoniyatlar va tariflar</LocalizedText>
                 </View>
                 <Ionicons name="chevron-forward" size={19} color={C.muted} />
               </Pressable>,
@@ -239,8 +240,8 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
               <Pressable style={styles.row} onPress={onPremiumPress}>
                 <View style={styles.iconTile}><Ionicons name="storefront-outline" size={21} color={C.purple} /></View>
                 <View style={styles.rowBody}>
-                  <Text style={styles.cardTitle}>Shop</Text>
-                  <Text style={styles.cardSubtitle}>Profil uchun qo‘shimcha imkoniyatlar</Text>
+                  <LocalizedText style={styles.cardTitle}>Shop</LocalizedText>
+                  <LocalizedText style={styles.cardSubtitle}>Profil uchun qo‘shimcha imkoniyatlar</LocalizedText>
                 </View>
                 <Ionicons name="chevron-forward" size={19} color={C.muted} />
               </Pressable>,
@@ -249,43 +250,43 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
               <View style={styles.bioRow}>
                 <View style={styles.bioAccent} />
                 <View style={styles.rowBody}>
-                  <Text style={styles.cardTitle}>Bio</Text>
-                  <Text style={styles.bioText}>{user.bio?.trim() || 'Tarjimai hol hali kiritilmagan'}</Text>
+                  <LocalizedText style={styles.cardTitle}>Bio</LocalizedText>
+                  <LocalizedText style={styles.bioText}>{user.bio?.trim() || 'Tarjimai hol hali kiritilmagan'}</LocalizedText>
                 </View>
               </View>,
             )}
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Friends</Text>
-              <Pressable onPress={() => onUserPress?.('discover')}><Text style={styles.linkText}>Barchasi <Ionicons name="chevron-forward" size={11} /></Text></Pressable>
+              <LocalizedText style={styles.sectionTitle}>Friends</LocalizedText>
+              <Pressable onPress={() => onUserPress?.('discover')}><LocalizedText style={styles.linkText}>Barchasi <Ionicons name="chevron-forward" size={11} /></LocalizedText></Pressable>
             </View>
             {renderCard(
               <View style={styles.friendsHeader}>
                 <View style={styles.avatarStack}>
                   {suggestions.slice(0, 5).map((person, index) => (
                     <Pressable key={person.id} onPress={() => onUserPress?.(person.username)} style={[styles.friendAvatarWrap, { marginLeft: index === 0 ? 0 : -12, zIndex: 5 - index }]}>
-                      {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.friendAvatar} /> : <View style={styles.friendFallback}><Text style={styles.friendInitial}>{person.displayName.slice(0, 1).toUpperCase()}</Text></View>}
+                      {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.friendAvatar} /> : <View style={styles.friendFallback}><LocalizedText style={styles.friendInitial}>{person.displayName.slice(0, 1).toUpperCase()}</LocalizedText></View>}
                     </Pressable>
                   ))}
-                  {suggestions.length === 0 ? <Text style={styles.cardSubtitle}>Hozircha do‘stlar tavsiya qilinmagan</Text> : null}
+                  {suggestions.length === 0 ? <LocalizedText style={styles.cardSubtitle}>Hozircha do‘stlar tavsiya qilinmagan</LocalizedText> : null}
                 </View>
                 <Pressable onPress={() => onUserPress?.('discover')} hitSlop={10}><Ionicons name="chevron-forward" size={19} color={C.muted} /></Pressable>
               </View>,
             )}
             <View style={styles.memberRow}>
               <Ionicons name="people-outline" size={18} color={C.muted} />
-              <Text style={styles.memberText}>{(socialProfile?.followersCount ?? 0) + ' kuzatuvchi · ' + (socialProfile?.followingCount ?? 0) + ' kuzatilayotgan'}</Text>
+              <LocalizedText style={styles.memberText}>{(socialProfile?.followersCount ?? 0) + ' kuzatuvchi · ' + (socialProfile?.followingCount ?? 0) + ' kuzatilayotgan'}</LocalizedText>
               <View style={styles.memberDot} />
             </View>
             {suggestions.length > 0 ? (
               <>
-                <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Tavsiya etilganlar</Text></View>
+                <View style={styles.sectionHeader}><LocalizedText style={styles.sectionTitle}>Tavsiya etilganlar</LocalizedText></View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestions}>
                   {suggestions.map((person) => (
                     <View key={person.id} style={styles.personCard}>
                       <Pressable onPress={() => onUserPress?.(person.username)} style={styles.personIdentity}>
-                        {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.personAvatar} /> : <View style={styles.friendFallback}><Text style={styles.friendInitial}>{person.displayName.slice(0, 1).toUpperCase()}</Text></View>}
-                        <Text style={styles.personName} numberOfLines={1}>{person.displayName}</Text>
-                        <Text style={styles.personMeta}>{person.followersCount} kuzatuvchi</Text>
+                        {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.personAvatar} /> : <View style={styles.friendFallback}><LocalizedText style={styles.friendInitial}>{person.displayName.slice(0, 1).toUpperCase()}</LocalizedText></View>}
+                        <LocalizedText style={styles.personName} numberOfLines={1}>{person.displayName}</LocalizedText>
+                        <LocalizedText style={styles.personMeta}>{person.followersCount} kuzatuvchi</LocalizedText>
                       </Pressable>
                       <Pressable style={styles.followButton} disabled={followingUserId === person.id} onPress={async () => {
                         setFollowingUserId(person.id);
@@ -293,10 +294,10 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
                           await followUser(person.id);
                           setSuggestions((current) => current.filter((item) => item.id !== person.id));
                           setSocialProfile((current) => current ? { ...current, followingCount: (current.followingCount ?? 0) + 1 } : current);
-                        } catch (error) { Alert.alert('Xatolik', error instanceof Error ? error.message : 'Kuzatib bo‘lmadi'); }
+                        } catch (error) { showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Kuzatib bo‘lmadi'); }
                         finally { setFollowingUserId(null); }
                       }}>
-                        <Text style={styles.followButtonText}>{followingUserId === person.id ? '...' : 'Kuzatish'}</Text>
+                        <LocalizedText style={styles.followButtonText}>{followingUserId === person.id ? '...' : 'Kuzatish'}</LocalizedText>
                       </Pressable>
                     </View>
                   ))}
@@ -308,7 +309,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
 
         {activeTab === 'board' ? (
           <>
-            <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Natijalar</Text></View>
+            <View style={styles.sectionHeader}><LocalizedText style={styles.sectionTitle}>Natijalar</LocalizedText></View>
             <View style={styles.statsRow}>
               {[
                 { icon: 'flash-outline' as const, value: user.xp ?? 0, label: 'Jami XP' },
@@ -317,8 +318,8 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
               ].map((item) => renderCard(
                 <View style={styles.statContent}>
                   <Ionicons name={item.icon} size={19} color={C.purple} />
-                  <Text style={styles.statNumber}>{item.value}</Text>
-                  <Text style={styles.cardSubtitle}>{item.label}</Text>
+                  <LocalizedText style={styles.statNumber}>{item.value}</LocalizedText>
+                  <LocalizedText style={styles.cardSubtitle}>{item.label}</LocalizedText>
                 </View>,
                 styles.statCard,
                 item.label,
@@ -328,11 +329,11 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
               <>
                 <View style={styles.row}>
                   <View style={styles.iconTile}><Ionicons name="medal-outline" size={21} color={rankInfo.color} /></View>
-                  <View style={styles.rowBody}><Text style={styles.cardTitle}>{rankInfo.name} ligasi</Text><Text style={styles.cardSubtitle}>Battle reytingi</Text></View>
-                  <Text style={[styles.rankPoints, { color: rankInfo.color }]}>{rankPoints} RP</Text>
+                  <View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>{rankInfo.name} ligasi</LocalizedText><LocalizedText style={styles.cardSubtitle}>Battle reytingi</LocalizedText></View>
+                  <LocalizedText style={[styles.rankPoints, { color: rankInfo.color }]}>{rankPoints} RP</LocalizedText>
                 </View>
                 <View style={styles.progressTrack}><View style={[styles.progressFill, { width: rankProgress + '%' }]} /></View>
-                <Text style={styles.cardSubtitle}>{nextRank ? (nextRank.min - rankPoints) + ' RP dan keyingi liga' : 'Eng yuqori liga'}</Text>
+                <LocalizedText style={styles.cardSubtitle}>{nextRank ? (nextRank.min - rankPoints) + ' RP dan keyingi liga' : 'Eng yuqori liga'}</LocalizedText>
               </>,
             )}
           </>
@@ -340,12 +341,12 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
 
         {activeTab === 'activity' ? (
           <>
-            <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Erishilgan yutuqlar</Text></View>
+            <View style={styles.sectionHeader}><LocalizedText style={styles.sectionTitle}>Erishilgan yutuqlar</LocalizedText></View>
             <View style={styles.achievementList}>
               {getProfileAchievements(user.xp ?? 0, user.level ?? 1, rankPoints).map((achievement) => (
                 <View key={achievement.id} style={[styles.achievement, !achievement.unlocked && styles.achievementLocked]}>
                   <Ionicons name={achievement.icon} size={21} color={achievement.unlocked ? C.purple : C.subtle} />
-                  <View style={styles.rowBody}><Text style={styles.cardTitle}>{achievement.title}</Text><Text style={styles.cardSubtitle}>{achievement.description}</Text></View>
+                  <View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>{achievement.title}</LocalizedText><LocalizedText style={styles.cardSubtitle}>{achievement.description}</LocalizedText></View>
                   <Ionicons name={achievement.unlocked ? 'checkmark-circle' : 'lock-closed'} size={17} color={achievement.unlocked ? C.purple : C.subtle} />
                 </View>
               ))}
@@ -355,43 +356,43 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
 
         {activeTab === 'wishlist' ? (
           <>
-            <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Mukofotlar va bezaklar</Text></View>
+            <View style={styles.sectionHeader}><LocalizedText style={styles.sectionTitle}>Mukofotlar va bezaklar</LocalizedText></View>
             {renderCard(
               <View style={styles.row}>
                 <View style={styles.iconTile}><Ionicons name="medal-outline" size={21} color={C.purple} /></View>
-                <View style={styles.rowBody}><Text style={styles.cardTitle}>Mening mukofotlarim</Text><Text style={styles.cardSubtitle}>Yutuqlar va medallar</Text></View>
+                <View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>Mening mukofotlarim</LocalizedText><LocalizedText style={styles.cardSubtitle}>Yutuqlar va medallar</LocalizedText></View>
               </View>,
             )}
             <Pressable onPress={() => setCosmeticType('decoration')}>
-              {renderCard(<View style={styles.row}><View style={styles.iconTile}><Ionicons name="color-palette-outline" size={21} color={C.purple} /></View><View style={styles.rowBody}><Text style={styles.cardTitle}>Avatar bezaklari</Text><Text style={styles.cardSubtitle}>{user.avatarDecoration || 'Hozircha bezak tanlanmagan'}</Text></View><Text style={styles.linkText}>Sozlash</Text></View>)}
+              {renderCard(<View style={styles.row}><View style={styles.iconTile}><Ionicons name="color-palette-outline" size={21} color={C.purple} /></View><View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>Avatar bezaklari</LocalizedText><LocalizedText style={styles.cardSubtitle}>{user.avatarDecoration || 'Hozircha bezak tanlanmagan'}</LocalizedText></View><LocalizedText style={styles.linkText}>Sozlash</LocalizedText></View>)}
             </Pressable>
             <Pressable onPress={() => setCosmeticType('frame')}>
-              {renderCard(<View style={styles.row}><View style={styles.iconTile}><Ionicons name="albums-outline" size={21} color={C.purple} /></View><View style={styles.rowBody}><Text style={styles.cardTitle}>Profil ramkasi</Text><Text style={styles.cardSubtitle}>{user.profileFrame || 'Standart ramka'}</Text></View><Text style={styles.linkText}>Sozlash</Text></View>)}
+              {renderCard(<View style={styles.row}><View style={styles.iconTile}><Ionicons name="albums-outline" size={21} color={C.purple} /></View><View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>Profil ramkasi</LocalizedText><LocalizedText style={styles.cardSubtitle}>{user.profileFrame || 'Standart ramka'}</LocalizedText></View><LocalizedText style={styles.linkText}>Sozlash</LocalizedText></View>)}
             </Pressable>
           </>
         ) : null}
 
-        <Pressable style={styles.logoutButton} onPress={() => Alert.alert('Hisobdan chiqish', 'Haqiqatan ham chiqmoqchimisiz?', [
+        <Pressable style={styles.logoutButton} onPress={() => showLocalizedAlert('Hisobdan chiqish', 'Haqiqatan ham chiqmoqchimisiz?', [
           { text: 'Bekor qilish', style: 'cancel' },
           { text: 'Chiqish', style: 'destructive', onPress: () => { void logout(); } },
         ])}>
           <Ionicons name="log-out-outline" size={18} color="#E28C9B" />
-          <Text style={styles.logoutText}>Hisobdan chiqish</Text>
+          <LocalizedText style={styles.logoutText}>Hisobdan chiqish</LocalizedText>
         </Pressable>
       </Animated.ScrollView>
 
       <Modal visible={editVisible} transparent animationType="fade" onRequestClose={() => setEditVisible(false)}>
         <View style={styles.modalBackground}>
           <View style={styles.modalCard}>
-            <View style={styles.modalHeader}><Text style={styles.modalTitle}>Edit profile</Text><Pressable onPress={() => setEditVisible(false)}><Ionicons name="close" size={22} color={C.text} /></Pressable></View>
-            <Text style={styles.inputLabel}>Ismingiz</Text>
-            <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="Ismingiz" placeholderTextColor={C.subtle} maxLength={100} />
-            <Text style={styles.inputLabel}>Username</Text>
-            <TextInput style={styles.input} value={username} onChangeText={setUsername} placeholder="username" placeholderTextColor={C.subtle} autoCapitalize="none" maxLength={30} />
-            <Text style={styles.inputLabel}>Bio</Text>
-            <TextInput style={[styles.input, styles.bioInput]} value={bio} onChangeText={setBio} placeholder="O‘zingiz haqingizda..." placeholderTextColor={C.subtle} multiline maxLength={500} />
+            <View style={styles.modalHeader}><LocalizedText style={styles.modalTitle}>Edit profile</LocalizedText><Pressable onPress={() => setEditVisible(false)}><Ionicons name="close" size={22} color={C.text} /></Pressable></View>
+            <LocalizedText style={styles.inputLabel}>Ismingiz</LocalizedText>
+            <LocalizedTextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="Ismingiz" placeholderTextColor={C.subtle} maxLength={100} />
+            <LocalizedText style={styles.inputLabel}>Username</LocalizedText>
+            <LocalizedTextInput style={styles.input} value={username} onChangeText={setUsername} placeholder="username" placeholderTextColor={C.subtle} autoCapitalize="none" maxLength={30} />
+            <LocalizedText style={styles.inputLabel}>Bio</LocalizedText>
+            <LocalizedTextInput style={[styles.input, styles.bioInput]} value={bio} onChangeText={setBio} placeholder="O‘zingiz haqingizda..." placeholderTextColor={C.subtle} multiline maxLength={500} />
             <Pressable style={[styles.saveButton, saving && styles.disabled]} onPress={() => void saveProfile()} disabled={saving}>
-              {saving ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveButtonText}>O‘zgarishlarni saqlash</Text>}
+              {saving ? <ActivityIndicator color="#FFFFFF" /> : <LocalizedText style={styles.saveButtonText}>O‘zgarishlarni saqlash</LocalizedText>}
             </Pressable>
           </View>
         </View>
@@ -400,14 +401,14 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
       <Modal visible={cosmeticType !== null} transparent animationType="fade" onRequestClose={() => setCosmeticType(null)}>
         <View style={styles.modalBackground}>
           <View style={styles.modalCard}>
-            <View style={styles.modalHeader}><Text style={styles.modalTitle}>{cosmeticType === 'decoration' ? 'Avatar bezagini tanlang' : 'Profil ramkasini tanlang'}</Text><Pressable onPress={() => setCosmeticType(null)}><Ionicons name="close" size={22} color={C.text} /></Pressable></View>
+            <View style={styles.modalHeader}><LocalizedText style={styles.modalTitle}>{cosmeticType === 'decoration' ? 'Avatar bezagini tanlang' : 'Profil ramkasini tanlang'}</LocalizedText><Pressable onPress={() => setCosmeticType(null)}><Ionicons name="close" size={22} color={C.text} /></Pressable></View>
             {(cosmeticType === 'decoration'
               ? [{ value: null, label: 'Standart bezak' }, { value: 'sparkle', label: 'Yulduzcha' }, { value: 'crown', label: 'Toj' }, { value: 'laurel', label: 'Laurel' }]
               : [{ value: null, label: 'Standart ramka' }, { value: 'aurora', label: 'Aurora' }, { value: 'royal', label: 'Royal' }, { value: 'ocean', label: 'Ocean' }]
             ).map((option) => {
               const selected = cosmeticType === 'decoration' ? user.avatarDecoration === option.value : user.profileFrame === option.value;
               return <Pressable key={option.label} style={[styles.cosmeticOption, selected && styles.cosmeticSelected]} disabled={cosmeticSaving} onPress={() => void saveCosmetic(option.value)}>
-                <Text style={styles.cardTitle}>{option.label}</Text>
+                <LocalizedText style={styles.cardTitle}>{option.label}</LocalizedText>
                 {selected ? <Ionicons name="checkmark-circle" size={19} color={C.purple} /> : <Ionicons name="ellipse-outline" size={18} color={C.muted} />}
               </Pressable>;
             })}
