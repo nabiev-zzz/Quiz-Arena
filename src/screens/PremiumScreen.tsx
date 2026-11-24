@@ -24,7 +24,6 @@ export default function PremiumScreen({ onBack }: Props) {
   // Only mount expo-iap inside a native Android build. Expo Go does not include ExpoIap.
   // Use an allow-list so unknown/store-client environments fail closed instead of crashing.
   const canUseGooglePlayBilling = Platform.OS === 'android' && (
-    Constants.appOwnership === 'standalone' ||
     Constants.executionEnvironment === 'bare' ||
     Constants.executionEnvironment === 'standalone'
   );
