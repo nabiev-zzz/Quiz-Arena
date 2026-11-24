@@ -68,7 +68,7 @@ const navigation: LiquidDockItem[] = [
 ];
 
 function AppContent() {
-  const { user, loading, login, register } = useAuth();
+  const {\n    user, loading, login, register, requestRegistrationOtp,\n    requestPhoneLogin, loginWithPhone, requestPasswordReset,\n    resetPassword, startGoogleLogin,\n  } = useAuth();
   const { theme, ready } = useAppSettings();
   const insets = useSafeAreaInsets();
   const { tokens } = useTheme();
