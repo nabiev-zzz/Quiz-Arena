@@ -8,12 +8,14 @@ import { BattleGateway } from './gateway/battle.gateway';
 import { BattleService } from './battle.service';
 import { BattleMatch } from './entities/battle-match.entity';
 import { BattleQuestion } from './entities/battle-question.entity';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([BattleMatch, BattleQuestion, User]),
     AiModule,
     AuthModule,
+    SubscriptionsModule,
   ],
   controllers: [BattleController],
   providers: [BattleService, BattleGateway],
