@@ -4,16 +4,20 @@ import {
   Get,
   Patch,
   Post,
+  Query,
   Request,
+  Res,
   UseGuards,
-} from '@nestjs/common';\nimport type { Response } from 'express';
+} from '@nestjs/common';
+import type { Response } from 'express';
 
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import {
-  GoogleAuthDto,\n  GoogleCodeExchangeDto,
+  GoogleAuthDto,
+  GoogleCodeExchangeDto,
   PasswordResetDto,
   PhoneOtpRequestDto,
   PhoneOtpVerifyDto,
@@ -67,6 +71,30 @@ export class AuthController {
   @Post('phone/login')
   loginWithPhone(@Body() dto: PhoneOtpVerifyDto) {
     return this.authService.loginWithPhone(dto.phoneNumber, dto.code);
+  }
+
+  @Get('google/start')
+  async googleStart(@Res() response: Response) {
+    response.redirect(302, await this.authService.getGoogleAuthorizationUrl());
+  }
+
+  @Get('google/callback')
+  async googleCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Res() response: Response,
+  ) {
+    try {
+      const appUrl = await this.authService.handleGoogleCallback(code, state);
+      response.redirect(302, appUrl);
+    } catch {
+      response.redirect(302, 'quizarena://auth?error=google_sign_in_failed');
+    }
+  }
+
+  @Post('google/exchange')
+  exchangeGoogleCode(@Body() dto: GoogleCodeExchangeDto) {
+    return this.authService.exchangeGoogleCode(dto.code);
   }
 
   @Post('google')
