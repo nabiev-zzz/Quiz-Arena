@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { BattleModule } from './battle/battle.module';
 import { UsersModule } from './users/users.module';
 import { LearningModule } from './learning/learning.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 import { CreateUsersTable20261122173000 } from './database/migrations/CreateUsersTable';
 import { CreateAiTutorMessages20261122180000 } from './database/migrations/CreateAiTutorMessages';
@@ -18,6 +19,9 @@ import { AddUserRankPoints20261124002500 } from './database/migrations/AddUserRa
 import { AddBattleMatchRankChanges20261124040000 } from './database/migrations/AddBattleMatchRankChanges';
 import { CreateUserFollows20261124070000 } from './database/migrations/CreateUserFollows';
 import { CreateLearningAttempts20261124090000 } from './database/migrations/CreateLearningAttempts';
+import { CreateUserSubscriptions20261124120000 } from './database/migrations/CreateUserSubscriptions';
+import { CreateSubscriptionPayments20261124130000 } from './database/migrations/CreateSubscriptionPayments';
+import { AddSubscriptionProviderLifecycle20261124140000 } from './database/migrations/AddSubscriptionProviderLifecycle';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
 
@@ -48,6 +52,9 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         AddBattleMatchRankChanges20261124040000,
         CreateUserFollows20261124070000,
         CreateLearningAttempts20261124090000,
+        CreateUserSubscriptions20261124120000,
+        CreateSubscriptionPayments20261124130000,
+        AddSubscriptionProviderLifecycle20261124140000,
       ],
       migrationsRun: true,
       migrationsTableName: 'typeorm_migrations',
@@ -64,6 +71,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     BattleModule,
     UsersModule,
     LearningModule,
+    SubscriptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

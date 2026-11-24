@@ -30,6 +30,7 @@ import PublicProfileScreen from './src/screens/PublicProfileScreen';
 import DiscoverUsersScreen from './src/screens/DiscoverUsersScreen';
 import BattleScreen from './src/screens/BattleScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import PremiumScreen from './src/screens/PremiumScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
 import RegisterScreen from './src/screens/auth/RegisterScreen';
 
@@ -100,6 +101,7 @@ function AppContent() {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPremium, setShowPremium] = useState(false);
   const [selectedPublicUsername, setSelectedPublicUsername] = useState<string | null>(null);
 
   const backgroundColor = tokens.colors.background;
@@ -112,6 +114,7 @@ function AppContent() {
   const openTab = (nextTab: Tab) => {
     setTab(nextTab);
     setShowSettings(false);
+    setShowPremium(false);
     setSelectedPublicUsername(null);
     setSelectedTopic(null);
     setSelectedSubject(null);
@@ -324,6 +327,10 @@ function AppContent() {
         );
       }
 
+      if (showPremium) {
+        return <PremiumScreen onBack={() => setShowPremium(false)} />;
+      }
+
       if (showSettings) {
         return (
           <SettingsScreen
@@ -336,6 +343,7 @@ function AppContent() {
       return (
         <ProfileScreen
           onSettingsPress={() => setShowSettings(true)}
+          onPremiumPress={() => setShowPremium(true)}
           onUserPress={(username) => setSelectedPublicUsername(username === 'discover' ? '__discover__' : username)}
           dockStretch={dockStretch}
         />

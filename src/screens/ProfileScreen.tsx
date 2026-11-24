@@ -29,12 +29,14 @@ import { getProfileAchievements } from '../utils/profileAchievements';
 
 interface ProfileScreenProps {
   onSettingsPress?: () => void;
+  onPremiumPress?: () => void;
   onUserPress?: (username: string) => void;
   dockStretch?: SharedValue<number>;
 }
 
 export default function ProfileScreen({
   onSettingsPress,
+  onPremiumPress,
   onUserPress,
   dockStretch,
 }: ProfileScreenProps) {
@@ -340,6 +342,21 @@ export default function ProfileScreen({
             <Ionicons name="arrow-forward" size={16} color={colors.textMuted} />
           </Pressable>
         </GlassSurface>
+
+        <Pressable onPress={onPremiumPress} style={{ marginTop: 14, marginBottom: 22 }}>
+          <GlassSurface intensity={glassIntensity} style={{ padding: 17, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(239,203,120,0.38)', backgroundColor: isDark ? 'rgba(111,82,174,0.24)' : 'rgba(255,248,229,0.82)' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(239,203,120,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="diamond" size={22} color="#EFCB78" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.text, fontSize: 15, fontWeight: '900' }}>QUIZ ARENA Premium</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 3 }}>Maxsus imkoniyatlarni kashf eting</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#EFCB78" />
+            </View>
+          </GlassSurface>
+        </Pressable>
 
         <View style={styles.socialHeading}>
           <View>
