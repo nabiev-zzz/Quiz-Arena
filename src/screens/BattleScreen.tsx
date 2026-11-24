@@ -1,3 +1,4 @@
+import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,7 +13,7 @@ import {
   Alert,
   Pressable,
   StyleSheet,
-  Text,
+  NativeText,
   View,
 } from 'react-native';
 
@@ -474,7 +475,7 @@ export default function BattleScreen({
     const activeMatchId = matchIdRef.current;
     if (!activeMatchId) return;
 
-    Alert.alert(
+    showLocalizedAlert(
       'Battle dan chiqish',
       'Haqiqatan ham joriy Battle ni bekor qilmoqchimisiz?',
       [
@@ -517,38 +518,38 @@ export default function BattleScreen({
 
       return (
         <View style={styles.card}>
-          <Text style={styles.resultEmoji}>
+          <LocalizedText style={styles.resultEmoji}>
             {finished.draw ? 'рџ¤ќ' : 'рџЏ†'}
-          </Text>
-          <Text style={styles.cardTitle}>{title}</Text>
-          <Text style={styles.muted}>Xona: {finished.roomCode}</Text>
+          </LocalizedText>
+          <LocalizedText style={styles.cardTitle}>{title}</LocalizedText>
+          <LocalizedText style={styles.muted}>Xona: {finished.roomCode}</LocalizedText>
 
           {myRankChange ? (
             <View style={styles.rankResultCard}>
-              <Text style={styles.rankResultTitle}>
+              <LocalizedText style={styles.rankResultTitle}>
                 RANK NATIJASI
-              </Text>
-              <Text style={[
+              </LocalizedText>
+              <LocalizedText style={[
                 styles.rankResultDelta,
                 { color: myRankChange.delta >= 0 ? '#22C55E' : '#F87171' },
               ]}>
                 {myRankChange.delta > 0 ? '+' : ''}
                 {myRankChange.delta} RP
-              </Text>
-              <Text style={styles.rankResultTier}>
+              </LocalizedText>
+              <LocalizedText style={styles.rankResultTier}>
                 {myRankChange.rankTier} · {myRankChange.rankPoints} RP
-              </Text>
+              </LocalizedText>
             </View>
           ) : null}
 
-          <Text style={styles.scoreTitle}>Yakuniy hisob</Text>
+          <LocalizedText style={styles.scoreTitle}>Yakuniy hisob</LocalizedText>
           {Object.entries(finished.scores || {}).map(([id, score]) => (
-            <Text key={id} style={styles.scoreLine}>
+            <LocalizedText key={id} style={styles.scoreLine}>
               {match?.players.find((player) => player.id === id)?.username ||
                 `OвЂyinchi ${id.slice(0, 6)}`}
               {' вЂ” '}
               {score} ball
-            </Text>
+            </LocalizedText>
           ))}
 
           <ActionButton
@@ -565,29 +566,29 @@ export default function BattleScreen({
 
       return (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>
+          <LocalizedText style={styles.cardTitle}>
             {correct ? 'ToвЂgвЂri javob!' : 'Keyingi safar omad!'}
-          </Text>
-          <Text style={styles.muted}>
+          </LocalizedText>
+          <LocalizedText style={styles.muted}>
             ToвЂgвЂri javob: {result.correctAnswer + 1}-variant
-          </Text>
-          <Text style={styles.bodyText}>{result.explanation}</Text>
+          </LocalizedText>
+          <LocalizedText style={styles.bodyText}>{result.explanation}</LocalizedText>
 
-          <Text style={styles.scoreTitle}>Joriy hisob</Text>
+          <LocalizedText style={styles.scoreTitle}>Joriy hisob</LocalizedText>
           {Object.entries(result.scores || {}).map(([id, score]) => (
-            <Text key={id} style={styles.scoreLine}>
+            <LocalizedText key={id} style={styles.scoreLine}>
               {match?.players.find((player) => player.id === id)?.username ||
                 `OвЂyinchi ${id.slice(0, 6)}`}
               {' вЂ” '}
               {score} ball
-            </Text>
+            </LocalizedText>
           ))}
           {readyForNext ? (
-            <Text style={styles.muted}>
+            <LocalizedText style={styles.muted}>
               {readyCount >= 2
                 ? "Ikkala o‘yinchi tayyor. Keyingi savol yuklanmoqda..."
                 : "Siz tayyorsiz. Raqib kutilmoqda..."}
-            </Text>
+            </LocalizedText>
           ) : (
             <ActionButton
               title="Keyingi savol"
@@ -595,9 +596,9 @@ export default function BattleScreen({
               styles={styles}
             />
           )}
-          <Text style={styles.muted}>
+          <LocalizedText style={styles.muted}>
             Tayyor o'yinchilar: {readyCount}/2
-          </Text>
+          </LocalizedText>
         </View>
       );
     }
@@ -605,15 +606,15 @@ export default function BattleScreen({
     if (question) {
       return (
         <View style={styles.card}>
-          <Text style={styles.muted}>
+          <LocalizedText style={styles.muted}>
             Savol {question.questionIndex + 1} / {question.totalQuestions}
-          </Text>
+          </LocalizedText>
 
-          <Text style={styles.timer}>
+          <LocalizedText style={styles.timer}>
             {remaining} soniya
-          </Text>
+          </LocalizedText>
 
-          <Text style={styles.questionText}>{question.question}</Text>
+          <LocalizedText style={styles.questionText}>{question.question}</LocalizedText>
 
           {question.options.map((option, index) => {
             const selected = selectedAnswer === index;
@@ -630,30 +631,30 @@ export default function BattleScreen({
                     styles.disabledOption,
                 ]}
               >
-                <Text style={styles.optionLetter}>
+                <LocalizedText style={styles.optionLetter}>
                   {String.fromCharCode(65 + index)}.
-                </Text>
-                <Text style={styles.optionText}>{option}</Text>
+                </LocalizedText>
+                <LocalizedText style={styles.optionText}>{option}</LocalizedText>
                 {selected ? (
-                  <Text style={styles.optionLetter}>вњ“</Text>
+                  <LocalizedText style={styles.optionLetter}>вњ“</LocalizedText>
                 ) : null}
               </Pressable>
             );
           })}
 
           {answerAccepted ? (
-            <Text style={styles.muted}>Javobingiz qabul qilindi.</Text>
+            <LocalizedText style={styles.muted}>Javobingiz qabul qilindi.</LocalizedText>
           ) : remaining <= 0 ? (
-            <Text style={styles.dangerText}>Vaqt tugadi.</Text>
+            <LocalizedText style={styles.dangerText}>Vaqt tugadi.</LocalizedText>
           ) : null}
 
           {(answerAccepted || remaining <= 0) ? (
             readyForNext ? (
-              <Text style={styles.muted}>
+              <LocalizedText style={styles.muted}>
                 {readyCount >= 2
                   ? "Ikkala o‘yinchi tayyor. Keyingi savol yuklanmoqda..."
                   : "Siz tayyorsiz. Raqib javob berishi yoki vaqt tugashini kuting."}
-              </Text>
+              </LocalizedText>
             ) : (
               <ActionButton
                 title="Keyingi savol"
@@ -669,19 +670,19 @@ export default function BattleScreen({
     if (started || match) {
       return (
         <View style={styles.card}>
-          <Text style={styles.resultEmoji}>вљ”пёЏ</Text>
-          <Text style={styles.cardTitle}>
+          <LocalizedText style={styles.resultEmoji}>вљ”пёЏ</LocalizedText>
+          <LocalizedText style={styles.cardTitle}>
             {started ? 'Battle boshlandi!' : 'Raqib topildi!'}
-          </Text>
+          </LocalizedText>
 
-          <Text style={styles.muted}>
+          <LocalizedText style={styles.muted}>
             Xona: {started?.roomCode || match?.roomCode}
-          </Text>
+          </LocalizedText>
 
           {(started?.players || match?.players || []).map((player) => (
-            <Text key={player.id} style={styles.scoreLine}>
+            <LocalizedText key={player.id} style={styles.scoreLine}>
               {player.username}
-            </Text>
+            </LocalizedText>
           ))}
 
           <ActivityIndicator
@@ -689,7 +690,7 @@ export default function BattleScreen({
             color={colors.primary}
             style={{ marginTop: 20 }}
           />
-          <Text style={styles.muted}>Savol kutilmoqda...</Text>
+          <LocalizedText style={styles.muted}>Savol kutilmoqda...</LocalizedText>
 
           <ActionButton
             title="Battle dan chiqish"
@@ -705,10 +706,10 @@ export default function BattleScreen({
       return (
         <View style={styles.card}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.cardTitle}>Raqib qidirilmoqda...</Text>
-          <Text style={styles.muted}>
+          <LocalizedText style={styles.cardTitle}>Raqib qidirilmoqda...</LocalizedText>
+          <LocalizedText style={styles.muted}>
             {mode === 'ranked' ? 'Ranked rejimi' : 'Casual rejimi'}
-          </Text>
+          </LocalizedText>
           <ActionButton
             title="Qidirishni bekor qilish"
             onPress={cancelQueue}
@@ -739,11 +740,11 @@ export default function BattleScreen({
           <View style={styles.heroTopLine}>
             <View style={styles.heroBadge}>
               <Ionicons name="flash" size={13} color="#FFFFFF" />
-              <Text style={styles.heroBadgeText}>BATTLE ARENA</Text>
+              <LocalizedText style={styles.heroBadgeText}>BATTLE ARENA</LocalizedText>
             </View>
             <View style={styles.heroLive}>
               <View style={[styles.liveDot, { backgroundColor: connected ? '#35E6A0' : '#F6B94A' }]} />
-              <Text style={styles.heroLiveText}>{connected ? 'ONLINE' : 'CONNECTING'}</Text>
+              <LocalizedText style={styles.heroLiveText}>{connected ? 'ONLINE' : 'CONNECTING'}</LocalizedText>
             </View>
           </View>
           <View style={styles.heroArtwork}>
@@ -754,17 +755,17 @@ export default function BattleScreen({
               <Ionicons name="flash" size={27} color="#C9B8FF" />
             </View>
           </View>
-          <Text style={styles.heroTitle}>Bilim janglari</Text>
-          <Text style={styles.heroSubtitle}>
+          <LocalizedText style={styles.heroTitle}>Bilim janglari</LocalizedText>
+          <LocalizedText style={styles.heroSubtitle}>
             Eng kuchli raqib bilan bilimingizni sinang. Har bir savolda 20 soniya!
-          </Text>
+          </LocalizedText>
           <Pressable
             onPress={() => joinQueue('casual')}
             disabled={!canStart}
             style={[styles.heroPlayButton, !canStart && styles.disabledButton]}
           >
             <Ionicons name="play" size={19} color="#FFFFFF" />
-            <Text style={styles.heroPlayText}>Raqib topish</Text>
+            <LocalizedText style={styles.heroPlayText}>Raqib topish</LocalizedText>
             <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
           </Pressable>
         </View>
@@ -772,9 +773,9 @@ export default function BattleScreen({
         <View style={styles.sectionHeading}>
           <View style={styles.sectionHeadingLeft}>
             <Ionicons name="flash" size={21} color="#FFC84A" />
-            <Text style={styles.sectionHeadingTitle}>O‘yin rejimlari</Text>
+            <LocalizedText style={styles.sectionHeadingTitle}>O‘yin rejimlari</LocalizedText>
           </View>
-          <Text style={styles.sectionHeadingHint}>1 ga 1</Text>
+          <LocalizedText style={styles.sectionHeadingHint}>1 ga 1</LocalizedText>
         </View>
 
         <View style={styles.modeGrid}>
@@ -786,10 +787,10 @@ export default function BattleScreen({
             <View style={styles.modeIconBlue}>
               <Ionicons name="stopwatch" size={31} color="#70BFFF" />
             </View>
-            <Text style={styles.modeTitle}>Tez jang</Text>
-            <Text style={styles.modeSubtitle}>Oddiy o‘yin</Text>
+            <LocalizedText style={styles.modeTitle}>Tez jang</LocalizedText>
+            <LocalizedText style={styles.modeSubtitle}>Oddiy o‘yin</LocalizedText>
             <View style={styles.modeBottom}>
-              <Text style={styles.modeMeta}>20 soniya / savol</Text>
+              <LocalizedText style={styles.modeMeta}>20 soniya / savol</LocalizedText>
               <Ionicons name="arrow-forward-circle" size={27} color="#A9BFFF" />
             </View>
           </Pressable>
@@ -802,10 +803,10 @@ export default function BattleScreen({
             <View style={styles.modeIconGold}>
               <Ionicons name="trophy" size={31} color="#FFC85A" />
             </View>
-            <Text style={styles.modeTitle}>Ranked</Text>
-            <Text style={styles.modeSubtitle}>Reyting uchun</Text>
+            <LocalizedText style={styles.modeTitle}>Ranked</LocalizedText>
+            <LocalizedText style={styles.modeSubtitle}>Reyting uchun</LocalizedText>
             <View style={styles.modeBottom}>
-              <Text style={styles.modeMeta}>Rank ochkolari</Text>
+              <LocalizedText style={styles.modeMeta}>Rank ochkolari</LocalizedText>
               <Ionicons name="arrow-forward-circle" size={27} color="#F7C46B" />
             </View>
           </Pressable>
@@ -816,26 +817,26 @@ export default function BattleScreen({
             <View style={styles.quickStatsHeader}>
               <View style={styles.sectionHeadingLeft}>
                 <Ionicons name="stats-chart" size={19} color="#A99BFF" />
-                <Text style={styles.quickStatsTitle}>Sizning statistikangiz</Text>
+                <LocalizedText style={styles.quickStatsTitle}>Sizning statistikangiz</LocalizedText>
               </View>
               <Pressable onPress={() => setSection('stats')}>
-                <Text style={styles.quickStatsLink}>Batafsil ›</Text>
+                <LocalizedText style={styles.quickStatsLink}>Batafsil ›</LocalizedText>
               </Pressable>
             </View>
             <View style={styles.quickStatsRow}>
               <View style={styles.quickStatItem}>
-                <Text style={styles.quickStatValue}>{Math.round(Number(stats.winRate) || 0)}%</Text>
-                <Text style={styles.quickStatLabel}>G‘alaba</Text>
+                <LocalizedText style={styles.quickStatValue}>{Math.round(Number(stats.winRate) || 0)}%</LocalizedText>
+                <LocalizedText style={styles.quickStatLabel}>G‘alaba</LocalizedText>
               </View>
               <View style={styles.quickStatDivider} />
               <View style={styles.quickStatItem}>
-                <Text style={styles.quickStatValue}>{stats.wins}</Text>
-                <Text style={styles.quickStatLabel}>Yutuqlar</Text>
+                <LocalizedText style={styles.quickStatValue}>{stats.wins}</LocalizedText>
+                <LocalizedText style={styles.quickStatLabel}>Yutuqlar</LocalizedText>
               </View>
               <View style={styles.quickStatDivider} />
               <View style={styles.quickStatItem}>
-                <Text style={styles.quickStatValue}>{stats.totalMatches}</Text>
-                <Text style={styles.quickStatLabel}>O‘yinlar</Text>
+                <LocalizedText style={styles.quickStatValue}>{stats.totalMatches}</LocalizedText>
+                <LocalizedText style={styles.quickStatLabel}>O‘yinlar</LocalizedText>
               </View>
             </View>
           </View>
@@ -846,10 +847,10 @@ export default function BattleScreen({
             <View style={styles.quickStatsHeader}>
               <View style={styles.sectionHeadingLeft}>
                 <Ionicons name="trophy" size={18} color="#FFC85A" />
-                <Text style={styles.quickStatsTitle}>Oxirgi jang</Text>
+                <LocalizedText style={styles.quickStatsTitle}>Oxirgi jang</LocalizedText>
               </View>
               <Pressable onPress={() => setSection('history')}>
-                <Text style={styles.quickStatsLink}>Tarix ›</Text>
+                <LocalizedText style={styles.quickStatsLink}>Tarix ›</LocalizedText>
               </Pressable>
             </View>
             <View style={styles.latestMatchRow}>
@@ -857,21 +858,21 @@ export default function BattleScreen({
                 <Ionicons name="person" size={21} color="#D7CCFF" />
               </View>
               <View style={styles.latestMatchCopy}>
-                <Text style={styles.latestMatchName}>1 ga 1 Battle</Text>
-                <Text style={styles.modeMeta}>{latestMatch.mode === 'ranked' ? 'Ranked' : 'Casual'}</Text>
+                <LocalizedText style={styles.latestMatchName}>1 ga 1 Battle</LocalizedText>
+                <LocalizedText style={styles.modeMeta}>{latestMatch.mode === 'ranked' ? 'Ranked' : 'Casual'}</LocalizedText>
               </View>
-              <Text style={[styles.latestMatchResult, { color: latestMatch.result === 'win' ? '#35D99A' : latestMatch.result === 'loss' ? '#FF7D91' : '#AEB8D0' }]}>
+              <LocalizedText style={[styles.latestMatchResult, { color: latestMatch.result === 'win' ? '#35D99A' : latestMatch.result === 'loss' ? '#FF7D91' : '#AEB8D0' }]}>
                 {latestMatch.result === 'win' ? 'G‘alaba' : latestMatch.result === 'loss' ? 'Mag‘lubiyat' : 'Durang'}
-              </Text>
+              </LocalizedText>
             </View>
           </View>
         ) : null}
 
         <View style={styles.connectionNote}>
           <View style={[styles.liveDot, { backgroundColor: connected ? '#35D99A' : '#F6B94A' }]} />
-          <Text style={styles.connectionNoteText}>
+          <LocalizedText style={styles.connectionNoteText}>
             {connecting ? 'Battle serveriga ulanmoqda…' : connected ? 'Battle serveriga ulangan' : 'Server bilan aloqa kutilmoqda'}
-          </Text>
+          </LocalizedText>
         </View>
       </View>
     );
@@ -883,20 +884,20 @@ export default function BattleScreen({
     }
 
     if (!history.length) {
-      return <Text style={styles.muted}>Battle tarixi hozircha yoвЂq.</Text>;
+      return <LocalizedText style={styles.muted}>Battle tarixi hozircha yoвЂq.</LocalizedText>;
     }
 
     return history.map((item) => (
       <View key={item.id} style={styles.listCard}>
-        <Text style={styles.cardTitle}>
+        <LocalizedText style={styles.cardTitle}>
           {item.mode === 'ranked' ? 'Ranked' : 'Casual'} · {item.roomCode}
-        </Text>
-        <Text style={styles.muted}>
+        </LocalizedText>
+        <LocalizedText style={styles.muted}>
           Holati: {item.status} · {new Date(item.createdAt).toLocaleString()}
-        </Text>
-        <Text style={styles.bodyText}>
+        </LocalizedText>
+        <LocalizedText style={styles.bodyText}>
           {item.winnerId ? `GвЂolib ID: ${item.winnerId}` : 'GвЂolib: aniqlanmagan'}
-        </Text>
+        </LocalizedText>
       </View>
     ));
   }
@@ -906,7 +907,7 @@ export default function BattleScreen({
       return (
         <View style={styles.statsLoading}>
           <ActivityIndicator color={colors.primary} size="large" />
-          <Text style={styles.muted}>Natijalaringiz yuklanmoqda...</Text>
+          <LocalizedText style={styles.muted}>Natijalaringiz yuklanmoqda...</LocalizedText>
         </View>
       );
     }
@@ -917,10 +918,10 @@ export default function BattleScreen({
           <View style={styles.emptyStatsIcon}>
             <Ionicons name="analytics-outline" size={30} color={colors.primary} />
           </View>
-          <Text style={styles.cardTitle}>Statistika hozircha yo‘q</Text>
-          <Text style={styles.muted}>
+          <LocalizedText style={styles.cardTitle}>Statistika hozircha yo‘q</LocalizedText>
+          <LocalizedText style={styles.muted}>
             Birinchi Battle o‘yinini yakunlaganingizdan so‘ng natijalaringiz shu yerda ko‘rinadi.
-          </Text>
+          </LocalizedText>
           <ActionButton
             title="Qayta yuklash"
             onPress={() => loadSectionData('stats')}
@@ -983,8 +984,8 @@ export default function BattleScreen({
         <View style={styles.statsHero}>
           <View style={styles.statsHeroTop}>
             <View>
-              <Text style={styles.statsEyebrow}>SIZNING NATIJALARINGIZ</Text>
-              <Text style={styles.statsHeroTitle}>Battle statistikasi</Text>
+              <LocalizedText style={styles.statsEyebrow}>SIZNING NATIJALARINGIZ</LocalizedText>
+              <LocalizedText style={styles.statsHeroTitle}>Battle statistikasi</LocalizedText>
             </View>
             <View style={styles.statsHeroIcon}>
               <Ionicons name="analytics" size={23} color="#FFFFFF" />
@@ -993,29 +994,29 @@ export default function BattleScreen({
 
           <View style={styles.statsRateRow}>
             <View style={styles.statsRateCircle}>
-              <Text style={styles.statsRateValue}>{Math.round(winRate)}%</Text>
-              <Text style={styles.statsRateCaption}>g‘alaba</Text>
+              <LocalizedText style={styles.statsRateValue}>{Math.round(winRate)}%</LocalizedText>
+              <LocalizedText style={styles.statsRateCaption}>g‘alaba</LocalizedText>
             </View>
             <View style={styles.statsHeroCopy}>
-              <Text style={styles.statsHeroNumber}>{total}</Text>
-              <Text style={styles.statsHeroLabel}>ta yakunlangan o‘yin</Text>
+              <LocalizedText style={styles.statsHeroNumber}>{total}</LocalizedText>
+              <LocalizedText style={styles.statsHeroLabel}>ta yakunlangan o‘yin</LocalizedText>
               <View style={styles.statsHeroPill}>
                 <Ionicons name="trending-up" size={13} color="#D9D0FF" />
-                <Text style={styles.statsHeroPillText}>
+                <LocalizedText style={styles.statsHeroPillText}>
                   {wins} ta g‘alaba
-                </Text>
+                </LocalizedText>
               </View>
             </View>
           </View>
           <View style={styles.statsHeroFooter}>
-            <Text style={styles.statsHeroFooterText}>Har bir o‘yin — yangi imkoniyat</Text>
+            <LocalizedText style={styles.statsHeroFooterText}>Har bir o‘yin — yangi imkoniyat</LocalizedText>
             <Ionicons name="sparkles" size={16} color="#D9D0FF" />
           </View>
         </View>
 
         <View style={styles.statsSectionHeading}>
-          <Text style={styles.statsSectionTitle}>Asosiy ko‘rsatkichlar</Text>
-          <Text style={styles.statsSectionHint}>Umumiy natija</Text>
+          <LocalizedText style={styles.statsSectionTitle}>Asosiy ko‘rsatkichlar</LocalizedText>
+          <LocalizedText style={styles.statsSectionHint}>Umumiy natija</LocalizedText>
         </View>
 
         <View style={styles.statsGrid}>
@@ -1023,37 +1024,37 @@ export default function BattleScreen({
             <View style={[styles.statTileIcon, { backgroundColor: dark ? 'rgba(54,214,160,0.14)' : '#E7F7F0' }]}>
               <Ionicons name="trophy-outline" size={19} color={colors.success} />
             </View>
-            <Text style={styles.statTileValue}>{wins}</Text>
-            <Text style={styles.statTileLabel}>G‘alabalar</Text>
+            <LocalizedText style={styles.statTileValue}>{wins}</LocalizedText>
+            <LocalizedText style={styles.statTileLabel}>G‘alabalar</LocalizedText>
           </View>
           <View style={styles.statTile}>
             <View style={[styles.statTileIcon, { backgroundColor: dark ? 'rgba(255,100,124,0.14)' : '#FCECEF' }]}>
               <Ionicons name="close-circle-outline" size={19} color={colors.danger} />
             </View>
-            <Text style={styles.statTileValue}>{losses}</Text>
-            <Text style={styles.statTileLabel}>Mag‘lubiyatlar</Text>
+            <LocalizedText style={styles.statTileValue}>{losses}</LocalizedText>
+            <LocalizedText style={styles.statTileLabel}>Mag‘lubiyatlar</LocalizedText>
           </View>
           <View style={styles.statTile}>
             <View style={[styles.statTileIcon, { backgroundColor: dark ? 'rgba(85,184,255,0.14)' : '#EAF4FF' }]}>
               <Ionicons name="star-outline" size={19} color={dark ? '#55B8FF' : '#247CC5'} />
             </View>
-            <Text style={styles.statTileValue}>{points}</Text>
-            <Text style={styles.statTileLabel}>Jami ball</Text>
+            <LocalizedText style={styles.statTileValue}>{points}</LocalizedText>
+            <LocalizedText style={styles.statTileLabel}>Jami ball</LocalizedText>
           </View>
           <View style={styles.statTile}>
             <View style={[styles.statTileIcon, { backgroundColor: dark ? 'rgba(255,196,107,0.14)' : '#FFF4E2' }]}>
               <Ionicons name="speedometer-outline" size={19} color={dark ? '#FFC46B' : '#B7791F'} />
             </View>
-            <Text style={styles.statTileValue}>{average.toFixed(1)}</Text>
-            <Text style={styles.statTileLabel}>O‘rtacha ball</Text>
+            <LocalizedText style={styles.statTileValue}>{average.toFixed(1)}</LocalizedText>
+            <LocalizedText style={styles.statTileLabel}>O‘rtacha ball</LocalizedText>
           </View>
         </View>
 
         <View style={styles.statsPanel}>
           <View style={styles.statsPanelHeading}>
             <View>
-              <Text style={styles.statsSectionTitle}>O‘yinlar taqsimoti</Text>
-              <Text style={styles.statsSectionHint}>Natijalaringiz nisbati</Text>
+              <LocalizedText style={styles.statsSectionTitle}>O‘yinlar taqsimoti</LocalizedText>
+              <LocalizedText style={styles.statsSectionHint}>Natijalaringiz nisbati</LocalizedText>
             </View>
             <Ionicons name="pie-chart-outline" size={20} color={colors.primary} />
           </View>
@@ -1067,18 +1068,18 @@ export default function BattleScreen({
           <View style={styles.outcomeLegend}>
             <View style={styles.outcomeLegendItem}>
               <View style={[styles.outcomeDot, { backgroundColor: colors.success }]} />
-              <Text style={styles.outcomeLegendLabel}>G‘alaba</Text>
-              <Text style={styles.outcomeLegendValue}>{wins}</Text>
+              <LocalizedText style={styles.outcomeLegendLabel}>G‘alaba</LocalizedText>
+              <LocalizedText style={styles.outcomeLegendValue}>{wins}</LocalizedText>
             </View>
             <View style={styles.outcomeLegendItem}>
               <View style={[styles.outcomeDot, { backgroundColor: colors.danger }]} />
-              <Text style={styles.outcomeLegendLabel}>Mag‘lubiyat</Text>
-              <Text style={styles.outcomeLegendValue}>{losses}</Text>
+              <LocalizedText style={styles.outcomeLegendLabel}>Mag‘lubiyat</LocalizedText>
+              <LocalizedText style={styles.outcomeLegendValue}>{losses}</LocalizedText>
             </View>
             <View style={styles.outcomeLegendItem}>
               <View style={[styles.outcomeDot, { backgroundColor: colors.muted }]} />
-              <Text style={styles.outcomeLegendLabel}>Durang</Text>
-              <Text style={styles.outcomeLegendValue}>{draws}</Text>
+              <LocalizedText style={styles.outcomeLegendLabel}>Durang</LocalizedText>
+              <LocalizedText style={styles.outcomeLegendValue}>{draws}</LocalizedText>
             </View>
           </View>
         </View>
@@ -1086,8 +1087,8 @@ export default function BattleScreen({
         <View style={styles.statsPanel}>
           <View style={styles.statsPanelHeading}>
             <View>
-              <Text style={styles.statsSectionTitle}>So‘nggi o‘yinlar</Text>
-              <Text style={styles.statsSectionHint}>Oxirgi 5 ta natija</Text>
+              <LocalizedText style={styles.statsSectionTitle}>So‘nggi o‘yinlar</LocalizedText>
+              <LocalizedText style={styles.statsSectionHint}>Oxirgi 5 ta natija</LocalizedText>
             </View>
             <Ionicons name="time-outline" size={20} color={colors.primary} />
           </View>
@@ -1107,16 +1108,16 @@ export default function BattleScreen({
                   <Ionicons name={meta.icon} size={17} color={meta.color} />
                 </View>
                 <View style={styles.recentMatchCopy}>
-                  <Text style={styles.recentMatchTitle}>{meta.label}</Text>
-                  <Text style={styles.recentMatchMeta}>
+                  <LocalizedText style={styles.recentMatchTitle}>{meta.label}</LocalizedText>
+                  <LocalizedText style={styles.recentMatchMeta}>
                     {item.mode === 'ranked' ? 'Ranked' : 'Casual'} · {dateLabel}
-                  </Text>
+                  </LocalizedText>
                 </View>
-                <Text style={styles.recentMatchScore}>{Number(item.myScore) || 0} ball</Text>
+                <LocalizedText style={styles.recentMatchScore}>{Number(item.myScore) || 0} ball</LocalizedText>
               </View>
             );
           }) : (
-            <Text style={styles.muted}>Hozircha yakunlangan o‘yinlar mavjud emas.</Text>
+            <LocalizedText style={styles.muted}>Hozircha yakunlangan o‘yinlar mavjud emas.</LocalizedText>
           )}
         </View>
 
@@ -1144,8 +1145,8 @@ export default function BattleScreen({
           <View style={styles.learningHeroGlow} />
           <View style={styles.learningHeroTop}>
             <View>
-              <Text style={styles.learningEyebrow}>LEARNING JOURNEY</Text>
-              <Text style={styles.learningHeroTitle}>Bilim sari o‘sish</Text>
+              <LocalizedText style={styles.learningEyebrow}>LEARNING JOURNEY</LocalizedText>
+              <LocalizedText style={styles.learningHeroTitle}>Bilim sari o‘sish</LocalizedText>
             </View>
             <View style={styles.learningHeroIcon}>
               <Ionicons name="school-outline" size={23} color="#FFFFFF" />
@@ -1154,20 +1155,20 @@ export default function BattleScreen({
 
           <View style={styles.learningLevelRow}>
             <View style={styles.learningLevelBadge}>
-              <Text style={styles.learningLevelCaption}>DARAJA</Text>
-              <Text style={styles.learningLevelValue}>{level}</Text>
+              <LocalizedText style={styles.learningLevelCaption}>DARAJA</LocalizedText>
+              <LocalizedText style={styles.learningLevelValue}>{level}</LocalizedText>
             </View>
             <View style={styles.learningXpCopy}>
-              <Text style={styles.learningXpValue}>{xp.toLocaleString('uz-UZ')} XP</Text>
-              <Text style={styles.learningXpLabel}>To‘plangan tajriba</Text>
-              <Text style={styles.learningXpLabel}>Battle reytingi: {rankPoints.toLocaleString('uz-UZ')} RP</Text>
+              <LocalizedText style={styles.learningXpValue}>{xp.toLocaleString('uz-UZ')} XP</LocalizedText>
+              <LocalizedText style={styles.learningXpLabel}>To‘plangan tajriba</LocalizedText>
+              <LocalizedText style={styles.learningXpLabel}>Battle reytingi: {rankPoints.toLocaleString('uz-UZ')} RP</LocalizedText>
             </View>
           </View>
 
           <View style={styles.learningHeroFooter}>
-            <Text style={styles.learningHeroFooterText}>
+            <LocalizedText style={styles.learningHeroFooterText}>
               Har bir yakunlangan test bilimlaringiz tarixiga qo‘shiladi
-            </Text>
+            </LocalizedText>
             <Ionicons name="sparkles" size={16} color="#E0D9FF" />
           </View>
         </View>
@@ -1177,37 +1178,37 @@ export default function BattleScreen({
             <View style={[styles.learningMetricIcon, { backgroundColor: dark ? 'rgba(117,104,245,0.18)' : '#EEEAFE' }]}>
               <Ionicons name="document-text-outline" size={18} color={colors.primary} />
             </View>
-            <Text style={styles.learningMetricValue}>{totalAttempts}</Text>
-            <Text style={styles.learningMetricLabel}>Yakunlangan test</Text>
+            <LocalizedText style={styles.learningMetricValue}>{totalAttempts}</LocalizedText>
+            <LocalizedText style={styles.learningMetricLabel}>Yakunlangan test</LocalizedText>
           </View>
           <View style={styles.learningMetricCard}>
             <View style={[styles.learningMetricIcon, { backgroundColor: dark ? 'rgba(54,214,160,0.14)' : '#E7F7F0' }]}>
               <Ionicons name="checkmark-done-outline" size={18} color={colors.success} />
             </View>
-            <Text style={styles.learningMetricValue}>{accuracy.toFixed(1)}%</Text>
-            <Text style={styles.learningMetricLabel}>Umumiy aniqlik</Text>
+            <LocalizedText style={styles.learningMetricValue}>{accuracy.toFixed(1)}%</LocalizedText>
+            <LocalizedText style={styles.learningMetricLabel}>Umumiy aniqlik</LocalizedText>
           </View>
           <View style={styles.learningMetricCard}>
             <View style={[styles.learningMetricIcon, { backgroundColor: dark ? 'rgba(85,184,255,0.14)' : '#EAF4FF' }]}>
               <Ionicons name="help-circle-outline" size={18} color={dark ? '#55B8FF' : '#247CC5'} />
             </View>
-            <Text style={styles.learningMetricValue}>{totalQuestions}</Text>
-            <Text style={styles.learningMetricLabel}>Jami savollar</Text>
+            <LocalizedText style={styles.learningMetricValue}>{totalQuestions}</LocalizedText>
+            <LocalizedText style={styles.learningMetricLabel}>Jami savollar</LocalizedText>
           </View>
           <View style={styles.learningMetricCard}>
             <View style={[styles.learningMetricIcon, { backgroundColor: dark ? 'rgba(255,196,107,0.14)' : '#FFF4E2' }]}>
               <Ionicons name="book-outline" size={18} color={dark ? '#FFC46B' : '#B7791F'} />
             </View>
-            <Text style={styles.learningMetricValue}>{subjects.length}</Text>
-            <Text style={styles.learningMetricLabel}>Fanlar</Text>
+            <LocalizedText style={styles.learningMetricValue}>{subjects.length}</LocalizedText>
+            <LocalizedText style={styles.learningMetricLabel}>Fanlar</LocalizedText>
           </View>
         </View>
 
         <View style={styles.learningPanel}>
           <View style={styles.statsPanelHeading}>
             <View>
-              <Text style={styles.statsSectionTitle}>Haftalik o‘qish faolligi</Text>
-              <Text style={styles.statsSectionHint}>Oxirgi 7 kun ichida yakunlangan testlar</Text>
+              <LocalizedText style={styles.statsSectionTitle}>Haftalik o‘qish faolligi</LocalizedText>
+              <LocalizedText style={styles.statsSectionHint}>Oxirgi 7 kun ichida yakunlangan testlar</LocalizedText>
             </View>
             <Ionicons name="calendar-outline" size={20} color={colors.primary} />
           </View>
@@ -1221,7 +1222,7 @@ export default function BattleScreen({
                   : 4;
                 return (
                   <View key={item.day} style={styles.learningDayColumn}>
-                    <Text style={styles.learningDayCount}>{item.attempts || ''}</Text>
+                    <LocalizedText style={styles.learningDayCount}>{item.attempts || ''}</LocalizedText>
                     <View style={styles.learningBarTrack}>
                       <View style={[
                         styles.learningBarFill,
@@ -1231,29 +1232,29 @@ export default function BattleScreen({
                         },
                       ]} />
                     </View>
-                    <Text style={styles.learningDayLabel}>{dayLabel}</Text>
+                    <LocalizedText style={styles.learningDayLabel}>{dayLabel}</LocalizedText>
                   </View>
                 );
               })}
             </View>
           ) : (
-            <Text style={styles.muted}>Haftalik faollik hali mavjud emas.</Text>
+            <LocalizedText style={styles.muted}>Haftalik faollik hali mavjud emas.</LocalizedText>
           )}
         </View>
 
         <View style={styles.learningPanel}>
           <View style={styles.statsPanelHeading}>
             <View>
-              <Text style={styles.statsSectionTitle}>Fanlar bo‘yicha natija</Text>
-              <Text style={styles.statsSectionHint}>{totalTopics} ta mavzu mavjud</Text>
+              <LocalizedText style={styles.statsSectionTitle}>Fanlar bo‘yicha natija</LocalizedText>
+              <LocalizedText style={styles.statsSectionHint}>{totalTopics} ta mavzu mavjud</LocalizedText>
             </View>
             <Ionicons name="library-outline" size={20} color={colors.primary} />
           </View>
           {subjectRows.length ? subjectRows.slice(0, 6).map((item) => (
             <View key={item.subjectId} style={styles.learningSubjectRow}>
               <View style={styles.learningSubjectTop}>
-                <Text style={styles.learningSubjectName}>{item.subjectName}</Text>
-                <Text style={styles.learningSubjectValue}>{item.accuracy.toFixed(0)}% · {item.attempts} test</Text>
+                <LocalizedText style={styles.learningSubjectName}>{item.subjectName}</LocalizedText>
+                <LocalizedText style={styles.learningSubjectValue}>{item.accuracy.toFixed(0)}% · {item.attempts} test</LocalizedText>
               </View>
               <View style={styles.learningSubjectTrack}>
                 <View style={[
@@ -1265,7 +1266,7 @@ export default function BattleScreen({
           )) : (
             <View style={styles.learningEmpty}>
               <Ionicons name="book-outline" size={24} color={colors.muted} />
-              <Text style={styles.muted}>Birinchi testingizni yakunlang — fanlar kesimidagi natijalar shu yerda paydo bo‘ladi.</Text>
+              <LocalizedText style={styles.muted}>Birinchi testingizni yakunlang — fanlar kesimidagi natijalar shu yerda paydo bo‘ladi.</LocalizedText>
             </View>
           )}
         </View>
@@ -1273,8 +1274,8 @@ export default function BattleScreen({
         <View style={styles.learningPanel}>
           <View style={styles.statsPanelHeading}>
             <View>
-              <Text style={styles.statsSectionTitle}>So‘nggi testlar</Text>
-              <Text style={styles.statsSectionHint}>Oxirgi 8 ta yakunlangan urinish</Text>
+              <LocalizedText style={styles.statsSectionTitle}>So‘nggi testlar</LocalizedText>
+              <LocalizedText style={styles.statsSectionHint}>Oxirgi 8 ta yakunlangan urinish</LocalizedText>
             </View>
             <Ionicons name="time-outline" size={20} color={colors.primary} />
           </View>
@@ -1284,24 +1285,24 @@ export default function BattleScreen({
                 <Ionicons name="school-outline" size={17} color={colors.primary} />
               </View>
               <View style={styles.learningRecentCopy}>
-                <Text style={styles.learningRecentTitle}>{item.topicName}</Text>
-                <Text style={styles.learningRecentMeta}>{item.subjectName} · {new Date(item.completedAt).toLocaleDateString('uz-UZ')}</Text>
+                <LocalizedText style={styles.learningRecentTitle}>{item.topicName}</LocalizedText>
+                <LocalizedText style={styles.learningRecentMeta}>{item.subjectName} · {new Date(item.completedAt).toLocaleDateString('uz-UZ')}</LocalizedText>
               </View>
               <View style={styles.learningRecentScore}>
-                <Text style={styles.learningRecentScoreValue}>{item.correctAnswers}/{item.totalQuestions}</Text>
-                <Text style={styles.learningRecentScoreMeta}>{Number(item.accuracy).toFixed(0)}%</Text>
+                <LocalizedText style={styles.learningRecentScoreValue}>{item.correctAnswers}/{item.totalQuestions}</LocalizedText>
+                <LocalizedText style={styles.learningRecentScoreMeta}>{Number(item.accuracy).toFixed(0)}%</LocalizedText>
               </View>
             </View>
           )) : (
-            <Text style={styles.muted}>Hozircha saqlangan test natijalari yo‘q.</Text>
+            <LocalizedText style={styles.muted}>Hozircha saqlangan test natijalari yo‘q.</LocalizedText>
           )}
         </View>
 
         <View style={styles.learningNote}>
           <Ionicons name="information-circle-outline" size={17} color={colors.primary} />
-          <Text style={styles.learningNoteText}>
+          <LocalizedText style={styles.learningNoteText}>
             Test natijalari hisobingizga saqlanadi. XP va daraja profil tizimidan olinadi; statistika ularni o‘zgartirmaydi.
-          </Text>
+          </LocalizedText>
         </View>
       </View>
     );
@@ -1320,8 +1321,8 @@ export default function BattleScreen({
           <View style={styles.learningHeroGlow} />
           <View style={styles.learningHeroTop}>
             <View>
-              <Text style={styles.learningEyebrow}>YOUR PERFORMANCE</Text>
-              <Text style={styles.learningHeroTitle}>Shaxsiy natijalar</Text>
+              <LocalizedText style={styles.learningEyebrow}>YOUR PERFORMANCE</LocalizedText>
+              <LocalizedText style={styles.learningHeroTitle}>Shaxsiy natijalar</LocalizedText>
             </View>
             <View style={styles.learningHeroIcon}>
               <Ionicons name="analytics-outline" size={23} color="#FFFFFF" />
@@ -1329,13 +1330,13 @@ export default function BattleScreen({
           </View>
           <View style={styles.learningLevelRow}>
             <View style={styles.learningLevelBadge}>
-              <Text style={styles.learningLevelCaption}>LEVEL</Text>
-              <Text style={styles.learningLevelValue}>{level}</Text>
+              <LocalizedText style={styles.learningLevelCaption}>LEVEL</LocalizedText>
+              <LocalizedText style={styles.learningLevelValue}>{level}</LocalizedText>
             </View>
             <View style={styles.learningXpCopy}>
-              <Text style={styles.learningXpValue}>{xp.toLocaleString('uz-UZ')} XP</Text>
-              <Text style={styles.learningXpLabel}>Umumiy tajriba</Text>
-              <Text style={styles.learningXpLabel}>Ta’lim va Battle natijalari bir joyda</Text>
+              <LocalizedText style={styles.learningXpValue}>{xp.toLocaleString('uz-UZ')} XP</LocalizedText>
+              <LocalizedText style={styles.learningXpLabel}>Umumiy tajriba</LocalizedText>
+              <LocalizedText style={styles.learningXpLabel}>Ta’lim va Battle natijalari bir joyda</LocalizedText>
             </View>
           </View>
         </View>
@@ -1343,41 +1344,41 @@ export default function BattleScreen({
         <View style={styles.learningMetricGrid}>
           <View style={styles.learningMetricCard}>
             <Ionicons name="school-outline" size={19} color={colors.primary} />
-            <Text style={styles.learningMetricValue}>{testsTotal}</Text>
-            <Text style={styles.learningMetricLabel}>Testlar</Text>
+            <LocalizedText style={styles.learningMetricValue}>{testsTotal}</LocalizedText>
+            <LocalizedText style={styles.learningMetricLabel}>Testlar</LocalizedText>
           </View>
           <View style={styles.learningMetricCard}>
             <Ionicons name="game-controller-outline" size={19} color={colors.success} />
-            <Text style={styles.learningMetricValue}>{battleTotal}</Text>
-            <Text style={styles.learningMetricLabel}>Battle o‘yinlari</Text>
+            <LocalizedText style={styles.learningMetricValue}>{battleTotal}</LocalizedText>
+            <LocalizedText style={styles.learningMetricLabel}>Battle o‘yinlari</LocalizedText>
           </View>
           <View style={styles.learningMetricCard}>
             <Ionicons name="checkmark-circle-outline" size={19} color={colors.primary} />
-            <Text style={styles.learningMetricValue}>{learningAccuracy.toFixed(1)}%</Text>
-            <Text style={styles.learningMetricLabel}>Test aniqligi</Text>
+            <LocalizedText style={styles.learningMetricValue}>{learningAccuracy.toFixed(1)}%</LocalizedText>
+            <LocalizedText style={styles.learningMetricLabel}>Test aniqligi</LocalizedText>
           </View>
           <View style={styles.learningMetricCard}>
             <Ionicons name="trophy-outline" size={19} color={dark ? '#FFC46B' : '#B7791F'} />
-            <Text style={styles.learningMetricValue}>{Math.max(0, Number(stats?.wins) || 0)}</Text>
-            <Text style={styles.learningMetricLabel}>Battle g‘alabalari</Text>
+            <LocalizedText style={styles.learningMetricValue}>{Math.max(0, Number(stats?.wins) || 0)}</LocalizedText>
+            <LocalizedText style={styles.learningMetricLabel}>Battle g‘alabalari</LocalizedText>
           </View>
         </View>
 
         <View style={styles.learningPanel}>
-          <Text style={styles.statsSectionTitle}>Qisqa xulosa</Text>
-          <Text style={styles.learningSummaryText}>
+          <LocalizedText style={styles.statsSectionTitle}>Qisqa xulosa</LocalizedText>
+          <LocalizedText style={styles.learningSummaryText}>
             {testsTotal + battleTotal > 0
               ? `Siz ${testsTotal} ta test va ${battleTotal} ta Battle o‘yinini yakunlagansiz. Keyingi maqsad — natijangizni muntazam yaxshilash.`
               : 'Birinchi testingiz yoki Battle o‘yiningizni yakunlang. Natijalaringiz shu yerda jamlanadi.'}
-          </Text>
+          </LocalizedText>
           <View style={styles.learningQuickLinks}>
             <Pressable onPress={() => setStatsView('education')} style={styles.learningQuickLink}>
               <Ionicons name="book-outline" size={16} color={colors.primary} />
-              <Text style={styles.learningQuickLinkText}>Ta’lim natijalari</Text>
+              <LocalizedText style={styles.learningQuickLinkText}>Ta’lim natijalari</LocalizedText>
             </Pressable>
             <Pressable onPress={() => setStatsView('battle')} style={styles.learningQuickLink}>
               <Ionicons name="game-controller-outline" size={16} color={colors.primary} />
-              <Text style={styles.learningQuickLinkText}>Battle natijalari</Text>
+              <LocalizedText style={styles.learningQuickLinkText}>Battle natijalari</LocalizedText>
             </Pressable>
           </View>
         </View>
@@ -1390,7 +1391,7 @@ export default function BattleScreen({
       return (
         <View style={styles.statsLoading}>
           <ActivityIndicator color={colors.primary} size="large" />
-          <Text style={styles.muted}>Ta’lim va Battle statistikasi yuklanmoqda...</Text>
+          <LocalizedText style={styles.muted}>Ta’lim va Battle statistikasi yuklanmoqda...</LocalizedText>
         </View>
       );
     }
@@ -1398,8 +1399,8 @@ export default function BattleScreen({
     return (
       <View style={styles.statsContent}>
         <View style={styles.statsIntro}>
-          <Text style={styles.statsIntroTitle}>Statistika markazi</Text>
-          <Text style={styles.statsIntroSubtitle}>Ta’limdagi o‘sish va Battle natijalaringiz</Text>
+          <LocalizedText style={styles.statsIntroTitle}>Statistika markazi</LocalizedText>
+          <LocalizedText style={styles.statsIntroSubtitle}>Ta’limdagi o‘sish va Battle natijalaringiz</LocalizedText>
         </View>
         <View style={styles.statsViewSwitch}>
           {([
@@ -1415,10 +1416,10 @@ export default function BattleScreen({
                 statsView === value && styles.statsViewButtonActive,
               ]}
             >
-              <Text style={[
+              <LocalizedText style={[
                 styles.statsViewButtonText,
                 statsView === value && styles.statsViewButtonTextActive,
-              ]}>{label}</Text>
+              ]}>{label}</LocalizedText>
             </Pressable>
           ))}
         </View>
@@ -1433,9 +1434,9 @@ export default function BattleScreen({
           style={styles.statsRefresh}
         >
           <Ionicons name="refresh-outline" size={16} color={colors.primary} />
-          <Text style={styles.statsRefreshText}>
+          <LocalizedText style={styles.statsRefreshText}>
             {loadingData ? 'Yangilanmoqda...' : 'Barcha statistikani yangilash'}
-          </Text>
+          </LocalizedText>
         </Pressable>
       </View>
     );
@@ -1452,14 +1453,14 @@ export default function BattleScreen({
       <View style={styles.header}>
         {onBack ? (
           <Pressable onPress={onBack} style={styles.backButton}>
-            <Text style={styles.backText}>вЂ№</Text>
+            <LocalizedText style={styles.backText}>вЂ№</LocalizedText>
           </Pressable>
         ) : null}
         <View style={{ flex: 1 }}>
-          <Text style={styles.heading}>Battle Arena</Text>
-          <Text style={styles.muted}>
+          <LocalizedText style={styles.heading}>Battle Arena</LocalizedText>
+          <LocalizedText style={styles.muted}>
             {connected ? 'в—Џ Ulangan' : 'в—‹ Ulanmagan'}
-          </Text>
+          </LocalizedText>
         </View>
       </View>
 
@@ -1478,21 +1479,21 @@ export default function BattleScreen({
               section === value && styles.activeTab,
             ]}
           >
-            <Text
+            <LocalizedText
               style={[
                 styles.tabText,
                 section === value && styles.activeTabText,
               ]}
             >
               {label}
-            </Text>
+            </LocalizedText>
           </Pressable>
         ))}
       </View>
 
       {!!error && (
         <View style={styles.errorBox}>
-          <Text style={styles.dangerText}>{error}</Text>
+          <LocalizedText style={styles.dangerText}>{error}</LocalizedText>
         </View>
       )}
 
@@ -1534,7 +1535,7 @@ function ActionButton({
         disabled && styles.disabledButton,
       ]}
     >
-      <Text style={styles.actionButtonText}>{title}</Text>
+      <LocalizedText style={styles.actionButtonText}>{title}</LocalizedText>
     </Pressable>
   );
 }
