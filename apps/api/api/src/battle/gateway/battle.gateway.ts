@@ -15,7 +15,6 @@ import { Repository } from 'typeorm';
 import { Namespace, Socket } from 'socket.io';
 import { randomUUID } from 'node:crypto';
 import { FeatureUsageService } from '../../subscriptions/feature-usage.service';
-import { SubscriptionsService } from '../../subscriptions/subscriptions.service';
 
 import { User } from '../../users/entities/user.entity';
 import {
@@ -102,7 +101,6 @@ export class BattleGateway
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly featureUsageService: FeatureUsageService,
-    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -226,6 +224,10 @@ export class BattleGateway
     const userId = client.data.userId as string | undefined;
     if (!userId) {
       client.emit('battle:error', { message: 'Avval tizimga kiring.' });
+      return;
+    }
+    if (this.queuedSockets.has(client.id)) {
+      client.emit('battle:error', { message: 'Avval raqib qidirish navbatidan chiqing.' });
       return;
     }
     if ([...this.activeBattles.values()].some((battle) => battle.playerIds.includes(userId))) {
