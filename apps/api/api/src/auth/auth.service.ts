@@ -55,6 +55,7 @@ export class AuthService {
       displayName: user.displayName,
       username: user.username,
       email: user.email,
+      emailVerified: Boolean(user.emailVerifiedAt),
       phoneNumber: user.phoneNumber,
       phoneVerified: Boolean(user.phoneVerifiedAt),
       role: user.role,
@@ -416,6 +417,9 @@ export class AuthService {
     }
 
     if (user.status !== 'active') throw new UnauthorizedException('Hisobingiz bloklangan');
+    if (user.email && !user.emailVerifiedAt && !user.phoneVerifiedAt) {
+      throw new UnauthorizedException('Email manzilingiz tasdiqlanmagan. Emailingizga yuborilgan kodni kiriting.');
+    }
     return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
   }
 
@@ -431,6 +435,9 @@ export class AuthService {
     const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordMatches) throw new UnauthorizedException('Username yoki parol noto‘g‘ri');
     if (user.status !== 'active') throw new UnauthorizedException('Hisobingiz bloklangan');
+    if (user.email && !user.emailVerifiedAt && !user.phoneVerifiedAt) {
+      throw new UnauthorizedException('Email manzilingiz tasdiqlanmagan. Emailingizga yuborilgan kodni kiriting.');
+    }
 
     return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
   }
