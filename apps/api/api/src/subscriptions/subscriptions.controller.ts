@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Param, Post, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FeatureUsageService } from './feature-usage.service';
 import { SubscriptionsService } from './subscriptions.service';
