@@ -144,6 +144,30 @@ export async function exchangeGoogleCode(code: string): Promise<AuthResponse> {
   }));
 }
 
+
+export async function requestPhoneLinkOtp(phoneNumber: string): Promise<{ message: string }> {
+  const token = await getToken();
+  if (!token) throw new Error('Avval hisobingizga kiring');
+  return request('/api/auth/phone/link/request-otp', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ phoneNumber }),
+  });
+}
+
+export async function linkPhoneNumber(input: {
+  phoneNumber: string;
+  code: string;
+}): Promise<AuthUser> {
+  const token = await getToken();
+  if (!token) throw new Error('Avval hisobingizga kiring');
+  return request<AuthUser>('/api/auth/phone/link', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(input),
+  });
+}
+
 export async function getCurrentUser(): Promise<AuthUser> {
   const token = await getToken();
   if (!token) throw new Error('Kirish tokeni topilmadi');
