@@ -26,6 +26,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
+import { getPremiumStatus, type PremiumStatus } from '../services/subscriptionService';
 
 interface ProfileScreenProps {
   onSettingsPress?: () => void;
@@ -87,6 +88,7 @@ export default function ProfileScreen({
   const [followingUserId, setFollowingUserId] = useState<string | null>(null);
   const [cosmeticType, setCosmeticType] = useState<'decoration' | 'frame' | null>(null);
   const [cosmeticSaving, setCosmeticSaving] = useState(false);
+  const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -96,6 +98,15 @@ export default function ProfileScreen({
       setAvatarUri(user.avatarUrl);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    getPremiumStatus()
+      .then((status) => { if (active) setPremiumStatus(status); })
+      .catch(() => { if (active) setPremiumStatus(null); });
+    return () => { active = false; };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -239,6 +250,18 @@ export default function ProfileScreen({
     .toUpperCase();
 
   const glassIntensity = isDark ? 34 : 42;
+  const createdAtDate = user.createdAt ? new Date(user.createdAt) : null;
+  const memberSince = createdAtDate && !Number.isNaN(createdAtDate.getTime())
+    ? createdAtDate.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'Ma’lumot mavjud emas';
+  const premiumUntil = premiumStatus?.subscription?.expiresAt
+    ? new Date(premiumStatus.subscription.expiresAt)
+    : null;
+  const premiumDescription = premiumStatus?.isPremium
+    ? premiumUntil && !Number.isNaN(premiumUntil.getTime())
+      ? `Faol obuna · ${premiumUntil.toLocaleDateString('uz-UZ')} gacha`
+      : 'Premium obunangiz faol'
+    : 'Pullik tariflar va maxsus imkoniyatlar';
 
   return (
     <View style={styles.screen}>
@@ -343,8 +366,8 @@ export default function ProfileScreen({
               <Ionicons name="storefront-outline" size={23} color={colors.primary} />
             </View>
             <View style={styles.shopTextBlock}>
-              <Text style={styles.shopTitle}>Magazin</Text>
-              <Text style={styles.shopSubtitle}>Premium va maxsus imkoniyatlar</Text>
+              <Text style={styles.shopTitle}>QUIZ ARENA Premium</Text>
+              <Text style={styles.shopSubtitle}>{premiumDescription}</Text>
             </View>
             <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
           </GlassSurface>
@@ -354,6 +377,16 @@ export default function ProfileScreen({
           <View style={styles.biographyHeading}>
             <View style={styles.biographyAccent} />
             <Text style={styles.biographyTitle}>Biografiya</Text>
+          </View>
+        </GlassSurface>
+
+        <GlassSurface intensity={glassIntensity} style={styles.memberCard}>
+          <View style={styles.memberIconWrap}>
+            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+          </View>
+          <View style={styles.memberTextBlock}>
+            <Text style={styles.memberTitle}>QUIZ ARENA a’zosi</Text>
+            <Text style={styles.memberDate}>{memberSince}</Text>
           </View>
         </GlassSurface>
 
@@ -1017,6 +1050,18 @@ function makeStyles(
     biographyHeading: { flexDirection: 'row', alignItems: 'center', gap: 9 },
     biographyAccent: { width: 4, height: 20, borderRadius: 3, backgroundColor: colors.primary },
     biographyTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
+    memberCard: {
+      minHeight: 70, marginTop: 12, paddingHorizontal: 14, paddingVertical: 12,
+      borderRadius: 19, borderWidth: 1, borderColor: glassBorder, backgroundColor: glassFill,
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+    },
+    memberIconWrap: {
+      width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(183,163,255,0.14)' : 'rgba(123,99,204,0.10)',
+    },
+    memberTextBlock: { flex: 1, minWidth: 0 },
+    memberTitle: { color: colors.text, fontSize: 13, fontWeight: '800' },
+    memberDate: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
     socialHeading: {
       flexDirection: 'row',
       alignItems: 'center',
