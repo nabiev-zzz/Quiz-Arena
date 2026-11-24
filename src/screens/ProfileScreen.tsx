@@ -1,29 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import Animated, {
-  useAnimatedScrollHandler,
-  useSharedValue,
-  withSpring,
-  type SharedValue,
-} from 'react-native-reanimated';
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
-import { GlassSurface } from '../components/ui';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
 
@@ -35,16 +18,24 @@ interface ProfileScreenProps {
   dockStretch?: SharedValue<number>;
 }
 
-export default function ProfileScreen({
-  onClosePress,
-  onSettingsPress,
-  onPremiumPress,
-  onUserPress,
-  dockStretch,
-}: ProfileScreenProps) {
-  const { tokens, isDark } = useTheme();
-  const colors = tokens.colors;
-  const styles = makeStyles(colors, isDark);
+type ProfileTab = 'main' | 'board' | 'activity' | 'wishlist';
+
+const C = {
+  background: '#0F0A1F',
+  surface: '#171127',
+  surfaceRaised: '#1D1630',
+  border: '#302443',
+  purple: '#6B3FD4',
+  purpleSoft: '#24183D',
+  text: '#F5F1FF',
+  muted: '#958BAA',
+  subtle: '#6F6682',
+};
+
+export default function ProfileScreen({ onClosePress, onSettingsPress, onPremiumPress, onUserPress, dockStretch }: ProfileScreenProps) {
+  const { user, updateProfile, logout } = useAuth();
+  const { tokens } = useTheme();
+  const styles = makeStyles();
   const lastDockScrollY = useSharedValue(0);
   const dockScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -52,33 +43,13 @@ export default function ProfileScreen({
       const nextY = event.contentOffset.y;
       const delta = nextY - lastDockScrollY.value;
       lastDockScrollY.value = nextY;
-      dockStretch.value = withSpring(
-        Math.max(-1, Math.min(1, delta / 30)),
-        { damping: 11, stiffness: 160, mass: 0.7 },
-      );
+      dockStretch.value = withSpring(Math.max(-1, Math.min(1, delta / 30)), { damping: 11, stiffness: 160, mass: 0.7 });
     },
-    onEndDrag: () => {
-      if (dockStretch) {
-        dockStretch.value = withSpring(0, {
-          damping: 11,
-          stiffness: 160,
-          mass: 0.7,
-        });
-      }
-    },
-    onMomentumEnd: () => {
-      if (dockStretch) {
-        dockStretch.value = withSpring(0, {
-          damping: 11,
-          stiffness: 160,
-          mass: 0.7,
-        });
-      }
-    },
+    onEndDrag: () => { if (dockStretch) dockStretch.value = withSpring(0); },
+    onMomentumEnd: () => { if (dockStretch) dockStretch.value = withSpring(0); },
   });
 
-  const { user, updateProfile, logout } = useAuth();
-  const [activeProfileTab, setActiveProfileTab] = useState<'main' | 'board' | 'activity' | 'wishlist'>('main');
+  const [activeTab, setActiveTab] = useState<ProfileTab>('main');
   const [editVisible, setEditVisible] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
@@ -92,12 +63,11 @@ export default function ProfileScreen({
   const [cosmeticSaving, setCosmeticSaving] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      setDisplayName(user.displayName);
-      setUsername(user.username);
-      setBio(user.bio ?? '');
-      setAvatarUri(user.avatarUrl);
-    }
+    if (!user) return;
+    setDisplayName(user.displayName);
+    setUsername(user.username);
+    setBio(user.bio ?? '');
+    setAvatarUri(user.avatarUrl);
   }, [user]);
 
   useEffect(() => {
@@ -114,11 +84,7 @@ export default function ProfileScreen({
   }, [user?.id, user?.username]);
 
   if (!user) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+    return <View style={styles.loading}><ActivityIndicator size="large" color={C.purple} /></View>;
   }
 
   const rankPoints = Math.max(0, Number(user.rankPoints ?? 0));
@@ -131,22 +97,51 @@ export default function ProfileScreen({
     { name: 'Master', min: 1100, color: '#A78BFA' },
     { name: 'Grandmaster', min: 1400, color: '#F59E0B' },
   ];
-  const rankIndex = rankTiers.findIndex(
-    (tier, index) =>
-      rankPoints >= tier.min &&
-      (index === rankTiers.length - 1 ||
-        rankPoints < rankTiers[index + 1].min),
-  );
-  const rankInfo = rankTiers[Math.max(0, rankIndex)];
+  const rankIndex = Math.max(0, rankTiers.findIndex((tier, index) => rankPoints >= tier.min && (index === rankTiers.length - 1 || rankPoints < rankTiers[index + 1].min)));
+  const rankInfo = rankTiers[rankIndex];
   const nextRank = rankTiers[rankIndex + 1];
-  const rankProgress = nextRank
-    ? Math.min(
-        100,
-        ((rankPoints - rankInfo.min) /
-          (nextRank.min - rankInfo.min)) *
-          100,
-      )
-    : 100;
+  const rankProgress = nextRank ? Math.min(100, ((rankPoints - rankInfo.min) / (nextRank.min - rankInfo.min)) * 100) : 100;
+  const initials = user.displayName.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+
+  const chooseAvatar = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Ruxsat kerak', 'Avatar tanlash uchun galereyaga ruxsat bering.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+      if (!result.canceled && result.assets.length > 0) {
+        const uri = result.assets[0].uri;
+        setAvatarUri(uri);
+        try { await updateProfile({ avatarUrl: uri }); }
+        catch (error) { Alert.alert('Xatolik', error instanceof Error ? error.message : 'Avatarni saqlab bo‘lmadi'); }
+      }
+    } catch {
+      Alert.alert('Xatolik', 'Rasm tanlashda xatolik yuz berdi.');
+    }
+  };
+
+  const saveProfile = async () => {
+    if (displayName.trim().length < 2) {
+      Alert.alert('Xatolik', 'Ism kamida 2 ta belgidan iborat bo‘lsin.');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(username.trim())) {
+      Alert.alert('Xatolik', 'Username 3–30 belgi bo‘lsin. Faqat harf, raqam va _ ishlating.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateProfile({ displayName: displayName.trim(), username: username.trim(), bio: bio.trim() || null });
+      setEditVisible(false);
+      Alert.alert('Saqlandi', 'Profil ma’lumotlari yangilandi.');
+    } catch (error) {
+      Alert.alert('Xatolik', error instanceof Error ? error.message : 'Profilni saqlashda xatolik yuz berdi.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const saveCosmetic = async (value: string | null) => {
     if (!cosmeticType || cosmeticSaving) return;
@@ -165,1287 +160,353 @@ export default function ProfileScreen({
     try {
       await Clipboard.setStringAsync('@' + user.username);
       Alert.alert('Nusxalandi', 'Username buferga nusxalandi.');
-    } catch {
-      Alert.alert('Xatolik', 'Username nusxalanmadi.');
-    }
+    } catch { Alert.alert('Xatolik', 'Username nusxalanmadi.'); }
   };
 
-  const chooseAvatar = async () => {
-    try {
-      const permission =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const tabs: { key: ProfileTab; label: string }[] = [
+    { key: 'main', label: 'Main' },
+    { key: 'board', label: 'Board' },
+    { key: 'activity', label: 'Activity' },
+    { key: 'wishlist', label: 'Wishlist' },
+  ];
 
-      if (!permission.granted) {
-        Alert.alert(
-          'Ruxsat kerak',
-          'Avatar tanlash uchun galereyaga ruxsat bering.',
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets.length > 0) {
-        setAvatarUri(result.assets[0].uri);
-      }
-    } catch {
-      Alert.alert('Xatolik', 'Rasm tanlashda xatolik yuz berdi.');
-    }
-  };
-
-  const saveProfile = async () => {
-    if (displayName.trim().length < 2) {
-      Alert.alert('Xatolik', 'Ism kamida 2 ta belgidan iborat bo‘lsin.');
-      return;
-    }
-
-    if (!/^[a-zA-Z0-9_]{3,30}$/.test(username.trim())) {
-      Alert.alert(
-        'Xatolik',
-        'Username 3–30 belgi bo‘lsin. Faqat harf, raqam va _ ishlating.',
-      );
-      return;
-    }
-
-    setSaving(true);
-    try {
-      await updateProfile({
-        displayName: displayName.trim(),
-        username: username.trim(),
-        bio: bio.trim() || null,
-      });
-      setEditVisible(false);
-      Alert.alert('Muvaffaqiyatli', 'Profil ma’lumotlari saqlandi.');
-    } catch (error) {
-      Alert.alert(
-        'Xatolik',
-        error instanceof Error
-          ? error.message
-          : 'Profilni saqlashda xatolik yuz berdi.',
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const initials = user.displayName
-    .split(' ')
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-
-  const glassIntensity = isDark ? 34 : 42;
+  const renderCard = (children: React.ReactNode, extraStyle?: object) => (
+    <View style={[styles.card, extraStyle]}>{children}</View>
+  );
 
   return (
     <View style={styles.screen}>
-      <View pointerEvents="none" style={styles.ambientGlowTop} />
-      <View pointerEvents="none" style={styles.ambientGlowBottom} />
-
-      <Animated.ScrollView
-        onScroll={dockScrollHandler}
-        scrollEventThrottle={16}
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <Animated.ScrollView onScroll={dockScrollHandler} scrollEventThrottle={16} style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Pressable style={styles.headerButton} onPress={onClosePress} accessibilityRole="button" accessibilityLabel="Profilni yopish">
-            <Ionicons name="close" size={22} color={colors.text} />
+            <Ionicons name="close" size={22} color={C.text} />
           </Pressable>
-          <Text style={styles.profileHeaderLabel}>PROFILE</Text>
-          <Pressable style={styles.headerButton} onPress={onSettingsPress} accessibilityRole="button" accessibilityLabel="Sozlamalarni ochish">
-            <Ionicons name="settings-outline" size={21} color={colors.text} />
+          <Text style={styles.headerTitle}>PROFILE</Text>
+          <Pressable style={styles.headerButton} onPress={onSettingsPress} accessibilityRole="button" accessibilityLabel="Sozlamalar">
+            <Ionicons name="settings-outline" size={21} color={C.text} />
           </Pressable>
         </View>
 
-        <GlassSurface intensity={glassIntensity} style={styles.heroCard}>
-          <View style={styles.heroHighlight} />
-          <View style={styles.heroTopLine}>
-            <View style={styles.identityLabel}>
-              <View style={styles.onlineDot} />
-              <Text style={styles.identityLabelText}>PLAYER PROFILE</Text>
+        <View style={styles.identity}>
+          <View style={styles.avatarWrap}>
+            <View style={[styles.avatarFrame, user.profileFrame === 'aurora' && styles.frameAurora, user.profileFrame === 'royal' && styles.frameRoyal, user.profileFrame === 'ocean' && styles.frameOcean]}>
+              {avatarUri ? <Image source={{ uri: avatarUri }} style={styles.avatar} /> : <View style={styles.avatarFallback}><Text style={styles.avatarInitials}>{initials || '?'}</Text></View>}
             </View>
-            <View style={styles.rankPill}>
-              <Ionicons name="shield-checkmark" size={13} color={rankInfo.color} />
-              <Text style={[styles.rankPillText, { color: rankInfo.color }]}>
-                {rankInfo.name.toUpperCase()}
-              </Text>
-            </View>
+            {user.avatarDecoration ? <View style={styles.decoration}><Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={13} color="#F5D78A" /></View> : null}
+            <Pressable style={styles.cameraButton} onPress={chooseAvatar} accessibilityRole="button" accessibilityLabel="Avatarni almashtirish">
+              <Ionicons name="camera" size={15} color="#FFFFFF" />
+            </Pressable>
           </View>
+          <View style={styles.nameRow}>
+            <Text style={styles.displayName} numberOfLines={1}>{user.displayName}</Text>
+            <Ionicons name="chevron-down" size={17} color={C.muted} />
+          </View>
+          <Pressable style={styles.handleRow} onPress={copyUsername}>
+            <Text style={styles.handle}>@{user.username}</Text>
+            <Ionicons name="copy-outline" size={13} color={C.subtle} />
+          </Pressable>
+          <View style={styles.badges}>
+            <Ionicons name="trophy" size={17} color="#A78BFA" />
+            <Ionicons name="star" size={17} color="#A78BFA" />
+            <Ionicons name="shield-checkmark" size={17} color="#A78BFA" />
+          </View>
+        </View>
 
-          <View style={styles.identityBlock}>
-            <View style={styles.avatarStage}>
-              <View style={styles.avatarHalo} />
-              <View style={[styles.avatarBorder, user.profileFrame === 'aurora' ? styles.frameAurora : user.profileFrame === 'royal' ? styles.frameRoyal : user.profileFrame === 'ocean' ? styles.frameOcean : null]}>
-                {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={styles.avatar} />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarInitials}>{initials || '?'}</Text>
-                  </View>
-                )}
-              </View>
-              {user.avatarDecoration ? (
-                <View style={styles.decoration}>
-                  <Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={13} color="#F8D477" />
+        <Pressable style={styles.editButton} onPress={() => setEditVisible(true)}>
+          <Ionicons name="create-outline" size={17} color="#FFFFFF" />
+          <Text style={styles.editButtonText}>Edit profile</Text>
+        </Pressable>
+
+        <View style={styles.tabs}>
+          {tabs.map((tab) => (
+            <Pressable key={tab.key} style={styles.tab} onPress={() => setActiveTab(tab.key)}>
+              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
+              {activeTab === tab.key ? <View style={styles.tabUnderline} /> : null}
+            </Pressable>
+          ))}
+        </View>
+
+        {activeTab === 'main' ? (
+          <>
+            {renderCard(
+              <Pressable style={styles.row} onPress={onPremiumPress}>
+                <View style={styles.iconTile}><Ionicons name="diamond-outline" size={21} color={C.purple} /></View>
+                <View style={styles.rowBody}>
+                  <Text style={styles.cardTitle}>Premium</Text>
+                  <Text style={styles.cardSubtitle}>Maxsus imkoniyatlar va tariflar</Text>
                 </View>
-              ) : null}
-              <Pressable
-                style={styles.cameraButton}
-                onPress={chooseAvatar}
-                accessibilityRole="button"
-                accessibilityLabel="Avatarni o‘zgartirish"
-              >
-                <Ionicons name="camera-outline" size={16} color={colors.text} />
-              </Pressable>
+                <Ionicons name="chevron-forward" size={19} color={C.muted} />
+              </Pressable>,
+              styles.premiumCard,
+            )}
+            {renderCard(
+              <Pressable style={styles.row} onPress={onPremiumPress}>
+                <View style={styles.iconTile}><Ionicons name="storefront-outline" size={21} color={C.purple} /></View>
+                <View style={styles.rowBody}>
+                  <Text style={styles.cardTitle}>Shop</Text>
+                  <Text style={styles.cardSubtitle}>Profil uchun qo‘shimcha imkoniyatlar</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={19} color={C.muted} />
+              </Pressable>,
+            )}
+            {renderCard(
+              <View style={styles.bioRow}>
+                <View style={styles.bioAccent} />
+                <View style={styles.rowBody}>
+                  <Text style={styles.cardTitle}>Bio</Text>
+                  <Text style={styles.bioText}>{user.bio?.trim() || 'Tarjimai hol hali kiritilmagan'}</Text>
+                </View>
+              </View>,
+            )}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Friends</Text>
+              <Pressable onPress={() => onUserPress?.('discover')}><Text style={styles.linkText}>Barchasi <Ionicons name="chevron-forward" size={11} /></Text></Pressable>
             </View>
-            <View style={styles.identityTextBlock}>
-              <Text style={styles.displayName} numberOfLines={2}>{user.displayName}</Text>
-              <View style={styles.usernameRow}>
-                <Text style={styles.username}>@{user.username}</Text>
-                <Pressable onPress={copyUsername} hitSlop={10} accessibilityRole="button" accessibilityLabel="Username nusxalash" style={styles.copyButton}>
-                  <Ionicons name="copy-outline" size={15} color={colors.textMuted} />
-                </Pressable>
-              </View>
-              <View style={styles.profileBadges}>
-                <Ionicons name="trophy" size={19} color="#A78BFA" />
-                <Ionicons name="star" size={19} color="#A78BFA" />
-                <Ionicons name="shield-checkmark" size={19} color="#8D79F6" />
-              </View>
+            {renderCard(
+              <View style={styles.friendsHeader}>
+                <View style={styles.avatarStack}>
+                  {suggestions.slice(0, 5).map((person, index) => (
+                    <Pressable key={person.id} onPress={() => onUserPress?.(person.username)} style={[styles.friendAvatarWrap, { marginLeft: index === 0 ? 0 : -12, zIndex: 5 - index }]}>
+                      {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.friendAvatar} /> : <View style={styles.friendFallback}><Text style={styles.friendInitial}>{person.displayName.slice(0, 1).toUpperCase()}</Text></View>}
+                    </Pressable>
+                  ))}
+                  {suggestions.length === 0 ? <Text style={styles.cardSubtitle}>Hozircha do‘stlar tavsiya qilinmagan</Text> : null}
+                </View>
+                <Pressable onPress={() => onUserPress?.('discover')} hitSlop={10}><Ionicons name="chevron-forward" size={19} color={C.muted} /></Pressable>
+              </View>,
+            )}
+            <View style={styles.memberRow}>
+              <Ionicons name="people-outline" size={18} color={C.muted} />
+              <Text style={styles.memberText}>QUIZ ARENA a’zosi</Text>
+              <View style={styles.memberDot} />
             </View>
-          </View>
+            {suggestions.length > 0 ? (
+              <>
+                <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Tavsiya etilganlar</Text></View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestions}>
+                  {suggestions.map((person) => (
+                    <View key={person.id} style={styles.personCard}>
+                      <Pressable onPress={() => onUserPress?.(person.username)} style={styles.personIdentity}>
+                        {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.personAvatar} /> : <View style={styles.friendFallback}><Text style={styles.friendInitial}>{person.displayName.slice(0, 1).toUpperCase()}</Text></View>}
+                        <Text style={styles.personName} numberOfLines={1}>{person.displayName}</Text>
+                        <Text style={styles.personMeta}>{person.followersCount} kuzatuvchi</Text>
+                      </Pressable>
+                      <Pressable style={styles.followButton} disabled={followingUserId === person.id} onPress={async () => {
+                        setFollowingUserId(person.id);
+                        try {
+                          await followUser(person.id);
+                          setSuggestions((current) => current.filter((item) => item.id !== person.id));
+                          setSocialProfile((current) => current ? { ...current, followingCount: (current.followingCount ?? 0) + 1 } : current);
+                        } catch (error) { Alert.alert('Xatolik', error instanceof Error ? error.message : 'Kuzatib bo‘lmadi'); }
+                        finally { setFollowingUserId(null); }
+                      }}>
+                        <Text style={styles.followButtonText}>{followingUserId === person.id ? '...' : 'Kuzatish'}</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </ScrollView>
+              </>
+            ) : null}
+          </>
+        ) : null}
 
-          <View style={styles.heroDivider} />
-          <View style={styles.followRow}>
-            <View style={styles.followItem}>
-              <Text style={styles.followNumber}>{socialProfile?.followersCount ?? 0}</Text>
-              <Text style={styles.followLabel}>Kuzatuvchilar</Text>
+        {activeTab === 'board' ? (
+          <>
+            <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Natijalar</Text></View>
+            <View style={styles.statsRow}>
+              {[
+                { icon: 'flash-outline' as const, value: user.xp ?? 0, label: 'Jami XP' },
+                { icon: 'trophy-outline' as const, value: user.level ?? 1, label: 'Daraja' },
+                { icon: 'medal-outline' as const, value: rankPoints, label: 'Reyting RP' },
+              ].map((item) => renderCard(
+                <View style={styles.statContent}>
+                  <Ionicons name={item.icon} size={19} color={C.purple} />
+                  <Text style={styles.statNumber}>{item.value}</Text>
+                  <Text style={styles.cardSubtitle}>{item.label}</Text>
+                </View>,
+                styles.statCard,
+              ))}
             </View>
-            <View style={styles.followDivider} />
-            <View style={styles.followItem}>
-              <Text style={styles.followNumber}>{socialProfile?.followingCount ?? 0}</Text>
-              <Text style={styles.followLabel}>Kuzatilayotganlar</Text>
+            {renderCard(
+              <>
+                <View style={styles.row}>
+                  <View style={styles.iconTile}><Ionicons name="medal-outline" size={21} color={rankInfo.color} /></View>
+                  <View style={styles.rowBody}><Text style={styles.cardTitle}>{rankInfo.name} ligasi</Text><Text style={styles.cardSubtitle}>Battle reytingi</Text></View>
+                  <Text style={[styles.rankPoints, { color: rankInfo.color }]}>{rankPoints} RP</Text>
+                </View>
+                <View style={styles.progressTrack}><View style={[styles.progressFill, { width: rankProgress + '%' }]} /></View>
+                <Text style={styles.cardSubtitle}>{nextRank ? (nextRank.min - rankPoints) + ' RP dan keyingi liga' : 'Eng yuqori liga'}</Text>
+              </>,
+            )}
+          </>
+        ) : null}
+
+        {activeTab === 'activity' ? (
+          <>
+            <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Erishilgan yutuqlar</Text></View>
+            <View style={styles.achievementList}>
+              {getProfileAchievements(user.xp ?? 0, user.level ?? 1, rankPoints).map((achievement) => (
+                <View key={achievement.id} style={[styles.achievement, !achievement.unlocked && styles.achievementLocked]}>
+                  <Ionicons name={achievement.icon} size={21} color={achievement.unlocked ? C.purple : C.subtle} />
+                  <View style={styles.rowBody}><Text style={styles.cardTitle}>{achievement.title}</Text><Text style={styles.cardSubtitle}>{achievement.description}</Text></View>
+                  <Ionicons name={achievement.unlocked ? 'checkmark-circle' : 'lock-closed'} size={17} color={achievement.unlocked ? C.purple : C.subtle} />
+                </View>
+              ))}
             </View>
-          </View>
+          </>
+        ) : null}
 
-          <Pressable
-            style={styles.editButton}
-            onPress={() => setEditVisible(true)}
-          >
-            <Ionicons name="create-outline" size={17} color={colors.text} />
-            <Text style={styles.editButtonText}>Profilni tahrirlash</Text>
-            <Ionicons name="arrow-forward" size={16} color={colors.textMuted} />
-          </Pressable>
-        </GlassSurface>
-
-        <Pressable onPress={onPremiumPress} style={{ marginTop: 14, marginBottom: 22 }}>
-          <GlassSurface intensity={glassIntensity} style={{ padding: 17, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(239,203,120,0.38)', backgroundColor: isDark ? 'rgba(111,82,174,0.24)' : 'rgba(255,248,229,0.82)' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(239,203,120,0.18)', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="diamond" size={22} color="#EFCB78" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontSize: 15, fontWeight: '900' }}>QUIZ ARENA Premium</Text>
-                <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 3 }}>Maxsus imkoniyatlarni kashf eting</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#EFCB78" />
-            </View>
-          </GlassSurface>
-        </Pressable>
-
-        <View style={styles.profileTabs}>
-          {([
-            ['main', 'Main'],
-            ['board', 'Board'],
-            ['activity', 'Activity'],
-            ['wishlist', 'Wishlist'],
-          ] as const).map(([key, label]) => (
-            <Pressable key={key} style={styles.profileTab} onPress={() => setActiveProfileTab(key)}>
-              <Text style={[styles.profileTabText, activeProfileTab === key && styles.profileTabTextActive]}>{label}</Text>
-              {activeProfileTab === key ? <View style={styles.profileTabUnderline} /> : null}
+        {activeTab === 'wishlist' ? (
+          <>
+            <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Mukofotlar va bezaklar</Text></View>
+            {renderCard(
+              <View style={styles.row}>
+                <View style={styles.iconTile}><Ionicons name="medal-outline" size={21} color={C.purple} /></View>
+                <View style={styles.rowBody}><Text style={styles.cardTitle}>Mening mukofotlarim</Text><Text style={styles.cardSubtitle}>Yutuqlar va medallar</Text></View>
+              </View>,
+            )}
+            <Pressable onPress={() => setCosmeticType('decoration')}>
+              {renderCard(<View style={styles.row}><View style={styles.iconTile}><Ionicons name="color-palette-outline" size={21} color={C.purple} /></View><View style={styles.rowBody}><Text style={styles.cardTitle}>Avatar bezaklari</Text><Text style={styles.cardSubtitle}>{user.avatarDecoration || 'Hozircha bezak tanlanmagan'}</Text></View><Text style={styles.linkText}>Sozlash</Text></View>)}
             </Pressable>
-          ))}
-        </View>
-
-        {activeProfileTab === 'main' ? (
-          <>
-            <Pressable onPress={onPremiumPress} style={styles.profileShopCard}>
-              <View style={styles.profileShopIcon}><Ionicons name="storefront-outline" size={22} color="#A78BFA" /></View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.profileShopTitle}>Shop</Text>
-                <Text style={styles.profileShopSubtitle}>Premium tariflari va maxsus imkoniyatlar</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={19} color="#A78BFA" />
+            <Pressable onPress={() => setCosmeticType('frame')}>
+              {renderCard(<View style={styles.row}><View style={styles.iconTile}><Ionicons name="albums-outline" size={21} color={C.purple} /></View><View style={styles.rowBody}><Text style={styles.cardTitle}>Profil ramkasi</Text><Text style={styles.cardSubtitle}>{user.profileFrame || 'Standart ramka'}</Text></View><Text style={styles.linkText}>Sozlash</Text></View>)}
             </Pressable>
-            <GlassSurface intensity={glassIntensity} style={styles.profileBioCard}>
-              <View style={styles.profileBioAccent} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.profileBioTitle}>Bio</Text>
-                <Text style={styles.profileBioText}>{user.bio?.trim() || 'Tarjimai hol hali kiritilmagan'}</Text>
-              </View>
-            </GlassSurface>
           </>
         ) : null}
 
-        {activeProfileTab === 'main' ? (
-          <>
-        <View style={styles.socialHeading}>
-          <View>
-            <Text style={styles.sectionEyebrow}>COMMUNITY</Text>
-            <Text style={styles.sectionTitle}>Do‘stlar ortiring</Text>
-          </View>
-          <Pressable onPress={() => onUserPress?.('discover')} hitSlop={8}>
-            <Text style={styles.moreLink}>Ko‘proq <Ionicons name="chevron-forward" size={12} /></Text>
-          </Pressable>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsRow}>
-          {suggestions.map((person) => {
-            const personInitials = person.displayName.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
-            return (
-              <View key={person.id} style={styles.personCard}>
-                <Pressable style={styles.personIdentity} onPress={() => onUserPress?.(person.username)}>
-                  {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.personAvatar} /> : <View style={styles.personAvatarFallback}><Text style={styles.personInitials}>{personInitials || '?'}</Text></View>}
-                  <Text style={styles.personName} numberOfLines={1}>{person.displayName}</Text>
-                  <Text style={styles.personFollowers} numberOfLines={1}>{person.followersCount} kuzatuvchi</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.personFollowButton}
-                  disabled={followingUserId === person.id}
-                  onPress={async () => {
-                    setFollowingUserId(person.id);
-                    try {
-                      await followUser(person.id);
-                      setSuggestions((current) => current.filter((item) => item.id !== person.id));
-                      setSocialProfile((current) => current ? { ...current, followingCount: (current.followingCount ?? 0) + 1 } : current);
-                    } catch (error) {
-                      Alert.alert('Xatolik', error instanceof Error ? error.message : 'Kuzatib bo‘lmadi');
-                    } finally {
-                      setFollowingUserId(null);
-                    }
-                  }}
-                >
-                  <Ionicons name="person-add-outline" size={12} color={colors.primary} />
-                  <Text style={styles.personAction}>{followingUserId === person.id ? '...' : 'Kuzatish'}</Text>
-                </Pressable>
-              </View>
-            );
-          })}
-          {suggestions.length === 0 ? <Text style={styles.noSuggestions}>Hozircha yangi tavsiyalar yo‘q</Text> : null}
-        </ScrollView>
-          </>
-        ) : null}
-
-        {activeProfileTab === 'board' ? (
-          <>
-        <View style={styles.sectionHeading}>
-          <View>
-            <Text style={styles.sectionEyebrow}>YOUR PROGRESS</Text>
-            <Text style={styles.sectionTitle}>Natijalar</Text>
-          </View>
-          <Ionicons name="analytics-outline" size={20} color={colors.textMuted} />
-        </View>
-
-        <View style={styles.statsRow}>
-          <GlassSurface intensity={glassIntensity} style={styles.statCard}>
-            <View style={styles.statIconWrap}>
-              <Ionicons name="flash" size={18} color="#EFCB78" />
-            </View>
-            <Text style={styles.statNumber}>{user.xp ?? 0}</Text>
-            <Text style={styles.statLabel}>Jami XP</Text>
-          </GlassSurface>
-          <GlassSurface intensity={glassIntensity} style={styles.statCard}>
-            <View style={styles.statIconWrap}>
-              <Ionicons name="trophy-outline" size={18} color="#BBA8FF" />
-            </View>
-            <Text style={styles.statNumber}>{user.level ?? 1}</Text>
-            <Text style={styles.statLabel}>Daraja</Text>
-          </GlassSurface>
-          <GlassSurface intensity={glassIntensity} style={styles.statCard}>
-            <View style={styles.statIconWrap}>
-              <Ionicons name="medal-outline" size={18} color="#83DCCB" />
-            </View>
-            <Text style={styles.statNumber}>{rankPoints}</Text>
-            <Text style={styles.statLabel}>Reyting RP</Text>
-          </GlassSurface>
-        </View>
-          </>
-        ) : null}
-
-        {activeProfileTab === 'activity' ? (
-          <>
-        <View style={styles.sectionHeading}>
-          <View>
-            <Text style={styles.sectionEyebrow}>ACHIEVEMENTS</Text>
-            <Text style={styles.sectionTitle}>Erishgan yutuqlari</Text>
-          </View>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsRow}>
-          {getProfileAchievements(user.xp ?? 0, user.level ?? 1, rankPoints).filter((item) => item.unlocked).map((achievement) => (
-            <GlassSurface key={achievement.id} intensity={glassIntensity} style={styles.achievementCard}>
-              <Ionicons name={achievement.icon} size={21} color="#EFCB78" />
-              <Text style={styles.achievementTitle}>{achievement.title}</Text>
-              <Text style={styles.achievementDescription}>{achievement.description}</Text>
-            </GlassSurface>
-          ))}
-          {getProfileAchievements(user.xp ?? 0, user.level ?? 1, rankPoints).every((item) => !item.unlocked) ? <Text style={styles.noSuggestions}>Yutuqlar hali qo‘lga kiritilmagan</Text> : null}
-        </ScrollView>
-          </>
-        ) : null}
-
-        {activeProfileTab === 'board' ? (
-          <>
-        <View style={styles.sectionHeading}>
-          <View>
-            <Text style={styles.sectionEyebrow}>COMPETITIVE STATUS</Text>
-            <Text style={styles.sectionTitle}>Liga darajasi</Text>
-          </View>
-        </View>
-
-        <GlassSurface intensity={glassIntensity} style={styles.rankCard}>
-          <View style={styles.rankTopRow}>
-            <View style={styles.rankIconWrap}>
-              <Ionicons name="medal" size={25} color={rankInfo.color} />
-            </View>
-            <View style={styles.rankTextContainer}>
-              <Text style={styles.rankName}>{rankInfo.name} ligasi</Text>
-              <Text style={styles.rankSubtext}>Battle reytingi</Text>
-            </View>
-            <Text style={[styles.rankPointsText, { color: rankInfo.color }]}>
-              {rankPoints} RP
-            </Text>
-          </View>
-          <View style={styles.rankProgressTrack}>
-            <View
-              style={[
-                styles.rankProgressFill,
-                {
-                  width: rankProgress + '%',
-                  backgroundColor: rankInfo.color,
-                },
-              ]}
-            />
-          </View>
-          <View style={styles.rankFooter}>
-            <Text style={styles.rankProgressText}>
-              {nextRank
-                ? (nextRank.min - rankPoints) + ' RP dan keyingi liga'
-                : 'Eng yuqori liga'}
-            </Text>
-            <Text style={styles.rankProgressPercent}>
-              {Math.round(rankProgress)}%
-            </Text>
-          </View>
-        </GlassSurface>
-          </>
-        ) : null}
-
-        {activeProfileTab === 'wishlist' ? (
-          <>
-        <View style={styles.sectionHeading}>
-          <View>
-            <Text style={styles.sectionEyebrow}>COLLECTION</Text>
-            <Text style={styles.sectionTitle}>Mukofotlar va bezaklar</Text>
-          </View>
-        </View>
-
-        <GlassSurface intensity={glassIntensity} style={styles.infoCard}>
-          <View style={[styles.infoIconWrap, styles.goldIconWrap]}>
-            <Ionicons name="medal-outline" size={21} color="#EFCB78" />
-          </View>
-          <View style={styles.infoTextContainer}>
-            <Text style={styles.infoTitle}>Mening mukofotlarim</Text>
-            <Text style={styles.infoSubtitle}>
-              Yutuqlar va medallar shu yerda ko‘rinadi
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </GlassSurface>
-
-        <Pressable onPress={() => setCosmeticType('decoration')} accessibilityRole="button">
-          <GlassSurface intensity={glassIntensity} style={styles.infoCard}>
-            <View style={[styles.infoIconWrap, styles.purpleIconWrap]}>
-              <Ionicons name="color-palette-outline" size={21} color="#BBA8FF" />
-            </View>
-            <View style={styles.infoTextContainer}>
-              <Text style={styles.infoTitle}>Avatar bezaklari</Text>
-              <Text style={styles.infoSubtitle}>
-                {user.avatarDecoration || 'Hozircha bezak tanlanmagan'}
-              </Text>
-            </View>
-            <Text style={styles.cosmeticAction}>Sozlash</Text>
-          </GlassSurface>
-        </Pressable>
-
-        <Pressable onPress={() => setCosmeticType('frame')} accessibilityRole="button">
-          <GlassSurface intensity={glassIntensity} style={styles.infoCard}>
-            <View style={[styles.infoIconWrap, styles.blueIconWrap]}>
-              <Ionicons name="albums-outline" size={21} color="#8BCDF7" />
-            </View>
-            <View style={styles.infoTextContainer}>
-              <Text style={styles.infoTitle}>Profil ramkasi</Text>
-              <Text style={styles.infoSubtitle}>
-                {user.profileFrame || 'Standart ramka'}
-              </Text>
-            </View>
-            <Text style={styles.cosmeticAction}>Sozlash</Text>
-          </GlassSurface>
-        </Pressable>
-          </>
-        ) : null}
-
-        <Pressable
-          style={styles.logoutButton}
-          onPress={() =>
-            Alert.alert('Hisobdan chiqish', 'Haqiqatan ham chiqmoqchimisiz?', [
-              { text: 'Bekor qilish', style: 'cancel' },
-              {
-                text: 'Chiqish',
-                style: 'destructive',
-                onPress: () => {
-                  void logout();
-                },
-              },
-            ])
-          }
-        >
-          <Ionicons name="log-out-outline" size={19} color={colors.danger} />
+        <Pressable style={styles.logoutButton} onPress={() => Alert.alert('Hisobdan chiqish', 'Haqiqatan ham chiqmoqchimisiz?', [
+          { text: 'Bekor qilish', style: 'cancel' },
+          { text: 'Chiqish', style: 'destructive', onPress: () => { void logout(); } },
+        ])}>
+          <Ionicons name="log-out-outline" size={18} color="#E28C9B" />
           <Text style={styles.logoutText}>Hisobdan chiqish</Text>
         </Pressable>
       </Animated.ScrollView>
 
-      <Modal
-        visible={editVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEditVisible(false)}
-      >
+      <Modal visible={editVisible} transparent animationType="fade" onRequestClose={() => setEditVisible(false)}>
         <View style={styles.modalBackground}>
-          <GlassSurface intensity={glassIntensity + 10} style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.sectionEyebrow}>PERSONAL DETAILS</Text>
-                <Text style={styles.modalTitle}>Profilni tahrirlash</Text>
-              </View>
-              <Pressable
-                style={styles.modalClose}
-                onPress={() => setEditVisible(false)}
-              >
-                <Ionicons name="close" size={21} color={colors.text} />
-              </Pressable>
-            </View>
-
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}><Text style={styles.modalTitle}>Edit profile</Text><Pressable onPress={() => setEditVisible(false)}><Ionicons name="close" size={22} color={C.text} /></Pressable></View>
             <Text style={styles.inputLabel}>Ismingiz</Text>
-            <TextInput
-              style={styles.input}
-              value={displayName}
-              onChangeText={setDisplayName}
-              placeholder="Ismingiz"
-              placeholderTextColor={colors.textMuted}
-              maxLength={100}
-            />
-
+            <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="Ismingiz" placeholderTextColor={C.subtle} maxLength={100} />
             <Text style={styles.inputLabel}>Username</Text>
-            <TextInput
-              style={styles.input}
-              value={username}
-              onChangeText={setUsername}
-              placeholder="username"
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize="none"
-              maxLength={30}
-            />
-
-            <Text style={styles.inputLabel}>Tarjimai hol</Text>
-            <TextInput
-              style={[styles.input, styles.bioInput]}
-              value={bio}
-              onChangeText={setBio}
-              placeholder="O‘zingiz haqingizda..."
-              placeholderTextColor={colors.textMuted}
-              multiline
-              maxLength={500}
-            />
-
-            <Pressable
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-              onPress={() => void saveProfile()}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color={colors.textInverse} />
-              ) : (
-                <Text style={styles.saveButtonText}>O‘zgarishlarni saqlash</Text>
-              )}
+            <TextInput style={styles.input} value={username} onChangeText={setUsername} placeholder="username" placeholderTextColor={C.subtle} autoCapitalize="none" maxLength={30} />
+            <Text style={styles.inputLabel}>Bio</Text>
+            <TextInput style={[styles.input, styles.bioInput]} value={bio} onChangeText={setBio} placeholder="O‘zingiz haqingizda..." placeholderTextColor={C.subtle} multiline maxLength={500} />
+            <Pressable style={[styles.saveButton, saving && styles.disabled]} onPress={() => void saveProfile()} disabled={saving}>
+              {saving ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveButtonText}>O‘zgarishlarni saqlash</Text>}
             </Pressable>
-          </GlassSurface>
+          </View>
         </View>
       </Modal>
 
-      <Modal
-        visible={cosmeticType !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setCosmeticType(null)}
-      >
+      <Modal visible={cosmeticType !== null} transparent animationType="fade" onRequestClose={() => setCosmeticType(null)}>
         <View style={styles.modalBackground}>
-          <GlassSurface intensity={glassIntensity + 10} style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{cosmeticType === 'decoration' ? 'Avatar bezagini tanlang' : 'Profil ramkasini tanlang'}</Text>
-              <Pressable onPress={() => setCosmeticType(null)} style={styles.modalClose}>
-                <Ionicons name="close" size={19} color={colors.text} />
-              </Pressable>
-            </View>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}><Text style={styles.modalTitle}>{cosmeticType === 'decoration' ? 'Avatar bezagini tanlang' : 'Profil ramkasini tanlang'}</Text><Pressable onPress={() => setCosmeticType(null)}><Ionicons name="close" size={22} color={C.text} /></Pressable></View>
             {(cosmeticType === 'decoration'
               ? [{ value: null, label: 'Standart bezak' }, { value: 'sparkle', label: 'Yulduzcha' }, { value: 'crown', label: 'Toj' }, { value: 'laurel', label: 'Laurel' }]
               : [{ value: null, label: 'Standart ramka' }, { value: 'aurora', label: 'Aurora' }, { value: 'royal', label: 'Royal' }, { value: 'ocean', label: 'Ocean' }]
             ).map((option) => {
               const selected = cosmeticType === 'decoration' ? user.avatarDecoration === option.value : user.profileFrame === option.value;
-              return (
-                <Pressable key={option.label} style={[styles.cosmeticOption, selected && styles.cosmeticOptionSelected]} disabled={cosmeticSaving} onPress={() => void saveCosmetic(option.value)}>
-                  <Text style={styles.cosmeticOptionText}>{option.label}</Text>
-                  {selected ? <Ionicons name="checkmark-circle" size={19} color={colors.primary} /> : <Ionicons name="ellipse-outline" size={18} color={colors.textMuted} />}
-                </Pressable>
-              );
+              return <Pressable key={option.label} style={[styles.cosmeticOption, selected && styles.cosmeticSelected]} disabled={cosmeticSaving} onPress={() => void saveCosmetic(option.value)}>
+                <Text style={styles.cardTitle}>{option.label}</Text>
+                {selected ? <Ionicons name="checkmark-circle" size={19} color={C.purple} /> : <Ionicons name="ellipse-outline" size={18} color={C.muted} />}
+              </Pressable>;
             })}
-            {cosmeticSaving ? <ActivityIndicator color={colors.primary} style={{ marginTop: 10 }} /> : null}
-          </GlassSurface>
+            {cosmeticSaving ? <ActivityIndicator color={C.purple} style={{ marginTop: 12 }} /> : null}
+          </View>
         </View>
       </Modal>
     </View>
   );
 }
 
-function makeStyles(
-  colors: ReturnType<typeof useTheme>['tokens']['colors'],
-  isDark: boolean,
-) {
-  const glassBorder = 'rgba(155, 126, 220, 0.18)';
-  const glassFill = '#171127';
-
+function makeStyles() {
   return StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: '#0F0A1F',
-      overflow: 'hidden',
-    },
-    container: {
-      flex: 1,
-      backgroundColor: 'transparent',
-    },
-    content: {
-      paddingHorizontal: 18,
-      paddingTop: 8,
-      paddingBottom: 132,
-    },
-    ambientGlowTop: {
-      position: 'absolute',
-      top: 55,
-      right: -105,
-      width: 250,
-      height: 250,
-      borderRadius: 125,
-      backgroundColor: 'transparent',
-    },
-    ambientGlowBottom: {
-      position: 'absolute',
-      top: 510,
-      left: -145,
-      width: 250,
-      height: 250,
-      borderRadius: 125,
-      backgroundColor: 'transparent',
-    },
-    loading: {
-      flex: 1,
-      backgroundColor: colors.background,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 16,
-    },
-    profileHeaderLabel: { color: '#A79BCB', fontSize: 11, fontWeight: '800', letterSpacing: 2.2 },
-    profileTabs: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: 'rgba(155,126,220,0.18)', marginTop: 8, marginBottom: 18 },
-    profileTab: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 48, gap: 10 },
-    profileTabText: { color: '#80759F', fontSize: 13, fontWeight: '700' },
-    profileTabTextActive: { color: '#F4F0FF' },
-    profileTabUnderline: { height: 3, width: '72%', borderRadius: 3, backgroundColor: '#6B3FD4' },
-    profileShopCard: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, borderRadius: 19, borderWidth: 1, borderColor: glassBorder, backgroundColor: glassFill, marginBottom: 12 },
-    profileShopIcon: { width: 43, height: 43, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(107,63,212,0.16)' },
-    profileShopTitle: { color: '#F4F0FF', fontSize: 15, fontWeight: '800' },
-    profileShopSubtitle: { color: '#9489B2', fontSize: 11, marginTop: 4 },
-    profileBioCard: { flexDirection: 'row', alignItems: 'stretch', gap: 12, padding: 16, borderRadius: 19, borderWidth: 1, borderColor: glassBorder, backgroundColor: glassFill, marginBottom: 4 },
-    profileBioAccent: { width: 4, borderRadius: 4, backgroundColor: '#6B3FD4' },
-    profileBioTitle: { color: '#F4F0FF', fontSize: 15, fontWeight: '800' },
-    profileBioText: { color: '#9489B2', fontSize: 12, lineHeight: 18, marginTop: 5 },
-    profileBadges: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 13, marginTop: 9 },
-    eyebrow: {
-      color: colors.textMuted,
-      fontSize: 9,
-      fontWeight: '800',
-      letterSpacing: 2.1,
-      marginBottom: 4,
-    },
-    headerTitle: {
-      color: colors.text,
-      fontSize: 29,
-      fontWeight: '800',
-      letterSpacing: -0.8,
-    },
-    headerButton: {
-      width: 43,
-      height: 43,
-      borderRadius: 15,
-      backgroundColor: glassFill,
-      borderWidth: 1,
-      borderColor: glassBorder,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    heroCard: {
-      padding: 18,
-      borderRadius: 20,
-      borderWidth: 1,
-      borderColor: glassBorder,
-      backgroundColor: '#171127',
-    },
-    heroHighlight: {
-      position: 'absolute',
-      top: -65,
-      right: -35,
-      width: 175,
-      height: 130,
-      borderRadius: 90,
-      backgroundColor: isDark
-        ? 'rgba(180, 157, 255, 0.10)'
-        : 'rgba(255, 255, 255, 0.52)',
-      transform: [{ rotate: '-18deg' }],
-    },
-    heroTopLine: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    identityLabel: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 7,
-    },
-    onlineDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: '#78D8B4',
-    },
-    identityLabelText: {
-      color: colors.textMuted,
-      fontSize: 9,
-      fontWeight: '800',
-      letterSpacing: 1.6,
-    },
-    rankPill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderRadius: 20,
-      backgroundColor: glassFill,
-      borderWidth: 1,
-      borderColor: glassBorder,
-    },
-    rankPillText: {
-      fontSize: 9,
-      fontWeight: '800',
-      letterSpacing: 0.7,
-    },
-    identityBlock: {
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: 12,
-      paddingTop: 22,
-      paddingBottom: 18,
-    },
-    identityTextBlock: {
-      flex: 1,
-      minWidth: 0,
-      alignItems: 'center',
-    },
-    avatarStage: {
-      width: 154,
-      height: 154,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 0,
-      flexShrink: 0,
-    },
-    avatarHalo: {
-      position: 'absolute',
-      width: 146,
-      height: 146,
-      borderRadius: 73,
-      borderWidth: 1,
-      borderColor: isDark
-        ? 'rgba(198, 179, 255, 0.40)'
-        : 'rgba(126, 102, 209, 0.28)',
-      backgroundColor: isDark
-        ? 'rgba(160, 133, 255, 0.09)'
-        : 'rgba(255, 255, 255, 0.38)',
-    },
-    avatarBorder: {
-      width: 132,
-      height: 132,
-      borderRadius: 66,
-      padding: 3,
-      backgroundColor: isDark
-        ? 'rgba(208, 194, 255, 0.54)'
-        : 'rgba(130, 106, 210, 0.40)',
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.62)',
-    },
+    screen: { flex: 1, backgroundColor: C.background },
+    container: { flex: 1, backgroundColor: C.background },
+    content: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 132 },
+    loading: { flex: 1, backgroundColor: C.background, justifyContent: 'center', alignItems: 'center' },
+    header: { height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+    headerButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { color: C.muted, fontSize: 11, fontWeight: '800', letterSpacing: 2 },
+    identity: { alignItems: 'center', paddingTop: 8, paddingBottom: 19 },
+    avatarWrap: { width: 122, height: 122, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+    avatarFrame: { width: 112, height: 112, borderRadius: 56, padding: 3, backgroundColor: C.purple, borderWidth: 2, borderColor: '#8B68E5' },
     frameAurora: { backgroundColor: '#8B72E8' },
     frameRoyal: { backgroundColor: '#D7A93F' },
     frameOcean: { backgroundColor: '#4D9FC8' },
-    avatar: {
-      width: '100%',
-      height: '100%',
-      borderRadius: 44,
-    },
-    avatarPlaceholder: {
-      flex: 1,
-      borderRadius: 44,
-      backgroundColor: isDark ? '#39334F' : '#E8E2FA',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    avatarInitials: {
-      color: colors.text,
-      fontSize: 31,
-      fontWeight: '800',
-    },
-    cameraButton: {
-      position: 'absolute',
-      right: 3,
-      bottom: 5,
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: isDark
-        ? 'rgba(54, 48, 78, 0.94)'
-        : 'rgba(255, 255, 255, 0.94)',
-      borderWidth: 1,
-      borderColor: glassBorder,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    decoration: {
-      position: 'absolute',
-      top: 9,
-      left: 5,
-      width: 27,
-      height: 27,
-      borderRadius: 14,
-      backgroundColor: isDark
-        ? 'rgba(65, 56, 89, 0.94)'
-        : 'rgba(255, 255, 255, 0.94)',
-      borderWidth: 1,
-      borderColor: glassBorder,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    displayName: {
-      color: '#FFFFFF',
-      fontSize: 30,
-      fontWeight: '800',
-      letterSpacing: -0.45,
-      maxWidth: '100%',
-      textAlign: 'left',
-    },
-    usernameRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      marginTop: 4,
-    },
-    copyButton: {
-      width: 27,
-      height: 27,
-      borderRadius: 9,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: glassFill,
-      borderWidth: 1,
-      borderColor: glassBorder,
-    },
-    username: {
-      color: '#A78BFA',
-      fontSize: 13,
-      fontWeight: '600',
-      marginTop: 5,
-    },
-    bio: {
-      color: '#A49BB8',
-      fontSize: 13,
-      textAlign: 'center',
-      marginTop: 9,
-      lineHeight: 19,
-      maxWidth: 270,
-    },
-    heroDivider: {
-      height: 1,
-      backgroundColor: glassBorder,
-      marginBottom: 15,
-    },
-    followRow: {
-      width: '100%',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 16,
-    },
-    followItem: {
-      flex: 1,
-      alignItems: 'center',
-      paddingHorizontal: 8,
-    },
-    followNumber: {
-      color: colors.text,
-      fontSize: 18,
-      fontWeight: '800',
-    },
-    followLabel: {
-      color: colors.textMuted,
-      fontSize: 10,
-      textAlign: 'center',
-      marginTop: 4,
-    },
-    followDivider: {
-      width: 1,
-      height: 31,
-      backgroundColor: glassBorder,
-    },
-    editButton: {
-      minHeight: 50,
-      width: '100%',
-      borderRadius: 15,
-      backgroundColor: '#6B3FD4',
-      borderWidth: 1,
-      borderColor: '#6B3FD4',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 9,
-    },
-    editButtonText: {
-      color: '#FFFFFF',
-      fontWeight: '700',
-      fontSize: 14,
-    },
-    socialHeading: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: 24,
-      marginBottom: 10,
-    },
-    moreLink: {
-      color: colors.primary,
-      fontSize: 11,
-      fontWeight: '700',
-    },
-    suggestionsRow: {
-      gap: 10,
-      paddingBottom: 3,
-    },
-    personCard: {
-      width: 124,
-      minHeight: 151,
-      alignItems: 'center',
-      padding: 12,
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: glassBorder,
-      backgroundColor: glassFill,
-    },
-    achievementCard: {
-      width: 145,
-      minHeight: 100,
-      padding: 12,
-      borderRadius: 17,
-      borderWidth: 1,
-      borderColor: glassBorder,
-      backgroundColor: glassFill,
-      justifyContent: 'center',
-      marginRight: 9,
-    },
-    achievementTitle: {
-      color: colors.text,
-      fontSize: 11,
-      fontWeight: '800',
-      marginTop: 8,
-    },
-    achievementDescription: {
-      color: colors.textMuted,
-      fontSize: 9,
-      marginTop: 3,
-    },
-    personIdentity: {
-      alignItems: 'center',
-      width: '100%',
-    },
-    personAvatar: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      marginBottom: 8,
-    },
-    personAvatarFallback: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 8,
-      backgroundColor: colors.surfaceElevated,
-    },
-    personInitials: {
-      color: colors.text,
-      fontSize: 15,
-      fontWeight: '800',
-    },
-    personName: {
-      color: colors.text,
-      fontSize: 11,
-      fontWeight: '800',
-      maxWidth: '100%',
-    },
-    personFollowers: {
-      color: colors.textMuted,
-      fontSize: 9,
-      marginTop: 4,
-    },
-    personFollowButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 4,
-      marginTop: 8,
-      paddingHorizontal: 8,
-      paddingVertical: 6,
-      borderRadius: 10,
-      backgroundColor: isDark ? 'rgba(183,163,255,0.12)' : 'rgba(123,99,204,0.10)',
-    },
-    personAction: {
-      color: colors.primary,
-      fontSize: 10,
-      fontWeight: '700',
-      marginTop: 8,
-    },
-    noSuggestions: {
-      color: colors.textMuted,
-      fontSize: 12,
-      paddingVertical: 20,
-    },
-    sectionHeading: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: 25,
-      marginBottom: 12,
-    },
-    sectionEyebrow: {
-      color: colors.textMuted,
-      fontSize: 8,
-      fontWeight: '800',
-      letterSpacing: 1.7,
-      marginBottom: 4,
-    },
-    sectionTitle: {
-      color: colors.text,
-      fontSize: 18,
-      fontWeight: '800',
-      letterSpacing: -0.35,
-    },
-    statsRow: {
-      flexDirection: 'row',
-      gap: 9,
-    },
-    statCard: {
-      flex: 1,
-      minHeight: 119,
-      alignItems: 'flex-start',
-      justifyContent: 'center',
-      paddingHorizontal: 12,
-      paddingVertical: 13,
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: glassBorder,
-      backgroundColor: glassFill,
-    },
-    statIconWrap: {
-      width: 31,
-      height: 31,
-      borderRadius: 11,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: isDark
-        ? 'rgba(255,255,255,0.07)'
-        : 'rgba(255,255,255,0.62)',
-      borderWidth: 1,
-      borderColor: glassBorder,
-      marginBottom: 9,
-    },
-    statNumber: {
-      color: colors.text,
-      fontSize: 21,
-      fontWeight: '800',
-      letterSpacing: -0.5,
-    },
-    statLabel: {
-      color: colors.textMuted,
-      fontSize: 10,
-      marginTop: 3,
-    },
-    rankCard: {
-      padding: 17,
-      borderRadius: 22,
-      borderWidth: 1,
-      borderColor: glassBorder,
-      backgroundColor: glassFill,
-    },
-    rankTopRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 11,
-    },
-    rankIconWrap: {
-      width: 43,
-      height: 43,
-      borderRadius: 15,
-      backgroundColor: isDark
-        ? 'rgba(255,255,255,0.07)'
-        : 'rgba(255,255,255,0.65)',
-      borderWidth: 1,
-      borderColor: glassBorder,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    rankTextContainer: {
-      flex: 1,
-    },
-    rankName: {
-      color: colors.text,
-      fontSize: 15,
-      fontWeight: '800',
-    },
-    rankPointsText: {
-      fontSize: 14,
-      fontWeight: '800',
-    },
-    rankSubtext: {
-      color: colors.textMuted,
-      fontSize: 11,
-      marginTop: 3,
-    },
-    rankProgressTrack: {
-      height: 7,
-      borderRadius: 8,
-      backgroundColor: isDark
-        ? 'rgba(255,255,255,0.10)'
-        : 'rgba(82,67,125,0.10)',
-      overflow: 'hidden',
-      marginTop: 17,
-    },
-    rankProgressFill: {
-      height: 7,
-      borderRadius: 8,
-    },
-    rankFooter: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginTop: 8,
-    },
-    rankProgressText: {
-      color: colors.textSecondary,
-      fontSize: 11,
-    },
-    rankProgressPercent: {
-      color: colors.textMuted,
-      fontSize: 11,
-      fontWeight: '700',
-    },
-    infoCard: {
-      minHeight: 70,
-      flexDirection: 'row',
-      alignItems: 'center',
-      borderRadius: 19,
-      paddingHorizontal: 13,
-      paddingVertical: 11,
-      marginBottom: 9,
-      borderWidth: 1,
-      borderColor: glassBorder,
-      backgroundColor: glassFill,
-      gap: 12,
-    },
-    infoIconWrap: {
-      width: 39,
-      height: 39,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: glassBorder,
-    },
-    goldIconWrap: {
-      backgroundColor: 'rgba(239, 203, 120, 0.10)',
-    },
-    purpleIconWrap: {
-      backgroundColor: 'rgba(187, 168, 255, 0.11)',
-    },
-    blueIconWrap: {
-      backgroundColor: 'rgba(139, 205, 247, 0.11)',
-    },
-    cosmeticAction: {
-      color: colors.primary,
-      fontSize: 11,
-      fontWeight: '800',
-    },
-    cosmeticOption: {
-      minHeight: 48,
-      borderRadius: 13,
-      borderWidth: 1,
-      borderColor: glassBorder,
-      backgroundColor: glassFill,
-      paddingHorizontal: 13,
-      marginTop: 8,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    cosmeticOptionSelected: {
-      borderColor: colors.primary,
-      backgroundColor: isDark ? 'rgba(183,163,255,0.13)' : 'rgba(123,99,204,0.09)',
-    },
-    cosmeticOptionText: {
-      color: colors.text,
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    infoTextContainer: {
-      flex: 1,
-    },
-    infoTitle: {
-      color: colors.text,
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    infoSubtitle: {
-      color: colors.textMuted,
-      fontSize: 10,
-      marginTop: 4,
-    },
-    logoutButton: {
-      minHeight: 48,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 9,
-      backgroundColor: colors.dangerSurface,
-      paddingHorizontal: 16,
-      borderRadius: 16,
-      marginTop: 20,
-      borderWidth: 1,
-      borderColor: glassBorder,
-    },
-    logoutText: {
-      color: colors.danger,
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    modalBackground: {
-      flex: 1,
-      backgroundColor: colors.overlay,
-      justifyContent: 'center',
-      padding: 18,
-    },
-    modalCard: {
-      padding: 21,
-      borderRadius: 27,
-      borderWidth: 1,
-      borderColor: glassBorder,
-      backgroundColor: '#171127',
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 12,
-    },
-    modalTitle: {
-      color: colors.text,
-      fontSize: 19,
-      fontWeight: '800',
-      letterSpacing: -0.35,
-    },
-    modalClose: {
-      width: 35,
-      height: 35,
-      borderRadius: 13,
-      backgroundColor: glassFill,
-      borderWidth: 1,
-      borderColor: glassBorder,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    inputLabel: {
-      color: colors.textSecondary,
-      fontSize: 12,
-      fontWeight: '700',
-      marginBottom: 7,
-      marginTop: 12,
-    },
-    input: {
-      minHeight: 47,
-      backgroundColor: glassFill,
-      color: colors.text,
-      borderRadius: 14,
-      paddingHorizontal: 13,
-      paddingVertical: 11,
-      fontSize: 14,
-      borderWidth: 1,
-      borderColor: glassBorder,
-    },
-    bioInput: {
-      height: 88,
-      textAlignVertical: 'top',
-    },
-    saveButton: {
-      minHeight: 49,
-      backgroundColor: colors.primary,
-      borderRadius: 15,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginTop: 21,
-    },
-    saveButtonDisabled: {
-      opacity: 0.65,
-    },
-    saveButtonText: {
-      color: colors.textInverse,
-      fontSize: 14,
-      fontWeight: '800',
-    },
+    avatar: { width: '100%', height: '100%', borderRadius: 54 },
+    avatarFallback: { flex: 1, borderRadius: 54, backgroundColor: C.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
+    avatarInitials: { color: C.text, fontSize: 29, fontWeight: '800' },
+    cameraButton: { position: 'absolute', right: 2, bottom: 3, width: 33, height: 33, borderRadius: 17, backgroundColor: C.purple, borderWidth: 3, borderColor: C.background, alignItems: 'center', justifyContent: 'center' },
+    decoration: { position: 'absolute', top: 2, left: 1, width: 27, height: 27, borderRadius: 14, backgroundColor: C.surfaceRaised, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '100%' },
+    displayName: { color: C.text, fontSize: 25, fontWeight: '800', letterSpacing: -0.5, maxWidth: '90%' },
+    handleRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 5 },
+    handle: { color: C.muted, fontSize: 13 },
+    badges: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 11 },
+    editButton: { height: 49, borderRadius: 15, backgroundColor: C.purple, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 21 },
+    editButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+    tabs: { height: 49, flexDirection: 'row', alignItems: 'stretch', borderBottomWidth: 1, borderBottomColor: C.border, marginBottom: 17 },
+    tab: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingTop: 8 },
+    tabText: { color: C.subtle, fontSize: 12, fontWeight: '700' },
+    tabTextActive: { color: C.text },
+    tabUnderline: { height: 3, width: '70%', borderRadius: 3, backgroundColor: C.purple },
+    card: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 19, padding: 15, marginBottom: 11 },
+    premiumCard: { borderColor: '#49306F' },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 46 },
+    iconTile: { width: 42, height: 42, borderRadius: 13, backgroundColor: C.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+    rowBody: { flex: 1, minWidth: 0 },
+    cardTitle: { color: C.text, fontSize: 14, fontWeight: '750' },
+    cardSubtitle: { color: C.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
+    bioRow: { flexDirection: 'row', gap: 12, minHeight: 49 },
+    bioAccent: { width: 3, borderRadius: 3, backgroundColor: C.purple },
+    bioText: { color: C.muted, fontSize: 12, lineHeight: 18, marginTop: 6 },
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 13, marginBottom: 10 },
+    sectionTitle: { color: C.text, fontSize: 16, fontWeight: '800' },
+    linkText: { color: '#A98BEF', fontSize: 11, fontWeight: '700' },
+    friendsHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    avatarStack: { flexDirection: 'row', alignItems: 'center', minHeight: 38 },
+    friendAvatarWrap: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: C.surface },
+    friendAvatar: { width: 34, height: 34, borderRadius: 17 },
+    friendFallback: { width: 34, height: 34, borderRadius: 17, backgroundColor: C.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+    friendInitial: { color: C.text, fontSize: 13, fontWeight: '800' },
+    memberRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 7, marginBottom: 8, paddingHorizontal: 3 },
+    memberText: { color: C.muted, fontSize: 11, flex: 1 },
+    memberDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#70C9A5' },
+    suggestions: { gap: 10, paddingBottom: 3 },
+    personCard: { width: 124, alignItems: 'center', padding: 12, borderRadius: 17, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
+    personIdentity: { alignItems: 'center', width: '100%' },
+    personAvatar: { width: 47, height: 47, borderRadius: 24, marginBottom: 8 },
+    personName: { color: C.text, fontSize: 11, fontWeight: '800', maxWidth: '100%' },
+    personMeta: { color: C.muted, fontSize: 9, marginTop: 4 },
+    followButton: { marginTop: 9, paddingHorizontal: 13, paddingVertical: 7, borderRadius: 10, backgroundColor: C.purpleSoft },
+    followButtonText: { color: '#BCA8F4', fontSize: 10, fontWeight: '800' },
+    statsRow: { flexDirection: 'row', gap: 8, marginBottom: 11 },
+    statCard: { flex: 1, paddingHorizontal: 10, paddingVertical: 14, marginBottom: 0 },
+    statContent: { alignItems: 'flex-start', gap: 7 },
+    statNumber: { color: C.text, fontSize: 20, fontWeight: '800' },
+    rankPoints: { fontSize: 13, fontWeight: '800' },
+    progressTrack: { height: 6, borderRadius: 4, backgroundColor: C.surfaceRaised, overflow: 'hidden', marginTop: 16, marginBottom: 8 },
+    progressFill: { height: 6, borderRadius: 4, backgroundColor: C.purple },
+    achievementList: { gap: 9 },
+    achievement: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
+    achievementLocked: { opacity: 0.55 },
+    logoutButton: { minHeight: 47, borderRadius: 15, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginTop: 17 },
+    logoutText: { color: '#E28C9B', fontSize: 12, fontWeight: '700' },
+    modalBackground: { flex: 1, backgroundColor: 'rgba(5,3,12,0.78)', justifyContent: 'center', padding: 18 },
+    modalCard: { backgroundColor: C.surface, borderRadius: 22, borderWidth: 1, borderColor: C.border, padding: 20 },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    modalTitle: { color: C.text, fontSize: 18, fontWeight: '800', flex: 1, paddingRight: 12 },
+    inputLabel: { color: C.muted, fontSize: 12, fontWeight: '700', marginTop: 13, marginBottom: 7 },
+    input: { minHeight: 46, borderRadius: 13, backgroundColor: C.background, borderWidth: 1, borderColor: C.border, color: C.text, paddingHorizontal: 13, fontSize: 14 },
+    bioInput: { height: 82, textAlignVertical: 'top', paddingTop: 12 },
+    saveButton: { minHeight: 48, backgroundColor: C.purple, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
+    disabled: { opacity: 0.65 },
+    saveButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+    cosmeticOption: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 13, borderRadius: 13, borderWidth: 1, borderColor: C.border, backgroundColor: C.background, marginTop: 8 },
+    cosmeticSelected: { borderColor: C.purple, backgroundColor: C.purpleSoft },
   });
 }
