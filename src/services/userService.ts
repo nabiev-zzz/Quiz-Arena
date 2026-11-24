@@ -10,7 +10,7 @@ export interface PublicUser extends Pick<AuthUser,
   isSelf?: boolean;
 }
 
-export interface UserSuggestion extends Omit<PublicUser, 'followingCount' | 'isFriend' | 'isSelf'> {}
+export type UserSuggestion = Omit<PublicUser, 'followingCount' | 'isFriend' | 'isSelf'>;
 
 async function userRequest<T>(path: string, method = 'GET'): Promise<T> {
   const token = await getToken();
