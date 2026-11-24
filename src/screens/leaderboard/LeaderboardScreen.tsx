@@ -1,5 +1,6 @@
+import { LocalizedText } from '../../i18n/LocalizedText';
 import React, { useMemo, useState } from 'react';
-import { RefreshControl, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { RefreshControl, StyleSheet, NativeText, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
@@ -31,15 +32,15 @@ export default function LeaderboardScreen() {
     </View>
     <Animated.ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#fff" colors={[t.cyan,t.teal]} progressBackgroundColor="rgba(255,255,255,.2)"/>}>
-      <View style={styles.header}><View><Text style={styles.eyebrow}>QUIZ ARENA · LIDERLAR</Text><Text style={styles.title}>Reyting</Text></View><GlassCard style={styles.star}><Ionicons name="star" size={21} color={t.gold}/></GlassCard></View>
-      <GlassCard style={styles.league}><View style={styles.leagueIcon}><Ionicons name="shield-checkmark" size={17} color="#B9F4FF"/></View><View style={{flex:1}}><Text style={styles.leagueTitle}>Usta ligasi</Text><Text style={styles.leagueSub}>Mavsum yakunlanishiga 3 kun qoldi</Text></View><Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,.7)"/></GlassCard>
+      <View style={styles.header}><View><LocalizedText style={styles.eyebrow}>QUIZ ARENA · LIDERLAR</LocalizedText><LocalizedText style={styles.title}>Reyting</LocalizedText></View><GlassCard style={styles.star}><Ionicons name="star" size={21} color={t.gold}/></GlassCard></View>
+      <GlassCard style={styles.league}><View style={styles.leagueIcon}><Ionicons name="shield-checkmark" size={17} color="#B9F4FF"/></View><View style={{flex:1}}><LocalizedText style={styles.leagueTitle}>Usta ligasi</LocalizedText><LocalizedText style={styles.leagueSub}>Mavsum yakunlanishiga 3 kun qoldi</LocalizedText></View><Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,.7)"/></GlassCard>
       <SegmentedControl value={period} onChange={changePeriod}/>
-      <View style={styles.heading}><Text style={styles.sectionTitle}>Top bilimdonlar</Text><Text style={styles.caption}>{period}</Text></View>
+      <View style={styles.heading}><LocalizedText style={styles.sectionTitle}>Top bilimdonlar</LocalizedText><LocalizedText style={styles.caption}>{period}</LocalizedText></View>
       <Animated.View style={animatedList}>
         <Podium users={users.slice(0,3)}/>
-        <View style={styles.heading}><Text style={styles.sectionTitle}>Reyting jadvali</Text><Text style={styles.caption}>{users.length} ishtirokchi</Text></View>
+        <View style={styles.heading}><LocalizedText style={styles.sectionTitle}>Reyting jadvali</LocalizedText><LocalizedText style={styles.caption}>{users.length} ishtirokchi</LocalizedText></View>
         {users.slice(3).map((user,index)=><LeaderRow key={user.id} user={user} index={index}/>)}
-        <GlassCard style={styles.note}><Ionicons name="sparkles" size={17} color={t.cyan}/><Text style={styles.noteText}>Har bir to‘g‘ri javob seni yuqoriga olib chiqadi.</Text></GlassCard>
+        <GlassCard style={styles.note}><Ionicons name="sparkles" size={17} color={t.cyan}/><LocalizedText style={styles.noteText}>Har bir to‘g‘ri javob seni yuqoriga olib chiqadi.</LocalizedText></GlassCard>
       </Animated.View>
     </Animated.ScrollView>
   </View>;
