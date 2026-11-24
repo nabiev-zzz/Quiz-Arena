@@ -98,7 +98,7 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
                   {topic.description}
                 </Text>
                 <Text style={styles.questionCount}>
-                  {topic.questionCount} ta savol
+                  {topic.questionCount} ta savol · Bazada saqlanadi
                 </Text>
               </View>
 

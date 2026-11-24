@@ -9,6 +9,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { LearningService } from './learning.service';
 import type { CreateLearningAttemptInput } from './learning.service';
+import { GetTopicQuestionsDto } from './dto/get-topic-questions.dto';
 
 interface AuthenticatedRequest {
   user: { id: string };
@@ -18,6 +19,11 @@ interface AuthenticatedRequest {
 @UseGuards(JwtAuthGuard)
 export class LearningController {
   constructor(private readonly learningService: LearningService) {}
+
+  @Post('questions')
+  getTopicQuestions(@Body() body: GetTopicQuestionsDto) {
+    return this.learningService.getTopicQuestions(body);
+  }
 
   @Post('attempts')
   createAttempt(

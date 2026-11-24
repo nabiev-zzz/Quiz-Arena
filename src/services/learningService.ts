@@ -1,4 +1,6 @@
 import { API_BASE_URL, getToken } from './authService';
+import type { Difficulty } from '../types';
+import type { Question } from '../data/questions';
 
 export interface LearningAttemptInput {
   subjectId: string;
@@ -75,4 +77,19 @@ export function saveLearningAttempt(input: LearningAttemptInput) {
 
 export function getLearningStats() {
   return learningRequest<LearningStats>('/api/learning/stats');
+}
+
+
+export async function getTopicQuestions(input: {
+  subjectId: string;
+  topicId: string;
+  count: number;
+  difficulty: Difficulty;
+  language: 'uz' | 'ru' | 'en';
+}): Promise<Question[]> {
+  const result = await learningRequest<{ questions: Question[]; source: 'database'; cachedQuestionCount: number }>(
+    '/api/learning/questions',
+    { method: 'POST', body: JSON.stringify(input) },
+  );
+  return result.questions;
 }
