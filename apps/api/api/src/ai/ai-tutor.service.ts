@@ -278,10 +278,11 @@ Answer the student's new message in the requested language.
     const historyLimit = fullHistory ? 100 : 20;
     const messages = await this.messageRepository.find({
       where: { userId },
-      order: { createdAt: 'ASC' },
+      order: { createdAt: 'DESC' },
       take: historyLimit,
     });
 
+    messages.reverse();
     return {
       messages,
       fullHistory,
