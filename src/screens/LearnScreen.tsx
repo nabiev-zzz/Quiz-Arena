@@ -10,12 +10,13 @@ import { useTheme } from '../theme/ThemeContext';
 interface LearnScreenProps {
   initialSubject?: Subject | null;
   onTopicSelect?: (subject: Subject, topic: Topic) => void;
+  onDocumentQuiz?: () => void;
   dockStretch?: SharedValue<number>;
 }
 
 const normalize = (value: string) => value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
 
-export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch }: LearnScreenProps) {
+export default function LearnScreen({ initialSubject, onTopicSelect, onDocumentQuiz, dockStretch }: LearnScreenProps) {
   const { tokens } = useTheme();
   const colors = tokens.colors;
   const styles = makeStyles(colors);
@@ -48,6 +49,14 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
 
   return (
     <Animated.ScrollView onScroll={dockScrollHandler} scrollEventThrottle={16} style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <Pressable onPress={onDocumentQuiz} style={styles.documentQuizBanner}>
+        <View style={styles.documentQuizIcon}><Ionicons name="document-text-outline" size={22} color="#FFFFFF" /></View>
+        <View style={styles.documentQuizCopy}>
+          <LocalizedText style={styles.documentQuizTitle}>Hujjatdan test yaratish</LocalizedText>
+          <LocalizedText style={styles.documentQuizDescription}>PDF yoki Word yuklang — AI savollar tayyorlaydi</LocalizedText>
+        </View>
+        <Ionicons name="arrow-forward-circle" size={23} color="#D9D0FF" />
+      </Pressable>
       {selectedSubject ? (
         <>
           <Pressable style={styles.backButton} onPress={() => { setSelectedSubject(null); setSearchQuery(''); }}>
@@ -135,6 +144,12 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     container: { flex: 1, backgroundColor: colors.background },
     content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 132 },
     header: { marginTop: 8, marginBottom: 19 },
+    documentQuizBanner: { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 13, marginBottom: 17, borderRadius: 18, backgroundColor: '#2A1B4A', borderWidth: 1, borderColor: 'rgba(190,170,255,0.28)' },
+    documentQuizIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#7059D6' },
+    documentQuizCopy: { flex: 1, gap: 4 },
+    documentQuizTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+    documentQuizDescription: { color: '#D6CCF1', fontSize: 10, lineHeight: 15 },
+
     eyebrow: { color: colors.primary, fontSize: 10, fontWeight: '900', letterSpacing: 1.8, marginBottom: 10 },
     title: { color: colors.text, fontSize: 27, lineHeight: 34, fontWeight: '900', letterSpacing: -0.7 },
     subtitle: { color: colors.textMuted, fontSize: 13, lineHeight: 20, marginTop: 7 },
