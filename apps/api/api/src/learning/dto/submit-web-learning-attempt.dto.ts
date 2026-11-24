@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsString, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsString, Max, MaxLength, Min, MinLength, IsUUID, ValidateNested } from 'class-validator';
 
 export class WebLearningAnswerDto {
   @IsString()
@@ -14,9 +14,7 @@ export class WebLearningAnswerDto {
 }
 
 export class SubmitWebLearningAttemptDto {
-  @IsString()
-  @MinLength(36)
-  @MaxLength(36)
+  @IsUUID()
   sessionId: string;
 
   @IsString()
