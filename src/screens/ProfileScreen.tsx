@@ -670,17 +670,13 @@ function makeStyles(
   colors: ReturnType<typeof useTheme>['tokens']['colors'],
   isDark: boolean,
 ) {
-  const glassBorder = isDark
-    ? 'rgba(211, 201, 255, 0.18)'
-    : 'rgba(116, 91, 190, 0.16)';
-  const glassFill = isDark
-    ? 'rgba(255, 255, 255, 0.045)'
-    : 'rgba(255, 255, 255, 0.52)';
+  const glassBorder = 'rgba(155, 126, 220, 0.18)';
+  const glassFill = '#171127';
 
   return StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: '#0F0A1F',
       overflow: 'hidden',
     },
     container: {
@@ -699,9 +695,7 @@ function makeStyles(
       width: 250,
       height: 250,
       borderRadius: 125,
-      backgroundColor: isDark
-        ? 'rgba(126, 91, 221, 0.13)'
-        : 'rgba(156, 132, 245, 0.15)',
+      backgroundColor: 'transparent',
     },
     ambientGlowBottom: {
       position: 'absolute',
@@ -710,9 +704,7 @@ function makeStyles(
       width: 250,
       height: 250,
       borderRadius: 125,
-      backgroundColor: isDark
-        ? 'rgba(72, 155, 173, 0.08)'
-        : 'rgba(110, 202, 202, 0.10)',
+      backgroundColor: 'transparent',
     },
     loading: {
       flex: 1,
@@ -751,12 +743,10 @@ function makeStyles(
     },
     heroCard: {
       padding: 18,
-      borderRadius: 29,
+      borderRadius: 20,
       borderWidth: 1,
       borderColor: glassBorder,
-      backgroundColor: isDark
-        ? 'rgba(35, 31, 57, 0.46)'
-        : 'rgba(255, 255, 255, 0.46)',
+      backgroundColor: '#171127',
     },
     heroHighlight: {
       position: 'absolute',
@@ -809,20 +799,20 @@ function makeStyles(
       letterSpacing: 0.7,
     },
     identityBlock: {
-      flexDirection: 'row',
+      flexDirection: 'column',
       alignItems: 'center',
-      gap: 14,
+      gap: 12,
       paddingTop: 22,
       paddingBottom: 18,
     },
     identityTextBlock: {
       flex: 1,
       minWidth: 0,
-      alignItems: 'flex-start',
+      alignItems: 'center',
     },
     avatarStage: {
-      width: 116,
-      height: 116,
+      width: 124,
+      height: 124,
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: 0,
@@ -830,9 +820,9 @@ function makeStyles(
     },
     avatarHalo: {
       position: 'absolute',
-      width: 112,
-      height: 112,
-      borderRadius: 56,
+      width: 116,
+      height: 116,
+      borderRadius: 58,
       borderWidth: 1,
       borderColor: isDark
         ? 'rgba(198, 179, 255, 0.40)'
@@ -842,9 +832,9 @@ function makeStyles(
         : 'rgba(255, 255, 255, 0.38)',
     },
     avatarBorder: {
-      width: 91,
-      height: 91,
-      borderRadius: 46,
+      width: 104,
+      height: 104,
+      borderRadius: 52,
       padding: 3,
       backgroundColor: isDark
         ? 'rgba(208, 194, 255, 0.54)'
@@ -903,8 +893,8 @@ function makeStyles(
       alignItems: 'center',
     },
     displayName: {
-      color: colors.text,
-      fontSize: 23,
+      color: '#FFFFFF',
+      fontSize: 24,
       fontWeight: '800',
       letterSpacing: -0.45,
       maxWidth: '100%',
@@ -913,7 +903,7 @@ function makeStyles(
     usernameRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'flex-start',
+      justifyContent: 'center',
       gap: 8,
       marginTop: 4,
     },
@@ -928,15 +918,15 @@ function makeStyles(
       borderColor: glassBorder,
     },
     username: {
-      color: colors.primary,
+      color: '#A78BFA',
       fontSize: 13,
       fontWeight: '600',
       marginTop: 4,
     },
     bio: {
-      color: colors.textSecondary,
+      color: '#A49BB8',
       fontSize: 13,
-      textAlign: 'left',
+      textAlign: 'center',
       marginTop: 9,
       lineHeight: 19,
       maxWidth: 270,
@@ -975,24 +965,21 @@ function makeStyles(
       backgroundColor: glassBorder,
     },
     editButton: {
-      minHeight: 47,
-      borderRadius: 16,
-      backgroundColor: isDark
-        ? 'rgba(183, 163, 255, 0.13)'
-        : 'rgba(123, 99, 204, 0.10)',
+      minHeight: 50,
+      width: '100%',
+      borderRadius: 15,
+      backgroundColor: '#6B3FD4',
       borderWidth: 1,
-      borderColor: isDark
-        ? 'rgba(204, 190, 255, 0.24)'
-        : 'rgba(123, 99, 204, 0.20)',
+      borderColor: '#6B3FD4',
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: 9,
     },
     editButtonText: {
-      color: colors.text,
+      color: '#FFFFFF',
       fontWeight: '700',
-      fontSize: 13,
+      fontSize: 14,
     },
     socialHeading: {
       flexDirection: 'row',
@@ -1015,7 +1002,7 @@ function makeStyles(
       minHeight: 151,
       alignItems: 'center',
       padding: 12,
-      borderRadius: 19,
+      borderRadius: 18,
       borderWidth: 1,
       borderColor: glassBorder,
       backgroundColor: glassFill,
@@ -1130,7 +1117,7 @@ function makeStyles(
       justifyContent: 'center',
       paddingHorizontal: 12,
       paddingVertical: 13,
-      borderRadius: 21,
+      borderRadius: 18,
       borderWidth: 1,
       borderColor: glassBorder,
       backgroundColor: glassFill,
@@ -1327,9 +1314,7 @@ function makeStyles(
       borderRadius: 27,
       borderWidth: 1,
       borderColor: glassBorder,
-      backgroundColor: isDark
-        ? 'rgba(31, 28, 47, 0.94)'
-        : 'rgba(248, 246, 255, 0.96)',
+      backgroundColor: '#171127',
     },
     modalHeader: {
       flexDirection: 'row',
