@@ -59,11 +59,12 @@ export default function LoginScreen({
   };
 
   const sendCode = () => run(async () => {
-    if (!/^\+?998\d{9}$/.test(phoneNumber.replace(/[\s()-]/g, ''))) {
+    const phone = phoneNumber.replace(/[\s()-]/g, '');
+    if (!/^\+?998\d{9}$/.test(phone)) {
       throw new Error('Telefon raqamni +998XXXXXXXXX formatida kiriting.');
     }
-    if (mode === 'phone') await onPhoneOtpRequest(phoneNumber);
-    else await onPasswordResetRequest(phoneNumber);
+    if (mode === 'phone') await onPhoneOtpRequest(phone);
+    else await onPasswordResetRequest(phone);
     setOtpSent(true);
   }, 'Tasdiqlash kodi yuborildi.');
 
