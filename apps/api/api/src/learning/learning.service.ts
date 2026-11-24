@@ -61,7 +61,7 @@ function extractDocxText(buffer: Buffer): string {
         .replace(/<[^>]+>/g, ' ')
         .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
-        .replace(/&#(\d+);/g, (_match, code) => String.fromCodePoint(Number(code)))
+        .replace(/&#(x[0-9a-f]+|\d+);/gi, (_match, code) => { const value = code[0].toLowerCase() === 'x' ? parseInt(code.slice(1), 16) : Number(code); return Number.isInteger(value) && value >= 0 && value <= 0x10ffff ? String.fromCodePoint(value) : ''; })
         .replace(/\s+/g, ' ').trim();
     }
     cursor += 46 + nameLength + extraLength + commentLength;
