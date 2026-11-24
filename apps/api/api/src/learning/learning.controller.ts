@@ -54,6 +54,14 @@ export class LearningController {
     return this.learningService.getHistory(request.user.id);
   }
 
+  @Get('attempts/:attemptId')
+  getHistoryItem(
+    @Request() request: AuthenticatedRequest,
+    @Param('attemptId') attemptId: string,
+  ) {
+    return this.learningService.getHistoryItem(request.user.id, attemptId);
+  }
+
   @Patch('attempts/:attemptId/review')
   updateAttemptReview(
     @Request() request: AuthenticatedRequest,
