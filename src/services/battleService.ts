@@ -150,7 +150,7 @@ export async function createBattleSocket(): Promise<BattleSocket> {
   }
 
   return io(`${API_BASE_URL}/battle`, {
-    transports: ['websocket'],
+    transports: ['polling', 'websocket'],
     auth: {
       token,
     },
