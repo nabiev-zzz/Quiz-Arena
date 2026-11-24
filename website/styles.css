@@ -208,3 +208,32 @@ html[data-theme="light"] .store-button small{color:#716a81}
 html[data-theme="light"] .site-footer{background:rgba(255,255,255,.34);border-color:rgba(67,48,104,.12)}
 html[data-theme="light"] .footer-inner p,html[data-theme="light"] .footer-inner>span{color:#716a81}
 @media(prefers-reduced-motion:reduce){.hero-copy,.hero-visual{animation:none}}
+
+.mobile-menu-toggle{display:none}
+@media(max-width:650px){
+  .site-header{position:sticky}
+  .mobile-menu-toggle{
+    width:35px;height:35px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+    border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.06);cursor:pointer
+  }
+  .mobile-menu-toggle span{width:15px;height:1.5px;border-radius:2px;background:var(--text);transition:transform .2s,opacity .2s}
+  .mobile-menu-toggle[aria-expanded="true"] span:first-child{transform:translateY(3.25px) rotate(45deg)}
+  .mobile-menu-toggle[aria-expanded="true"] span:last-child{transform:translateY(-3.25px) rotate(-45deg)}
+  .desktop-nav{
+    display:flex;position:absolute;top:calc(100% + 9px);left:0;right:0;
+    flex-direction:column;gap:0;padding:8px;border:1px solid var(--line);border-radius:17px;
+    background:rgba(20,16,34,.94);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);
+    box-shadow:0 20px 55px rgba(0,0,0,.28);
+    opacity:0;visibility:hidden;transform:translateY(-7px);transition:opacity .2s,transform .2s,visibility .2s
+  }
+  .desktop-nav.is-open{opacity:1;visibility:visible;transform:translateY(0)}
+  .desktop-nav a{padding:13px 14px;border-radius:10px;font-size:13px}
+  .desktop-nav a:hover{background:rgba(167,139,250,.12)}
+  .desktop-nav a:after{display:none}
+}
+html[data-theme="light"] .mobile-menu-toggle{background:rgba(255,255,255,.8);border-color:rgba(67,48,104,.15)}
+@media(max-width:650px){
+  html[data-theme="light"] .desktop-nav{background:rgba(250,248,255,.96);border-color:rgba(67,48,104,.14);box-shadow:0 20px 55px rgba(62,45,94,.15)}
+  html[data-theme="light"] .desktop-nav a{color:#55456f}
+  html[data-theme="light"] .desktop-nav a:hover{background:rgba(167,139,250,.14)}
+}
