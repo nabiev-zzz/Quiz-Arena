@@ -354,7 +354,7 @@ export class BattleGateway
       client.emit('battle:matched', matchInfo);
       this.logger.log(`Xususiy Battle boshlandi: ${match.roomCode}`);
 
-      await this.startBattle(
+      const started = await this.startBattle(
         match.id,
         match.roomCode,
         'private',
@@ -364,6 +364,9 @@ export class BattleGateway
         client,
         'general',
       );
+      if (!started) {
+        try { await this.featureUsageService.refund(privateRoom.hostUserId, 'privateBattle'); } catch { /* Preserve the original match error. */ }
+      }
     } catch (error) {
       try { await this.featureUsageService.refund(privateRoom.hostUserId, 'privateBattle'); } catch { /* Preserve the original match error. */ }
       const message = error instanceof Error ? error.message : 'Xususiy Battle boshlanmadi.';
@@ -588,7 +591,7 @@ export class BattleGateway
     playerOneSocket: Socket,
     playerTwoSocket: Socket,
     categoryId: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       const questions = await this.battleService.prepareQuestions(
         matchId,
@@ -652,6 +655,7 @@ export class BattleGateway
       });
 
       this.sendQuestion(battle);
+      return true;
     } catch (error) {
       this.logger.error(
         `Battle boshlashda xato (${roomCode}):`,
@@ -668,6 +672,7 @@ export class BattleGateway
         matchId,
         reason: 'Savollarni tayyorlashda xatolik.',
       });
+      return false;
     }
   }
 
