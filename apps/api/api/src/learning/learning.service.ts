@@ -225,6 +225,7 @@ export class LearningService {
         totalQuestions,
         correctAnswers,
         accuracy,
+        review: review.map((item) => ({ ...item, aiExplanation: '' })),
       });
       await manager.getRepository(LearningAttempt).save(attempt);
       session.submittedAt = new Date();
