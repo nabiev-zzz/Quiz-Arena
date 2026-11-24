@@ -130,7 +130,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     initials: { color: colors.text, fontSize: 29, fontWeight: '800' },
     decoration: { position: 'absolute', right: -3, bottom: 0, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.glassBorder },
     name: { color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'left' },
-    username: { color: colors.primary, fontSize: 13, marginTop: 4, fontWeight: '600' },
+    username: { color: colors.primary, fontSize: 12, marginTop: 4, fontWeight: '700' },
     bio: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'left', marginTop: 8 },
     counts: { flexDirection: 'row', alignItems: 'center', width: '100%', marginTop: 21, marginBottom: 16 },
     count: { flex: 1, alignItems: 'center' },
