@@ -29,7 +29,7 @@ Click Shop API sends UZS amounts and the backend verifies the MD5 signature befo
 - `PAYME_MERCHANT_KEY`
 - `PAYME_CHECKOUT_URL` — optional; defaults to `https://checkout.paycom.uz`.
 
-Register this HTTPS Merchant API callback URL in the Payme cashbox:
+In the Payme cashbox, configure the account field as `payment_id` and register this HTTPS Merchant API callback URL:
 - `https://humorous-imagination-production.up.railway.app/api/subscriptions/payme`
 
 Payme Merchant API sends amounts in tiyin (UZS × 100) and uses JSON-RPC 2.0 with HTTP Basic authentication.
