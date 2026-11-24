@@ -58,7 +58,7 @@ export default function FriendsScreen({ onBack, onUserPress, onDiscover }: Props
 
       <View style={styles.sectionRow}>
         <Text style={styles.sectionTitle}>Sizning do‘stlaringiz</Text>
-        <Pressable onPress={() => void loadFriends} hitSlop={8}><Ionicons name="refresh" size={18} color={colors.textMuted} /></Pressable>
+        <Pressable onPress={() => void loadFriends()} hitSlop={8}><Ionicons name="refresh" size={18} color={colors.textMuted} /></Pressable>
       </View>
 
       {loading ? <ActivityIndicator size="large" color={colors.primary} style={styles.loader} /> : friends.map((friend) => {
