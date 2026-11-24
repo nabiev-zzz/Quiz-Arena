@@ -109,7 +109,7 @@ export class SubscriptionPaymentsService {
     if (String(p.merchant_prepare_id) !== String(payment.providerPrepareId ?? '')) {
       return { ...response, error: -6, error_note: 'Prepare transaction not found' };
     }
-    if (payment.status === 'paid') return { ...response, merchant_confirm_id: payment.id };
+    if (payment.status === 'paid') return { ...response, merchant_confirm_id: Number(payment.providerPrepareId) || 0 };
     if (Number(p.error) < 0) {
       await this.payments.update({ id: payment.id, status: 'pending' }, {
         status: 'cancelled', providerState: -1, providerCancelledAt: new Date(),
@@ -118,7 +118,7 @@ export class SubscriptionPaymentsService {
     }
     try {
       await this.activatePayment(payment.id, 'click', String(p.click_trans_id));
-      return { ...response, merchant_confirm_id: payment.id };
+      return { ...response, merchant_confirm_id: Number(payment.providerPrepareId) || 0 };
     } catch {
       return { ...response, error: -7, error_note: 'Could not complete payment' };
     }
@@ -254,7 +254,7 @@ export class SubscriptionPaymentsService {
     const yearlyId = process.env.GOOGLE_PLAY_YEARLY_PRODUCT_ID;
     const planKey = productId === monthlyId && monthlyId ? 'premium_monthly' : productId === yearlyId && yearlyId ? 'premium_yearly' : null;
     if (!planKey || !item?.expiryTime) throw new BadRequestException('Google Play mahsuloti tan olinmadi');
-    if (!['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD'].includes(purchase.subscriptionState ?? '')) {
+    if (!['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD', 'SUBSCRIPTION_STATE_CANCELED'].includes(purchase.subscriptionState ?? '')) {
       throw new BadRequestException('Google Play obunasi faol emas');
     }
     const expiry = new Date(item.expiryTime);
@@ -307,12 +307,21 @@ export class SubscriptionPaymentsService {
     await this.dataSource.transaction(async (manager) => {
       const payment = await manager.findOne(SubscriptionPayment, { where: { id: paymentId }, lock: { mode: 'pessimistic_write' } });
       if (!payment) throw new BadRequestException('Payment not found');
-      if (payment.status === 'paid') return;
       if (payment.provider !== provider || (payment.providerTransactionId && payment.providerTransactionId !== reference)) {
         throw new ConflictException('Payment provider reference mismatch');
       }
       const now = new Date();
       const existing = await manager.findOne(UserSubscription, { where: { provider, providerReference: reference } });
+      if (payment.status === 'paid') {
+        if (provider === 'google_play' && existing && exactExpiry && (!existing.expiresAt || exactExpiry > existing.expiresAt)) {
+          existing.expiresAt = exactExpiry;
+          existing.autoRenew = autoRenew;
+          await manager.save(existing);
+          payment.providerPerformedAt = now;
+          await manager.save(payment);
+        }
+        return;
+      }
       const active = await manager.findOne(UserSubscription, {
         where: { userId: payment.userId, status: 'active', expiresAt: MoreThan(now) },
         order: { expiresAt: 'DESC' },
