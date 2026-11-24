@@ -26,6 +26,7 @@ import { subjects as learningSubjects } from './src/data/subjects';
 
 import LearnScreen from './src/screens/LearnScreen';
 import DocumentQuizScreen from './src/screens/DocumentQuizScreen';
+import SmartPracticeScreen from './src/screens/SmartPracticeScreen';
 import QuizScreen from './src/screens/QuizScreen';
 import AiTutorScreen from './src/screens/AiTutorScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -108,6 +109,7 @@ function AppContent() {
   const [showSettings, setShowSettings] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
   const [showDocumentQuiz, setShowDocumentQuiz] = useState(false);
+  const [showSmartPractice, setShowSmartPractice] = useState(false);
   const [selectedPublicUsername, setSelectedPublicUsername] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -121,6 +123,7 @@ function AppContent() {
     setShowSettings(false);
     setShowPremium(false);
     setShowDocumentQuiz(false);
+    setShowSmartPractice(false);
     setSelectedPublicUsername(null);
     setSelectedTopic(null);
     setSelectedSubject(null);
@@ -258,6 +261,7 @@ function AppContent() {
         <LearnScreen
           dockStretch={dockStretch}
           onDocumentQuiz={() => setShowDocumentQuiz(true)}
+          onSmartPractice={() => setShowSmartPractice(true)}
           initialSubject={selectedSubject}
           onTopicSelect={(subject, topic) => {
             setSelectedSubject(subject);
@@ -417,7 +421,12 @@ function AppContent() {
         />
       </View>
 
-      {showDocumentQuiz ? (
+      {showSmartPractice ? (
+        <SmartPracticeScreen
+          onBack={() => setShowSmartPractice(false)}
+          language={language}
+        />
+      ) : showDocumentQuiz ? (
         <DocumentQuizScreen
           onBack={() => setShowDocumentQuiz(false)}
           language={language}
