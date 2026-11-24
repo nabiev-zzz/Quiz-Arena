@@ -9,7 +9,6 @@ import Animated, {
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
