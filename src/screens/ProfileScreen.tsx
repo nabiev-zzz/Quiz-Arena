@@ -284,7 +284,6 @@ export default function ProfileScreen({
 
           <View style={styles.identityBlock}>
             <View style={styles.avatarStage}>
-              <View style={styles.avatarHalo} />
               <View style={[styles.avatarBorder, user.profileFrame === 'aurora' ? styles.frameAurora : user.profileFrame === 'royal' ? styles.frameRoyal : user.profileFrame === 'ocean' ? styles.frameOcean : null]}>
                 {avatarUri ? (
                   <Image source={{ uri: avatarUri }} style={styles.avatar} />
@@ -294,11 +293,6 @@ export default function ProfileScreen({
                   </View>
                 )}
               </View>
-              {user.avatarDecoration ? (
-                <View style={styles.decoration}>
-                  <Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={13} color="#F8D477" />
-                </View>
-              ) : null}
               <Pressable
                 style={styles.cameraButton}
                 onPress={chooseAvatar}
@@ -316,7 +310,6 @@ export default function ProfileScreen({
                   <Ionicons name="copy-outline" size={15} color={colors.textMuted} />
                 </Pressable>
               </View>
-              <Text style={styles.bio} numberOfLines={3}>{user.bio || 'Tarjimai hol hali kiritilmagan'}</Text>
             </View>
           </View>
 
@@ -342,18 +335,36 @@ export default function ProfileScreen({
             <Ionicons name="arrow-forward" size={16} color={colors.textMuted} />
           </Pressable>
 
-          <Pressable onPress={onPremiumPress} style={styles.premiumPressable}>
-            <View style={styles.premiumContent}>
-              <View style={styles.premiumIconWrap}>
-                <Ionicons name="diamond" size={22} color="#EFCB78" />
-              </View>
-              <View style={styles.premiumTextBlock}>
-                <Text style={styles.premiumTitle}>QUIZ ARENA Premium</Text>
-                <Text style={styles.premiumSubtitle}>Maxsus imkoniyatlarni kashf eting</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#EFCB78" />
+        </GlassSurface>
+
+        <GlassSurface intensity={glassIntensity} style={styles.orbsCard}>
+          <View style={styles.orbsCopy}>
+            <Text style={styles.orbsTitle}>Balans Orbs</Text>
+          </View>
+          <View style={styles.orbsValue}>
+            <Ionicons name="diamond" size={19} color={colors.primary} />
+            <Text style={styles.orbsAmount}>—</Text>
+          </View>
+        </GlassSurface>
+
+        <Pressable onPress={onPremiumPress} style={styles.shopPressable}>
+          <GlassSurface intensity={glassIntensity} style={styles.shopCard}>
+            <View style={styles.shopIconWrap}>
+              <Ionicons name="storefront-outline" size={23} color={colors.primary} />
             </View>
-          </Pressable>
+            <View style={styles.shopTextBlock}>
+              <Text style={styles.shopTitle}>Magazin</Text>
+              <Text style={styles.shopSubtitle}>Premium va maxsus imkoniyatlar</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
+          </GlassSurface>
+        </Pressable>
+
+        <GlassSurface intensity={glassIntensity} style={styles.biographyCard}>
+          <View style={styles.biographyHeading}>
+            <View style={styles.biographyAccent} />
+            <Text style={styles.biographyTitle}>Biografiya</Text>
+          </View>
         </GlassSurface>
 
         <View style={styles.socialHeading}>
@@ -996,6 +1007,40 @@ function makeStyles(
       fontWeight: '700',
       fontSize: 13,
     },
+    orbsCard: {
+      minHeight: 68, marginTop: 16, paddingHorizontal: 16, paddingVertical: 12,
+      borderRadius: 19, borderWidth: 1, borderColor: glassBorder, backgroundColor: glassFill,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    },
+    orbsCopy: { flex: 1 },
+    orbsTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
+    orbsValue: {
+      minWidth: 78, minHeight: 42, borderRadius: 14, paddingHorizontal: 12,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+      backgroundColor: isDark ? 'rgba(183,163,255,0.12)' : 'rgba(123,99,204,0.10)',
+      borderWidth: 1, borderColor: glassBorder,
+    },
+    orbsAmount: { color: colors.text, fontSize: 15, fontWeight: '800' },
+    shopPressable: { marginTop: 12 },
+    shopCard: {
+      minHeight: 78, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 19,
+      borderWidth: 1, borderColor: glassBorder, backgroundColor: glassFill,
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+    },
+    shopIconWrap: {
+      width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(183,163,255,0.14)' : 'rgba(123,99,204,0.10)',
+    },
+    shopTextBlock: { flex: 1, minWidth: 0 },
+    shopTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
+    shopSubtitle: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
+    biographyCard: {
+      minHeight: 112, marginTop: 12, paddingHorizontal: 16, paddingVertical: 14,
+      borderRadius: 19, borderWidth: 1, borderColor: glassBorder, backgroundColor: glassFill,
+    },
+    biographyHeading: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+    biographyAccent: { width: 4, height: 20, borderRadius: 3, backgroundColor: colors.primary },
+    biographyTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
     socialHeading: {
       flexDirection: 'row',
       alignItems: 'center',
