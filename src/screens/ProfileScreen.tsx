@@ -25,6 +25,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
+import { getProfileAchievements } from '../utils/profileAchievements';
 
 interface ProfileScreenProps {
   onSettingsPress?: () => void;
@@ -413,6 +414,23 @@ export default function ProfileScreen({
             <Text style={styles.statLabel}>Reyting RP</Text>
           </GlassSurface>
         </View>
+
+        <View style={styles.sectionHeading}>
+          <View>
+            <Text style={styles.sectionEyebrow}>ACHIEVEMENTS</Text>
+            <Text style={styles.sectionTitle}>Erishgan yutuqlari</Text>
+          </View>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsRow}>
+          {getProfileAchievements(user.xp ?? 0, user.level ?? 1, rankPoints).filter((item) => item.unlocked).map((achievement) => (
+            <GlassSurface key={achievement.id} intensity={glassIntensity} style={styles.achievementCard}>
+              <Ionicons name={achievement.icon} size={21} color="#EFCB78" />
+              <Text style={styles.achievementTitle}>{achievement.title}</Text>
+              <Text style={styles.achievementDescription}>{achievement.description}</Text>
+            </GlassSurface>
+          ))}
+          {getProfileAchievements(user.xp ?? 0, user.level ?? 1, rankPoints).every((item) => !item.unlocked) ? <Text style={styles.noSuggestions}>Yutuqlar hali qo‘lga kiritilmagan</Text> : null}
+        </ScrollView>
 
         <View style={styles.sectionHeading}>
           <View>
@@ -971,6 +989,28 @@ function makeStyles(
       borderWidth: 1,
       borderColor: glassBorder,
       backgroundColor: glassFill,
+    },
+    achievementCard: {
+      width: 145,
+      minHeight: 100,
+      padding: 12,
+      borderRadius: 17,
+      borderWidth: 1,
+      borderColor: glassBorder,
+      backgroundColor: glassFill,
+      justifyContent: 'center',
+      marginRight: 9,
+    },
+    achievementTitle: {
+      color: colors.text,
+      fontSize: 11,
+      fontWeight: '800',
+      marginTop: 8,
+    },
+    achievementDescription: {
+      color: colors.textMuted,
+      fontSize: 9,
+      marginTop: 3,
     },
     personIdentity: {
       alignItems: 'center',
