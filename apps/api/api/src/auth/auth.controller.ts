@@ -63,6 +63,24 @@ export class AuthController {
     return this.authService.resetPassword(dto);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post('phone/link/request-otp')
+  requestPhoneLink(
+    @Request() request: AuthenticatedRequest,
+    @Body() dto: PhoneOtpRequestDto,
+  ) {
+    return this.authService.requestPhoneLink(request.user.id, dto.phoneNumber);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('phone/link')
+  linkPhone(
+    @Request() request: AuthenticatedRequest,
+    @Body() dto: PhoneOtpVerifyDto,
+  ) {
+    return this.authService.linkPhone(request.user.id, dto.phoneNumber, dto.code);
+  }
+
   @Post('phone/login/request-otp')
   requestPhoneLogin(@Body() dto: PhoneOtpRequestDto) {
     return this.authService.requestPhoneLogin(dto.phoneNumber);
