@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { BattleModule } from './battle/battle.module';
 import { UsersModule } from './users/users.module';
 import { LearningModule } from './learning/learning.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 import { CreateUsersTable20261122173000 } from './database/migrations/CreateUsersTable';
 import { CreateAiTutorMessages20261122180000 } from './database/migrations/CreateAiTutorMessages';
@@ -64,6 +65,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     BattleModule,
     UsersModule,
     LearningModule,
+    SubscriptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
