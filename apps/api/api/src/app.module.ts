@@ -22,6 +22,7 @@ import { CreateLearningAttempts20261124090000 } from './database/migrations/Crea
 import { CreateUserSubscriptions20261124120000 } from './database/migrations/CreateUserSubscriptions';
 import { CreateSubscriptionPayments20261124130000 } from './database/migrations/CreateSubscriptionPayments';
 import { AddSubscriptionProviderLifecycle20261124140000 } from './database/migrations/AddSubscriptionProviderLifecycle';
+import { CreateAuthOtps20261124150000 } from './database/migrations/CreateAuthOtps';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
 
@@ -29,10 +30,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
-
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST ?? '127.0.0.1',
@@ -55,17 +53,16 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         CreateUserSubscriptions20261124120000,
         CreateSubscriptionPayments20261124130000,
         AddSubscriptionProviderLifecycle20261124140000,
+        CreateAuthOtps20261124150000,
       ],
       migrationsRun: true,
       migrationsTableName: 'typeorm_migrations',
     }),
-
     ObserveModule.forRoot({
       appKey: process.env.OBSERVE_APP_KEY ?? 'YOUR_APP_KEY',
       appSecret: process.env.OBSERVE_APP_SECRET ?? 'YOUR_APP_SECRET',
       serviceId: 'api',
     }),
-
     AiModule,
     AuthModule,
     BattleModule,
