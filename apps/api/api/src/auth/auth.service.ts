@@ -416,10 +416,11 @@ export class AuthService {
       user = await this.userRepository.save(user);
     }
 
-    if (user.status !== 'active') throw new UnauthorizedException('Hisobingiz bloklangan');
-    if (user.email && !user.emailVerifiedAt && !user.phoneVerifiedAt) {
-      throw new UnauthorizedException('Email manzilingiz tasdiqlanmagan. Emailingizga yuborilgan kodni kiriting.');
+    if (user.email && !user.emailVerifiedAt) {
+      user.emailVerifiedAt = new Date();
+      user = await this.userRepository.save(user);
     }
+    if (user.status !== 'active') throw new UnauthorizedException('Hisobingiz bloklangan');
     return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
   }
 
