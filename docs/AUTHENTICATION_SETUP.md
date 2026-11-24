@@ -10,8 +10,6 @@ Set these variables on the Railway API service. Do not commit credentials or put
 | --- | --- |
 | `RESEND_API_KEY` | Resend API key used by the server to send transactional email |
 | `EMAIL_FROM` | Verified sender, for example `QUIZ ARENA <auth@your-domain.uz>` |
-
-
 | `GOOGLE_CLIENT_ID` | Google OAuth 2.0 Web application client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 Web application client secret |
 | `GOOGLE_REDIRECT_URI` | Exact public callback URL: `https://humorous-imagination-production.up.railway.app/api/auth/google/callback` |
