@@ -336,7 +336,7 @@ export class SubscriptionPaymentsService {
       const planDays = payment.planKey === 'premium_yearly' ? 365 : 30;
       const startsAt = exactStart ?? (active?.expiresAt && active.expiresAt > now ? active.expiresAt : now);
       const expiresAt = exactExpiry ?? new Date(startsAt.getTime() + planDays * 86_400_000);
-      if (!exactExpiry && active) {
+      if (active && active.id !== existing?.id) {
         await manager.update(UserSubscription, { id: active.id }, { status: 'expired', expiresAt: now });
       }
       payment.status = 'paid';
