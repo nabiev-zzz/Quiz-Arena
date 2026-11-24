@@ -55,7 +55,7 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
       <GlassSurface intensity={isDark ? 34 : 42} style={styles.hero}>
         <View style={[styles.avatarRing, profile.profileFrame === 'aurora' ? styles.frameAurora : profile.profileFrame === 'royal' ? styles.frameRoyal : profile.profileFrame === 'ocean' ? styles.frameOcean : null]}>
           {profile.avatarUrl ? <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} /> : <View style={styles.avatarFallback}><Text style={styles.initials}>{initials || '?'}</Text></View>}
-          {profile.avatarDecoration ? <View style={styles.decoration}><Ionicons name="sparkles" size={17} color="#F3C96A" /></View> : null}
+          {profile.avatarDecoration ? <View style={styles.decoration}><Ionicons name={profile.avatarDecoration === 'crown' ? 'ribbon' : profile.avatarDecoration === 'laurel' ? 'leaf' : 'sparkles'} size={17} color="#F3C96A" /></View> : null}
         </View>
         <Text style={styles.name}>{profile.displayName}</Text>
         <Text style={styles.username}>@{profile.username}</Text>
