@@ -166,8 +166,8 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     { key: 'wishlist', label: 'Wishlist' },
   ];
 
-  const renderCard = (children: React.ReactNode, extraStyle?: object) => (
-    <View style={[styles.card, extraStyle]}>{children}</View>
+  const renderCard = (children: React.ReactNode, extraStyle?: object, key?: string) => (
+    <View key={key} style={[styles.card, extraStyle]}>{children}</View>
   );
 
   return (
@@ -321,6 +321,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
                   <Text style={styles.cardSubtitle}>{item.label}</Text>
                 </View>,
                 styles.statCard,
+                item.label,
               ))}
             </View>
             {renderCard(
