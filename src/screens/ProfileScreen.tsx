@@ -230,7 +230,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const tabs: { key: ProfileTab; label: string }[] = [
     { key: 'main', label: 'Main' },
     { key: 'board', label: 'Board' },
-    { key: 'activity', label: 'Activity' },
+    { key: 'activity', label: 'Tarix' },
     { key: 'wishlist', label: 'Wishlist' },
   ];
 
