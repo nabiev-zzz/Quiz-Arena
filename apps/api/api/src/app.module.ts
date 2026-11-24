@@ -20,6 +20,7 @@ import { AddBattleMatchRankChanges20261124040000 } from './database/migrations/A
 import { CreateUserFollows20261124070000 } from './database/migrations/CreateUserFollows';
 import { CreateLearningAttempts20261124090000 } from './database/migrations/CreateLearningAttempts';
 import { CreateUserSubscriptions20261124120000 } from './database/migrations/CreateUserSubscriptions';
+import { CreateSubscriptionPayments20261124130000 } from './database/migrations/CreateSubscriptionPayments';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
 
@@ -51,6 +52,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         CreateUserFollows20261124070000,
         CreateLearningAttempts20261124090000,
         CreateUserSubscriptions20261124120000,
+        CreateSubscriptionPayments20261124130000,
       ],
       migrationsRun: true,
       migrationsTableName: 'typeorm_migrations',
