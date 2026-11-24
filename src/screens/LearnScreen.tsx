@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 import {
-  ScrollView,
   StyleSheet,
   Text,
   View,
