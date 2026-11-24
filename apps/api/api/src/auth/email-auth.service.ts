@@ -181,7 +181,11 @@ export class EmailAuthService {
     const email = emailInput.trim().toLowerCase();
     const user = await this.users.findOne({ where: { email } });
     if (user && !user.emailVerifiedAt && user.status === 'active') {
-      await this.issueCode(email, 'verify_email');
+      try {
+        await this.issueCode(email, 'verify_email');
+      } catch {
+        // Keep verification resend responses generic to avoid account enumeration.
+      }
     }
     return { message: 'Agar email tasdiqlashni kutayotgan QUIZ ARENA hisobi mavjud bo‘lsa, kod yuborildi.' };
   }
