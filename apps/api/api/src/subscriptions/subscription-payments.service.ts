@@ -279,12 +279,12 @@ export class SubscriptionPaymentsService {
       });
       payment = await this.payments.save(payment);
     }
+    await this.activatePayment(payment.id, 'google_play', purchaseToken, expiry, item.autoRenewingPlan?.autoRenewEnabled ?? false, purchase.startTime ? new Date(purchase.startTime) : undefined);
     if (purchase.acknowledgementState !== 'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED') {
       const ackUrl = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(packageName)}/purchases/subscriptions/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}:acknowledge`;
       const ack = await fetch(ackUrl, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: '{}' });
       if (!ack.ok) throw new BadRequestException('Google Play xaridi tasdiqlanmadi; keyinroq qayta urinib ko‘ring');
     }
-    await this.activatePayment(payment.id, 'google_play', purchaseToken, expiry, item.autoRenewingPlan?.autoRenewEnabled ?? false, purchase.startTime ? new Date(purchase.startTime) : undefined);
     return { isPremium: true, expiresAt: expiry, provider: 'google_play' };
   }
 
