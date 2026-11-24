@@ -14,6 +14,7 @@ import {
   Text,
   View,
   Pressable,
+  TextInput,
 } from 'react-native';
 import {
   SafeAreaProvider,
@@ -21,7 +22,6 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { TextInput } from 'react-native';
 import { subjects as learningSubjects } from './src/data/subjects';
 
 import LearnScreen from './src/screens/LearnScreen';
@@ -135,7 +135,7 @@ function AppContent() {
   };
 
   const renderHome = () => {
-    const normalizedQuery = searchQuery.trim().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase();
+    const normalizedQuery = searchQuery.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
     const featureCatalog = [
       { key: 'learn', title: 'Fanlar va mavzular', detail: 'Fan tanlash, mavzuli testlar, o‘rganish', aliases: 'dars test mavzu fan learning quiz' },
       { key: 'battle', title: 'Battle', detail: 'Do‘stlar va raqiblar bilan bellashuv', aliases: 'jang bellashuv musobaqa duel multiplayer' },
@@ -146,9 +146,9 @@ function AppContent() {
       { key: 'premium', title: 'Premium tariflar', detail: 'Obuna va qo‘shimcha imkoniyatlar', aliases: 'premium pro legenda obuna tolov' },
       { key: 'settings', title: 'Sozlamalar', detail: 'Ilova ko‘rinishi va afzalliklar', aliases: 'settings til tema qorongu yorug' },
     ];
-    const featureMatches = normalizedQuery ? featureCatalog.filter((item) => `${item.title} ${item.detail} ${item.aliases}`.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8) : [];
-    const subjectMatches = normalizedQuery ? learningSubjects.filter((subject) => `${subject.name} ${subject.description}`.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8) : [];
-    const topicMatches = normalizedQuery ? learningSubjects.flatMap((subject) => subject.topics.filter((topic) => `${subject.name} ${topic.name} ${topic.description}`.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).map((topic) => ({ subject, topic }))).slice(0, 20) : [];
+    const featureMatches = normalizedQuery ? featureCatalog.filter((item) => `${item.title} ${item.detail} ${item.aliases}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8) : [];
+    const subjectMatches = normalizedQuery ? learningSubjects.filter((subject) => `${subject.name} ${subject.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8) : [];
+    const topicMatches = normalizedQuery ? learningSubjects.flatMap((subject) => subject.topics.filter((topic) => `${subject.name} ${topic.name} ${topic.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).map((topic) => ({ subject, topic }))).slice(0, 20) : [];
     const openSearchFeature = (key: string) => {
       if (key === 'friends') { openTab('profile'); setSelectedPublicUsername('__discover__'); return; }
       if (key === 'premium') { openTab('profile'); setShowPremium(true); return; }
