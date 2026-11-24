@@ -62,10 +62,16 @@ export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, o
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <Text style={styles.logo}>QUIZ ARENA</Text>
-        <Text style={styles.title}>{mode === 'forgot' ? 'Parolni tiklash' : 'Xush kelibsiz!'}</Text>
-        <Text style={styles.subtitle}>{mode === 'forgot' ? 'Email manzilingiz orqali parolingizni tiklang.' : 'Bilimlar maydoniga qayting.'}</Text>
-
+        <View style={styles.brandRow}>
+          <View style={styles.brandMark}><Text style={styles.brandMarkText}>Q</Text></View>
+          <View><Text style={styles.logo}>QUIZ ARENA</Text><Text style={styles.brandCaption}>BILIM · RAQOBAT · NATIJA</Text></View>
+        </View>
+        <View style={styles.hero}>
+          <Text style={styles.eyebrow}>SIZNI QAYTA KO‘RGANIMIZDAN XURSANDMIZ</Text>
+          <Text style={styles.title}>{mode === 'forgot' ? 'Parolni tiklash' : 'Xush kelibsiz!'}</Text>
+          <Text style={styles.subtitle}>{mode === 'forgot' ? 'Email manzilingiz orqali parolingizni tiklang.' : 'Bilimlar maydoniga qayting.'}</Text>
+        </View>
+        <View style={styles.formCard}>
         {mode === 'password' ? (
           <>
             <Text style={styles.label}>Username</Text>
@@ -113,6 +119,7 @@ export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, o
           </>
         )}
 
+        </View>
         <View style={styles.footer}>
           <Text style={styles.footerText}>Hisobingiz yo‘qmi? </Text>
           <Pressable onPress={onRegisterPress}><Text style={styles.link}>Ro‘yxatdan o‘tish</Text></Pressable>
@@ -125,22 +132,29 @@ export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, o
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 25, paddingVertical: 35 },
-    logo: { color: colors.primary, fontSize: 13, fontWeight: 'bold', letterSpacing: 4, marginBottom: 35 },
-    title: { color: colors.text, fontSize: 30, fontWeight: 'bold' },
-    subtitle: { color: colors.textMuted, fontSize: 14, marginTop: 9, marginBottom: 25, lineHeight: 21 },
-    label: { color: colors.textSecondary, fontSize: 13, marginBottom: 9, marginTop: 15 },
-    input: { height: 54, borderRadius: 14, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, color: colors.text, fontSize: 15 },
-    button: { height: 54, backgroundColor: '#7657E8', borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 24 },
-    disabled: { opacity: 0.6 },
-    buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
-    googleButton: { height: 52, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceGlass, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-    googleButtonText: { color: colors.text, fontSize: 15, fontWeight: '600' },
-    telegramButton: { height: 52, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(40, 160, 220, 0.45)', backgroundColor: 'rgba(35, 150, 210, 0.12)', alignItems: 'center', justifyContent: 'center', marginTop: 10 },
-    telegramButtonText: { color: colors.text, fontSize: 15, fontWeight: '600' },
-    textButton: { alignSelf: 'center', paddingVertical: 11 },
-    footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 22 },
+    content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 22, paddingVertical: 28 },
+    brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 30 },
+    brandMark: { width: 42, height: 42, borderRadius: 15, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+    brandMarkText: { color: '#FFFFFF', fontSize: 23, fontWeight: '800' },
+    logo: { color: colors.text, fontSize: 13, fontWeight: '800', letterSpacing: 3 },
+    brandCaption: { color: colors.textMuted, fontSize: 9, letterSpacing: 1.4, marginTop: 3 },
+    hero: { marginBottom: 22 },
+    eyebrow: { color: colors.primary, fontSize: 9, fontWeight: '800', letterSpacing: 1.5, marginBottom: 10 },
+    title: { color: colors.text, fontSize: 29, fontWeight: '800', letterSpacing: -0.7 },
+    subtitle: { color: colors.textMuted, fontSize: 14, marginTop: 8, lineHeight: 21 },
+    formCard: { backgroundColor: colors.surfaceGlass, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: 26, padding: 18 },
+    label: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', marginBottom: 8, marginTop: 13 },
+    input: { height: 52, borderRadius: 15, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 15, color: colors.text, fontSize: 15 },
+    button: { height: 52, backgroundColor: colors.primary, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 22 },
+    disabled: { opacity: 0.55 },
+    buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+    googleButton: { height: 50, borderRadius: 15, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center', marginTop: 11 },
+    googleButtonText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+    telegramButton: { height: 50, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(40, 160, 220, 0.35)', backgroundColor: 'rgba(35, 150, 210, 0.10)', alignItems: 'center', justifyContent: 'center', marginTop: 9 },
+    telegramButtonText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+    textButton: { alignSelf: 'center', paddingVertical: 10 },
+    footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
     footerText: { color: colors.textMuted, fontSize: 13 },
-    link: { color: colors.primary, fontSize: 13, fontWeight: 'bold' },
+    link: { color: colors.primary, fontSize: 13, fontWeight: '800' },
   });
 }

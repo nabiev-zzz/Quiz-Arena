@@ -1,25 +1,10 @@
-import Constants from 'expo-constants';
-
 const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 
 const PRODUCTION_API_URL =
   'https://humorous-imagination-production.up.railway.app';
 
-function getDevelopmentApiUrl(): string {
-  const hostUri = Constants.expoConfig?.hostUri;
-
-  if (hostUri) {
-    const host = hostUri.split(':')[0];
-
-    if (host) {
-      return `http://${host}:3000`;
-    }
-  }
-
-  return 'http://localhost:3000';
-}
-
+// Use the deployed API by default so a phone running Expo does not silently
+// try to reach the developer's laptop. Set EXPO_PUBLIC_API_URL to override it.
 export const API_BASE_URL = (
-  configuredApiUrl ||
-  (__DEV__ ? getDevelopmentApiUrl() : PRODUCTION_API_URL)
+  configuredApiUrl || PRODUCTION_API_URL
 ).replace(/\/+$/, '');

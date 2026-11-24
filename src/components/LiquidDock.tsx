@@ -203,13 +203,13 @@ export default function LiquidDock({
 const styles = StyleSheet.create({
   position: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    left: 18,
+    right: 18,
     zIndex: 100,
   },
   dock: {
-    height: 78,
-    borderRadius: 28,
+    height: 68,
+    borderRadius: 24,
     borderWidth: 1,
     overflow: 'hidden',
     flexDirection: 'row',
@@ -228,10 +228,10 @@ const styles = StyleSheet.create({
   },
   liquidPill: {
     position: 'absolute',
-    top: 6,
-    bottom: 6,
+    top: 5,
+    bottom: 5,
     left: 4,
-    borderRadius: 23,
+    borderRadius: 19,
     borderWidth: 1,
     zIndex: 1,
   },

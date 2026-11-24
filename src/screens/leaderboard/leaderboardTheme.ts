@@ -1,9 +1,9 @@
 export const leaderboardTheme = {
-  ocean: ['#03304D', '#055A7A', '#1B1F5E'] as const,
-  cyan: '#22D3EE', indigo: '#6366F1', teal: '#2DD4BF',
+  ocean: ['#17112F', '#30205C', '#111A36'] as const,
+  cyan: '#62D8D0', indigo: '#9B83FF', teal: '#56D7B2',
   gold: '#F8D477', silver: '#D7E5F5', bronze: '#D99A70',
   success: '#4ADE80', muted: 'rgba(255,255,255,0.66)',
-  glass: 'rgba(255,255,255,0.12)',
+  glass: 'rgba(255,255,255,0.09)',
   radius: { card: 28, row: 22 },
   spring: { damping: 13, stiffness: 150, mass: 0.72 },
 } as const;

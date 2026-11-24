@@ -50,7 +50,7 @@ export default function GlassSurface({
 const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
-    borderRadius: 24,
+    borderRadius: 22,
   },
   content: {
     zIndex: 1,

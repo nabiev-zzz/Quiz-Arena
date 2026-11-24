@@ -456,8 +456,8 @@ export default function SettingsScreen({
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: 18,
-    paddingTop: 10,
+    paddingHorizontal: 20,
+    paddingTop: 14,
     paddingBottom: 128,
   },
   header: {
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 23,
     fontWeight: '800',
   },
   sectionTitle: {
@@ -486,9 +486,9 @@ const styles = StyleSheet.create({
     marginBottom: 11,
   },
   groupCard: {
-    borderRadius: 18,
+    borderRadius: 21,
     borderWidth: 1,
-    padding: 15,
+    padding: 16,
     marginBottom: 5,
   },
   optionHeader: {
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
     minHeight: 70,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 17,
+    borderRadius: 18,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 13,
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
   rowIcon: {
     width: 42,
     height: 42,
-    borderRadius: 13,
+    borderRadius: 14,
     backgroundColor: 'rgba(139,92,246,0.13)',
     alignItems: 'center',
     justifyContent: 'center',
