@@ -1,6 +1,42 @@
 import { describe, expect, it, jest, beforeEach } from '@jest/globals';
+import { deflateRawSync } from 'node:zlib';
 import { getPlanEntitlements } from '../subscriptions/plan-entitlements';
 import { LearningService } from './learning.service';
+
+function makeDocx(text: string): Buffer {
+  const fileName = Buffer.from('word/document.xml');
+  const xml = Buffer.from('<w:document xmlns:w="urn:w"><w:body><w:p><w:r><w:t>' + text + '</w:t></w:r></w:p></w:body></w:document>');
+  const compressed = deflateRawSync(xml);
+
+  const local = Buffer.alloc(30);
+  local.writeUInt32LE(0x04034b50, 0);
+  local.writeUInt16LE(20, 4);
+  local.writeUInt16LE(8, 8);
+  local.writeUInt32LE(compressed.length, 18);
+  local.writeUInt32LE(xml.length, 22);
+  local.writeUInt16LE(fileName.length, 26);
+  const localBlock = Buffer.concat([local, fileName, compressed]);
+
+  const central = Buffer.alloc(46);
+  central.writeUInt32LE(0x02014b50, 0);
+  central.writeUInt16LE(20, 4);
+  central.writeUInt16LE(20, 6);
+  central.writeUInt16LE(8, 10);
+  central.writeUInt32LE(compressed.length, 20);
+  central.writeUInt32LE(xml.length, 24);
+  central.writeUInt16LE(fileName.length, 28);
+  central.writeUInt32LE(0, 42);
+  const centralBlock = Buffer.concat([central, fileName]);
+
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(1, 8);
+  end.writeUInt16LE(1, 10);
+  end.writeUInt32LE(centralBlock.length, 12);
+  end.writeUInt32LE(localBlock.length, 16);
+
+  return Buffer.concat([localBlock, centralBlock, end]);
+}
 
 describe('LearningService document quiz generation', () => {
   const attemptsRepository = { find: jest.fn() };
@@ -58,6 +94,19 @@ describe('LearningService document quiz generation', () => {
     expect(result.sourceFileName).toBe('lesson.txt');
     expect(featureUsageService.consume).toHaveBeenCalledWith('user-1', 'documentQuiz');
     expect(aiService.generateQuestions).toHaveBeenCalledTimes(1);
+  });
+
+  it('extracts text from a DOCX document before generating questions', async () => {
+    const buffer = makeDocx('DOCX_TEST_TEXT: This document explains fractions, numerator, denominator and equivalent values for students.');
+    await service.createDocumentQuiz('user-1', {
+      buffer, originalname: 'lesson.docx',
+      mimetype: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      size: buffer.length,
+    }, { count: '1' });
+
+    expect(aiService.generateQuestions).toHaveBeenCalledWith(expect.objectContaining({
+      topicDescription: expect.stringContaining('DOCX_TEST_TEXT'),
+    }));
   });
 
   it('sends valid PDF bytes to the Gemini PDF generation path', async () => {
