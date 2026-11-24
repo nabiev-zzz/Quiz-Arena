@@ -12,7 +12,7 @@ export class CreateAuthEmailCodes20261124170000 implements MigrationInterface {
     await queryRunner.query(`
       UPDATE users
       SET "emailVerifiedAt" = COALESCE("emailVerifiedAt", "createdAt", now())
-      WHERE email IS NOT NULL AND "googleSubject" IS NOT NULL
+      WHERE email IS NOT NULL
     `);
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS auth_email_codes (
