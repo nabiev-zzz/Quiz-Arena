@@ -116,6 +116,30 @@ export class AuthController {
     return this.authService.loginWithPhone(dto.phoneNumber, dto.code);
   }
 
+  @Get('telegram/start')
+  async telegramStart(@Res() response: Response) {
+    response.redirect(302, await this.authService.getTelegramAuthorizationUrl());
+  }
+
+  @Get('telegram/callback')
+  async telegramCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Res() response: Response,
+  ) {
+    try {
+      const appUrl = await this.authService.handleTelegramCallback(code, state);
+      response.redirect(302, appUrl);
+    } catch {
+      response.redirect(302, 'quizarena://auth?error=telegram_sign_in_failed');
+    }
+  }
+
+  @Post('telegram/exchange')
+  exchangeTelegramCode(@Body() dto: GoogleCodeExchangeDto) {
+    return this.authService.exchangeGoogleCode(dto.code);
+  }
+
   @Get('google/start')
   async googleStart(@Res() response: Response) {
     response.redirect(302, await this.authService.getGoogleAuthorizationUrl());
