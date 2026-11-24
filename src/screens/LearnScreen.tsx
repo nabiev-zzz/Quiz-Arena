@@ -1,12 +1,7 @@
-
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
-import {
-  StyleSheet,
-  Text,
-  View,
-  Pressable,
-} from 'react-native';
+import { StyleSheet, Text, View, Pressable, TextInput } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { subjects } from '../data/subjects';
 import type { Subject, Topic } from '../types';
@@ -18,11 +13,15 @@ interface LearnScreenProps {
   dockStretch?: SharedValue<number>;
 }
 
+const normalize = (value: string) => value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
+
 export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch }: LearnScreenProps) {
   const { tokens } = useTheme();
   const colors = tokens.colors;
   const styles = makeStyles(colors);
   const lastDockScrollY = useSharedValue(0);
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(initialSubject ?? null);
+  const [searchQuery, setSearchQuery] = useState('');
   const dockScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       if (!dockStretch) return;
@@ -35,7 +34,15 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
     onMomentumEnd: () => { if (dockStretch) dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 }); },
   });
 
-  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(initialSubject ?? null);
+  const filteredSubjects = useMemo(() => {
+    const query = normalize(searchQuery);
+    return query ? subjects.filter((subject) => normalize(subject.name + ' ' + subject.description).includes(query)) : subjects;
+  }, [searchQuery]);
+  const filteredTopics = useMemo(() => {
+    if (!selectedSubject) return [];
+    const query = normalize(searchQuery);
+    return query ? selectedSubject.topics.filter((topic) => normalize(topic.name + ' ' + topic.description).includes(query)) : selectedSubject.topics;
+  }, [selectedSubject, searchQuery]);
 
   return (
     <Animated.ScrollView
@@ -44,128 +51,77 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
       {selectedSubject ? (
         <>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => setSelectedSubject(null)}
-          >
-            <Text style={styles.backText}>‹  Barcha fanlar</Text>
+          <Pressable style={styles.backButton} onPress={() => { setSelectedSubject(null); setSearchQuery(''); }}>
+            <Ionicons name="chevron-back" size={17} color={colors.primary} />
+            <Text style={styles.backText}>Barcha fanlar</Text>
           </Pressable>
-
           <View style={styles.detailHeader}>
-            <View
-              style={[
-                styles.largeIconBox,
-                { backgroundColor: `${selectedSubject.color}20` },
-              ]}
-            >
-              <Text style={[styles.largeIcon, { color: selectedSubject.color }]}>
-                {selectedSubject.icon}
-              </Text>
+            <View style={[styles.largeIconBox, { backgroundColor: selectedSubject.color + '20', borderColor: selectedSubject.color + '55' }]}>
+              <Text style={[styles.largeIcon, { color: selectedSubject.color }]}>{selectedSubject.icon}</Text>
             </View>
-
             <Text style={styles.title}>{selectedSubject.name}</Text>
             <Text style={styles.subtitle}>{selectedSubject.description}</Text>
           </View>
-
+          <View style={styles.searchBox}>
+            <Ionicons name="search-outline" size={19} color={colors.textMuted} />
+            <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Mavzularni qidiring..." placeholderTextColor={colors.textMuted} style={styles.searchInput} returnKeyType="search" autoCorrect={false} />
+            {searchQuery.length > 0 && <Pressable onPress={() => setSearchQuery('')} hitSlop={10}><Ionicons name="close-circle" size={18} color={colors.textMuted} /></Pressable>}
+          </View>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Mavzular</Text>
-            <Text style={styles.sectionCount}>
-              {selectedSubject.topics.length} ta mavzu
-            </Text>
+            <Text style={styles.sectionCount}>{filteredTopics.length} ta</Text>
           </View>
-
-          {selectedSubject.topics.map((topic, index) => (
-            <Pressable
-              key={topic.id}
-              style={({ pressed }) => [
-                styles.topicCard,
-                pressed && styles.pressed,
-              ]}
-              onPress={() => onTopicSelect?.(selectedSubject, topic)}
-            >
-              <View style={styles.topicNumber}>
-                <Text style={styles.numberText}>
-                  {String(index + 1).padStart(2, '0')}
-                </Text>
-              </View>
-
-              <View style={styles.topicInfo}>
-                <Text style={styles.topicName}>{topic.name}</Text>
-                <Text style={styles.topicDescription}>
-                  {topic.description}
-                </Text>
-                <Text style={styles.questionCount}>
-                  {topic.questionCount} ta savol · Bazada saqlanadi
-                </Text>
-              </View>
-
-              <Text style={styles.arrow}>›</Text>
-            </Pressable>
-          ))}
+          {filteredTopics.map((topic) => {
+            const index = selectedSubject.topics.findIndex((item) => item.id === topic.id);
+            return (
+              <Pressable key={topic.id} style={({ pressed }) => [styles.topicCard, pressed && styles.pressed]} onPress={() => onTopicSelect?.(selectedSubject, topic)}>
+                <View style={styles.topicNumber}><Text style={styles.numberText}>{String(index + 1).padStart(2, '0')}</Text></View>
+                <View style={styles.topicInfo}>
+                  <Text style={styles.topicName}>{topic.name}</Text>
+                  <Text style={styles.topicDescription}>{topic.description}</Text>
+                  <Text style={styles.questionCount}>{topic.questionCount} ta savol · Bazada saqlanadi</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
+              </Pressable>
+            );
+          })}
+          {filteredTopics.length === 0 && <Text style={styles.emptyText}>Bu qidiruv bo‘yicha mavzu topilmadi.</Text>}
         </>
       ) : (
         <>
           <View style={styles.header}>
-            <Text style={styles.eyebrow}>QUIZ ARENA • TA'LIM</Text>
-            <Text style={styles.title}>Bilimingizni oshiring</Text>
-            <Text style={styles.subtitle}>
-              Fanni tanlang va mavzular bo‘yicha bilimlaringizni mustahkamlang.
-            </Text>
+            <Text style={styles.eyebrow}>QUIZ ARENA  /  TA'LIM</Text>
+            <Text style={styles.title}>Fanlar</Text>
+            <Text style={styles.subtitle}>O‘zingizga kerakli fanni tanlang va bilim sari yo‘l oling.</Text>
           </View>
-
-          <View style={styles.summaryCard}>
-            <View>
-              <Text style={styles.summaryNumber}>{subjects.length}</Text>
-              <Text style={styles.summaryLabel}>ta fan mavjud</Text>
+          <View style={styles.searchBox}>
+            <Ionicons name="search-outline" size={19} color={colors.textMuted} />
+            <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Fanlarni qidiring..." placeholderTextColor={colors.textMuted} style={styles.searchInput} returnKeyType="search" autoCorrect={false} />
+            {searchQuery.length > 0 && <Pressable onPress={() => setSearchQuery('')} hitSlop={10}><Ionicons name="close-circle" size={18} color={colors.textMuted} /></Pressable>}
+          </View>
+          <View style={styles.moonPanel}>
+            <View pointerEvents="none" style={styles.moonGlow} />
+            <View pointerEvents="none" style={styles.moonDisc}><Text style={styles.moonGlyph}>☾</Text></View>
+            <View style={styles.moonCaption}><Text style={styles.moonCaptionTitle}>Bilim olamiga xush kelibsiz</Text><Text style={styles.moonCaptionText}>Fanni tanlang — mavzularni kashf eting</Text></View>
+            <View style={styles.moonGrid}>
+              {filteredSubjects.map((subject, index) => {
+                const column = index % 3;
+                return (
+                  <Pressable key={subject.id} style={({ pressed }) => [styles.moonSubjectCard, { marginTop: column === 1 ? 0 : 34, borderColor: subject.color + '66' }, pressed && styles.pressed]} onPress={() => { setSelectedSubject(subject); setSearchQuery(''); }}>
+                    <View style={[styles.moonSubjectIcon, { backgroundColor: subject.color + '22' }]}><Text style={[styles.moonSubjectGlyph, { color: subject.color }]}>{subject.icon}</Text></View>
+                    <Text style={styles.moonSubjectName} numberOfLines={2}>{subject.name}</Text>
+                    <Text style={styles.moonSubjectCount}>{subject.topics.length} mavzu</Text>
+                  </Pressable>
+                );
+              })}
             </View>
-            <View style={styles.summaryIcon}>
-              <Text style={styles.summaryIconText}>✦</Text>
-            </View>
+            {filteredSubjects.length === 0 && <Text style={styles.emptyText}>Bu qidiruv bo‘yicha fan topilmadi.</Text>}
           </View>
-
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Barcha fanlar</Text>
-            <Text style={styles.sectionCount}>{subjects.length} ta</Text>
-          </View>
-
-          <View style={styles.subjectGrid}>
-            {subjects.map((subject) => (
-              <Pressable
-                key={subject.id}
-                style={({ pressed }) => [
-                  styles.subjectCard,
-                  pressed && styles.pressed,
-                ]}
-                onPress={() => setSelectedSubject(subject)}
-              >
-                <View
-                  style={[
-                    styles.iconBox,
-                    { backgroundColor: `${subject.color}20` },
-                  ]}
-                >
-                  <Text style={[styles.subjectIcon, { color: subject.color }]}>
-                    {subject.icon}
-                  </Text>
-                </View>
-
-                <Text style={styles.subjectName} numberOfLines={1}>
-                  {subject.name}
-                </Text>
-
-                <Text style={styles.subjectTopics}>
-                  {subject.topics.length} ta mavzu
-                </Text>
-
-                <View style={styles.cardArrow}>
-                  <Text style={styles.arrow}>›</Text>
-                </View>
-              </Pressable>
-            ))}
-          </View>
+          <Text style={styles.footerHint}>Har bir fan ichida mavzular alohida ochiladi.</Text>
         </>
       )}
     </Animated.ScrollView>
@@ -174,210 +130,44 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
 
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   return StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    paddingHorizontal: 18,
-    paddingTop: 10,
-    paddingBottom: 128,
-  },
-  header: {
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  eyebrow: {
-    color: colors.primary,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 2,
-    marginBottom: 12,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 26,
-    lineHeight: 33,
-    fontWeight: '800',
-    letterSpacing: -0.6,
-  },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 8,
-  },
-  summaryCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 21,
-    padding: 17,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: colors.border,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  summaryNumber: {
-    color: colors.text,
-    fontSize: 30,
-    fontWeight: '800',
-  },
-  summaryLabel: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    marginTop: 2,
-  },
-  summaryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: colors.primary + '22',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  summaryIconText: {
-    color: colors.primary,
-    fontSize: 27,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    color: colors.text,
-    fontSize: 19,
-    fontWeight: '800',
-  },
-  sectionCount: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  subjectGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  subjectCard: {
-    width: '48%',
-    minHeight: 154,
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  iconBox: {
-    width: 46,
-    height: 46,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 13,
-  },
-  subjectIcon: {
-    fontSize: 27,
-    fontWeight: '700',
-  },
-  subjectName: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  subjectTopics: {
-    color: colors.textMuted,
-    fontSize: 11,
-    marginTop: 6,
-  },
-  cardArrow: {
-    position: 'absolute',
-    right: 13,
-    top: 13,
-  },
-  arrow: {
-    color: colors.textMuted,
-    fontSize: 25,
-    fontWeight: '400',
-  },
-  backButton: {
-    minHeight: 44,
-    alignSelf: 'flex-start',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    paddingRight: 18,
-    marginBottom: 16,
-  },
-  backText: {
-    color: colors.primary,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  detailHeader: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  largeIconBox: {
-    width: 78,
-    height: 78,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 17,
-  },
-  largeIcon: {
-    fontSize: 42,
-    fontWeight: '700',
-  },
-  topicCard: {
-    minHeight: 82,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  topicNumber: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: colors.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 13,
-  },
-  numberText: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  topicInfo: {
-    flex: 1,
-  },
-  topicName: {
-    color: colors.text,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  topicDescription: {
-    color: colors.textMuted,
-    fontSize: 12,
-    marginTop: 4,
-  },
-  questionCount: {
-    color: colors.primary,
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 7,
-  },
-  pressed: {
-    opacity: 0.72,
-  },
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 128 },
+    header: { marginTop: 8, marginBottom: 18 },
+    eyebrow: { color: colors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 2, marginBottom: 10 },
+    title: { color: colors.text, fontSize: 28, lineHeight: 35, fontWeight: '900', letterSpacing: -0.7 },
+    subtitle: { color: colors.textMuted, fontSize: 13, lineHeight: 20, marginTop: 7 },
+    searchBox: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, marginBottom: 20 },
+    searchInput: { flex: 1, minWidth: 0, color: colors.text, fontSize: 14, paddingVertical: 11 },
+    moonPanel: { minHeight: 520, borderRadius: 30, padding: 12, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+    moonGlow: { position: 'absolute', width: 250, height: 250, borderRadius: 125, top: 82, alignSelf: 'center', backgroundColor: colors.primary + '16' },
+    moonDisc: { position: 'absolute', top: 105, alignSelf: 'center', width: 170, height: 170, borderRadius: 85, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary + '12', borderWidth: 1, borderColor: colors.primary + '35' },
+    moonGlyph: { fontSize: 112, lineHeight: 130, color: colors.primary, opacity: 0.28 },
+    moonCaption: { alignItems: 'center', marginTop: 16, marginBottom: 15 },
+    moonCaptionTitle: { color: colors.text, fontSize: 14, fontWeight: '800', textAlign: 'center' },
+    moonCaptionText: { color: colors.textMuted, fontSize: 11, marginTop: 4, textAlign: 'center' },
+    moonGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: 8 },
+    moonSubjectCard: { width: '31.5%', minHeight: 112, paddingVertical: 10, paddingHorizontal: 5, marginBottom: 8, borderRadius: 17, borderWidth: 1, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center' },
+    moonSubjectIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginBottom: 7 },
+    moonSubjectGlyph: { fontSize: 23, fontWeight: '800' },
+    moonSubjectName: { color: colors.text, fontSize: 11, fontWeight: '800', textAlign: 'center', minHeight: 28 },
+    moonSubjectCount: { color: colors.textMuted, fontSize: 9, marginTop: 3 },
+    footerHint: { color: colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 14 },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+    sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
+    sectionCount: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
+    backButton: { minHeight: 42, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 14, paddingRight: 18 },
+    backText: { color: colors.primary, fontSize: 14, fontWeight: '700' },
+    detailHeader: { alignItems: 'center', marginBottom: 22 },
+    largeIconBox: { width: 76, height: 76, borderRadius: 25, alignItems: 'center', justifyContent: 'center', marginBottom: 14, borderWidth: 1 },
+    largeIcon: { fontSize: 41, fontWeight: '800' },
+    topicCard: { minHeight: 82, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 17, padding: 13, marginBottom: 9, borderWidth: 1, borderColor: colors.border, gap: 10 },
+    topicNumber: { width: 42, height: 42, borderRadius: 13, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center' },
+    numberText: { color: colors.primary, fontSize: 12, fontWeight: '800' },
+    topicInfo: { flex: 1, minWidth: 0 },
+    topicName: { color: colors.text, fontSize: 14, fontWeight: '700' },
+    topicDescription: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
+    questionCount: { color: colors.primary, fontSize: 10, fontWeight: '600', marginTop: 6 },
+    emptyText: { color: colors.textMuted, fontSize: 13, textAlign: 'center', paddingVertical: 20 },
+    pressed: { opacity: 0.72, transform: [{ scale: 0.98 }] },
   });
 }

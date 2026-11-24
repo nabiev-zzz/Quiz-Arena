@@ -14,6 +14,7 @@ import {
   Text,
   View,
   Pressable,
+  TextInput,
 } from 'react-native';
 import {
   SafeAreaProvider,
@@ -21,6 +22,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { subjects as learningSubjects } from './src/data/subjects';
 
 import LearnScreen from './src/screens/LearnScreen';
 import QuizScreen from './src/screens/QuizScreen';
@@ -51,13 +53,6 @@ void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 import type { Subject, Topic } from './src/types';
 
 type Tab = 'home' | 'learn' | 'battle' | 'ranking' | 'profile' | 'tutor';
-
-const subjects = [
-  { icon: 'calculator-outline', name: 'Matematika', topics: '12 ta mavzu', color: '#283C70' },
-  { icon: 'flask-outline', name: 'Fizika', topics: '8 ta mavzu', color: '#49346D' },
-  { icon: 'laptop-outline', name: 'Informatika', topics: '10 ta mavzu', color: '#245A59' },
-  { icon: 'language-outline', name: 'Ingliz tili', topics: '15 ta mavzu', color: '#65432D' },
-] as const;
 
 const navigation: LiquidDockItem[] = [
   { id: 'home', icon: 'home-outline', activeIcon: 'home', label: 'Bosh' },
@@ -114,6 +109,7 @@ function AppContent() {
   const [showSettings, setShowSettings] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
   const [selectedPublicUsername, setSelectedPublicUsername] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const backgroundColor = tokens.colors.background;
   const cardColor = tokens.colors.surfaceGlass;
@@ -131,7 +127,29 @@ function AppContent() {
     setSelectedSubject(null);
   };
 
-  const renderHome = () => (
+  const renderHome = () => {
+    const normalizedQuery = searchQuery.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
+    const featureCatalog = [
+      { key: 'learn', title: 'Fanlar va mavzular', detail: 'Barcha fanlar va mavzularni ko‘rish', aliases: 'dars test mavzu fan learning quiz' },
+      { key: 'battle', title: 'Battle', detail: 'Do‘stlar va raqiblar bilan bellashuv', aliases: 'jang bellashuv musobaqa duel multiplayer' },
+      { key: 'ranking', title: 'Reyting', detail: 'Liderlar jadvali va natijalar', aliases: 'top leaderboard xp ball ochko' },
+      { key: 'tutor', title: 'AI Ustoz', detail: 'AI bilan savol-javob va tushuntirish', aliases: 'suniy intellekt yordamchi ai tutor' },
+      { key: 'profile', title: 'Profil', detail: 'Shaxsiy hisob va yutuqlar', aliases: 'account avatar bio hisob' },
+      { key: 'friends', title: 'Do‘stlar', detail: 'Foydalanuvchilarni topish va kuzatish', aliases: 'hamjamiyat odam user friends follow' },
+      { key: 'premium', title: 'Premium tariflar', detail: 'Obuna va qo‘shimcha imkoniyatlar', aliases: 'premium pro legenda obuna tolov' },
+      { key: 'settings', title: 'Sozlamalar', detail: 'Ilova ko‘rinishi va afzalliklar', aliases: 'settings til tema qorongu yorug' },
+    ];
+    const featureMatches = normalizedQuery ? featureCatalog.filter((item) => `${item.title} ${item.detail} ${item.aliases}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8) : [];
+    const subjectMatches = normalizedQuery ? learningSubjects.filter((subject) => `${subject.name} ${subject.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8) : [];
+    const topicMatches = normalizedQuery ? learningSubjects.flatMap((subject) => subject.topics.filter((topic) => `${subject.name} ${topic.name} ${topic.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).map((topic) => ({ subject, topic }))).slice(0, 20) : [];
+    const openSearchFeature = (key: string) => {
+      if (key === 'friends') { openTab('profile'); setSelectedPublicUsername('__discover__'); return; }
+      if (key === 'premium') { openTab('profile'); setShowPremium(true); return; }
+      if (key === 'settings') { openTab('profile'); setShowSettings(true); return; }
+      if (key === 'tutor') { setTab('tutor'); setShowSettings(false); setShowPremium(false); setSelectedPublicUsername(null); setSelectedSubject(null); setSelectedTopic(null); return; }
+      openTab(key as Tab);
+    };
+    return (
     <>
       <View style={styles.header}>
         <View style={styles.greetingContainer}>
@@ -158,6 +176,56 @@ function AppContent() {
         </Pressable>
       </View>
 
+      <View style={[styles.searchBox, { backgroundColor: cardColor, borderColor }]}>
+        <Ionicons name="search-outline" size={20} color={mutedColor} />
+        <TextInput
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Funksiya, fan yoki mavzuni qidiring..."
+          placeholderTextColor={mutedColor}
+          style={[styles.searchInput, { color: textColor }]}
+          returnKeyType="search"
+          autoCorrect={false}
+          accessibilityLabel="Ilova bo‘ylab qidirish"
+        />
+        {searchQuery.length > 0 && (
+          <Pressable onPress={() => setSearchQuery('')} hitSlop={10} accessibilityRole="button" accessibilityLabel="Qidiruvni tozalash">
+            <Ionicons name="close-circle" size={19} color={mutedColor} />
+          </Pressable>
+        )}
+      </View>
+
+      {normalizedQuery.length > 0 && (
+        <View style={styles.searchResults}>
+          {featureMatches.length > 0 && <Text style={[styles.searchSectionTitle, { color: textColor }]}>Funksiyalar</Text>}
+          {featureMatches.map((item) => (
+            <Pressable key={item.key} style={[styles.searchResultRow, { backgroundColor: cardColor, borderColor }]} onPress={() => openSearchFeature(item.key)}>
+              <View style={styles.searchResultIcon}><Ionicons name="grid-outline" size={18} color="#B9A7FF" /></View>
+              <View style={styles.searchResultCopy}><Text style={[styles.searchResultTitle, { color: textColor }]}>{item.title}</Text><Text style={[styles.searchResultDetail, { color: mutedColor }]}>{item.detail}</Text></View>
+              <Ionicons name="chevron-forward" size={18} color={mutedColor} />
+            </Pressable>
+          ))}
+          {subjectMatches.length > 0 && <Text style={[styles.searchSectionTitle, { color: textColor }]}>Fanlar</Text>}
+          {subjectMatches.map((subject) => (
+            <Pressable key={subject.id} style={[styles.searchResultRow, { backgroundColor: cardColor, borderColor }]} onPress={() => { openTab('learn'); setSelectedSubject(subject); }}>
+              <View style={styles.searchResultIcon}><Text style={styles.searchResultGlyph}>{subject.icon}</Text></View>
+              <View style={styles.searchResultCopy}><Text style={[styles.searchResultTitle, { color: textColor }]}>{subject.name}</Text><Text style={[styles.searchResultDetail, { color: mutedColor }]}>{subject.description}</Text></View>
+              <Ionicons name="chevron-forward" size={18} color={mutedColor} />
+            </Pressable>
+          ))}
+          {topicMatches.length > 0 && <Text style={[styles.searchSectionTitle, { color: textColor }]}>Mavzular</Text>}
+          {topicMatches.map(({ subject, topic }) => (
+            <Pressable key={subject.id + ':' + topic.id} style={[styles.searchResultRow, { backgroundColor: cardColor, borderColor }]} onPress={() => { setSelectedSubject(subject); setSelectedTopic(topic); setTab('learn'); setShowSettings(false); setShowPremium(false); setSelectedPublicUsername(null); }}>
+              <View style={styles.searchResultIcon}><Ionicons name="book-outline" size={18} color="#B9A7FF" /></View>
+              <View style={styles.searchResultCopy}><Text style={[styles.searchResultTitle, { color: textColor }]}>{topic.name}</Text><Text style={[styles.searchResultDetail, { color: mutedColor }]}>{subject.name} · {topic.description}</Text></View>
+              <Ionicons name="chevron-forward" size={18} color={mutedColor} />
+            </Pressable>
+          ))}
+          {featureMatches.length + subjectMatches.length + topicMatches.length === 0 && <Text style={[styles.searchEmpty, { color: mutedColor }]}>“{searchQuery}” bo‘yicha hech narsa topilmadi.</Text>}
+          {topicMatches.length === 20 && <Text style={[styles.searchHint, { color: mutedColor }]}>Yana mos mavzular bo‘lishi mumkin. Aniqroq qidiring.</Text>}
+        </View>
+      )}
+
       <GlassSurface
         intensity={tokens.blur.strong}
         style={[
@@ -171,7 +239,7 @@ function AppContent() {
         ]}
       >
         <Text style={[styles.heroTag, { color: isDark ? "#C5B8FF" : tokens.colors.primary }]}>QUIZ ARENA</Text>
-        <Text style={[styles.heroTitle, { color: textColor }]}>Fan va mavzular bo‘yicha bilimingni oshir</Text>
+        <Text style={[styles.heroTitle, { color: textColor }]}>Bilim olish sayohatingizni boshlang</Text>
         <Text style={[styles.heroDescription, { color: isDark ? "#D1C9F0" : tokens.colors.textSecondary }]}>
           AI bilan o‘rgan. Natijangni kuzat. Rivojlan.
         </Text>
@@ -180,7 +248,7 @@ function AppContent() {
           style={styles.primaryButton}
           onPress={() => openTab('learn')}
         >
-          <Text style={styles.primaryButtonText}>Mavzuli test boshlash</Text>
+          <Text style={styles.primaryButtonText}>Fanlar bo‘limini ochish</Text>
           <Ionicons name="arrow-forward" size={17} color="#FFFFFF" />
         </Pressable>
         <Pressable style={styles.secondaryHeroButton} onPress={() => openTab('battle')}>
@@ -260,55 +328,10 @@ function AppContent() {
       </Pressable>
       </GlassSurface>
 
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: textColor }]}>
-          Fanlarni o'rganish
-        </Text>
 
-        <Pressable onPress={() => openTab('learn')}>
-          <Text style={styles.link}>Barchasi →</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.subjectGrid}>
-        {subjects.map((subject) => (
-          <GlassSurface
-            key={subject.name}
-            intensity={tokens.blur.strong}
-            style={[
-              styles.subjectCard,
-              {
-                backgroundColor: isDark
-                  ? 'rgba(35, 49, 79, 0.52)'
-                  : 'rgba(255, 255, 255, 0.62)',
-                borderColor: isDark
-                  ? 'rgba(174, 158, 255, 0.22)'
-                  : 'rgba(113, 85, 232, 0.18)',
-              },
-            ]}
-          >
-            <Pressable
-              style={styles.subjectPressable}
-              onPress={() => openTab('learn')}
-            >
-              <Ionicons
-                name={subject.icon}
-                size={29}
-                color="#B9A7FF"
-                style={styles.subjectIcon}
-              />
-              <Text style={[styles.subjectName, { color: textColor }]}>
-                {subject.name}
-              </Text>
-              <Text style={[styles.subjectTopics, { color: mutedColor }]}>
-                {subject.topics}
-              </Text>
-            </Pressable>
-          </GlassSurface>
-        ))}
-      </View>
     </>
   );
+  };
 
   const renderOtherTab = () => {
     if (tab === 'learn') {
@@ -605,6 +628,56 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 14,
   },
+  searchBox: {
+    minHeight: 54,
+    borderRadius: 17,
+    borderWidth: 1,
+    paddingHorizontal: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 18,
+  },
+  searchInput: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 13,
+    fontSize: 14,
+  },
+  searchResults: {
+    marginBottom: 20,
+    gap: 8,
+  },
+  searchSectionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    marginTop: 8,
+    marginBottom: 3,
+  },
+  searchResultRow: {
+    minHeight: 66,
+    borderRadius: 15,
+    borderWidth: 1,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  searchResultIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(166, 141, 255, 0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchResultGlyph: { color: '#B9A7FF', fontSize: 20, fontWeight: '700' },
+  searchResultCopy: { flex: 1, minWidth: 0 },
+  searchResultTitle: { fontSize: 13, fontWeight: '800' },
+  searchResultDetail: { fontSize: 11, lineHeight: 15, marginTop: 3 },
+  searchEmpty: { fontSize: 13, paddingVertical: 18, textAlign: 'center' },
+  searchHint: { fontSize: 11, textAlign: 'center', paddingVertical: 5 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
