@@ -24,7 +24,7 @@ export class CreateAuthOtps20261124150000 implements MigrationInterface {
       CREATE TABLE IF NOT EXISTS auth_otps (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "phoneNumber" VARCHAR(16) NOT NULL,
-        purpose VARCHAR(24) NOT NULL CHECK (purpose IN ('register', 'password_reset', 'phone_login')),
+        purpose VARCHAR(24) NOT NULL CHECK (purpose IN ('register', 'password_reset', 'phone_login', 'phone_link')),
         "codeHash" VARCHAR(128) NOT NULL,
         "expiresAt" TIMESTAMPTZ NOT NULL,
         attempts INTEGER NOT NULL DEFAULT 0,
