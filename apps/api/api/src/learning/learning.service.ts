@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, TooManyRequestsException } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { inflateRawSync } from 'node:zlib';
 import { DataSource } from 'typeorm';
 import { AiService } from '../ai/ai.service';
@@ -135,7 +135,7 @@ export class LearningService {
     }
 
     const quota = await this.featureUsageService.consume(userId, 'documentQuiz');
-    if (!quota.allowed) throw new TooManyRequestsException('Hujjatdan test yaratish uchun tarifingizdagi oylik limit tugagan.');
+    if (!quota.allowed) throw new HttpException('Hujjatdan test yaratish uchun tarifingizdagi oylik limit tugagan.', HttpStatus.TOO_MANY_REQUESTS);
 
     const topicId = `document-${Date.now()}`;
     const generationInput = {
