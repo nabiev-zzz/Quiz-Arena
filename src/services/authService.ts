@@ -170,6 +170,13 @@ export async function resetPasswordWithPhone(input: {
   });
 }
 
+export async function exchangeTelegramCode(code: string): Promise<AuthResponse> {
+  return persistAuth(await request<AuthResponse>('/api/auth/telegram/exchange', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  }));
+}
+
 export async function exchangeGoogleCode(code: string): Promise<AuthResponse> {
   return persistAuth(await request<AuthResponse>('/api/auth/google/exchange', {
     method: 'POST',
