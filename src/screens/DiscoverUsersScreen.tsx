@@ -1,6 +1,6 @@
 import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, NativeText, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text as NativeText, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
