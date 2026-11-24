@@ -789,7 +789,7 @@ export default function BattleScreen({
       );
     }
 
-    if (!stats && !learningStats) {
+    if (!stats) {
       return (
         <View style={styles.emptyStats}>
           <View style={styles.emptyStatsIcon}>
