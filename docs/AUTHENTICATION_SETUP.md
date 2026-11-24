@@ -66,7 +66,10 @@ The Expo app has the `quizarena://` deep-link scheme. Because this changes nativ
 | POST | `/api/auth/phone/login` | Verify code and sign in |
 | POST | `/api/auth/phone/password-reset/request-otp` | Request password-reset code |
 | POST | `/api/auth/phone/password-reset` | Verify code and set a new password |
-| GET | `/api/auth/google/start` | Start Google OAuth |\n| GET | `/api/auth/telegram/start` | Start optional Telegram OIDC sign-in |\n| GET | `/api/auth/telegram/callback` | Telegram server callback |\n| POST | `/api/auth/telegram/exchange` | Exchange the short-lived Telegram app code for the normal QUIZ ARENA session |
+| GET | `/api/auth/google/start` | Start Google OAuth |
+| GET | `/api/auth/telegram/start` | Start optional Telegram OIDC sign-in |
+| GET | `/api/auth/telegram/callback` | Telegram server callback |
+| POST | `/api/auth/telegram/exchange` | Exchange the short-lived Telegram app code for the normal QUIZ ARENA session |
 | GET | `/api/auth/google/callback` | Google server callback |
 | POST | `/api/auth/google/exchange` | Exchange the short-lived app code for the normal QUIZ ARENA session |
 | POST | `/api/auth/login` | Existing username/password sign-in (unchanged) |
