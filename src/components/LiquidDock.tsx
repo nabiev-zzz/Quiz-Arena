@@ -6,8 +6,6 @@ import {
   View,
 } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   type SharedValue,
@@ -143,28 +141,11 @@ export default function LiquidDock({
         style={[
           styles.dock,
           {
-            borderColor: '#3F4147',
-            backgroundColor: '#232428',
+            borderColor: tokens.colors.borderStrong,
+            backgroundColor: tokens.colors.surfaceElevated,
           },
         ]}
       >
-        <BlurView
-          blurTarget={blurTarget}
-          intensity={tokens.blur.strong}
-          tint={isDark ? 'dark' : 'light'}
-          style={StyleSheet.absoluteFill}
-        />
-        <LinearGradient
-          pointerEvents="none"
-          colors={
-            isDark
-              ? ['rgba(255,255,255,0.04)', 'rgba(35,36,40,0.96)', 'rgba(35,36,40,0.98)']
-              : ['rgba(255,255,255,0.78)', 'rgba(240,235,255,0.56)', 'rgba(218,230,255,0.38)']
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
         {itemWidth > 0 && (
           <Animated.View
             pointerEvents="none"
@@ -172,8 +153,8 @@ export default function LiquidDock({
               styles.liquidPill,
               {
                 backgroundColor: isDark
-                  ? 'rgba(88,101,242,0.22)'
-                  : 'rgba(126,101,232,0.13)',
+                  ? 'rgba(88,101,242,0.24)'
+                  : 'rgba(126,101,232,0.12)',
                 borderColor: isDark
                   ? 'rgba(142,161,255,0.42)'
                   : 'rgba(126,101,232,0.22)',
