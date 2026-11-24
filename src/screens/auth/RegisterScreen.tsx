@@ -2,7 +2,7 @@ import { LocalizedText, LocalizedTextInput, showLocalizedAlert } from '../../i18
 import { useState } from 'react';
 import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable,
-  ScrollView, StyleSheet, NativeText, NativeTextInput, View,
+  ScrollView, StyleSheet, Text as NativeText, TextInput as NativeTextInput, View,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 
