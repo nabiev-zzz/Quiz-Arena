@@ -36,7 +36,7 @@ const PLAN_ENTITLEMENTS: Record<SubscriptionTier, PlanEntitlements> = {
   },
   premium_pro: {
     tier: 'premium_pro', label: 'PREMIUM PRO',
-    statsPdf: { monthlyLimit: null, includeAiInsights: true },
+    statsPdf: { monthlyLimit: null, includeAiInsights: false },
     documentQuiz: { monthlyLimit: 30, maxQuestionsPerDocument: 50, maxFileSizeMb: 12 },
     privateBattle: { dailyLimit: 20, maxPlayers: 2 },
     smartPractice: { dailyLimit: null, aiPersonalized: true },
@@ -46,7 +46,7 @@ const PLAN_ENTITLEMENTS: Record<SubscriptionTier, PlanEntitlements> = {
   },
   legenda_plus: {
     tier: 'legenda_plus', label: 'LEGENDA+',
-    statsPdf: { monthlyLimit: null, includeAiInsights: true },
+    statsPdf: { monthlyLimit: null, includeAiInsights: false },
     documentQuiz: { monthlyLimit: 100, maxQuestionsPerDocument: 100, maxFileSizeMb: 15 },
     privateBattle: { dailyLimit: 30, maxPlayers: 2 },
     smartPractice: { dailyLimit: null, aiPersonalized: true },
