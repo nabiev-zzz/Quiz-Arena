@@ -438,9 +438,11 @@ export default function ProfileScreen({
           })}
           {suggestions.length === 0 ? <Text style={styles.noSuggestions}>Hozircha yangi tavsiyalar yo‘q</Text> : null}
         </ScrollView>
+          </>
         ) : null}
 
         {activeProfileTab === 'board' ? (
+          <>
         <View style={styles.sectionHeading}>
           <View>
             <Text style={styles.sectionEyebrow}>YOUR PROGRESS</Text>
@@ -472,9 +474,11 @@ export default function ProfileScreen({
             <Text style={styles.statLabel}>Reyting RP</Text>
           </GlassSurface>
         </View>
+          </>
         ) : null}
 
         {activeProfileTab === 'activity' ? (
+          <>
         <View style={styles.sectionHeading}>
           <View>
             <Text style={styles.sectionEyebrow}>ACHIEVEMENTS</Text>
@@ -494,6 +498,7 @@ export default function ProfileScreen({
         ) : null}
 
         {activeProfileTab === 'board' ? (
+          <>
         <View style={styles.sectionHeading}>
           <View>
             <Text style={styles.sectionEyebrow}>COMPETITIVE STATUS</Text>
@@ -536,9 +541,11 @@ export default function ProfileScreen({
             </Text>
           </View>
         </GlassSurface>
+          </>
         ) : null}
 
         {activeProfileTab === 'wishlist' ? (
+          <>
         <View style={styles.sectionHeading}>
           <View>
             <Text style={styles.sectionEyebrow}>COLLECTION</Text>
@@ -588,6 +595,7 @@ export default function ProfileScreen({
             <Text style={styles.cosmeticAction}>Sozlash</Text>
           </GlassSurface>
         </Pressable>
+          </>
         ) : null}
 
         <Pressable
