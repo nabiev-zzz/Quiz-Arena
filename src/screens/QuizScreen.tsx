@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
@@ -21,6 +21,7 @@ import {
 import type { Subject, Topic } from '../types';
 import { API_BASE_URL } from '../config/api';
 import { useTheme } from '../theme/ThemeContext';
+import { saveLearningAttempt } from '../services/learningService';
 
 interface QuizScreenProps {
   subject: Subject;
@@ -68,6 +69,10 @@ export default function QuizScreen({
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [savingAttempt, setSavingAttempt] = useState(false);
+  const [attemptSaved, setAttemptSaved] = useState(false);
+  const [attemptSaveError, setAttemptSaveError] = useState(false);
+  const savedAttemptKey = useRef<string | null>(null);
 
   const loadQuestions = useCallback(async () => {
     setLoading(true);
@@ -130,6 +135,44 @@ export default function QuizScreen({
   const currentQuestion = questions[currentIndex];
   const finished = questions.length > 0 && currentIndex >= questions.length;
 
+  const saveFinishedAttempt = useCallback(async () => {
+    if (!finished || questions.length === 0) return;
+
+    const attemptKey = [
+      subject.id,
+      topic.id,
+      questions[0]?.id ?? 'quiz',
+      questions.length,
+      score,
+    ].join(':');
+
+    if (savedAttemptKey.current === attemptKey) return;
+    savedAttemptKey.current = attemptKey;
+    setSavingAttempt(true);
+    setAttemptSaveError(false);
+
+    try {
+      await saveLearningAttempt({
+        subjectId: subject.id,
+        subjectName: subject.name,
+        topicId: topic.id,
+        topicName: topic.name,
+        totalQuestions: questions.length,
+        correctAnswers: score,
+      });
+      setAttemptSaved(true);
+    } catch {
+      savedAttemptKey.current = null;
+      setAttemptSaveError(true);
+    } finally {
+      setSavingAttempt(false);
+    }
+  }, [finished, questions, score, subject.id, subject.name, topic.id, topic.name]);
+
+  useEffect(() => {
+    if (finished) void saveFinishedAttempt();
+  }, [finished, saveFinishedAttempt]);
+
   const chooseAnswer = (index: number) => {
     if (selectedAnswer !== null || !currentQuestion) return;
 
@@ -186,6 +229,16 @@ export default function QuizScreen({
           {score} / {questions.length}
         </Text>
         <Text style={styles.muted}>To‘g‘ri javoblar soni</Text>
+
+        {savingAttempt ? (
+          <Text style={styles.muted}>Natija statistika uchun saqlanmoqda...</Text>
+        ) : attemptSaved ? (
+          <Text style={styles.savedAttemptText}>✓ Natija statistikaga qo‘shildi</Text>
+        ) : attemptSaveError ? (
+          <Pressable onPress={() => void saveFinishedAttempt()}>
+            <Text style={styles.retryAttemptText}>Natija saqlanmadi. Qayta urinish</Text>
+          </Pressable>
+        ) : null}
 
         <Pressable
           style={styles.primaryButton}
@@ -309,6 +362,19 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     justifyContent: 'center',
     padding: 25,
     gap: 14,
+  },
+  savedAttemptText: {
+    color: '#159B68',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  retryAttemptText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
+    textAlign: 'center',
   },
   loadingText: {
     color: colors.text,
