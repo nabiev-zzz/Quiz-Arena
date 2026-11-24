@@ -11,6 +11,21 @@ export class FeatureUsageService {
     private readonly subscriptions: SubscriptionsService,
   ) {}
 
+  async refund(userId: string, featureKey: MeteredFeature): Promise<void> {
+    const isDaily = featureKey === 'privateBattle' || featureKey === 'smartPractice';
+    const now = new Date();
+    const periodKey = isDaily
+      ? [now.getUTCFullYear(), String(now.getUTCMonth() + 1).padStart(2, '0'), String(now.getUTCDate()).padStart(2, '0')].join('-')
+      : [now.getUTCFullYear(), String(now.getUTCMonth() + 1).padStart(2, '0')].join('-');
+
+    await this.dataSource.query(
+      `UPDATE "feature_usage"
+       SET "usageCount" = GREATEST("usageCount" - 1, 0), "updatedAt" = NOW()
+       WHERE "userId" = $1 AND "featureKey" = $2 AND "periodKey" = $3 AND "usageCount" > 0`,
+      [userId, featureKey, periodKey],
+    );
+  }
+
   async consume(userId: string, featureKey: string) {
     if (!['statsPdf', 'documentQuiz', 'privateBattle', 'smartPractice'].includes(featureKey)) {
       throw new BadRequestException('Funksiya nomi noto‘g‘ri.');
