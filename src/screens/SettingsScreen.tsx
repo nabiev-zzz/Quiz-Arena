@@ -4,7 +4,6 @@ import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type Sh
 import {
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
