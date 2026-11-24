@@ -57,7 +57,7 @@ function DockItem({
   useEffect(() => {
     if (active) {
       bounce.value = withSequence(
-        withSpring(1.14, SPRING),
+        withSpring(1.06, SPRING),
         withSpring(1, SPRING),
       );
     }
@@ -150,7 +150,7 @@ export default function LiquidDock({
       >
         <BlurView
           blurTarget={blurTarget}
-          intensity={tokens.blur.strong}
+          intensity={tokens.blur.subtle}
           tint={isDark ? 'dark' : 'light'}
           style={StyleSheet.absoluteFill}
         />
@@ -158,8 +158,8 @@ export default function LiquidDock({
           pointerEvents="none"
           colors={
             isDark
-              ? ['rgba(255,255,255,0.13)', 'rgba(125,103,190,0.10)', 'rgba(20,25,43,0.38)']
-              : ['rgba(255,255,255,0.78)', 'rgba(240,235,255,0.56)', 'rgba(218,230,255,0.38)']
+              ? ['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.025)']
+              : ['rgba(255,255,255,0.72)', 'rgba(255,255,255,0.48)']
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -208,17 +208,17 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   dock: {
-    height: 78,
-    borderRadius: 28,
+    height: 70,
+    borderRadius: 25,
     borderWidth: 1,
     overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 18,
-    elevation: 14,
+    shadowOpacity: 0.09,
+    shadowRadius: 10,
+    elevation: 6,
   },
   itemsRow: {
     ...StyleSheet.absoluteFill,
@@ -228,10 +228,10 @@ const styles = StyleSheet.create({
   },
   liquidPill: {
     position: 'absolute',
-    top: 6,
-    bottom: 6,
+    top: 5,
+    bottom: 5,
     left: 4,
-    borderRadius: 23,
+    borderRadius: 20,
     borderWidth: 1,
     zIndex: 1,
   },
@@ -245,11 +245,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 0,
-    gap: 3,
+    gap: 2,
   },
   label: {
     fontSize: 10,
-    lineHeight: 13,
+    lineHeight: 12,
     fontWeight: '600',
     textAlign: 'center',
   },
