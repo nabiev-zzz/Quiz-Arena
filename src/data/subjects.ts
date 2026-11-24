@@ -1,4 +1,4 @@
-import type { Subject } from '../types';
+import type { Subject, Topic } from '../types';
 
 // Har bir fan uchun 100 ta barqaror IDga ega mavzu.
 const facets = [
@@ -605,7 +605,7 @@ const definitions = [
 ] as const;
 
 export const subjects: Subject[] = definitions.map((subject) => {
-  const topics = subject.legacy.map(([id, name, description, difficulty]) => ({ id, name, description, questionCount: 20, difficulty }));
+  const topics: Topic[] = subject.legacy.map(([id, name, description, difficulty]) => ({ id, name, description, questionCount: 20, difficulty }));
   const used = new Set(topics.map((topic) => topic.name.toLocaleLowerCase()));
   for (let moduleIndex = 0; moduleIndex < subject.modules.length && topics.length < 100; moduleIndex += 1) {
     for (let facetIndex = 0; facetIndex < facets.length && topics.length < 100; facetIndex += 1) {
