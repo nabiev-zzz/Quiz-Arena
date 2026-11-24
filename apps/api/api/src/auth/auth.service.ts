@@ -212,6 +212,32 @@ export class AuthService {
     return { message: 'Parol muvaffaqiyatli yangilandi. Endi yangi parol bilan kiring.' };
   }
 
+  async requestPhoneLink(userId: string, phoneNumber: string) {
+    const phone = this.otpService.normalizePhone(phoneNumber);
+    const existing = await this.userRepository.findOne({ where: { phoneNumber: phone } });
+    if (existing && existing.id !== userId) {
+      throw new ConflictException('Bu telefon raqami boshqa hisobga bog‘langan');
+    }
+    await this.otpService.issue(phone, 'phone_link');
+    return { message: 'Tasdiqlash kodi telefon raqamingizga yuborildi' };
+  }
+
+  async linkPhone(userId: string, phoneNumber: string, code: string) {
+    const phone = await this.otpService.verify(phoneNumber, 'phone_link', code);
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user || user.status !== 'active') {
+      throw new UnauthorizedException('Foydalanuvchi topilmadi');
+    }
+    const existing = await this.userRepository.findOne({ where: { phoneNumber: phone } });
+    if (existing && existing.id !== userId) {
+      throw new ConflictException('Bu telefon raqami boshqa hisobga bog‘langan');
+    }
+    user.phoneNumber = phone;
+    user.phoneVerifiedAt = new Date();
+    const savedUser = await this.userRepository.save(user);
+    return this.getSafeUser(savedUser);
+  }
+
   async requestPhoneLogin(phoneNumber: string) {
     const phone = this.otpService.normalizePhone(phoneNumber);
     const user = await this.userRepository.findOne({ where: { phoneNumber: phone } });
