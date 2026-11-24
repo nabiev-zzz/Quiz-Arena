@@ -19,6 +19,7 @@ import type { Question } from '../data/questions';
 import type { Difficulty, Subject, Topic } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { getTopicQuestions, saveLearningAttempt } from '../services/learningService';
+import { sendTutorMessage } from '../services/aiTutorService';
 
 interface QuizScreenProps {
   subject: Subject;
@@ -72,6 +73,9 @@ export default function QuizScreen({
   const [savingAttempt, setSavingAttempt] = useState(false);
   const [attemptSaved, setAttemptSaved] = useState(false);
   const [attemptSaveError, setAttemptSaveError] = useState(false);
+  const [answers, setAnswers] = useState<Array<number | null>>([]);
+  const [explainingQuestionId, setExplainingQuestionId] = useState<string | null>(null);
+  const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
   const savedAttemptKey = useRef<string | null>(null);
 
   const loadQuestions = useCallback(async () => {
@@ -96,6 +100,8 @@ export default function QuizScreen({
       }
 
       setQuestions(allQuestions);
+      setAnswers(Array(allQuestions.length).fill(null));
+      setAiExplanations({});
       setCurrentIndex(0);
       setSelectedAnswer(null);
       setScore(0);
@@ -163,9 +169,38 @@ export default function QuizScreen({
     if (selectedAnswer !== null || !currentQuestion) return;
 
     setSelectedAnswer(index);
+    setAnswers((previous) => {
+      const next = [...previous];
+      next[currentIndex] = index;
+      return next;
+    });
 
     if (index === currentQuestion.correctAnswer) {
       setScore((previous) => previous + 1);
+    }
+  };
+
+  const explainQuestionWithAi = async (question: Question, questionIndex: number) => {
+    if (explainingQuestionId) return;
+    const selected = answers[questionIndex];
+    if (selected === null || selected === undefined) return;
+    setExplainingQuestionId(question.id);
+    try {
+      const prompt = [
+        `Men ${subject.name} fanining ${topic.name} mavzusidagi testni tugatdim.`,
+        `Savol: ${question.question}`,
+        `Variantlar: ${question.options.map((option, index) => `${String.fromCharCode(65 + index)}. ${option}`).join(' | ')}`,
+        `Mening javobim: ${question.options[selected]}`,
+        `To‘g‘ri javob: ${question.options[question.correctAnswer]}`,
+        `Test bazasidagi izoh: ${question.explanation || 'Berilmagan'}`,
+        'Iltimos, aynan shu savolni sodda o‘zbek tilida bosqichma-bosqich tushuntir. Nima uchun mening javobim xato bo‘lganini ayt, to‘g‘ri javobni asosla va bitta yangi o‘xshash misol yechib ko‘rsat. Boshqa savollarni taxmin qilma.',
+      ].join('\\n');
+      const result = await sendTutorMessage(prompt);
+      setAiExplanations((previous) => ({ ...previous, [question.id]: result.assistantMessage.content }));
+    } catch (err) {
+      setAiExplanations((previous) => ({ ...previous, [question.id]: err instanceof Error ? err.message : 'AI Ustoz bilan bog‘lanib bo‘lmadi. Qayta urinib ko‘ring.' }));
+    } finally {
+      setExplainingQuestionId(null);
     }
   };
 
@@ -215,6 +250,30 @@ export default function QuizScreen({
           {score} / {questions.length}
         </LocalizedText>
         <LocalizedText style={styles.muted}>To‘g‘ri javoblar soni · {Math.round((score / questions.length) * 100)}% aniqlik</LocalizedText>
+
+        <View style={{ width: '100%', gap: 10, marginTop: 18 }}>
+          <LocalizedText style={styles.sectionTitle}>Savollar bo‘yicha tahlil</LocalizedText>
+          {questions.map((question, index) => {
+            const selected = answers[index];
+            const isCorrect = selected === question.correctAnswer;
+            return (
+              <View key={question.id} style={styles.setupNote}>
+                <LocalizedText style={styles.setupNoteTitle}>{`${index + 1}. ${question.question}`}</LocalizedText>
+                <LocalizedText style={styles.setupNoteText}>{`Sizning javobingiz: ${selected === null || selected === undefined ? 'Javob berilmagan' : question.options[selected]}`}</LocalizedText>
+                <LocalizedText style={[styles.setupNoteText, { color: isCorrect ? '#159B68' : colors.danger, fontWeight: '800', marginTop: 5 }]}>{isCorrect ? 'To‘g‘ri javob' : `To‘g‘ri javob: ${question.options[question.correctAnswer]}`}</LocalizedText>
+                {!!question.explanation && <LocalizedText style={styles.setupNoteText}>{question.explanation}</LocalizedText>}
+                {!isCorrect && selected !== null && selected !== undefined && (
+                  <>
+                    <Pressable style={styles.primaryButton} disabled={explainingQuestionId !== null} onPress={() => void explainQuestionWithAi(question, index)}>
+                      <LocalizedText style={styles.buttonText}>{explainingQuestionId === question.id ? 'AI Ustoz tushuntirmoqda...' : 'AI Ustozdan batafsil tushuntirish'}</LocalizedText>
+                    </Pressable>
+                    {!!aiExplanations[question.id] && <LocalizedText style={[styles.setupNoteText, { color: colors.text, marginTop: 10 }]}>{aiExplanations[question.id]}</LocalizedText>}
+                  </>
+                )}
+              </View>
+            );
+          })}
+        </View>
 
         {savingAttempt ? (
           <LocalizedText style={styles.muted}>Natija statistika uchun saqlanmoqda...</LocalizedText>
