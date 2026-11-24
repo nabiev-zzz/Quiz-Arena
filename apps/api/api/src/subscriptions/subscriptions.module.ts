@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
+import { User } from '../users/entities/user.entity';
 import { UserSubscription } from './entities/subscription.entity';
 import { SubscriptionPayment } from './entities/subscription-payment.entity';
 import { SubscriptionsController } from './subscriptions.controller';
@@ -9,7 +10,7 @@ import { SubscriptionPaymentsController } from './subscription-payments.controll
 import { SubscriptionPaymentsService } from './subscription-payments.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserSubscription, SubscriptionPayment]), AuthModule],
+  imports: [TypeOrmModule.forFeature([UserSubscription, SubscriptionPayment, User]), AuthModule],
   controllers: [SubscriptionsController, SubscriptionPaymentsController],
   providers: [SubscriptionsService, SubscriptionPaymentsService],
   exports: [SubscriptionsService],
