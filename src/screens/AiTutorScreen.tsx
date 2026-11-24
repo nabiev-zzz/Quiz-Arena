@@ -1,6 +1,6 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Animated, {
+import {
   useAnimatedScrollHandler,
   useSharedValue,
   withSpring,
