@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 import {
   Alert,
@@ -7,9 +7,11 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
 
 import {
   useAppSettings,
@@ -27,6 +29,13 @@ export default function SettingsScreen({
   onBack,
   dockStretch,
 }: SettingsScreenProps) {
+  const { user, requestPhoneLink, linkPhone } = useAuth();
+  const [showPhoneLink, setShowPhoneLink] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('+998');
+  const [phoneCode, setPhoneCode] = useState('');
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+  const [phoneBusy, setPhoneBusy] = useState(false);
+
   const {
     language,
     theme,
@@ -94,6 +103,40 @@ export default function SettingsScreen({
         'Xatolik',
         'Sozlamani saqlab bo‘lmadi. Qayta urinib ko‘ring.',
       );
+    }
+  };
+
+
+  const handlePhoneOtp = async () => {
+    const phone = phoneNumber.replace(/[\\s()-]/g, '');
+    if (!/^\\+?998\\d{9}$/.test(phone)) {
+      Alert.alert('Telefon raqami', 'Telefon raqamni +998XXXXXXXXX formatida kiriting.');
+      return;
+    }
+    try {
+      setPhoneBusy(true);
+      await requestPhoneLink(phone);
+      setPhoneOtpSent(true);
+      Alert.alert('SMS yuborildi', 'Telefoningizga kelgan 6 xonali kodni kiriting.');
+    } catch (error) {
+      Alert.alert('Xatolik', error instanceof Error ? error.message : 'SMS yuborilmadi.');
+    } finally {
+      setPhoneBusy(false);
+    }
+  };
+
+  const handlePhoneLink = async () => {
+    try {
+      setPhoneBusy(true);
+      await linkPhone(phoneNumber.replace(/[\\s()-]/g, ''), phoneCode.trim());
+      setPhoneOtpSent(false);
+      setPhoneCode('');
+      setShowPhoneLink(false);
+      Alert.alert('Tayyor', 'Telefon raqamingiz hisobingizga bog‘landi. Endi undan hisobni tiklashda foydalanishingiz mumkin.');
+    } catch (error) {
+      Alert.alert('Xatolik', error instanceof Error ? error.message : 'Telefonni bog‘lab bo‘lmadi.');
+    } finally {
+      setPhoneBusy(false);
     }
   };
 
@@ -368,6 +411,52 @@ export default function SettingsScreen({
       </Text>
 
       <SettingRow
+        icon="phone-portrait-outline"
+        title="Tiklash telefon raqami"
+        description={user?.phoneVerified && user.phoneNumber ? `Tasdiqlangan: +${user.phoneNumber}` : 'Hisobni tiklash uchun telefon raqamini bog‘lang'}
+        right={
+          <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+        }
+        onPress={() => setShowPhoneLink((value) => !value)}
+      />
+
+      {showPhoneLink && (
+        <View style={[styles.groupCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700', marginBottom: 8 }}>
+            Telefon raqamini tasdiqlash
+          </Text>
+          <TextInput
+            style={[styles.securityInput, { color: colors.text, backgroundColor: colors.background, borderColor: colors.border }]}
+            value={phoneNumber}
+            onChangeText={(value) => { setPhoneNumber(value); setPhoneOtpSent(false); setPhoneCode(''); }}
+            placeholder="+998 90 123 45 67"
+            placeholderTextColor={colors.muted}
+            keyboardType="phone-pad"
+          />
+          {!phoneOtpSent ? (
+            <Pressable style={[styles.securityButton, { backgroundColor: colors.accent }]} onPress={() => void handlePhoneOtp()} disabled={phoneBusy}>
+              <Text style={styles.securityButtonText}>{phoneBusy ? 'Yuborilmoqda...' : 'SMS kod yuborish'}</Text>
+            </Pressable>
+          ) : (
+            <>
+              <TextInput
+                style={[styles.securityInput, { color: colors.text, backgroundColor: colors.background, borderColor: colors.border, marginTop: 10 }]}
+                value={phoneCode}
+                onChangeText={setPhoneCode}
+                placeholder="6 xonali SMS kod"
+                placeholderTextColor={colors.muted}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+              <Pressable style={[styles.securityButton, { backgroundColor: colors.accent }]} onPress={() => void handlePhoneLink()} disabled={phoneBusy}>
+                <Text style={styles.securityButtonText}>{phoneBusy ? 'Tekshirilmoqda...' : 'Telefonni bog‘lash'}</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      )}
+
+      <SettingRow
         icon="lock-closed-outline"
         title="Parolni o‘zgartirish"
         description="Hisobingiz parolini yangilang"
@@ -553,7 +642,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginTop: 4,
   },
-  version: {
+  securityInput: {\n    minHeight: 48,\n    borderRadius: 12,\n    borderWidth: 1,\n    paddingHorizontal: 13,\n    fontSize: 14,\n  },\n  securityButton: {\n    minHeight: 46,\n    borderRadius: 12,\n    alignItems: 'center',\n    justifyContent: 'center',\n    marginTop: 10,\n  },\n  securityButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },\n  version: {
     fontSize: 11,
     textAlign: 'center',
     marginTop: 30,
