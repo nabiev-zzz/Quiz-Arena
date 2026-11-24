@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const parsed = new URL(url);
       if (parsed.protocol !== 'quizarena:' || parsed.hostname !== 'auth') return;
       if (parsed.searchParams.get('error')) {
-        Alert.alert('Google orqali kirish', 'Google hisobiga kirish yakunlanmadi. Qayta urinib ko‘ring.');
+        Alert.alert('Kirish', 'Kirish jarayoni yakunlanmadi. Qayta urinib ko‘ring.');
         return;
       }
       const code = parsed.searchParams.get('code');
@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         : await exchangeGoogleCode(code);
       setUser(result.user);
     } catch {
-      Alert.alert('Google orqali kirish', 'Kirishni yakunlab bo‘lmadi. Qayta urinib ko‘ring.');
+      Alert.alert('Kirish', 'Kirishni yakunlab bo‘lmadi. Qayta urinib ko‘ring.');
     }
   }, []);
 
