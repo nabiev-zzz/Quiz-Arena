@@ -74,7 +74,7 @@ export default function QuizScreen({
   const [attemptSaved, setAttemptSaved] = useState(false);
   const [attemptSaveError, setAttemptSaveError] = useState(false);
   const [answers, setAnswers] = useState<Array<number | null>>([]);
-  const [explainingQuestionId, setExplainingQuestionId] = useState<string | null>(null);
+  const [explainingQuestionIds, setExplainingQuestionIds] = useState<Record<string, boolean>>({});
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
   const savedAttemptKey = useRef<string | null>(null);
 
@@ -181,10 +181,10 @@ export default function QuizScreen({
   };
 
   const explainQuestionWithAi = async (question: Question, questionIndex: number) => {
-    if (explainingQuestionId) return;
+    if (explainingQuestionIds[question.id]) return;
     const selected = answers[questionIndex];
     if (selected === null || selected === undefined) return;
-    setExplainingQuestionId(question.id);
+    setExplainingQuestionIds((previous) => ({ ...previous, [question.id]: true }));
     try {
       const prompt = [
         `Men ${subject.name} fanining ${topic.name} mavzusidagi testni tugatdim.`,
@@ -194,13 +194,13 @@ export default function QuizScreen({
         `To‘g‘ri javob: ${question.options[question.correctAnswer]}`,
         `Test bazasidagi izoh: ${question.explanation || 'Berilmagan'}`,
         'Iltimos, aynan shu savolni sodda o‘zbek tilida bosqichma-bosqich tushuntir. Nima uchun mening javobim xato bo‘lganini ayt, to‘g‘ri javobni asosla va bitta yangi o‘xshash misol yechib ko‘rsat. Boshqa savollarni taxmin qilma.',
-      ].join('\\n');
+      ].join('\n');
       const result = await sendTutorMessage(prompt);
       setAiExplanations((previous) => ({ ...previous, [question.id]: result.assistantMessage.content }));
     } catch (err) {
       setAiExplanations((previous) => ({ ...previous, [question.id]: err instanceof Error ? err.message : 'AI Ustoz bilan bog‘lanib bo‘lmadi. Qayta urinib ko‘ring.' }));
     } finally {
-      setExplainingQuestionId(null);
+      setExplainingQuestionIds((previous) => ({ ...previous, [question.id]: false }));
     }
   };
 
@@ -243,7 +243,13 @@ export default function QuizScreen({
 
   if (finished) {
     return (
-      <View style={styles.center}>
+      <Animated.ScrollView
+        onScroll={dockScrollHandler}
+        scrollEventThrottle={16}
+        style={styles.container}
+        contentContainerStyle={styles.resultContent}
+        showsVerticalScrollIndicator={false}
+      >
         <LocalizedText style={styles.resultEmoji}>🏆</LocalizedText>
         <LocalizedText style={styles.title}>Test yakunlandi!</LocalizedText>
         <LocalizedText style={styles.score}>
@@ -264,8 +270,8 @@ export default function QuizScreen({
                 {!!question.explanation && <LocalizedText style={styles.setupNoteText}>{question.explanation}</LocalizedText>}
                 {!isCorrect && selected !== null && selected !== undefined && (
                   <>
-                    <Pressable style={styles.primaryButton} disabled={explainingQuestionId !== null} onPress={() => void explainQuestionWithAi(question, index)}>
-                      <LocalizedText style={styles.buttonText}>{explainingQuestionId === question.id ? 'AI Ustoz tushuntirmoqda...' : 'AI Ustozdan batafsil tushuntirish'}</LocalizedText>
+                    <Pressable style={styles.primaryButton} disabled={!!explainingQuestionIds[question.id]} onPress={() => void explainQuestionWithAi(question, index)}>
+                      <LocalizedText style={styles.buttonText}>{explainingQuestionIds[question.id] ? 'AI Ustoz tushuntirmoqda...' : 'AI Ustozdan batafsil tushuntirish'}</LocalizedText>
                     </Pressable>
                     {!!aiExplanations[question.id] && <LocalizedText style={[styles.setupNoteText, { color: colors.text, marginTop: 10 }]}>{aiExplanations[question.id]}</LocalizedText>}
                   </>
@@ -295,7 +301,7 @@ export default function QuizScreen({
         <Pressable onPress={onBack} style={styles.backButton}>
           <LocalizedText style={styles.backText}>Mavzularga qaytish</LocalizedText>
         </Pressable>
-      </View>
+      </Animated.ScrollView>
     );
   }
 
@@ -419,6 +425,14 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     paddingHorizontal: 20,
     paddingTop: 14,
     paddingBottom: 128,
+  },
+  resultContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 140,
+    gap: 14,
   },
   center: {
     flex: 1,
