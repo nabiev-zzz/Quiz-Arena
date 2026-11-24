@@ -719,7 +719,16 @@ export default function BattleScreen({
       );
     }
 
-    const latestMatch = stats?.recentMatches?.[0];
+    const recentMatches = Array.isArray(stats?.recentMatches)
+      ? stats.recentMatches as Array<{
+          id: string;
+          mode: string;
+          result: 'win' | 'loss' | 'draw';
+          myScore: number;
+          finishedAt: string | null;
+        }>
+      : [];
+    const latestMatch = recentMatches[0];
     const canStart = connected && !connecting;
 
     return (
