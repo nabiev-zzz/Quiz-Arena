@@ -2,7 +2,7 @@
   "use strict";
   const API = "https://humorous-imagination-production.up.railway.app";
   const $ = (id) => document.getElementById(id);
-  const state = { token: localStorage.getItem("qa_access_token") || "", user: null, subjects: [], subject: null, topic: null, questions: [], answers: [], result: null, sessionId: null, index: 0, score: 0, selected: null, count: 10, difficulty: "medium", language: "uz", saved: false, saveError: false };
+  const state = { token: localStorage.getItem("qa_access_token") || "", user: null, subjects: [], subject: null, topic: null, questions: [], answers: [], result: null, sessionId: null, index: 0, score: 0, selected: null, count: 10, difficulty: "medium", language: "uz", saved: false, saveError: false, progress: [] };
   const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[char]));
   const show = (el, visible = true) => el.classList.toggle("hidden", !visible);
   const notice = (message, error = false) => { const el=$("globalNotice"); el.textContent=message; el.className="notice"+(error?" error":""); show(el,true); window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"}); };
@@ -38,16 +38,16 @@
     finally { setBusy(form,false); }
   }
   function logout(showMessage = true) {
-    state.token=""; state.user=null; state.subjects=[]; localStorage.removeItem("qa_access_token");
+    state.token=""; state.user=null; state.subjects=[]; state.progress=[]; localStorage.removeItem("qa_access_token");
     show($("authView"),true); show($("appView"),false); show($("logoutBtn"),false); show($("userBadge"),false);
     if(showMessage) notice("Hisobdan chiqdingiz.");
   }
   async function loadWorkspace() {
     try {
-      const [user, catalog, stats] = await Promise.all([
-        request("/api/auth/me"), request("/api/learning/catalog"), request("/api/learning/stats")
+      const [user, catalog, stats, progress] = await Promise.all([
+        request("/api/auth/me"), request("/api/learning/catalog"), request("/api/learning/stats"), request("/api/learning/progress")
       ]);
-      state.user=user; state.subjects=Array.isArray(catalog)?catalog:[];
+      state.user=user; state.subjects=Array.isArray(catalog)?catalog:[]; state.progress=Array.isArray(progress)?progress:[];
       $("displayName").textContent=user.displayName || user.username;
       $("userBadge").textContent="@"+user.username;
       show($("userBadge"),true); show($("logoutBtn"),true); show($("authView"),false); show($("appView"),true);
@@ -82,7 +82,7 @@
   }
   function renderTopics(filter="") {
     const topics=(state.subject?.topics||[]).filter((topic)=>topic.name.toLowerCase().includes(filter.toLowerCase()));
-    $("topicsList").innerHTML=topics.length?topics.map((topic,index)=>`<button class="topic-card" type="button" data-topic="${escapeHtml(topic.id)}"><span class="topic-num">${String(index+1).padStart(2,"0")}</span><span><strong>${escapeHtml(topic.name)}</strong><small>${escapeHtml(topic.description||"Mavzu testi")} · 20 ta savol bazasi</small></span><span class="arrow">→</span></button>`).join(""):'<div class="empty">Mavzu topilmadi.</div>';
+    $("topicsList").innerHTML=topics.length?topics.map((topic,index)=>{const progress=state.progress.find((item)=>item.subjectId===state.subject.id&&item.topicId===topic.id);const progressText=progress?`${progress.attempts} urinish · eng yaxshi ${Math.round(progress.bestAccuracy)}%`:"Hali ishlanmagan";return `<button class="topic-card${progress?" topic-completed":""}" type="button" data-topic="${escapeHtml(topic.id)}"><span class="topic-num">${String(index+1).padStart(2,"0")}</span><span><strong>${escapeHtml(topic.name)}</strong><small>${escapeHtml(topic.description||"Mavzu testi")} · ${progressText}</small></span><span class="arrow">→</span></button>`;}).join(""):'<div class="empty">Mavzu topilmadi.</div>';
   }
   function openTopic(topicId) {
     const topic=state.subject?.topics.find((item)=>item.id===topicId); if(!topic)return;
@@ -124,7 +124,7 @@
       state.score=state.result.correctAnswers; state.saved=true;
     } catch(error) { state.saveError=true; state.saveMessage=error.message; }
     renderResult();
-    try { const stats=await request("/api/learning/stats"); renderStats(stats); renderRecent(stats.recentAttempts||[]); } catch {}
+    try { const [stats,progress]=await Promise.all([request("/api/learning/stats"),request("/api/learning/progress")]); state.progress=Array.isArray(progress)?progress:[]; renderStats(stats); renderRecent(stats.recentAttempts||[]); if(state.subject) renderTopics($("topicSearch").value); } catch {}
   }
   function renderResult() {
     const result=state.result;
@@ -151,7 +151,7 @@
   $("topicSearch").addEventListener("input",(event)=>renderTopics(event.target.value));
   $("topicsList").addEventListener("click",(event)=>{const card=event.target.closest("[data-topic]");if(card)openTopic(card.dataset.topic);});
   $("backSubjects").addEventListener("click",()=>show($("topicsPanel"),false));
-  $("refreshStats").addEventListener("click",async()=>{try{const stats=await request("/api/learning/stats");renderStats(stats);renderRecent(stats.recentAttempts||[]);notice("Statistika yangilandi.");}catch(error){notice(error.message,true);}});
+  $("refreshStats").addEventListener("click",async()=>{try{const [stats,progress]=await Promise.all([request("/api/learning/stats"),request("/api/learning/progress")]);state.progress=Array.isArray(progress)?progress:[];renderStats(stats);renderRecent(stats.recentAttempts||[]);if(state.subject)renderTopics($("topicSearch").value);notice("Statistika yangilandi.");}catch(error){notice(error.message,true);}});
   $("year").textContent=new Date().getFullYear();
   if(state.token) void loadWorkspace(); else setAuthMode("login");
 })();
