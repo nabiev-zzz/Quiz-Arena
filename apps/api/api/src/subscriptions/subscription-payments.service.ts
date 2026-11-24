@@ -259,7 +259,7 @@ export class SubscriptionPaymentsService {
     const monthlyId = process.env.GOOGLE_PLAY_MONTHLY_PRODUCT_ID;
     const yearlyId = process.env.GOOGLE_PLAY_YEARLY_PRODUCT_ID;
     const planKey = productId === monthlyId && monthlyId ? 'premium_monthly' : productId === yearlyId && yearlyId ? 'premium_yearly' : null;
-    if (!planKey || !item?.expiryTime) throw new BadRequestException('Google Play mahsuloti tan olinmadi');
+    if (!planKey || !productId || !item?.expiryTime) throw new BadRequestException('Google Play mahsuloti tan olinmadi');
     if (!['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD', 'SUBSCRIPTION_STATE_CANCELED'].includes(purchase.subscriptionState ?? '')) {
       throw new BadRequestException('Google Play obunasi faol emas');
     }
