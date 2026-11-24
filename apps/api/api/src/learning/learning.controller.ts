@@ -31,6 +31,14 @@ export class LearningController {
     return this.learningService.getCatalog();
   }
 
+  @Post('smart-practice')
+  createSmartPractice(
+    @Request() request: AuthenticatedRequest,
+    @Body() body: { count?: string; language?: string },
+  ) {
+    return this.learningService.createSmartPractice(request.user.id, body);
+  }
+
   @Post('document-quiz')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 15 * 1024 * 1024 } }))
   createDocumentQuiz(
