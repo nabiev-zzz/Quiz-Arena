@@ -137,7 +137,7 @@ export class AuthController {
 
   @Post('telegram/exchange')
   exchangeTelegramCode(@Body() dto: GoogleCodeExchangeDto) {
-    return this.authService.exchangeGoogleCode(dto.code);
+    return this.authService.exchangeTelegramCode(dto.code);
   }
 
   @Get('google/start')
