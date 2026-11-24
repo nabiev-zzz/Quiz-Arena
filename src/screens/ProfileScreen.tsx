@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
+import { getLearningHistory, getLearningHistoryItem, type LearningHistoryItem, type LearningHistorySummary } from '../services/learningService';
 
 interface ProfileScreenProps {
   onClosePress?: () => void;
@@ -81,6 +82,11 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const [followingUserId, setFollowingUserId] = useState<string | null>(null);
   const [cosmeticType, setCosmeticType] = useState<'decoration' | 'frame' | null>(null);
   const [cosmeticSaving, setCosmeticSaving] = useState(false);
+  const [learningHistory, setLearningHistory] = useState<LearningHistorySummary[]>([]);
+  const [historyDetails, setHistoryDetails] = useState<Record<string, LearningHistoryItem>>({});
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [loadingHistoryDetailId, setLoadingHistoryDetailId] = useState<string | null>(null);
+  const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -89,6 +95,17 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     setBio(user.bio ?? '');
     setAvatarUri(user.avatarUrl);
   }, [user]);
+
+  useEffect(() => {
+    if (activeTab !== 'activity') return;
+    let active = true;
+    setHistoryLoading(true);
+    getLearningHistory()
+      .then((items) => { if (active) setLearningHistory(items); })
+      .catch(() => { if (active) setLearningHistory([]); })
+      .finally(() => { if (active) setHistoryLoading(false); });
+    return () => { active = false; };
+  }, [activeTab]);
 
   useEffect(() => {
     if (!user) return;
@@ -205,6 +222,24 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     }
   };
 
+  const toggleHistoryAttempt = async (attemptId: string) => {
+    if (expandedAttemptId === attemptId) {
+      setExpandedAttemptId(null);
+      return;
+    }
+    setExpandedAttemptId(attemptId);
+    if (historyDetails[attemptId]) return;
+    setLoadingHistoryDetailId(attemptId);
+    try {
+      const detail = await getLearningHistoryItem(attemptId);
+      setHistoryDetails((current) => ({ ...current, [attemptId]: detail }));
+    } catch (error) {
+      showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Test tahlilini yuklab bo‘lmadi.');
+    } finally {
+      setLoadingHistoryDetailId(null);
+    }
+  };
+
   const copyUsername = async () => {
     try {
       await Clipboard.setStringAsync('@' + user.username);
@@ -215,7 +250,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const tabs: { key: ProfileTab; label: string }[] = [
     { key: 'main', label: 'Main' },
     { key: 'board', label: 'Board' },
-    { key: 'activity', label: 'Activity' },
+    { key: 'activity', label: 'Tarix' },
     { key: 'wishlist', label: 'Wishlist' },
   ];
 
@@ -393,6 +428,57 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
 
         {activeTab === 'activity' ? (
           <>
+            <View style={styles.sectionHeader}>
+              <LocalizedText style={styles.sectionTitle}>Testlar tarixi</LocalizedText>
+              <LocalizedText style={styles.cardSubtitle}>{learningHistory.length} ta urinish</LocalizedText>
+            </View>
+            {historyLoading ? (
+              <ActivityIndicator color={C.purple} style={{ marginVertical: 18 }} />
+            ) : learningHistory.length === 0 ? (
+              <View style={styles.historyEmpty}>
+                <Ionicons name="document-text-outline" size={28} color={C.muted} />
+                <LocalizedText style={styles.cardSubtitle}>Hozircha saqlangan test tarixi yo‘q.</LocalizedText>
+              </View>
+            ) : learningHistory.map((attempt) => {
+              const detail = historyDetails[attempt.id];
+              return (
+              <View key={attempt.id} style={styles.historyCard}>
+                <Pressable style={styles.historyHeader} onPress={() => void toggleHistoryAttempt(attempt.id)}>
+                  <View style={styles.historyIcon}><Ionicons name="document-text-outline" size={19} color={C.purple} /></View>
+                  <View style={styles.rowBody}>
+                    <LocalizedText style={styles.cardTitle} numberOfLines={1}>{attempt.subjectName} · {attempt.topicName}</LocalizedText>
+                    <LocalizedText style={styles.cardSubtitle}>{new Date(attempt.completedAt).toLocaleString()} · {attempt.totalQuestions} ta savol</LocalizedText>
+                  </View>
+                  <View style={styles.historyScore}>
+                    <LocalizedText style={styles.historyPercent}>{Math.round(Number(attempt.accuracy))}%</LocalizedText>
+                    <LocalizedText style={styles.cardSubtitle}>{attempt.correctAnswers}/{attempt.totalQuestions}</LocalizedText>
+                  </View>
+                  <Ionicons name={expandedAttemptId === attempt.id ? 'chevron-up' : 'chevron-down'} size={17} color={C.muted} />
+                </Pressable>
+                {expandedAttemptId === attempt.id ? (
+                  <View style={styles.historyReview}>
+                    <LocalizedText style={styles.historyReviewTitle}>Savollar tahlili</LocalizedText>
+                    {loadingHistoryDetailId === attempt.id ? <ActivityIndicator color={C.purple} /> : detail?.review?.length ? detail.review.map((item, index) => (
+                      <View key={item.id} style={styles.historyQuestion}>
+                        <LocalizedText style={styles.historyQuestionTitle}>{index + 1}. {item.question}</LocalizedText>
+                        <LocalizedText style={styles.cardSubtitle}>Sizning javobingiz: {item.options[item.selectedAnswer] ?? '—'}</LocalizedText>
+                        <LocalizedText style={[styles.cardSubtitle, { color: item.isCorrect ? '#35C995' : '#E47786', fontWeight: '800' }]}>To‘g‘ri javob: {item.options[item.correctAnswer] ?? '—'}</LocalizedText>
+                        {!!item.explanation && <LocalizedText style={styles.cardSubtitle}>{item.explanation}</LocalizedText>}
+                        {!!item.aiExplanation && (
+                          <View style={styles.historyAiBox}>
+                            <LocalizedText style={styles.historyAiTitle}>AI Ustoz tahlili</LocalizedText>
+                            <LocalizedText style={styles.cardSubtitle}>{item.aiExplanation}</LocalizedText>
+                          </View>
+                        )}
+                      </View>
+                    )) : (
+                      <LocalizedText style={styles.cardSubtitle}>Bu test natijasi eski formatda saqlangan. Batafsil savollar tahlili mavjud emas.</LocalizedText>
+                    )}
+                  </View>
+                ) : null}
+              </View>
+              );
+            })}
             <View style={styles.sectionHeader}><LocalizedText style={styles.sectionTitle}>Erishilgan yutuqlar</LocalizedText></View>
             <View style={styles.achievementList}>
               {getProfileAchievements(user.xp ?? 0, user.level ?? 1, rankPoints).map((achievement) => (
@@ -587,6 +673,18 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     progressTrack: { height: 6, borderRadius: 4, backgroundColor: C.surfaceRaised, overflow: 'hidden', marginTop: 16, marginBottom: 8 },
     progressFill: { height: 6, borderRadius: 4, backgroundColor: C.purple },
     achievementList: { gap: 9 },
+    historyCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 17, padding: 13, marginBottom: 9 },
+    historyHeader: { minHeight: 55, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    historyIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: C.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+    historyScore: { alignItems: 'flex-end', marginRight: 2 },
+    historyPercent: { color: C.purple, fontSize: 15, fontWeight: '900' },
+    historyReview: { borderTopWidth: 1, borderTopColor: C.border, marginTop: 10, paddingTop: 12, gap: 10 },
+    historyReviewTitle: { color: C.text, fontSize: 14, fontWeight: '900' },
+    historyQuestion: { padding: 12, borderRadius: 13, backgroundColor: C.background, borderWidth: 1, borderColor: C.border, gap: 6 },
+    historyQuestionTitle: { color: C.text, fontSize: 13, fontWeight: '800', lineHeight: 19 },
+    historyAiBox: { padding: 10, borderRadius: 11, backgroundColor: C.purpleSoft, gap: 5 },
+    historyAiTitle: { color: C.purple, fontSize: 11, fontWeight: '900' },
+    historyEmpty: { alignItems: 'center', justifyContent: 'center', gap: 8, padding: 22, borderRadius: 16, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
     achievement: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
     achievementLocked: { opacity: 0.55 },
     logoutButton: { minHeight: 47, borderRadius: 15, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginTop: 17 },

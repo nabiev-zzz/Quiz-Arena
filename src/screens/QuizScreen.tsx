@@ -7,6 +7,7 @@ import Animated, {
   withSpring,
   type SharedValue,
 } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import {
   ActivityIndicator,
   Pressable,
@@ -18,7 +19,7 @@ import {
 import type { Question } from '../data/questions';
 import type { Difficulty, Subject, Topic } from '../types';
 import { useTheme } from '../theme/ThemeContext';
-import { getTopicQuestions, saveLearningAttempt } from '../services/learningService';
+import { getTopicQuestions, saveLearningAttempt, updateLearningAttemptReview } from '../services/learningService';
 import { sendTutorMessage } from '../services/aiTutorService';
 
 interface QuizScreenProps {
@@ -73,13 +74,18 @@ export default function QuizScreen({
   const [savingAttempt, setSavingAttempt] = useState(false);
   const [attemptSaved, setAttemptSaved] = useState(false);
   const [attemptSaveError, setAttemptSaveError] = useState(false);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [showQuestionReview, setShowQuestionReview] = useState(false);
   const [answers, setAnswers] = useState<Array<number | null>>([]);
   const [explainingQuestionIds, setExplainingQuestionIds] = useState<Record<string, boolean>>({});
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
   const savedAttemptKey = useRef<string | null>(null);
+  const reviewSyncQueue = useRef<Promise<void>>(Promise.resolve());
 
   const loadQuestions = useCallback(async () => {
     savedAttemptKey.current = null;
+    setAttemptId(null);
+    setShowQuestionReview(false);
     setAttemptSaved(false);
     setAttemptSaveError(false);
     setLoading(true);
@@ -144,14 +150,25 @@ export default function QuizScreen({
     setAttemptSaveError(false);
 
     try {
-      await saveLearningAttempt({
+      const saved = await saveLearningAttempt({
         subjectId: subject.id,
         subjectName: subject.name,
         topicId: topic.id,
         topicName: topic.name,
         totalQuestions: questions.length,
         correctAnswers: score,
+        review: questions.map((question, index) => ({
+          id: question.id,
+          question: question.question,
+          options: question.options,
+          selectedAnswer: answers[index] ?? question.correctAnswer,
+          correctAnswer: question.correctAnswer,
+          isCorrect: answers[index] === question.correctAnswer,
+          explanation: question.explanation || '',
+          aiExplanation: aiExplanations[question.id] || '',
+        })),
       });
+      setAttemptId(saved.id);
       setAttemptSaved(true);
     } catch {
       savedAttemptKey.current = null;
@@ -159,11 +176,29 @@ export default function QuizScreen({
     } finally {
       setSavingAttempt(false);
     }
-  }, [finished, questions, score, subject.id, subject.name, topic.id, topic.name]);
+  }, [finished, questions, answers, aiExplanations, score, subject.id, subject.name, topic.id, topic.name]);
 
   useEffect(() => {
     if (finished) void saveFinishedAttempt();
   }, [finished, saveFinishedAttempt]);
+
+  useEffect(() => {
+    if (!attemptId || questions.length === 0) return;
+    const review = questions.map((question, index) => ({
+      id: question.id,
+      question: question.question,
+      options: question.options,
+      selectedAnswer: answers[index] ?? question.correctAnswer,
+      correctAnswer: question.correctAnswer,
+      isCorrect: answers[index] === question.correctAnswer,
+      explanation: question.explanation || '',
+      aiExplanation: aiExplanations[question.id] || '',
+    }));
+    reviewSyncQueue.current = reviewSyncQueue.current
+      .catch(() => undefined)
+      .then(async () => { await updateLearningAttemptReview(attemptId, review); })
+      .catch(() => undefined);
+  }, [attemptId, questions, answers, aiExplanations]);
 
   const chooseAnswer = (index: number) => {
     if (selectedAnswer !== null || !currentQuestion) return;
@@ -258,27 +293,57 @@ export default function QuizScreen({
         <LocalizedText style={styles.muted}>To‘g‘ri javoblar soni · {Math.round((score / questions.length) * 100)}% aniqlik</LocalizedText>
 
         <View style={{ width: '100%', gap: 10, marginTop: 18 }}>
-          <LocalizedText style={styles.sectionTitle}>Savollar bo‘yicha tahlil</LocalizedText>
-          {questions.map((question, index) => {
+          <Pressable style={styles.primaryButton} onPress={() => setShowQuestionReview((value) => !value)}>
+            <LocalizedText style={styles.buttonText}>{showQuestionReview ? 'Natijaga qaytish' : 'Savollar tahlilini ko‘rish'}</LocalizedText>
+          </Pressable>
+          {showQuestionReview ? (
+            <>
+              <LocalizedText style={styles.sectionTitle}>Savollar tahlili</LocalizedText>
+              {questions.map((question, index) => {
             const selected = answers[index];
             const isCorrect = selected === question.correctAnswer;
             return (
-              <View key={question.id} style={styles.setupNote}>
-                <LocalizedText style={styles.setupNoteTitle}>{`${index + 1}. ${question.question}`}</LocalizedText>
-                <LocalizedText style={styles.setupNoteText}>{`Sizning javobingiz: ${selected === null || selected === undefined ? 'Javob berilmagan' : question.options[selected]}`}</LocalizedText>
-                <LocalizedText style={[styles.setupNoteText, { color: isCorrect ? '#159B68' : colors.danger, fontWeight: '800', marginTop: 5 }]}>{isCorrect ? 'To‘g‘ri javob' : `To‘g‘ri javob: ${question.options[question.correctAnswer]}`}</LocalizedText>
-                {!!question.explanation && <LocalizedText style={styles.setupNoteText}>{question.explanation}</LocalizedText>}
+              <View key={question.id} style={styles.reviewCard}>
+                <View style={styles.reviewTopRow}>
+                  <LocalizedText style={styles.reviewNumber}>{`SAVOL ${String(index + 1).padStart(2, '0')}`}</LocalizedText>
+                  <View style={[styles.reviewStatus, isCorrect ? styles.reviewStatusCorrect : styles.reviewStatusWrong]}>
+                    <LocalizedText style={[styles.reviewStatusText, { color: isCorrect ? '#35C995' : colors.danger }]}>{isCorrect ? 'To‘g‘ri' : 'Xato'}</LocalizedText>
+                  </View>
+                </View>
+                <LocalizedText style={styles.reviewQuestion}>{question.question}</LocalizedText>
+                <View style={styles.reviewAnswerBlock}>
+                  <LocalizedText style={styles.reviewLabel}>SIZNING JAVOBINGIZ</LocalizedText>
+                  <LocalizedText style={styles.reviewAnswer}>{selected === null || selected === undefined ? 'Javob berilmagan' : question.options[selected]}</LocalizedText>
+                </View>
+                <View style={styles.reviewAnswerBlock}>
+                  <LocalizedText style={styles.reviewLabel}>TO‘G‘RI JAVOB</LocalizedText>
+                  <LocalizedText style={[styles.reviewAnswer, { color: '#35C995' }]}>{question.options[question.correctAnswer]}</LocalizedText>
+                </View>
+                {!!question.explanation && (
+                  <View style={styles.reviewExplanation}>
+                    <LocalizedText style={styles.reviewLabel}>IZOH</LocalizedText>
+                    <LocalizedText style={styles.setupNoteText}>{question.explanation}</LocalizedText>
+                  </View>
+                )}
                 {!isCorrect && selected !== null && selected !== undefined && (
                   <>
-                    <Pressable style={styles.primaryButton} disabled={!!explainingQuestionIds[question.id]} onPress={() => void explainQuestionWithAi(question, index)}>
-                      <LocalizedText style={styles.buttonText}>{explainingQuestionIds[question.id] ? 'AI Ustoz tushuntirmoqda...' : 'AI Ustozdan batafsil tushuntirish'}</LocalizedText>
+                    <Pressable style={styles.reviewAiButton} disabled={!!explainingQuestionIds[question.id]} onPress={() => void explainQuestionWithAi(question, index)}>
+                      <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+                      <LocalizedText style={styles.buttonText}>{explainingQuestionIds[question.id] ? 'AI Ustoz tushuntirmoqda...' : 'AI Ustozdan batafsil tahlil'}</LocalizedText>
                     </Pressable>
-                    {!!aiExplanations[question.id] && <LocalizedText style={[styles.setupNoteText, { color: colors.text, marginTop: 10 }]}>{aiExplanations[question.id]}</LocalizedText>}
+                    {!!aiExplanations[question.id] && (
+                      <View style={styles.reviewAiBox}>
+                        <LocalizedText style={styles.reviewAiTitle}>AI USTOZ TAHLILI</LocalizedText>
+                        <LocalizedText style={styles.reviewAiText}>{aiExplanations[question.id]}</LocalizedText>
+                      </View>
+                    )}
                   </>
                 )}
               </View>
             );
-          })}
+              })}
+            </>
+          ) : null}
         </View>
 
         {savingAttempt ? (
@@ -464,6 +529,22 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   selectedChoiceChip: { borderColor: colors.primary, backgroundColor: colors.primary + '22' },
   choiceText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
   selectedChoiceText: { color: colors.primary },
+  reviewCard: { padding: 16, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 11 },
+  reviewTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  reviewNumber: { color: colors.textMuted, fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
+  reviewStatus: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  reviewStatusCorrect: { backgroundColor: 'rgba(53,201,149,0.12)' },
+  reviewStatusWrong: { backgroundColor: colors.dangerSurface },
+  reviewStatusText: { fontSize: 10, fontWeight: '900' },
+  reviewQuestion: { color: colors.text, fontSize: 15, lineHeight: 22, fontWeight: '800' },
+  reviewAnswerBlock: { padding: 11, borderRadius: 12, backgroundColor: colors.surfaceElevated, gap: 5 },
+  reviewLabel: { color: colors.textMuted, fontSize: 9, fontWeight: '900', letterSpacing: 0.9 },
+  reviewAnswer: { color: colors.text, fontSize: 12, lineHeight: 18, fontWeight: '700' },
+  reviewExplanation: { gap: 6, paddingHorizontal: 2 },
+  reviewAiButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primaryDark, borderRadius: 13, paddingHorizontal: 12, marginTop: 2 },
+  reviewAiBox: { padding: 13, borderRadius: 13, backgroundColor: colors.primary + '16', borderWidth: 1, borderColor: colors.primary + '35', gap: 7 },
+  reviewAiTitle: { color: colors.primary, fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
+  reviewAiText: { color: colors.text, fontSize: 12, lineHeight: 19 },
   setupNote: { padding: 16, marginTop: 14, borderRadius: 17, backgroundColor: colors.surfaceElevated },
   setupNoteTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 7 },
   setupNoteText: { color: colors.textSecondary, fontSize: 12, lineHeight: 19 },

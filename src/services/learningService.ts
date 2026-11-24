@@ -9,6 +9,43 @@ export interface LearningAttemptInput {
   topicName: string;
   totalQuestions: number;
   correctAnswers: number;
+  review?: LearningReviewQuestion[];
+}
+
+export interface LearningReviewQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  selectedAnswer: number;
+  correctAnswer: number;
+  isCorrect: boolean;
+  explanation: string;
+  aiExplanation?: string;
+}
+
+export interface LearningHistorySummary {
+  id: string;
+  subjectId: string;
+  subjectName: string;
+  topicId: string;
+  topicName: string;
+  totalQuestions: number;
+  correctAnswers: number;
+  accuracy: number;
+  completedAt: string;
+}
+
+export interface LearningHistoryItem {
+  id: string;
+  subjectId: string;
+  subjectName: string;
+  topicId: string;
+  topicName: string;
+  totalQuestions: number;
+  correctAnswers: number;
+  accuracy: number;
+  completedAt: string;
+  review: LearningReviewQuestion[];
 }
 
 export interface LearningStats {
@@ -68,10 +105,25 @@ async function learningRequest<T>(
   return data as T;
 }
 
-export function saveLearningAttempt(input: LearningAttemptInput) {
+export function saveLearningAttempt(input: LearningAttemptInput): Promise<LearningHistoryItem> {
   return learningRequest('/api/learning/attempts', {
     method: 'POST',
     body: JSON.stringify(input),
+  });
+}
+
+export function getLearningHistory() {
+  return learningRequest<LearningHistorySummary[]>('/api/learning/attempts');
+}
+
+export function getLearningHistoryItem(attemptId: string) {
+  return learningRequest<LearningHistoryItem>(`/api/learning/attempts/${encodeURIComponent(attemptId)}`);
+}
+
+export function updateLearningAttemptReview(attemptId: string, review: LearningReviewQuestion[]) {
+  return learningRequest<LearningHistoryItem>(`/api/learning/attempts/${encodeURIComponent(attemptId)}/review`, {
+    method: 'PATCH',
+    body: JSON.stringify({ review }),
   });
 }
 

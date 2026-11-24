@@ -16,6 +16,7 @@ export interface CreateLearningAttemptInput {
   topicName: string;
   totalQuestions: number;
   correctAnswers: number;
+  review?: Array<Record<string, unknown>>;
 }
 
 @Injectable()
@@ -224,6 +225,7 @@ export class LearningService {
         totalQuestions,
         correctAnswers,
         accuracy,
+        review: review.map((item) => ({ ...item, aiExplanation: '' })),
       });
       await manager.getRepository(LearningAttempt).save(attempt);
       session.submittedAt = new Date();
@@ -262,8 +264,71 @@ export class LearningService {
       totalQuestions,
       correctAnswers,
       accuracy: Math.round((correctAnswers / totalQuestions) * 10000) / 100,
+      review: this.validateReview(input.review ?? [], totalQuestions),
     });
 
+    return this.attempts.save(attempt);
+  }
+
+  private validateReview(value: unknown[], totalQuestions: number) {
+    if (!Array.isArray(value) || value.length > 20 || (value.length > 0 && value.length !== totalQuestions)) {
+      throw new BadRequestException('Savollar tahlili noto‘g‘ri formatda.');
+    }
+    return value.map((item) => {
+      if (!item || typeof item !== 'object') throw new BadRequestException('Savol tahlili noto‘g‘ri.');
+      const row = item as Record<string, unknown>;
+      const options = Array.isArray(row.options) ? row.options : [];
+      const selectedAnswer = row.selectedAnswer;
+      const correctAnswer = row.correctAnswer;
+      if (
+        typeof row.id !== 'string' || row.id.length > 100 ||
+        typeof row.question !== 'string' || row.question.length > 4000 ||
+        options.length < 2 || options.length > 6 || options.some((option) => typeof option !== 'string' || option.length > 1000) ||
+        !Number.isInteger(selectedAnswer) || Number(selectedAnswer) < 0 || Number(selectedAnswer) >= options.length ||
+        !Number.isInteger(correctAnswer) || Number(correctAnswer) < 0 || Number(correctAnswer) >= options.length
+      ) throw new BadRequestException('Savol javoblari noto‘g‘ri formatda.');
+      return {
+        id: row.id,
+        question: row.question,
+        options,
+        selectedAnswer,
+        correctAnswer,
+        isCorrect: selectedAnswer === correctAnswer,
+        explanation: typeof row.explanation === 'string' ? row.explanation.slice(0, 4000) : '',
+        aiExplanation: typeof row.aiExplanation === 'string' ? row.aiExplanation.slice(0, 12000) : '',
+      };
+    });
+  }
+
+  async getHistory(userId: string) {
+    return this.attempts.createQueryBuilder('attempt')
+      .select([
+        'attempt.id',
+        'attempt.subjectId',
+        'attempt.subjectName',
+        'attempt.topicId',
+        'attempt.topicName',
+        'attempt.totalQuestions',
+        'attempt.correctAnswers',
+        'attempt.accuracy',
+        'attempt.completedAt',
+      ])
+      .where('attempt.userId = :userId', { userId })
+      .orderBy('attempt.completedAt', 'DESC')
+      .take(100)
+      .getMany();
+  }
+
+  async getHistoryItem(userId: string, attemptId: string) {
+    const attempt = await this.attempts.findOne({ where: { id: attemptId, userId } });
+    if (!attempt) throw new NotFoundException('Test tarixi topilmadi.');
+    return attempt;
+  }
+
+  async updateAttemptReview(userId: string, attemptId: string, review: unknown[]) {
+    const attempt = await this.attempts.findOne({ where: { id: attemptId, userId } });
+    if (!attempt) throw new NotFoundException('Test tarixi topilmadi.');
+    attempt.review = this.validateReview(review, attempt.totalQuestions);
     return this.attempts.save(attempt);
   }
 
