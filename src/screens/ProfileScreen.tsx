@@ -341,22 +341,20 @@ export default function ProfileScreen({
             <Text style={styles.editButtonText}>Profilni tahrirlash</Text>
             <Ionicons name="arrow-forward" size={16} color={colors.textMuted} />
           </Pressable>
-        </GlassSurface>
 
-        <Pressable onPress={onPremiumPress} style={{ marginTop: 14, marginBottom: 22 }}>
-          <GlassSurface intensity={glassIntensity} style={{ padding: 17, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(239,203,120,0.38)', backgroundColor: isDark ? 'rgba(111,82,174,0.24)' : 'rgba(255,248,229,0.82)' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(239,203,120,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+          <Pressable onPress={onPremiumPress} style={styles.premiumPressable}>
+            <View style={styles.premiumContent}>
+              <View style={styles.premiumIconWrap}>
                 <Ionicons name="diamond" size={22} color="#EFCB78" />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontSize: 15, fontWeight: '900' }}>QUIZ ARENA Premium</Text>
-                <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 3 }}>Maxsus imkoniyatlarni kashf eting</Text>
+              <View style={styles.premiumTextBlock}>
+                <Text style={styles.premiumTitle}>QUIZ ARENA Premium</Text>
+                <Text style={styles.premiumSubtitle}>Maxsus imkoniyatlarni kashf eting</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#EFCB78" />
             </View>
-          </GlassSurface>
-        </Pressable>
+          </Pressable>
+        </GlassSurface>
 
         <View style={styles.socialHeading}>
           <View>
@@ -750,7 +748,8 @@ function makeStyles(
       justifyContent: 'center',
     },
     heroCard: {
-      marginHorizontal: 9,
+      width: '88%',
+      alignSelf: 'center',
       padding: 18,
       paddingVertical: 22,
       borderRadius: 23,
@@ -1003,6 +1002,41 @@ function makeStyles(
       justifyContent: 'space-between',
       marginTop: 24,
       marginBottom: 10,
+    },
+    premiumPressable: {
+      marginTop: 18,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: 'rgba(239,203,120,0.38)',
+      backgroundColor: isDark ? 'rgba(111,82,174,0.24)' : 'rgba(255,248,229,0.82)',
+      padding: 12,
+    },
+    premiumContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    premiumIconWrap: {
+      width: 42,
+      height: 42,
+      borderRadius: 14,
+      backgroundColor: 'rgba(239,203,120,0.18)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    premiumTextBlock: {
+      flex: 1,
+      minWidth: 0,
+    },
+    premiumTitle: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    premiumSubtitle: {
+      color: colors.textMuted,
+      fontSize: 11,
+      marginTop: 3,
     },
     moreLink: {
       color: colors.primary,
