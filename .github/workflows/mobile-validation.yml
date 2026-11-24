@@ -56,5 +56,5 @@ jobs:
       - name: Build NestJS API
         run: npm run build
 
-      - name: Test payment security and validation
-        run: npm test -- --runInBand src/subscriptions/subscription-payments.service.spec.ts
+      - name: Test payment security and plan entitlements
+        run: npm test -- --runInBand src/subscriptions/subscription-payments.service.spec.ts src/subscriptions/plan-entitlements.spec.ts
