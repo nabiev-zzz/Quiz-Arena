@@ -102,7 +102,7 @@ export default function BattleScreen({
     danger: COLORS.danger,
   };
 
-  const styles = makeStyles(colors);
+  const styles = makeStyles(colors, dark);
 
   const clearMatchState = useCallback(() => {
     matchIdRef.current = null;
@@ -139,7 +139,7 @@ export default function BattleScreen({
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Ma’lumotlarni olishda xato.',
+        err instanceof Error ? err.message : 'MaвЂ™lumotlarni olishda xato.',
       );
     } finally {
       setLoadingData(false);
@@ -302,7 +302,7 @@ export default function BattleScreen({
         socket.on('battle:reconnect:failed', (data: {
           message?: string;
         }) => {
-          setError(data.message || 'Battlega qayta ulanib bo‘lmadi.');
+          setError(data.message || 'Battlega qayta ulanib boвЂlmadi.');
           clearMatchState();
         });
 
@@ -361,7 +361,7 @@ export default function BattleScreen({
     const socket = socketRef.current;
 
     if (!socket || !socket.connected) {
-      setError('Serverga ulanish kutilmoqda. Birozdan so‘ng urinib ko‘ring.');
+      setError('Serverga ulanish kutilmoqda. Birozdan soвЂng urinib koвЂring.');
       return;
     }
 
@@ -426,7 +426,7 @@ export default function BattleScreen({
       'Battle dan chiqish',
       'Haqiqatan ham joriy Battle ni bekor qilmoqchimisiz?',
       [
-        { text: 'Yo‘q', style: 'cancel' },
+        { text: 'YoвЂq', style: 'cancel' },
         {
           text: 'Ha, chiqish',
           style: 'destructive',
@@ -466,7 +466,7 @@ export default function BattleScreen({
       return (
         <View style={styles.card}>
           <Text style={styles.resultEmoji}>
-            {finished.draw ? '🤝' : '🏆'}
+            {finished.draw ? 'рџ¤ќ' : 'рџЏ†'}
           </Text>
           <Text style={styles.cardTitle}>{title}</Text>
           <Text style={styles.muted}>Xona: {finished.roomCode}</Text>
@@ -493,8 +493,8 @@ export default function BattleScreen({
           {Object.entries(finished.scores || {}).map(([id, score]) => (
             <Text key={id} style={styles.scoreLine}>
               {match?.players.find((player) => player.id === id)?.username ||
-                `O‘yinchi ${id.slice(0, 6)}`}
-              {' — '}
+                `OвЂyinchi ${id.slice(0, 6)}`}
+              {' вЂ” '}
               {score} ball
             </Text>
           ))}
@@ -514,10 +514,10 @@ export default function BattleScreen({
       return (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
-            {correct ? 'To‘g‘ri javob!' : 'Keyingi safar omad!'}
+            {correct ? 'ToвЂgвЂri javob!' : 'Keyingi safar omad!'}
           </Text>
           <Text style={styles.muted}>
-            To‘g‘ri javob: {result.correctAnswer + 1}-variant
+            ToвЂgвЂri javob: {result.correctAnswer + 1}-variant
           </Text>
           <Text style={styles.bodyText}>{result.explanation}</Text>
 
@@ -525,8 +525,8 @@ export default function BattleScreen({
           {Object.entries(result.scores || {}).map(([id, score]) => (
             <Text key={id} style={styles.scoreLine}>
               {match?.players.find((player) => player.id === id)?.username ||
-                `O‘yinchi ${id.slice(0, 6)}`}
-              {' — '}
+                `OвЂyinchi ${id.slice(0, 6)}`}
+              {' вЂ” '}
               {score} ball
             </Text>
           ))}
@@ -583,7 +583,7 @@ export default function BattleScreen({
                 </Text>
                 <Text style={styles.optionText}>{option}</Text>
                 {selected ? (
-                  <Text style={styles.optionLetter}>✓</Text>
+                  <Text style={styles.optionLetter}>вњ“</Text>
                 ) : null}
               </Pressable>
             );
@@ -617,7 +617,7 @@ export default function BattleScreen({
     if (started || match) {
       return (
         <View style={styles.card}>
-          <Text style={styles.resultEmoji}>✅</Text>
+          <Text style={styles.resultEmoji}>вљ”пёЏ</Text>
           <Text style={styles.cardTitle}>
             {started ? 'Battle boshlandi!' : 'Raqib topildi!'}
           </Text>
@@ -669,24 +669,24 @@ export default function BattleScreen({
 
     return (
       <View style={styles.card}>
-        <Text style={styles.resultEmoji}>✅</Text>
+        <Text style={styles.resultEmoji}>вљ”пёЏ</Text>
         <Text style={styles.cardTitle}>1 ga 1 Battle</Text>
         <Text style={styles.bodyText}>
-          Boshqa o‘yinchi bilan real vaqt rejimida bilim sinovi.
+          Boshqa oвЂyinchi bilan real vaqt rejimida bilim sinovi.
           Har bir savol uchun 20 soniya vaqt beriladi.
         </Text>
 
-        <Text style={styles.scoreTitle}>O‘yin rejimini tanlang</Text>
+        <Text style={styles.scoreTitle}>OвЂyin rejimini tanlang</Text>
 
         <ActionButton
-          title="Casual — oddiy o‘yin"
+          title="Casual вЂ” oddiy oвЂyin"
           onPress={() => joinQueue('casual')}
           styles={styles}
           disabled={!connected || connecting}
         />
 
         <ActionButton
-          title="Ranked — reyting uchun"
+          title="Ranked вЂ” reyting uchun"
           onPress={() => joinQueue('ranked')}
           styles={styles}
           disabled={!connected || connecting}
@@ -709,7 +709,7 @@ export default function BattleScreen({
     }
 
     if (!history.length) {
-      return <Text style={styles.muted}>Battle tarixi hozircha yo‘q.</Text>;
+      return <Text style={styles.muted}>Battle tarixi hozircha yoвЂq.</Text>;
     }
 
     return history.map((item) => (
@@ -721,7 +721,7 @@ export default function BattleScreen({
           Holati: {item.status} · {new Date(item.createdAt).toLocaleString()}
         </Text>
         <Text style={styles.bodyText}>
-          {item.winnerId ? `G‘olib ID: ${item.winnerId}` : 'G‘olib: aniqlanmagan'}
+          {item.winnerId ? `GвЂolib ID: ${item.winnerId}` : 'GвЂolib: aniqlanmagan'}
         </Text>
       </View>
     ));
@@ -798,13 +798,13 @@ export default function BattleScreen({
       <View style={styles.header}>
         {onBack ? (
           <Pressable onPress={onBack} style={styles.backButton}>
-            <Text style={styles.backText}>‹</Text>
+            <Text style={styles.backText}>вЂ№</Text>
           </Pressable>
         ) : null}
         <View style={{ flex: 1 }}>
           <Text style={styles.heading}>Battle Arena</Text>
           <Text style={styles.muted}>
-            {connected ? '● Ulangan' : '○ Ulanmagan'}
+            {connected ? 'в—Џ Ulangan' : 'в—‹ Ulanmagan'}
           </Text>
         </View>
       </View>
@@ -884,7 +884,7 @@ function ActionButton({
   );
 }
 
-function makeStyles(colors: typeof COLORS) {
+function makeStyles(colors: typeof COLORS, dark: boolean) {
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -894,14 +894,14 @@ function makeStyles(colors: typeof COLORS) {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: 18,
-      paddingTop: 14,
-      paddingBottom: 12,
+      paddingTop: 12,
+      paddingBottom: 14,
       gap: 12,
     },
     backButton: {
-      width: 44,
-      height: 44,
-      borderRadius: 14,
+      width: 38,
+      height: 38,
+      borderRadius: 12,
       backgroundColor: colors.card,
       alignItems: 'center',
       justifyContent: 'center',
@@ -913,9 +913,8 @@ function makeStyles(colors: typeof COLORS) {
     },
     heading: {
       color: colors.text,
-      fontSize: 22,
+      fontSize: 23,
       fontWeight: '800',
-      letterSpacing: -0.3,
     },
     muted: {
       color: colors.muted,
@@ -924,31 +923,26 @@ function makeStyles(colors: typeof COLORS) {
     },
     tabs: {
       flexDirection: 'row',
-      marginHorizontal: 14,
-      marginBottom: 14,
+      marginHorizontal: 12,
+      marginBottom: 12,
       backgroundColor: colors.card,
-      borderRadius: 15,
+      borderRadius: 14,
       padding: 4,
-      gap: 2,
     },
     tab: {
       flex: 1,
-      minWidth: 0,
-      minHeight: 43,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: 3,
-      paddingVertical: 8,
-      borderRadius: 11,
+      paddingVertical: 10,
+      borderRadius: 10,
     },
     activeTab: {
       backgroundColor: colors.primary,
     },
     tabText: {
       color: colors.muted,
-      fontSize: 10,
+      fontSize: 11,
       fontWeight: '700',
-      textAlign: 'center',
     },
     activeTabText: {
       color: '#FFFFFF',
@@ -957,22 +951,21 @@ function makeStyles(colors: typeof COLORS) {
       flex: 1,
     },
     contentInner: {
-      paddingHorizontal: 16,
-      paddingTop: 8,
-      paddingBottom: 36,
+      padding: 14,
+      paddingBottom: 30,
       gap: 12,
     },
     card: {
       backgroundColor: colors.card,
-      borderRadius: 22,
-      padding: 18,
+      borderRadius: 20,
+      padding: 20,
       alignItems: 'stretch',
       borderWidth: 1,
       borderColor: colors.border,
     },
     listCard: {
       backgroundColor: colors.card,
-      borderRadius: 18,
+      borderRadius: 16,
       padding: 16,
       borderWidth: 1,
       borderColor: colors.border,
@@ -982,26 +975,26 @@ function makeStyles(colors: typeof COLORS) {
       marginTop: 14,
       padding: 16,
       borderRadius: 18,
-      backgroundColor: dark ? '#28213F' : '#F2EDFF',
+      backgroundColor: '#F2EDFF',
       borderWidth: 1,
-      borderColor: dark ? '#514078' : '#C9B8F5',
+      borderColor: '#C9B8F5',
     },
     rankResultTitle: {
       fontSize: 14,
       fontWeight: '700',
-      color: dark ? '#D6C9FF' : '#5940A8',
+      color: '#5940A8',
     },
     rankResultDelta: {
       marginTop: 8,
       fontSize: 28,
       fontWeight: '800',
-      color: colors.primary,
+      color: '#6848D8',
     },
     rankResultTier: {
       marginTop: 5,
       fontSize: 13,
       fontWeight: '600',
-      color: dark ? '#C0B8D3' : '#625A78',
+      color: '#625A78',
     },
     resultEmoji: {
       fontSize: 44,
@@ -1048,15 +1041,13 @@ function makeStyles(colors: typeof COLORS) {
       marginVertical: 12,
     },
     option: {
-      minHeight: 58,
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: colors.background,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 15,
-      paddingHorizontal: 15,
-      paddingVertical: 13,
+      borderRadius: 13,
+      padding: 14,
       marginTop: 9,
       gap: 10,
     },
@@ -1078,13 +1069,11 @@ function makeStyles(colors: typeof COLORS) {
       flex: 1,
     },
     actionButton: {
-      minHeight: 52,
       backgroundColor: colors.primary,
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      borderRadius: 15,
+      paddingVertical: 15,
+      paddingHorizontal: 14,
+      borderRadius: 13,
       alignItems: 'center',
-      justifyContent: 'center',
       marginTop: 12,
     },
     dangerButton: {

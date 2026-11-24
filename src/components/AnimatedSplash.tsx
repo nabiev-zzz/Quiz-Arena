@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Animated, {
@@ -170,7 +170,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 1000,
     elevation: 1000,
     backgroundColor: '#0B0B14',
@@ -253,3 +253,4 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 });
+
