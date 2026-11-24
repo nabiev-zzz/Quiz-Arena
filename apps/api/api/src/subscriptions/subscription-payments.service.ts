@@ -4,6 +4,7 @@ import { DataSource, MoreThan, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SubscriptionPayment, PaymentProvider } from './entities/subscription-payment.entity';
 import { UserSubscription } from './entities/subscription.entity';
+import { User } from '../users/entities/user.entity';
 import { SubscriptionsService } from './subscriptions.service';
 
 type ClickPayload = Record<string, string | number | undefined>;
@@ -359,6 +360,8 @@ export class SubscriptionPaymentsService {
       if (payment.provider !== provider || (payment.providerTransactionId && payment.providerTransactionId !== reference)) {
         throw new ConflictException('Payment provider reference mismatch');
       }
+      const user = await manager.findOne(User, { where: { id: payment.userId }, lock: { mode: 'pessimistic_write' } });
+      if (!user) throw new BadRequestException('Subscription owner not found');
       const now = new Date();
       const existing = await manager.findOne(UserSubscription, { where: { provider, providerReference: reference } });
       if (payment.status === 'paid') {
