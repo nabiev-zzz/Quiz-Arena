@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { createSign, createHash, timingSafeEqual } from 'node:crypto';
+import { createSign, createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { DataSource, MoreThan, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SubscriptionPayment, PaymentProvider } from './entities/subscription-payment.entity';
@@ -237,6 +237,12 @@ export class SubscriptionPaymentsService {
     }
   }
 
+  googlePlayAccountId(userId: string) {
+    const secret = process.env.GOOGLE_PLAY_ACCOUNT_ID_SECRET;
+    if (!secret) throw new BadRequestException('Google Play account binding is not configured');
+    return createHmac('sha256', secret).update(userId).digest('hex').slice(0, 64);
+  }
+
   async verifyGooglePlayPurchase(userId: string, purchaseToken: string) {
     if (!purchaseToken || purchaseToken.length > 2048) throw new BadRequestException('Purchase token noto‘g‘ri');
     const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'uz.quizarena.app';
@@ -254,7 +260,12 @@ export class SubscriptionPaymentsService {
       startTime?: string;
       latestOrderId?: string;
       lineItems?: Array<{ productId?: string; expiryTime?: string; autoRenewingPlan?: { autoRenewEnabled?: boolean } }>;
+      externalAccountIdentifiers?: { obfuscatedExternalAccountId?: string };
     };
+    const expectedAccountId = this.googlePlayAccountId(userId);
+    if (purchase.externalAccountIdentifiers?.obfuscatedExternalAccountId !== expectedAccountId) {
+      throw new UnauthorizedException('Google Play xaridi ushbu QUIZ ARENA akkauntiga bog‘lanmagan');
+    }
     const item = purchase.lineItems?.[0];
     const productId = item?.productId;
     const monthlyId = process.env.GOOGLE_PLAY_MONTHLY_PRODUCT_ID;
