@@ -155,7 +155,7 @@ export class LearningService {
         : await this.aiService.generateQuestions(generationInput);
       return { title: generationInput.topicName, topicId, sourceFileName: fileName, questionCount: questions.length, questions, quota };
     } catch (error) {
-      await this.featureUsageService.refund(userId, 'documentQuiz').catch(() => undefined);
+      try { await this.featureUsageService.refund(userId, 'documentQuiz'); } catch { /* Keep the original AI error; quota refund can be retried by support if needed. */ }
       throw error;
     }
   }
