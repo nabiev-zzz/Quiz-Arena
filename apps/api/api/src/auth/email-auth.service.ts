@@ -199,7 +199,11 @@ export class EmailAuthService {
     const email = emailInput.trim().toLowerCase();
     const user = await this.users.findOne({ where: { email } });
     if (user?.emailVerifiedAt && user.status === 'active') {
-      await this.issueCode(email, 'password_reset');
+      try {
+        await this.issueCode(email, 'password_reset');
+      } catch {
+        // Keep password-reset responses generic to prevent account enumeration.
+      }
     }
     return { message: 'Agar tasdiqlangan email QUIZ ARENA hisobiga bog‘langan bo‘lsa, tiklash kodi yuboriladi.' };
   }
