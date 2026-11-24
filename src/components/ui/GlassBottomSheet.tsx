@@ -1,9 +1,10 @@
+import { LocalizedText } from '../../i18n/LocalizedText';
 ﻿import React from 'react';
 import {
   Modal,
   Pressable,
   StyleSheet,
-  Text,
+  NativeText,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -53,9 +54,9 @@ export default function GlassBottomSheet({
         >
           <View style={[styles.handle, { backgroundColor: tokens.colors.textMuted }]} />
           {title ? (
-            <Text style={[styles.title, { color: tokens.colors.text }]}>
+            <LocalizedText style={[styles.title, { color: tokens.colors.text }]}>
               {title}
-            </Text>
+            </LocalizedText>
           ) : null}
           {children}
         </GlassSurface>
