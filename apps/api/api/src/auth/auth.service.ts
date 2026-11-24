@@ -340,7 +340,7 @@ export class AuthService {
       expiresAt: new Date(Date.now() + 90_000),
       consumedAt: null,
     }));
-    return `quizarena://auth?code=${encodeURIComponent(rawCode)}`;
+    return `quizarena://auth?provider=telegram&code=${encodeURIComponent(rawCode)}`;
   }
 
   async loginWithTelegram(idToken: string, expectedNonce: string) {
