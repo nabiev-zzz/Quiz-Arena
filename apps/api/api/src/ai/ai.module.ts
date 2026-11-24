@@ -9,11 +9,13 @@ import { BattleMatch } from '../battle/entities/battle-match.entity';
 import { User } from '../users/entities/user.entity';
 
 import { AuthModule } from '../auth/auth.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([AiTutorMessage, BattleMatch, User]),
     AuthModule,
+    SubscriptionsModule,
   ],
   providers: [
     AiService,
