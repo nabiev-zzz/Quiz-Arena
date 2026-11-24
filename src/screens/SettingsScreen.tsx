@@ -1,5 +1,6 @@
 
 import React from 'react';
+import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 import {
   Alert,
   Pressable,
@@ -20,10 +21,12 @@ import {
 
 interface SettingsScreenProps {
   onBack?: () => void;
+  dockStretch?: SharedValue<number>;
 }
 
 export default function SettingsScreen({
   onBack,
+  dockStretch,
 }: SettingsScreenProps) {
   const {
     language,
@@ -41,6 +44,18 @@ export default function SettingsScreen({
   } = useAppSettings();
 
   const isDark = theme === 'dark';
+  const lastDockScrollY = useSharedValue(0);
+  const dockScrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      if (!dockStretch) return;
+      const nextY = event.contentOffset.y;
+      const delta = nextY - lastDockScrollY.value;
+      lastDockScrollY.value = nextY;
+      dockStretch.value = withSpring(Math.max(-1, Math.min(1, delta / 30)), { damping: 11, stiffness: 160, mass: 0.7 });
+    },
+    onEndDrag: () => { if (dockStretch) dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 }); },
+    onMomentumEnd: () => { if (dockStretch) dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 }); },
+  });
 
   const colors = {
     background: isDark ? '#0B1020' : '#F3F5FA',
@@ -149,7 +164,9 @@ export default function SettingsScreen({
   );
 
   return (
-    <ScrollView
+    <Animated.ScrollView
+      onScroll={dockScrollHandler}
+      scrollEventThrottle={16}
       style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
@@ -419,7 +436,7 @@ export default function SettingsScreen({
       <Text style={[styles.version, { color: colors.muted }]}>
         QUIZ ARENA • Sozlamalar
       </Text>
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 
