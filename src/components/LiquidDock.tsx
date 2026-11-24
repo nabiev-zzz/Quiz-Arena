@@ -1,8 +1,9 @@
+import { LocalizedText } from '../i18n/LocalizedText';
 import React, { useEffect, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
-  Text,
+  NativeText,
   View,
 } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
@@ -86,7 +87,7 @@ function DockItem({
           size={23}
           color={active ? colors.primary : colors.textMuted}
         />
-        <Text
+        <LocalizedText
           numberOfLines={1}
           style={[
             styles.label,
@@ -95,7 +96,7 @@ function DockItem({
           ]}
         >
           {item.label}
-        </Text>
+        </LocalizedText>
       </Animated.View>
     </Pressable>
   );
