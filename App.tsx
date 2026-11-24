@@ -26,6 +26,8 @@ import LearnScreen from './src/screens/LearnScreen';
 import QuizScreen from './src/screens/QuizScreen';
 import AiTutorScreen from './src/screens/AiTutorScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import PublicProfileScreen from './src/screens/PublicProfileScreen';
+import DiscoverUsersScreen from './src/screens/DiscoverUsersScreen';
 import BattleScreen from './src/screens/BattleScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
@@ -98,6 +100,7 @@ function AppContent() {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [selectedPublicUsername, setSelectedPublicUsername] = useState<string | null>(null);
 
   const backgroundColor = tokens.colors.background;
   const cardColor = tokens.colors.surfaceGlass;
@@ -109,6 +112,7 @@ function AppContent() {
   const openTab = (nextTab: Tab) => {
     setTab(nextTab);
     setShowSettings(false);
+    setSelectedPublicUsername(null);
     setSelectedTopic(null);
     setSelectedSubject(null);
   };
@@ -302,6 +306,24 @@ function AppContent() {
     }
 
     if (tab === 'profile') {
+      if (selectedPublicUsername === '__discover__') {
+        return (
+          <DiscoverUsersScreen
+            onBack={() => setSelectedPublicUsername(null)}
+            onUserPress={(username) => setSelectedPublicUsername(username)}
+          />
+        );
+      }
+
+      if (selectedPublicUsername) {
+        return (
+          <PublicProfileScreen
+            username={selectedPublicUsername}
+            onBack={() => setSelectedPublicUsername(null)}
+          />
+        );
+      }
+
       if (showSettings) {
         return (
           <SettingsScreen
@@ -314,6 +336,7 @@ function AppContent() {
       return (
         <ProfileScreen
           onSettingsPress={() => setShowSettings(true)}
+          onUserPress={(username) => setSelectedPublicUsername(username === 'discover' ? '__discover__' : username)}
           dockStretch={dockStretch}
         />
       );

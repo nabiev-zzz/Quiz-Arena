@@ -11,6 +11,7 @@ import {
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -18,18 +19,23 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as Clipboard from 'expo-clipboard';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
+import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
+import { getProfileAchievements } from '../utils/profileAchievements';
 
 interface ProfileScreenProps {
   onSettingsPress?: () => void;
+  onUserPress?: (username: string) => void;
   dockStretch?: SharedValue<number>;
 }
 
 export default function ProfileScreen({
   onSettingsPress,
+  onUserPress,
   dockStretch,
 }: ProfileScreenProps) {
   const { tokens, isDark } = useTheme();
@@ -74,6 +80,11 @@ export default function ProfileScreen({
   const [bio, setBio] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
+  const [socialProfile, setSocialProfile] = useState<PublicUser | null>(null);
+  const [followingUserId, setFollowingUserId] = useState<string | null>(null);
+  const [cosmeticType, setCosmeticType] = useState<'decoration' | 'frame' | null>(null);
+  const [cosmeticSaving, setCosmeticSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -83,6 +94,19 @@ export default function ProfileScreen({
       setAvatarUri(user.avatarUrl);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    Promise.all([getUserSuggestions(), getPublicUserProfile(user.username)])
+      .then(([people, ownProfile]) => {
+        if (!active) return;
+        setSuggestions(people);
+        setSocialProfile(ownProfile);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [user?.id, user?.username]);
 
   if (!user) {
     return (
@@ -118,6 +142,28 @@ export default function ProfileScreen({
           100,
       )
     : 100;
+
+  const saveCosmetic = async (value: string | null) => {
+    if (!cosmeticType || cosmeticSaving) return;
+    setCosmeticSaving(true);
+    try {
+      await updateProfile(cosmeticType === 'decoration' ? { avatarDecoration: value } : { profileFrame: value });
+      setCosmeticType(null);
+    } catch (error) {
+      Alert.alert('Xatolik', error instanceof Error ? error.message : 'Bezakni saqlab bo‘lmadi');
+    } finally {
+      setCosmeticSaving(false);
+    }
+  };
+
+  const copyUsername = async () => {
+    try {
+      await Clipboard.setStringAsync('@' + user.username);
+      Alert.alert('Nusxalandi', 'Username buferga nusxalandi.');
+    } catch {
+      Alert.alert('Xatolik', 'Username nusxalanmadi.');
+    }
+  };
 
   const chooseAvatar = async () => {
     try {
@@ -237,7 +283,7 @@ export default function ProfileScreen({
           <View style={styles.identityBlock}>
             <View style={styles.avatarStage}>
               <View style={styles.avatarHalo} />
-              <View style={styles.avatarBorder}>
+              <View style={[styles.avatarBorder, user.profileFrame === 'aurora' ? styles.frameAurora : user.profileFrame === 'royal' ? styles.frameRoyal : user.profileFrame === 'ocean' ? styles.frameOcean : null]}>
                 {avatarUri ? (
                   <Image source={{ uri: avatarUri }} style={styles.avatar} />
                 ) : (
@@ -248,7 +294,7 @@ export default function ProfileScreen({
               </View>
               {user.avatarDecoration ? (
                 <View style={styles.decoration}>
-                  <Ionicons name="star" size={13} color="#F8D477" />
+                  <Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={13} color="#F8D477" />
                 </View>
               ) : null}
               <Pressable
@@ -260,25 +306,27 @@ export default function ProfileScreen({
                 <Ionicons name="camera-outline" size={16} color={colors.text} />
               </Pressable>
             </View>
-
-            <Text style={styles.displayName} numberOfLines={1}>
-              {user.displayName}
-            </Text>
-            <Text style={styles.username}>@{user.username}</Text>
-            <Text style={styles.bio} numberOfLines={3}>
-              {user.bio || 'Tarjimai hol hali kiritilmagan'}
-            </Text>
+            <View style={styles.identityTextBlock}>
+              <Text style={styles.displayName} numberOfLines={2}>{user.displayName}</Text>
+              <View style={styles.usernameRow}>
+                <Text style={styles.username}>@{user.username}</Text>
+                <Pressable onPress={copyUsername} hitSlop={10} accessibilityRole="button" accessibilityLabel="Username nusxalash" style={styles.copyButton}>
+                  <Ionicons name="copy-outline" size={15} color={colors.textMuted} />
+                </Pressable>
+              </View>
+              <Text style={styles.bio} numberOfLines={3}>{user.bio || 'Tarjimai hol hali kiritilmagan'}</Text>
+            </View>
           </View>
 
           <View style={styles.heroDivider} />
           <View style={styles.followRow}>
             <View style={styles.followItem}>
-              <Text style={styles.followNumber}>—</Text>
+              <Text style={styles.followNumber}>{socialProfile?.followersCount ?? 0}</Text>
               <Text style={styles.followLabel}>Kuzatuvchilar</Text>
             </View>
             <View style={styles.followDivider} />
             <View style={styles.followItem}>
-              <Text style={styles.followNumber}>—</Text>
+              <Text style={styles.followNumber}>{socialProfile?.followingCount ?? 0}</Text>
               <Text style={styles.followLabel}>Kuzatilayotganlar</Text>
             </View>
           </View>
@@ -292,6 +340,50 @@ export default function ProfileScreen({
             <Ionicons name="arrow-forward" size={16} color={colors.textMuted} />
           </Pressable>
         </GlassSurface>
+
+        <View style={styles.socialHeading}>
+          <View>
+            <Text style={styles.sectionEyebrow}>COMMUNITY</Text>
+            <Text style={styles.sectionTitle}>Do‘stlar ortiring</Text>
+          </View>
+          <Pressable onPress={() => onUserPress?.('discover')} hitSlop={8}>
+            <Text style={styles.moreLink}>Ko‘proq <Ionicons name="chevron-forward" size={12} /></Text>
+          </Pressable>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsRow}>
+          {suggestions.map((person) => {
+            const personInitials = person.displayName.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+            return (
+              <View key={person.id} style={styles.personCard}>
+                <Pressable style={styles.personIdentity} onPress={() => onUserPress?.(person.username)}>
+                  {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.personAvatar} /> : <View style={styles.personAvatarFallback}><Text style={styles.personInitials}>{personInitials || '?'}</Text></View>}
+                  <Text style={styles.personName} numberOfLines={1}>{person.displayName}</Text>
+                  <Text style={styles.personFollowers} numberOfLines={1}>{person.followersCount} kuzatuvchi</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.personFollowButton}
+                  disabled={followingUserId === person.id}
+                  onPress={async () => {
+                    setFollowingUserId(person.id);
+                    try {
+                      await followUser(person.id);
+                      setSuggestions((current) => current.filter((item) => item.id !== person.id));
+                      setSocialProfile((current) => current ? { ...current, followingCount: (current.followingCount ?? 0) + 1 } : current);
+                    } catch (error) {
+                      Alert.alert('Xatolik', error instanceof Error ? error.message : 'Kuzatib bo‘lmadi');
+                    } finally {
+                      setFollowingUserId(null);
+                    }
+                  }}
+                >
+                  <Ionicons name="person-add-outline" size={12} color={colors.primary} />
+                  <Text style={styles.personAction}>{followingUserId === person.id ? '...' : 'Kuzatish'}</Text>
+                </Pressable>
+              </View>
+            );
+          })}
+          {suggestions.length === 0 ? <Text style={styles.noSuggestions}>Hozircha yangi tavsiyalar yo‘q</Text> : null}
+        </ScrollView>
 
         <View style={styles.sectionHeading}>
           <View>
@@ -324,6 +416,23 @@ export default function ProfileScreen({
             <Text style={styles.statLabel}>Reyting RP</Text>
           </GlassSurface>
         </View>
+
+        <View style={styles.sectionHeading}>
+          <View>
+            <Text style={styles.sectionEyebrow}>ACHIEVEMENTS</Text>
+            <Text style={styles.sectionTitle}>Erishgan yutuqlari</Text>
+          </View>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsRow}>
+          {getProfileAchievements(user.xp ?? 0, user.level ?? 1, rankPoints).filter((item) => item.unlocked).map((achievement) => (
+            <GlassSurface key={achievement.id} intensity={glassIntensity} style={styles.achievementCard}>
+              <Ionicons name={achievement.icon} size={21} color="#EFCB78" />
+              <Text style={styles.achievementTitle}>{achievement.title}</Text>
+              <Text style={styles.achievementDescription}>{achievement.description}</Text>
+            </GlassSurface>
+          ))}
+          {getProfileAchievements(user.xp ?? 0, user.level ?? 1, rankPoints).every((item) => !item.unlocked) ? <Text style={styles.noSuggestions}>Yutuqlar hali qo‘lga kiritilmagan</Text> : null}
+        </ScrollView>
 
         <View style={styles.sectionHeading}>
           <View>
@@ -388,31 +497,35 @@ export default function ProfileScreen({
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </GlassSurface>
 
-        <GlassSurface intensity={glassIntensity} style={styles.infoCard}>
-          <View style={[styles.infoIconWrap, styles.purpleIconWrap]}>
-            <Ionicons name="color-palette-outline" size={21} color="#BBA8FF" />
-          </View>
-          <View style={styles.infoTextContainer}>
-            <Text style={styles.infoTitle}>Avatar bezaklari</Text>
-            <Text style={styles.infoSubtitle}>
-              {user.avatarDecoration || 'Hozircha bezak tanlanmagan'}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </GlassSurface>
+        <Pressable onPress={() => setCosmeticType('decoration')} accessibilityRole="button">
+          <GlassSurface intensity={glassIntensity} style={styles.infoCard}>
+            <View style={[styles.infoIconWrap, styles.purpleIconWrap]}>
+              <Ionicons name="color-palette-outline" size={21} color="#BBA8FF" />
+            </View>
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoTitle}>Avatar bezaklari</Text>
+              <Text style={styles.infoSubtitle}>
+                {user.avatarDecoration || 'Hozircha bezak tanlanmagan'}
+              </Text>
+            </View>
+            <Text style={styles.cosmeticAction}>Sozlash</Text>
+          </GlassSurface>
+        </Pressable>
 
-        <GlassSurface intensity={glassIntensity} style={styles.infoCard}>
-          <View style={[styles.infoIconWrap, styles.blueIconWrap]}>
-            <Ionicons name="albums-outline" size={21} color="#8BCDF7" />
-          </View>
-          <View style={styles.infoTextContainer}>
-            <Text style={styles.infoTitle}>Profil ramkasi</Text>
-            <Text style={styles.infoSubtitle}>
-              {user.profileFrame || 'Standart ramka'}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </GlassSurface>
+        <Pressable onPress={() => setCosmeticType('frame')} accessibilityRole="button">
+          <GlassSurface intensity={glassIntensity} style={styles.infoCard}>
+            <View style={[styles.infoIconWrap, styles.blueIconWrap]}>
+              <Ionicons name="albums-outline" size={21} color="#8BCDF7" />
+            </View>
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoTitle}>Profil ramkasi</Text>
+              <Text style={styles.infoSubtitle}>
+                {user.profileFrame || 'Standart ramka'}
+              </Text>
+            </View>
+            <Text style={styles.cosmeticAction}>Sozlash</Text>
+          </GlassSurface>
+        </Pressable>
 
         <Pressable
           style={styles.logoutButton}
@@ -498,6 +611,37 @@ export default function ProfileScreen({
                 <Text style={styles.saveButtonText}>O‘zgarishlarni saqlash</Text>
               )}
             </Pressable>
+          </GlassSurface>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={cosmeticType !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCosmeticType(null)}
+      >
+        <View style={styles.modalBackground}>
+          <GlassSurface intensity={glassIntensity + 10} style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{cosmeticType === 'decoration' ? 'Avatar bezagini tanlang' : 'Profil ramkasini tanlang'}</Text>
+              <Pressable onPress={() => setCosmeticType(null)} style={styles.modalClose}>
+                <Ionicons name="close" size={19} color={colors.text} />
+              </Pressable>
+            </View>
+            {(cosmeticType === 'decoration'
+              ? [{ value: null, label: 'Standart bezak' }, { value: 'sparkle', label: 'Yulduzcha' }, { value: 'crown', label: 'Toj' }, { value: 'laurel', label: 'Laurel' }]
+              : [{ value: null, label: 'Standart ramka' }, { value: 'aurora', label: 'Aurora' }, { value: 'royal', label: 'Royal' }, { value: 'ocean', label: 'Ocean' }]
+            ).map((option) => {
+              const selected = cosmeticType === 'decoration' ? user.avatarDecoration === option.value : user.profileFrame === option.value;
+              return (
+                <Pressable key={option.label} style={[styles.cosmeticOption, selected && styles.cosmeticOptionSelected]} disabled={cosmeticSaving} onPress={() => void saveCosmetic(option.value)}>
+                  <Text style={styles.cosmeticOptionText}>{option.label}</Text>
+                  {selected ? <Ionicons name="checkmark-circle" size={19} color={colors.primary} /> : <Ionicons name="ellipse-outline" size={18} color={colors.textMuted} />}
+                </Pressable>
+              );
+            })}
+            {cosmeticSaving ? <ActivityIndicator color={colors.primary} style={{ marginTop: 10 }} /> : null}
           </GlassSurface>
         </View>
       </Modal>
@@ -648,16 +792,24 @@ function makeStyles(
       letterSpacing: 0.7,
     },
     identityBlock: {
+      flexDirection: 'row',
       alignItems: 'center',
-      paddingTop: 23,
-      paddingBottom: 19,
+      gap: 14,
+      paddingTop: 22,
+      paddingBottom: 18,
+    },
+    identityTextBlock: {
+      flex: 1,
+      minWidth: 0,
+      alignItems: 'flex-start',
     },
     avatarStage: {
       width: 116,
       height: 116,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 13,
+      marginBottom: 0,
+      flexShrink: 0,
     },
     avatarHalo: {
       position: 'absolute',
@@ -683,6 +835,9 @@ function makeStyles(
       borderWidth: 1,
       borderColor: 'rgba(255,255,255,0.62)',
     },
+    frameAurora: { backgroundColor: '#8B72E8' },
+    frameRoyal: { backgroundColor: '#D7A93F' },
+    frameOcean: { backgroundColor: '#4D9FC8' },
     avatar: {
       width: '100%',
       height: '100%',
@@ -736,7 +891,24 @@ function makeStyles(
       fontWeight: '800',
       letterSpacing: -0.45,
       maxWidth: '100%',
-      textAlign: 'center',
+      textAlign: 'left',
+    },
+    usernameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      gap: 8,
+      marginTop: 4,
+    },
+    copyButton: {
+      width: 27,
+      height: 27,
+      borderRadius: 9,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: glassFill,
+      borderWidth: 1,
+      borderColor: glassBorder,
     },
     username: {
       color: colors.primary,
@@ -747,8 +919,8 @@ function makeStyles(
     bio: {
       color: colors.textSecondary,
       fontSize: 13,
-      textAlign: 'center',
-      marginTop: 11,
+      textAlign: 'left',
+      marginTop: 9,
       lineHeight: 19,
       maxWidth: 270,
     },
@@ -804,6 +976,111 @@ function makeStyles(
       color: colors.text,
       fontWeight: '700',
       fontSize: 13,
+    },
+    socialHeading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 24,
+      marginBottom: 10,
+    },
+    moreLink: {
+      color: colors.primary,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    suggestionsRow: {
+      gap: 10,
+      paddingBottom: 3,
+    },
+    personCard: {
+      width: 124,
+      minHeight: 151,
+      alignItems: 'center',
+      padding: 12,
+      borderRadius: 19,
+      borderWidth: 1,
+      borderColor: glassBorder,
+      backgroundColor: glassFill,
+    },
+    achievementCard: {
+      width: 145,
+      minHeight: 100,
+      padding: 12,
+      borderRadius: 17,
+      borderWidth: 1,
+      borderColor: glassBorder,
+      backgroundColor: glassFill,
+      justifyContent: 'center',
+      marginRight: 9,
+    },
+    achievementTitle: {
+      color: colors.text,
+      fontSize: 11,
+      fontWeight: '800',
+      marginTop: 8,
+    },
+    achievementDescription: {
+      color: colors.textMuted,
+      fontSize: 9,
+      marginTop: 3,
+    },
+    personIdentity: {
+      alignItems: 'center',
+      width: '100%',
+    },
+    personAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      marginBottom: 8,
+    },
+    personAvatarFallback: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+      backgroundColor: colors.surfaceElevated,
+    },
+    personInitials: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: '800',
+    },
+    personName: {
+      color: colors.text,
+      fontSize: 11,
+      fontWeight: '800',
+      maxWidth: '100%',
+    },
+    personFollowers: {
+      color: colors.textMuted,
+      fontSize: 9,
+      marginTop: 4,
+    },
+    personFollowButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 4,
+      marginTop: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      borderRadius: 10,
+      backgroundColor: isDark ? 'rgba(183,163,255,0.12)' : 'rgba(123,99,204,0.10)',
+    },
+    personAction: {
+      color: colors.primary,
+      fontSize: 10,
+      fontWeight: '700',
+      marginTop: 8,
+    },
+    noSuggestions: {
+      color: colors.textMuted,
+      fontSize: 12,
+      paddingVertical: 20,
     },
     sectionHeading: {
       flexDirection: 'row',
@@ -964,6 +1241,32 @@ function makeStyles(
     },
     blueIconWrap: {
       backgroundColor: 'rgba(139, 205, 247, 0.11)',
+    },
+    cosmeticAction: {
+      color: colors.primary,
+      fontSize: 11,
+      fontWeight: '800',
+    },
+    cosmeticOption: {
+      minHeight: 48,
+      borderRadius: 13,
+      borderWidth: 1,
+      borderColor: glassBorder,
+      backgroundColor: glassFill,
+      paddingHorizontal: 13,
+      marginTop: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    cosmeticOptionSelected: {
+      borderColor: colors.primary,
+      backgroundColor: isDark ? 'rgba(183,163,255,0.13)' : 'rgba(123,99,204,0.09)',
+    },
+    cosmeticOptionText: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '700',
     },
     infoTextContainer: {
       flex: 1,
