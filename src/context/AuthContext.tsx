@@ -33,7 +33,7 @@ interface AuthContextValue {
   register: (input: {
     displayName: string;
     username: string;
-    email: string;
+    email?: string;
     password: string;
   }) => Promise<void>;
   requestEmailVerification: (email: string) => Promise<void>;
@@ -115,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (input: {
     displayName: string;
     username: string;
-    email: string;
+    email?: string;
     password: string;
   }) => {
     const result = await registerUser(input);
