@@ -3,6 +3,7 @@ import { getPlanEntitlements } from '../subscriptions/plan-entitlements';
 import { LearningService } from './learning.service';
 
 describe('LearningService document quiz generation', () => {
+  const attemptsRepository = { find: jest.fn() };
   const aiService = {
     generateQuestions: jest.fn(),
     generateQuestionsFromPdf: jest.fn(),
@@ -15,7 +16,7 @@ describe('LearningService document quiz generation', () => {
     current: jest.fn(),
   };
   const service = new LearningService(
-    {} as never,
+    attemptsRepository as never,
     {} as never,
     {} as never,
     {} as never,
@@ -26,6 +27,7 @@ describe('LearningService document quiz generation', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    attemptsRepository.find.mockResolvedValue([]);
     subscriptionsService.current.mockResolvedValue({
       tier: 'premium_pro',
       entitlements: getPlanEntitlements('premium_pro_monthly'),
@@ -84,6 +86,74 @@ describe('LearningService document quiz generation', () => {
       originalname: 'lesson.txt', mimetype: 'text/plain', size: 80,
     }, { count: '1' })).rejects.toThrow('AI unavailable');
     expect(featureUsageService.refund).toHaveBeenCalledWith('user-1', 'documentQuiz');
+  });
+
+
+  it('creates basic practice from saved mistakes for FREE users', async () => {
+    attemptsRepository.find.mockResolvedValue([{
+      subjectName: 'Matematika',
+      topicName: 'Kasrlar',
+      review: [{
+        id: 'mistake-1', question: '1/2 + 1/2 nechaga teng?',
+        options: ['1/2', '1', '2', '3'], selectedAnswer: 0,
+        correctAnswer: 1, isCorrect: false, explanation: 'Yarim va yarim bir butun bo‘ladi.',
+      }],
+    }]);
+    subscriptionsService.current.mockResolvedValue({
+      tier: 'free', entitlements: getPlanEntitlements(null),
+    });
+
+    const result = await service.createSmartPractice('user-1', { language: 'uz' });
+
+    expect(result.personalized).toBe(false);
+    expect(result.questions[0].question).toContain('1/2');
+    expect(aiService.generateQuestions).not.toHaveBeenCalled();
+    expect(featureUsageService.consume).toHaveBeenCalledWith('user-1', 'smartPractice');
+  });
+
+  it('generates new AI-personalized questions for PREMIUM PRO users', async () => {
+    attemptsRepository.find.mockResolvedValue([{
+      subjectName: 'Matematika',
+      topicName: 'Kasrlar',
+      review: [{
+        id: 'mistake-2', question: '1/3 + 1/3 nechaga teng?',
+        options: ['1/3', '2/3', '1', '2'], selectedAnswer: 0,
+        correctAnswer: 1, isCorrect: false, explanation: 'Maxrajlar teng.',
+      }],
+    }]);
+
+    const result = await service.createSmartPractice('user-1', { language: 'uz' });
+
+    expect(result.personalized).toBe(true);
+    expect(aiService.generateQuestions).toHaveBeenCalledTimes(1);
+    expect(aiService.generateQuestions).toHaveBeenCalledWith(expect.objectContaining({
+      subjectId: 'smart-practice',
+      count: 1,
+      language: 'uz',
+    }));
+  });
+
+  it('does not consume a daily quota when there are no saved mistakes', async () => {
+    await expect(service.createSmartPractice('user-1', { language: 'uz' }))
+      .rejects.toThrow('saqlangan xatolar topilmadi');
+    expect(featureUsageService.consume).not.toHaveBeenCalled();
+  });
+
+  it('refunds Smart Practice quota if AI generation fails', async () => {
+    attemptsRepository.find.mockResolvedValue([{
+      subjectName: 'Matematika',
+      topicName: 'Kasrlar',
+      review: [{
+        id: 'mistake-3', question: '2/4 qisqartirilsa nima bo‘ladi?',
+        options: ['1/2', '1/4', '2/3', '2'], selectedAnswer: 1,
+        correctAnswer: 0, isCorrect: false, explanation: 'Surat va maxrajni 2 ga bo‘ling.',
+      }],
+    }]);
+    aiService.generateQuestions.mockRejectedValue(new Error('AI unavailable'));
+
+    await expect(service.createSmartPractice('user-1', { language: 'uz' }))
+      .rejects.toThrow('AI unavailable');
+    expect(featureUsageService.refund).toHaveBeenCalledWith('user-1', 'smartPractice');
   });
 
   it('enforces the active tier file-size limit', async () => {
