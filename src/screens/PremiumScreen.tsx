@@ -1,6 +1,6 @@
 import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, NativeText, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text as NativeText, View } from 'react-native';
 import type { Purchase } from 'expo-iap';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
