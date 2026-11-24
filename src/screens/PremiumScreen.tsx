@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useIAP, type Purchase } from 'expo-iap';
+import type { Purchase } from 'expo-iap';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
@@ -104,8 +104,9 @@ interface GooglePlayPurchaseControlsProps {
 }
 
 function GooglePlayPurchaseControls({ plans, busy, setBusy, load }: GooglePlayPurchaseControlsProps) {
+  const { useIAP: useIAPHook } = require('expo-iap') as typeof import('expo-iap');
   const purchaseHandlerRef = useRef<((purchase: Purchase) => Promise<void>) | null>(null);
-  const { connected, subscriptions, fetchProducts, requestPurchase, finishTransaction } = useIAP({
+  const { connected, subscriptions, fetchProducts, requestPurchase, finishTransaction } = useIAPHook({
     onPurchaseSuccess: (purchase) => {
       const task = purchaseHandlerRef.current?.(purchase);
       if (task) void task.catch((e) => {
@@ -165,7 +166,7 @@ function GooglePlayPurchaseControls({ plans, busy, setBusy, load }: GooglePlayPu
     <>
       {plans.filter((plan) => Boolean(GOOGLE_PLAY_SKUS[plan.key])).map((plan) => (
         <Pressable key={plan.key} disabled={!connected || busy !== null} onPress={() => void startGooglePlayPurchase(plan.key)} style={[s.googleButton, (!connected || busy !== null) && s.dim]}>
-          {busy === 'google:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="logo-google-playstore" size={17} color="#FFFFFF" /><Text style={s.checkoutText}>Google Play orqali obuna</Text></>}
+          {busy === 'google:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="logo-google-playstore" size={17} color="#FFFFFF" /><Text style={s.checkoutText}>Google Play · {plan.name}</Text></>}
         </Pressable>
       ))}
     </>
