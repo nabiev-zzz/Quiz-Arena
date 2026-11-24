@@ -18,7 +18,7 @@ Prices remain configured through the existing Railway environment variables; nev
 | Feature | FREE | PREMIUM | PREMIUM PRO | LEGENDA+ |
 |---|---|---|---|---|
 | Statistics PDF export | 1 basic/month | 10 expanded/month | Unlimited + AI insights | Unlimited + detailed AI insights |
-| Document-to-quiz | 1/month, 10 questions | 5/month, 25 questions | 30/month, 50 questions | 100/month, 100 questions |
+| Document-to-quiz | 1/month, 10 questions, 5 MB | 5/month, 25 questions, 8 MB | 30/month, 50 questions, 12 MB | 100/month, 100 questions, 15 MB |
 | Private Friends Battle | 3/day, 4 players | 10/day, 6 players + custom settings | 20/day, 10 players | 30/day, 10 players |
 | Smart Practice | 1/day, basic | 3/day, basic | Unlimited, AI-personalized | Unlimited, AI-personalized + detailed roadmap |
 | AI Tutor | Not included | Not included | 100 messages/day + error analysis/history | Unlimited messages + detailed recommendations |
@@ -33,7 +33,7 @@ Unlimited limits in the API entitlement contract are represented as null and rem
 1. Server-owned plan entitlement contract and tests.
 2. Premium screen: show each tier's real benefits and current active tier.
 3. Statistics PDF: generate a compact report from server-owned learning and Battle statistics, then use the native share sheet.
-4. Document-to-quiz: authenticated upload, strict file/type/size validation, text extraction, AI generation, preview/edit, save to the user's question set.
+4. Document-to-quiz: authenticated PDF/DOCX/TXT/MD/CSV upload, strict file/type/size validation, text extraction or Gemini PDF understanding, AI generation, answer-and-explanation flow, and saved learning history.
 5. Private Friends Battle: private room lifecycle, secure invite code/link, player caps and daily quotas, socket reconnect, anti-abuse controls.
 6. Smart Practice: create targeted practice sets from the user's saved mistakes and learning history.
 7. End-to-end verification, mobile build checks, API tests, migration review, and production provider configuration.
