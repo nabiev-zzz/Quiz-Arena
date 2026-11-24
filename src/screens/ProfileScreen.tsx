@@ -1,12 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
+import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 import {
   ActivityIndicator,
   Alert,
   Image,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -20,14 +20,28 @@ import { useTheme } from '../theme/ThemeContext';
 
 interface ProfileScreenProps {
   onSettingsPress?: () => void;
+  dockStretch?: SharedValue<number>;
 }
 
 export default function ProfileScreen({
   onSettingsPress,
+  dockStretch,
 }: ProfileScreenProps) {
   const { tokens } = useTheme();
   const colors = tokens.colors;
   const styles = makeStyles(colors);
+  const lastDockScrollY = useSharedValue(0);
+  const dockScrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      if (!dockStretch) return;
+      const nextY = event.contentOffset.y;
+      const delta = nextY - lastDockScrollY.value;
+      lastDockScrollY.value = nextY;
+      dockStretch.value = withSpring(Math.max(-1, Math.min(1, delta / 30)), { damping: 11, stiffness: 160, mass: 0.7 });
+    },
+    onEndDrag: () => { if (dockStretch) dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 }); },
+    onMomentumEnd: () => { if (dockStretch) dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 }); },
+  });
 
   const { user, updateProfile, logout } = useAuth();
 
@@ -154,7 +168,9 @@ export default function ProfileScreen({
     .toUpperCase();
 
   return (
-    <ScrollView
+    <Animated.ScrollView
+      onScroll={dockScrollHandler}
+      scrollEventThrottle={16}
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
@@ -387,7 +403,7 @@ export default function ProfileScreen({
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 
@@ -400,7 +416,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   content: {
     paddingHorizontal: 18,
     paddingTop: 12,
-    paddingBottom: 48,
+    paddingBottom: 128,
   },
   loading: {
     flex: 1,

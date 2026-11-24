@@ -1,10 +1,15 @@
 
-import { useRef, useState } from 'react';
+import { useRef, useState, type ComponentRef } from 'react';
+import Animated, {
+  useAnimatedScrollHandler,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import * as SplashScreen from 'expo-splash-screen';
+import { BlurTargetView } from 'expo-blur';
 import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -34,6 +39,7 @@ import {
 
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { GlassSurface } from './src/components/ui';
+import LiquidDock, { type LiquidDockItem } from './src/components/LiquidDock';
 // @ts-ignore Keep the animated splash as the requested plain JavaScript component.
 import AnimatedSplash from './src/components/AnimatedSplash';
 
@@ -50,19 +56,40 @@ const subjects = [
   { icon: 'language-outline', name: 'Ingliz tili', topics: '15 ta mavzu', color: '#65432D' },
 ] as const;
 
-const navigation = [
-  { id: 'home', icon: 'home-outline', label: 'Bosh sahifa' },
-  { id: 'learn', icon: 'book-outline', label: "O'rganish" },
-  { id: 'battle', icon: 'flash-outline', label: 'Battle' },
-  { id: 'ranking', icon: 'trophy-outline', label: 'Reyting' },
-  { id: 'profile', icon: 'person-outline', label: 'Profil' },
-] as const;
+const navigation: LiquidDockItem[] = [
+  { id: 'home', icon: 'home-outline', activeIcon: 'home', label: 'Bosh' },
+  { id: 'learn', icon: 'book-outline', activeIcon: 'book', label: 'Darslar' },
+  { id: 'battle', icon: 'flash-outline', activeIcon: 'flash', label: 'Battle' },
+  { id: 'ranking', icon: 'trophy-outline', activeIcon: 'trophy', label: 'Reyting' },
+  { id: 'profile', icon: 'person-outline', activeIcon: 'person', label: 'Profil' },
+];
 
 function AppContent() {
   const { user, loading, login, register } = useAuth();
   const { theme, ready } = useAppSettings();
   const insets = useSafeAreaInsets();
   const { tokens } = useTheme();
+  const blurTargetRef = useRef<ComponentRef<typeof View>>(null);
+
+  const dockStretch = useSharedValue(0);
+  const lastDockScrollY = useSharedValue(0);
+  const dockScrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      const nextY = event.contentOffset.y;
+      const delta = nextY - lastDockScrollY.value;
+      lastDockScrollY.value = nextY;
+      dockStretch.value = withSpring(
+        Math.max(-1, Math.min(1, delta / 30)),
+        { damping: 11, stiffness: 160, mass: 0.7 },
+      );
+    },
+    onEndDrag: () => {
+      dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 });
+    },
+    onMomentumEnd: () => {
+      dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 });
+    },
+  });
 
   const isDark = theme === 'dark';
 
@@ -265,6 +292,7 @@ function AppContent() {
     if (tab === 'learn') {
       return (
         <LearnScreen
+          dockStretch={dockStretch}
           onTopicSelect={(subject, topic) => {
             setSelectedSubject(subject);
             setSelectedTopic(topic);
@@ -278,6 +306,7 @@ function AppContent() {
         return (
           <SettingsScreen
             onBack={() => setShowSettings(false)}
+            dockStretch={dockStretch}
           />
         );
       }
@@ -285,6 +314,7 @@ function AppContent() {
       return (
         <ProfileScreen
           onSettingsPress={() => setShowSettings(true)}
+          dockStretch={dockStretch}
         />
       );
     }
@@ -362,18 +392,6 @@ function AppContent() {
     );
   }
 
-  if (tab === 'tutor' && !selectedTopic) {
-    return (
-      <SafeAreaView
-        style={[styles.safe, { backgroundColor }]}
-        edges={['top', 'bottom']}
-      >
-        <StatusBar style={isDark ? 'light' : 'dark'} />
-        <AiTutorScreen onBack={() => openTab('home')} />
-      </SafeAreaView>
-    );
-  }
-
   const bottomInset = Math.max(insets.bottom, 8);
 
   return (
@@ -383,6 +401,7 @@ function AppContent() {
     >
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
+      <BlurTargetView ref={blurTargetRef} style={styles.blurTarget}>
       <View pointerEvents="none" style={styles.ambientBackground}>
         <View
           style={[
@@ -408,23 +427,26 @@ function AppContent() {
         />
       </View>
 
-      {tab === 'battle' || tab === 'ranking' ? (
-
-        <BattleScreen
-
-          isDark={isDark}
-
-          initialSection={tab === 'ranking' ? 'leaderboard' : 'battle'}
-
+      {tab === 'tutor' && !selectedTopic ? (
+        <AiTutorScreen
+          onBack={() => openTab('home')}
+          bottomDockSpace={96}
+          dockStretch={dockStretch}
         />
-
+      ) : tab === 'battle' || tab === 'ranking' ? (
+        <BattleScreen
+          isDark={isDark}
+          initialSection={tab === 'ranking' ? 'leaderboard' : 'battle'}
+          dockStretch={dockStretch}
+        />
       ) : (
-
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={dockScrollHandler}
+        scrollEventThrottle={16}
         style={[styles.scroll, { backgroundColor }]}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: 28 + bottomInset },
+          { paddingBottom: 116 + bottomInset },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -434,65 +456,24 @@ function AppContent() {
             subject={selectedSubject}
             topic={selectedTopic}
             onBack={() => setSelectedTopic(null)}
+            dockStretch={dockStretch}
           />
         ) : tab === 'home' ? (
           renderHome()
         ) : (
           renderOtherTab()
         )}
-      </ScrollView>
+      </Animated.ScrollView>
       )}
-      {!selectedTopic && (
-        <GlassSurface
-          intensity={tokens.blur.strong}
-          style={styles.bottomNavGlass}
-        >
-        <View
-          style={[
-            styles.bottomNav,
-            {
-              paddingBottom: bottomInset,
-              backgroundColor: 'transparent',
-              borderTopColor: 'transparent',
-            },
-          ]}
-        >
-          {navigation.map((item) => {
-            const active = tab === item.id;
-
-            return (
-              <Pressable
-                key={item.id}
-                style={styles.navItem}
-                onPress={() => openTab(item.id)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={item.label}
-              >
-                <View style={[styles.navIconWrap, active && styles.activeNavIconWrap]}>
-                  <Ionicons
-                    name={active ? (item.icon.replace('-outline', '') as never) : item.icon}
-                    size={22}
-                    color={active ? '#A88FFF' : mutedColor}
-                  />
-                </View>
-
-                <Text
-                  style={[
-                    styles.navLabel,
-                    { color: active ? '#A88FFF' : mutedColor },
-                    active && styles.activeNavLabel,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {item.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        </GlassSurface>
-      )}
+      </BlurTargetView>
+      <LiquidDock
+        blurTarget={blurTargetRef}
+        items={navigation}
+        activeKey={tab === 'tutor' ? 'home' : tab}
+        onSelect={(key) => openTab(key as Tab)}
+        bottomInset={bottomInset}
+        scrollStretch={dockStretch}
+      />
     </SafeAreaView>
   );
 }
@@ -531,6 +512,9 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#080D1D',
+  },
+  blurTarget: {
+    flex: 1,
   },
   ambientBackground: {
     ...StyleSheet.absoluteFill,
