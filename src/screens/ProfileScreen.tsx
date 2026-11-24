@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as Clipboard from 'expo-clipboard';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
@@ -137,6 +138,15 @@ export default function ProfileScreen({
           100,
       )
     : 100;
+
+  const copyUsername = async () => {
+    try {
+      await Clipboard.setStringAsync('@' + user.username);
+      Alert.alert('Nusxalandi', 'Username buferga nusxalandi.');
+    } catch {
+      Alert.alert('Xatolik', 'Username nusxalanmadi.');
+    }
+  };
 
   const chooseAvatar = async () => {
     try {
@@ -283,7 +293,7 @@ export default function ProfileScreen({
             <Text style={styles.displayName} numberOfLines={1}>
               {user.displayName}
             </Text>
-            <Text style={styles.username}>@{user.username}</Text>
+            <View style={styles.usernameRow}><Text style={styles.username}>@{user.username}</Text><Pressable onPress={copyUsername} hitSlop={10} accessibilityRole="button" accessibilityLabel="Username nusxalash" style={styles.copyButton}><Ionicons name="copy-outline" size={15} color={colors.textMuted} /></Pressable></View>
             <Text style={styles.bio} numberOfLines={3}>
               {user.bio || 'Tarjimai hol hali kiritilmagan'}
             </Text>
@@ -780,6 +790,23 @@ function makeStyles(
       letterSpacing: -0.45,
       maxWidth: '100%',
       textAlign: 'center',
+    },
+    usernameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      marginTop: 4,
+    },
+    copyButton: {
+      width: 27,
+      height: 27,
+      borderRadius: 9,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: glassFill,
+      borderWidth: 1,
+      borderColor: glassBorder,
     },
     username: {
       color: colors.primary,
