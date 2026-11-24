@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsInt, IsString, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsString, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 
 export class WebLearningAnswerDto {
   @IsString()
@@ -24,14 +24,10 @@ export class SubmitWebLearningAttemptDto {
   @MaxLength(100)
   topicId: string;
 
-  @IsString()
-  @MinLength(2)
-  @MaxLength(5)
+  @IsIn(['uz', 'ru', 'en'])
   language: 'uz' | 'ru' | 'en';
 
-  @IsString()
-  @MinLength(3)
-  @MaxLength(20)
+  @IsIn(['easy', 'medium', 'hard', 'expert'])
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
 
   @IsArray()
