@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://quiz-arena-website-production.up.railway.app/sitemap.xml
