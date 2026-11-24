@@ -1,7 +1,7 @@
 import { LocalizedText, LocalizedTextInput, showLocalizedAlert } from '../i18n/LocalizedText';
 import React, { useEffect, useState } from 'react';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, NativeText, NativeTextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text as NativeText, TextInput as NativeTextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
