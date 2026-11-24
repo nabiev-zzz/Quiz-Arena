@@ -24,7 +24,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
-import { getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
+import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 
 interface ProfileScreenProps {
   onSettingsPress?: () => void;
@@ -81,6 +81,7 @@ export default function ProfileScreen({
   const [saving, setSaving] = useState(false);
   const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
   const [socialProfile, setSocialProfile] = useState<PublicUser | null>(null);
+  const [followingUserId, setFollowingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -339,7 +340,25 @@ export default function ProfileScreen({
                 {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.personAvatar} /> : <View style={styles.personAvatarFallback}><Text style={styles.personInitials}>{personInitials || '?'}</Text></View>}
                 <Text style={styles.personName} numberOfLines={1}>{person.displayName}</Text>
                 <Text style={styles.personFollowers} numberOfLines={1}>{person.followersCount} kuzatuvchi</Text>
-                <Text style={styles.personAction}>Profilni ko‘rish</Text>
+              </Pressable>
+              <Pressable
+                style={styles.personFollowButton}
+                disabled={followingUserId === person.id}
+                onPress={async () => {
+                  setFollowingUserId(person.id);
+                  try {
+                    await followUser(person.id);
+                    setSuggestions((current) => current.filter((item) => item.id !== person.id));
+                    setSocialProfile((current) => current ? { ...current, followingCount: (current.followingCount ?? 0) + 1 } : current);
+                  } catch (error) {
+                    Alert.alert('Xatolik', error instanceof Error ? error.message : 'Kuzatib bo‘lmadi');
+                  } finally {
+                    setFollowingUserId(null);
+                  }
+                }}
+              >
+                <Ionicons name="person-add-outline" size={12} color={colors.primary} />
+                <Text style={styles.personAction}>{followingUserId === person.id ? '...' : 'Kuzatish'}</Text>
               </Pressable>
             );
           })}
@@ -931,6 +950,17 @@ function makeStyles(
       color: colors.textMuted,
       fontSize: 9,
       marginTop: 4,
+    },
+    personFollowButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 4,
+      marginTop: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      borderRadius: 10,
+      backgroundColor: isDark ? 'rgba(183,163,255,0.12)' : 'rgba(123,99,204,0.10)',
     },
     personAction: {
       color: colors.primary,
