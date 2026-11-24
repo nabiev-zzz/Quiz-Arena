@@ -73,3 +73,18 @@ export const verifyGooglePlayPurchase = (purchaseToken: string) =>
     method: 'POST',
     body: JSON.stringify({ purchaseToken }),
   });
+
+export type MeteredFeature = 'statsPdf' | 'documentQuiz' | 'privateBattle' | 'smartPractice';
+
+export interface FeatureUsageResult {
+  allowed: boolean;
+  featureKey: MeteredFeature;
+  tier: SubscriptionTier;
+  period: 'daily' | 'monthly' | 'unlimited';
+  limit: number | null;
+  used: number | null;
+  remaining: number | null;
+}
+
+export const consumePremiumFeature = (featureKey: MeteredFeature) =>
+  request<FeatureUsageResult>(`/api/subscriptions/usage/${featureKey}`, { method: 'POST' });
