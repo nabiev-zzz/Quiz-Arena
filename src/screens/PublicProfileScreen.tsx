@@ -53,13 +53,17 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><Text style={styles.backText}>Orqaga</Text></Pressable>
       <GlassSurface intensity={isDark ? 34 : 42} style={styles.hero}>
-        <View style={[styles.avatarRing, profile.profileFrame === 'aurora' ? styles.frameAurora : profile.profileFrame === 'royal' ? styles.frameRoyal : profile.profileFrame === 'ocean' ? styles.frameOcean : null]}>
-          {profile.avatarUrl ? <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} /> : <View style={styles.avatarFallback}><Text style={styles.initials}>{initials || '?'}</Text></View>}
-          {profile.avatarDecoration ? <View style={styles.decoration}><Ionicons name={profile.avatarDecoration === 'crown' ? 'ribbon' : profile.avatarDecoration === 'laurel' ? 'leaf' : 'sparkles'} size={17} color="#F3C96A" /></View> : null}
-        </View>
-        <Text style={styles.name}>{profile.displayName}</Text>
-        <Text style={styles.username}>@{profile.username}</Text>
-        {!!profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
+        <View style={styles.identityRow}>
+          <View style={[styles.avatarRing, profile.profileFrame === 'aurora' ? styles.frameAurora : profile.profileFrame === 'royal' ? styles.frameRoyal : profile.profileFrame === 'ocean' ? styles.frameOcean : null]}>
+            {profile.avatarUrl ? <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} /> : <View style={styles.avatarFallback}><Text style={styles.initials}>{initials || '?'}</Text></View>}
+            {profile.avatarDecoration ? <View style={styles.decoration}><Ionicons name={profile.avatarDecoration === 'crown' ? 'ribbon' : profile.avatarDecoration === 'laurel' ? 'leaf' : 'sparkles'} size={17} color="#F3C96A" /></View> : null}
+          </View>
+          <View style={styles.identityText}>
+            <Text style={styles.name}>{profile.displayName}</Text>
+            <Text style={styles.username}>@{profile.username}</Text>
+            {!!profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
+          </View>
+        </View>}
         <View style={styles.counts}>
           <View style={styles.count}><Text style={styles.countNumber}>{profile.followersCount}</Text><Text style={styles.countLabel}>Kuzatuvchilar</Text></View>
           <View style={styles.separator} />
@@ -115,7 +119,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     backText: { color: colors.text, fontSize: 14, fontWeight: '700' },
     empty: { color: colors.textMuted, textAlign: 'center', marginTop: 40 },
     hero: { alignItems: 'center', padding: 22, borderRadius: 27, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: isDark ? 'rgba(35,31,57,0.46)' : 'rgba(255,255,255,0.54)' },
-    avatarRing: { width: 108, height: 108, borderRadius: 54, padding: 4, borderWidth: 2, borderColor: 'rgba(157,133,232,0.65)', marginBottom: 13 },
+    identityRow: { flexDirection: 'row', alignItems: 'center', gap: 15, width: '100%' },
+    identityText: { flex: 1, minWidth: 0, alignItems: 'flex-start' },
+    avatarRing: { width: 92, height: 92, borderRadius: 46, padding: 4, borderWidth: 2, borderColor: 'rgba(157,133,232,0.65)', flexShrink: 0 },
     frameAurora: { borderColor: '#A78BFA', borderWidth: 4 },
     frameRoyal: { borderColor: '#EFCB78', borderWidth: 4 },
     frameOcean: { borderColor: '#60A5FA', borderWidth: 4 },
@@ -123,9 +129,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     avatarFallback: { flex: 1, borderRadius: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceElevated },
     initials: { color: colors.text, fontSize: 29, fontWeight: '800' },
     decoration: { position: 'absolute', right: -3, bottom: 0, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.glassBorder },
-    name: { color: colors.text, fontSize: 23, fontWeight: '800', textAlign: 'center' },
+    name: { color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'left' },
     username: { color: colors.primary, fontSize: 13, marginTop: 4, fontWeight: '600' },
-    bio: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 12 },
+    bio: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'left', marginTop: 8 },
     counts: { flexDirection: 'row', alignItems: 'center', width: '100%', marginTop: 21, marginBottom: 16 },
     count: { flex: 1, alignItems: 'center' },
     countNumber: { color: colors.text, fontSize: 19, fontWeight: '800' },
