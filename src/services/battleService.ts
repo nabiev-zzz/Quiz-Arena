@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { API_BASE_URL } from '../config/api';
 import { getToken } from './authService';
 
-export type BattleMode = 'casual' | 'ranked';
+export type BattleMode = 'casual' | 'ranked' | 'private';
 
 export interface BattlePlayer {
   id: string;
