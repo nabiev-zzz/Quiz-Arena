@@ -9,6 +9,7 @@ import { AiModule } from './ai/ai.module';
 import { AuthModule } from './auth/auth.module';
 import { BattleModule } from './battle/battle.module';
 import { UsersModule } from './users/users.module';
+import { LearningModule } from './learning/learning.module';
 
 import { CreateUsersTable20261122173000 } from './database/migrations/CreateUsersTable';
 import { CreateAiTutorMessages20261122180000 } from './database/migrations/CreateAiTutorMessages';
@@ -16,6 +17,7 @@ import { AddUserProfileFields20261122192000 } from './database/migrations/AddUse
 import { AddUserRankPoints20261124002500 } from './database/migrations/AddUserRankPoints';
 import { AddBattleMatchRankChanges20261124040000 } from './database/migrations/AddBattleMatchRankChanges';
 import { CreateUserFollows20261124070000 } from './database/migrations/CreateUserFollows';
+import { CreateLearningAttempts20261124090000 } from './database/migrations/CreateLearningAttempts';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
 
@@ -45,6 +47,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         CreateBattleQuestions20261122220000,
         AddBattleMatchRankChanges20261124040000,
         CreateUserFollows20261124070000,
+        CreateLearningAttempts20261124090000,
       ],
       migrationsRun: true,
       migrationsTableName: 'typeorm_migrations',
@@ -60,6 +63,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     AuthModule,
     BattleModule,
     UsersModule,
+    LearningModule,
   ],
   controllers: [AppController],
   providers: [AppService],

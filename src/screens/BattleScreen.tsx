@@ -17,6 +17,8 @@ import {
 } from 'react-native';
 
 import { useAuth } from '../context/AuthContext';
+import { subjects } from '../data/subjects';
+import { getLearningStats, type LearningStats } from '../services/learningService';
 import LeaderboardScreen from './leaderboard/LeaderboardScreen';
 
 import {
@@ -38,6 +40,7 @@ import {
 } from '../services/battleService';
 
 type Section = 'battle' | 'history' | 'stats' | 'leaderboard';
+type StatsView = 'overview' | 'battle' | 'education';
 
 interface BattleScreenProps {
   isDark?: boolean;
@@ -90,6 +93,8 @@ export default function BattleScreen({
 
   const [history, setHistory] = useState<BattleHistoryItem[]>([]);
   const [stats, setStats] = useState<BattleStats | null>(null);
+  const [learningStats, setLearningStats] = useState<LearningStats | null>(null);
+  const [statsView, setStatsView] = useState<StatsView>('overview');
   const [leaderboard, setLeaderboard] = useState<BattleLeaderboardEntry[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
@@ -163,8 +168,23 @@ export default function BattleScreen({
         const data = await getBattleHistory(30);
         setHistory(Array.isArray(data) ? data : []);
       } else if (target === 'stats') {
-        const data = await getBattleStats();
-        setStats(data);
+        const [battleResult, learningResult] = await Promise.allSettled([
+          getBattleStats(),
+          getLearningStats(),
+        ]);
+
+        if (battleResult.status === 'fulfilled') {
+          setStats(battleResult.value);
+        }
+        if (learningResult.status === 'fulfilled') {
+          setLearningStats(learningResult.value);
+        }
+        if (
+          battleResult.status === 'rejected' &&
+          learningResult.status === 'rejected'
+        ) {
+          throw new Error('Statistikani yuklab bo‘lmadi. Internet aloqasini tekshiring.');
+        }
       } else if (target === 'leaderboard') {
         const data = await getBattleLeaderboard(50);
         setLeaderboard(Array.isArray(data) ? data : []);
@@ -759,7 +779,7 @@ export default function BattleScreen({
     ));
   }
 
-  function renderStats() {
+  function renderBattleStats() {
     if (loadingData && !stats) {
       return (
         <View style={styles.statsLoading}>
@@ -978,6 +998,313 @@ export default function BattleScreen({
           )}
         </View>
 
+      </View>
+    );
+  }
+
+  function renderEducationStats() {
+    const totalAttempts = learningStats?.totalAttempts ?? 0;
+    const totalQuestions = learningStats?.totalQuestions ?? 0;
+    const correctAnswers = learningStats?.correctAnswers ?? 0;
+    const accuracy = learningStats?.accuracy ?? 0;
+    const level = Math.max(1, Number(user?.level) || 1);
+    const xp = Math.max(0, Number(user?.xp) || 0);
+    const rankPoints = Math.max(0, Number(user?.rankPoints) || 0);
+    const totalTopics = subjects.reduce((sum, subject) => sum + subject.topics.length, 0);
+    const activity = learningStats?.weeklyActivity ?? [];
+    const maxActivity = Math.max(1, ...activity.map((item) => item.attempts));
+    const subjectRows = learningStats?.subjectBreakdown ?? [];
+    const recentAttempts = learningStats?.recentAttempts ?? [];
+
+    return (
+      <View style={styles.statsContent}>
+        <View style={styles.learningHero}>
+          <View style={styles.learningHeroGlow} />
+          <View style={styles.learningHeroTop}>
+            <View>
+              <Text style={styles.learningEyebrow}>LEARNING JOURNEY</Text>
+              <Text style={styles.learningHeroTitle}>Bilim sari o‘sish</Text>
+            </View>
+            <View style={styles.learningHeroIcon}>
+              <Ionicons name="school-outline" size={23} color="#FFFFFF" />
+            </View>
+          </View>
+
+          <View style={styles.learningLevelRow}>
+            <View style={styles.learningLevelBadge}>
+              <Text style={styles.learningLevelCaption}>DARAJA</Text>
+              <Text style={styles.learningLevelValue}>{level}</Text>
+            </View>
+            <View style={styles.learningXpCopy}>
+              <Text style={styles.learningXpValue}>{xp.toLocaleString('uz-UZ')} XP</Text>
+              <Text style={styles.learningXpLabel}>To‘plangan tajriba</Text>
+              <Text style={styles.learningXpLabel}>Battle reytingi: {rankPoints.toLocaleString('uz-UZ')} RP</Text>
+            </View>
+          </View>
+
+          <View style={styles.learningHeroFooter}>
+            <Text style={styles.learningHeroFooterText}>
+              Har bir yakunlangan test bilimlaringiz tarixiga qo‘shiladi
+            </Text>
+            <Ionicons name="sparkles" size={16} color="#E0D9FF" />
+          </View>
+        </View>
+
+        <View style={styles.learningMetricGrid}>
+          <View style={styles.learningMetricCard}>
+            <View style={[styles.learningMetricIcon, { backgroundColor: dark ? 'rgba(117,104,245,0.18)' : '#EEEAFE' }]}>
+              <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+            </View>
+            <Text style={styles.learningMetricValue}>{totalAttempts}</Text>
+            <Text style={styles.learningMetricLabel}>Yakunlangan test</Text>
+          </View>
+          <View style={styles.learningMetricCard}>
+            <View style={[styles.learningMetricIcon, { backgroundColor: dark ? 'rgba(54,214,160,0.14)' : '#E7F7F0' }]}>
+              <Ionicons name="checkmark-done-outline" size={18} color={colors.success} />
+            </View>
+            <Text style={styles.learningMetricValue}>{accuracy.toFixed(1)}%</Text>
+            <Text style={styles.learningMetricLabel}>Umumiy aniqlik</Text>
+          </View>
+          <View style={styles.learningMetricCard}>
+            <View style={[styles.learningMetricIcon, { backgroundColor: dark ? 'rgba(85,184,255,0.14)' : '#EAF4FF' }]}>
+              <Ionicons name="help-circle-outline" size={18} color={dark ? '#55B8FF' : '#247CC5'} />
+            </View>
+            <Text style={styles.learningMetricValue}>{totalQuestions}</Text>
+            <Text style={styles.learningMetricLabel}>Jami savollar</Text>
+          </View>
+          <View style={styles.learningMetricCard}>
+            <View style={[styles.learningMetricIcon, { backgroundColor: dark ? 'rgba(255,196,107,0.14)' : '#FFF4E2' }]}>
+              <Ionicons name="book-outline" size={18} color={dark ? '#FFC46B' : '#B7791F'} />
+            </View>
+            <Text style={styles.learningMetricValue}>{subjects.length}</Text>
+            <Text style={styles.learningMetricLabel}>Fanlar</Text>
+          </View>
+        </View>
+
+        <View style={styles.learningPanel}>
+          <View style={styles.statsPanelHeading}>
+            <View>
+              <Text style={styles.statsSectionTitle}>Haftalik o‘qish faolligi</Text>
+              <Text style={styles.statsSectionHint}>Oxirgi 7 kun ichida yakunlangan testlar</Text>
+            </View>
+            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+          </View>
+          {activity.length ? (
+            <View style={styles.learningWeekRow}>
+              {activity.map((item) => {
+                const date = new Date(`${item.day}T12:00:00`);
+                const dayLabel = date.toLocaleDateString('uz-UZ', { weekday: 'short' }).replace('.', '');
+                const height = item.attempts > 0
+                  ? Math.max(7, (item.attempts / maxActivity) * 58)
+                  : 4;
+                return (
+                  <View key={item.day} style={styles.learningDayColumn}>
+                    <Text style={styles.learningDayCount}>{item.attempts || ''}</Text>
+                    <View style={styles.learningBarTrack}>
+                      <View style={[
+                        styles.learningBarFill,
+                        {
+                          height,
+                          backgroundColor: item.attempts > 0 ? colors.primary : colors.border,
+                        },
+                      ]} />
+                    </View>
+                    <Text style={styles.learningDayLabel}>{dayLabel}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <Text style={styles.muted}>Haftalik faollik hali mavjud emas.</Text>
+          )}
+        </View>
+
+        <View style={styles.learningPanel}>
+          <View style={styles.statsPanelHeading}>
+            <View>
+              <Text style={styles.statsSectionTitle}>Fanlar bo‘yicha natija</Text>
+              <Text style={styles.statsSectionHint}>{totalTopics} ta mavzu mavjud</Text>
+            </View>
+            <Ionicons name="library-outline" size={20} color={colors.primary} />
+          </View>
+          {subjectRows.length ? subjectRows.slice(0, 6).map((item) => (
+            <View key={item.subjectId} style={styles.learningSubjectRow}>
+              <View style={styles.learningSubjectTop}>
+                <Text style={styles.learningSubjectName}>{item.subjectName}</Text>
+                <Text style={styles.learningSubjectValue}>{item.accuracy.toFixed(0)}% · {item.attempts} test</Text>
+              </View>
+              <View style={styles.learningSubjectTrack}>
+                <View style={[
+                  styles.learningSubjectFill,
+                  { width: `${Math.max(0, Math.min(100, item.accuracy))}%` },
+                ]} />
+              </View>
+            </View>
+          )) : (
+            <View style={styles.learningEmpty}>
+              <Ionicons name="book-outline" size={24} color={colors.muted} />
+              <Text style={styles.muted}>Birinchi testingizni yakunlang — fanlar kesimidagi natijalar shu yerda paydo bo‘ladi.</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.learningPanel}>
+          <View style={styles.statsPanelHeading}>
+            <View>
+              <Text style={styles.statsSectionTitle}>So‘nggi testlar</Text>
+              <Text style={styles.statsSectionHint}>Oxirgi 8 ta yakunlangan urinish</Text>
+            </View>
+            <Ionicons name="time-outline" size={20} color={colors.primary} />
+          </View>
+          {recentAttempts.length ? recentAttempts.map((item) => (
+            <View key={item.id} style={styles.learningRecentRow}>
+              <View style={styles.learningRecentIcon}>
+                <Ionicons name="school-outline" size={17} color={colors.primary} />
+              </View>
+              <View style={styles.learningRecentCopy}>
+                <Text style={styles.learningRecentTitle}>{item.topicName}</Text>
+                <Text style={styles.learningRecentMeta}>{item.subjectName} · {new Date(item.completedAt).toLocaleDateString('uz-UZ')}</Text>
+              </View>
+              <View style={styles.learningRecentScore}>
+                <Text style={styles.learningRecentScoreValue}>{item.correctAnswers}/{item.totalQuestions}</Text>
+                <Text style={styles.learningRecentScoreMeta}>{Number(item.accuracy).toFixed(0)}%</Text>
+              </View>
+            </View>
+          )) : (
+            <Text style={styles.muted}>Hozircha saqlangan test natijalari yo‘q.</Text>
+          )}
+        </View>
+
+        <View style={styles.learningNote}>
+          <Ionicons name="information-circle-outline" size={17} color={colors.primary} />
+          <Text style={styles.learningNoteText}>
+            Test natijalari hisobingizga saqlanadi. XP va daraja profil tizimidan olinadi; statistika ularni o‘zgartirmaydi.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  function renderOverviewStats() {
+    const battleTotal = Math.max(0, Number(stats?.totalMatches) || 0);
+    const testsTotal = learningStats?.totalAttempts ?? 0;
+    const learningAccuracy = learningStats?.accuracy ?? 0;
+    const xp = Math.max(0, Number(user?.xp) || 0);
+    const level = Math.max(1, Number(user?.level) || 1);
+
+    return (
+      <View style={styles.statsContent}>
+        <View style={styles.learningHero}>
+          <View style={styles.learningHeroGlow} />
+          <View style={styles.learningHeroTop}>
+            <View>
+              <Text style={styles.learningEyebrow}>YOUR PERFORMANCE</Text>
+              <Text style={styles.learningHeroTitle}>Shaxsiy natijalar</Text>
+            </View>
+            <View style={styles.learningHeroIcon}>
+              <Ionicons name="analytics-outline" size={23} color="#FFFFFF" />
+            </View>
+          </View>
+          <View style={styles.learningLevelRow}>
+            <View style={styles.learningLevelBadge}>
+              <Text style={styles.learningLevelCaption}>LEVEL</Text>
+              <Text style={styles.learningLevelValue}>{level}</Text>
+            </View>
+            <View style={styles.learningXpCopy}>
+              <Text style={styles.learningXpValue}>{xp.toLocaleString('uz-UZ')} XP</Text>
+              <Text style={styles.learningXpLabel}>Umumiy tajriba</Text>
+              <Text style={styles.learningXpLabel}>Ta’lim va Battle natijalari bir joyda</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.learningMetricGrid}>
+          <View style={styles.learningMetricCard}>
+            <Ionicons name="school-outline" size={19} color={colors.primary} />
+            <Text style={styles.learningMetricValue}>{testsTotal}</Text>
+            <Text style={styles.learningMetricLabel}>Testlar</Text>
+          </View>
+          <View style={styles.learningMetricCard}>
+            <Ionicons name="game-controller-outline" size={19} color={colors.success} />
+            <Text style={styles.learningMetricValue}>{battleTotal}</Text>
+            <Text style={styles.learningMetricLabel}>Battle o‘yinlari</Text>
+          </View>
+          <View style={styles.learningMetricCard}>
+            <Ionicons name="checkmark-circle-outline" size={19} color={colors.primary} />
+            <Text style={styles.learningMetricValue}>{learningAccuracy.toFixed(1)}%</Text>
+            <Text style={styles.learningMetricLabel}>Test aniqligi</Text>
+          </View>
+          <View style={styles.learningMetricCard}>
+            <Ionicons name="trophy-outline" size={19} color={dark ? '#FFC46B' : '#B7791F'} />
+            <Text style={styles.learningMetricValue}>{Math.max(0, Number(stats?.wins) || 0)}</Text>
+            <Text style={styles.learningMetricLabel}>Battle g‘alabalari</Text>
+          </View>
+        </View>
+
+        <View style={styles.learningPanel}>
+          <Text style={styles.statsSectionTitle}>Qisqa xulosa</Text>
+          <Text style={styles.learningSummaryText}>
+            {testsTotal + battleTotal > 0
+              ? `Siz ${testsTotal} ta test va ${battleTotal} ta Battle o‘yinini yakunlagansiz. Keyingi maqsad — natijangizni muntazam yaxshilash.`
+              : 'Birinchi testingiz yoki Battle o‘yiningizni yakunlang. Natijalaringiz shu yerda jamlanadi.'}
+          </Text>
+          <View style={styles.learningQuickLinks}>
+            <Pressable onPress={() => setStatsView('education')} style={styles.learningQuickLink}>
+              <Ionicons name="book-outline" size={16} color={colors.primary} />
+              <Text style={styles.learningQuickLinkText}>Ta’lim natijalari</Text>
+            </Pressable>
+            <Pressable onPress={() => setStatsView('battle')} style={styles.learningQuickLink}>
+              <Ionicons name="game-controller-outline" size={16} color={colors.primary} />
+              <Text style={styles.learningQuickLinkText}>Battle natijalari</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  function renderStats() {
+    if (loadingData && !stats && !learningStats) {
+      return (
+        <View style={styles.statsLoading}>
+          <ActivityIndicator color={colors.primary} size="large" />
+          <Text style={styles.muted}>Ta’lim va Battle statistikasi yuklanmoqda...</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.statsContent}>
+        <View style={styles.statsIntro}>
+          <Text style={styles.statsIntroTitle}>Statistika markazi</Text>
+          <Text style={styles.statsIntroSubtitle}>Ta’limdagi o‘sish va Battle natijalaringiz</Text>
+        </View>
+        <View style={styles.statsViewSwitch}>
+          {([
+            ['overview', 'Umumiy'],
+            ['education', 'Ta’lim'],
+            ['battle', 'Battle'],
+          ] as [StatsView, string][]).map(([value, label]) => (
+            <Pressable
+              key={value}
+              onPress={() => setStatsView(value)}
+              style={[
+                styles.statsViewButton,
+                statsView === value && styles.statsViewButtonActive,
+              ]}
+            >
+              <Text style={[
+                styles.statsViewButtonText,
+                statsView === value && styles.statsViewButtonTextActive,
+              ]}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {statsView === 'overview'
+          ? renderOverviewStats()
+          : statsView === 'education'
+            ? renderEducationStats()
+            : renderBattleStats()}
         <Pressable
           onPress={() => loadSectionData('stats')}
           disabled={loadingData}
@@ -985,7 +1312,7 @@ export default function BattleScreen({
         >
           <Ionicons name="refresh-outline" size={16} color={colors.primary} />
           <Text style={styles.statsRefreshText}>
-            {loadingData ? 'Yangilanmoqda...' : 'Statistikani yangilash'}
+            {loadingData ? 'Yangilanmoqda...' : 'Barcha statistikani yangilash'}
           </Text>
         </Pressable>
       </View>
@@ -1174,6 +1501,351 @@ function makeStyles(colors: typeof COLORS, dark: boolean) {
       borderWidth: 1,
       borderColor: colors.border,
       marginBottom: 10,
+    },
+    statsIntro: {
+      paddingHorizontal: 2,
+      gap: 4,
+    },
+    statsIntroTitle: {
+      color: colors.text,
+      fontSize: 23,
+      fontWeight: '900',
+      letterSpacing: -0.5,
+    },
+    statsIntroSubtitle: {
+      color: colors.muted,
+      fontSize: 12,
+      lineHeight: 18,
+    },
+    statsViewSwitch: {
+      flexDirection: 'row',
+      padding: 4,
+      borderRadius: 17,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: dark ? 'rgba(29,36,53,0.9)' : 'rgba(255,255,255,0.9)',
+      gap: 4,
+    },
+    statsViewButton: {
+      flex: 1,
+      minHeight: 38,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 13,
+      paddingHorizontal: 8,
+    },
+    statsViewButtonActive: {
+      backgroundColor: dark ? '#7568F5' : '#6554D9',
+    },
+    statsViewButtonText: {
+      color: colors.muted,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    statsViewButtonTextActive: {
+      color: '#FFFFFF',
+    },
+    learningHero: {
+      borderRadius: 26,
+      padding: 20,
+      overflow: 'hidden',
+      backgroundColor: dark ? '#26304C' : '#5549B9',
+      borderWidth: 1,
+      borderColor: dark ? 'rgba(166,181,255,0.25)' : 'rgba(255,255,255,0.22)',
+    },
+    learningHeroGlow: {
+      position: 'absolute',
+      width: 180,
+      height: 180,
+      borderRadius: 90,
+      top: -105,
+      right: -55,
+      backgroundColor: 'rgba(190,180,255,0.13)',
+    },
+    learningHeroTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    learningEyebrow: {
+      color: '#D8D0FF',
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 1.5,
+    },
+    learningHeroTitle: {
+      color: '#FFFFFF',
+      fontSize: 19,
+      fontWeight: '800',
+      marginTop: 5,
+    },
+    learningHeroIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: 15,
+      backgroundColor: 'rgba(255,255,255,0.16)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    learningLevelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 15,
+      marginTop: 20,
+    },
+    learningLevelBadge: {
+      width: 82,
+      height: 82,
+      borderRadius: 25,
+      backgroundColor: 'rgba(255,255,255,0.13)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.25)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    learningLevelCaption: {
+      color: '#D8D0FF',
+      fontSize: 9,
+      fontWeight: '800',
+      letterSpacing: 1,
+    },
+    learningLevelValue: {
+      color: '#FFFFFF',
+      fontSize: 31,
+      fontWeight: '900',
+      marginTop: 1,
+    },
+    learningXpCopy: {
+      flex: 1,
+      gap: 4,
+    },
+    learningXpValue: {
+      color: '#FFFFFF',
+      fontSize: 25,
+      fontWeight: '900',
+    },
+    learningXpLabel: {
+      color: '#D8D0FF',
+      fontSize: 11,
+    },
+    learningHeroFooter: {
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(255,255,255,0.16)',
+      marginTop: 17,
+      paddingTop: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    learningHeroFooterText: {
+      color: '#E0D9FF',
+      fontSize: 10,
+      fontWeight: '600',
+      flex: 1,
+    },
+    learningMetricGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    learningMetricCard: {
+      width: '48%',
+      flexGrow: 1,
+      flexBasis: '44%',
+      minHeight: 112,
+      padding: 14,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: dark ? 'rgba(29,36,53,0.84)' : 'rgba(255,255,255,0.9)',
+      gap: 7,
+    },
+    learningMetricIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: 11,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    learningMetricValue: {
+      color: colors.text,
+      fontSize: 22,
+      fontWeight: '900',
+      letterSpacing: -0.4,
+    },
+    learningMetricLabel: {
+      color: colors.muted,
+      fontSize: 10,
+      fontWeight: '600',
+    },
+    learningPanel: {
+      padding: 17,
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: dark ? 'rgba(29,36,53,0.84)' : 'rgba(255,255,255,0.9)',
+    },
+    learningWeekRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      height: 104,
+      gap: 8,
+    },
+    learningDayColumn: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: 6,
+      height: '100%',
+    },
+    learningDayCount: {
+      color: colors.muted,
+      fontSize: 9,
+      fontWeight: '700',
+      height: 12,
+    },
+    learningBarTrack: {
+      width: '100%',
+      height: 60,
+      borderRadius: 8,
+      overflow: 'hidden',
+      justifyContent: 'flex-end',
+      backgroundColor: dark ? '#30394E' : '#EEF0F7',
+    },
+    learningBarFill: {
+      width: '100%',
+      borderRadius: 8,
+      minHeight: 4,
+    },
+    learningDayLabel: {
+      color: colors.muted,
+      fontSize: 9,
+      fontWeight: '600',
+    },
+    learningSubjectRow: {
+      marginTop: 14,
+      gap: 8,
+    },
+    learningSubjectTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    learningSubjectName: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '700',
+      flex: 1,
+    },
+    learningSubjectValue: {
+      color: colors.muted,
+      fontSize: 10,
+      fontWeight: '600',
+    },
+    learningSubjectTrack: {
+      height: 7,
+      borderRadius: 9,
+      overflow: 'hidden',
+      backgroundColor: colors.border,
+    },
+    learningSubjectFill: {
+      height: '100%',
+      borderRadius: 9,
+      backgroundColor: colors.primary,
+    },
+    learningEmpty: {
+      minHeight: 90,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 9,
+      paddingVertical: 12,
+    },
+    learningRecentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingVertical: 11,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    learningRecentIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 13,
+      backgroundColor: dark ? 'rgba(117,104,245,0.17)' : '#EEEAFE',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    learningRecentCopy: {
+      flex: 1,
+    },
+    learningRecentTitle: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    learningRecentMeta: {
+      color: colors.muted,
+      fontSize: 9,
+      marginTop: 4,
+    },
+    learningRecentScore: {
+      alignItems: 'flex-end',
+      gap: 3,
+    },
+    learningRecentScoreValue: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    learningRecentScoreMeta: {
+      color: colors.primary,
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    learningNote: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 9,
+      padding: 13,
+      borderRadius: 16,
+      backgroundColor: dark ? 'rgba(117,104,245,0.10)' : 'rgba(101,88,232,0.07)',
+    },
+    learningNoteText: {
+      flex: 1,
+      color: colors.muted,
+      fontSize: 10,
+      lineHeight: 16,
+    },
+    learningSummaryText: {
+      color: colors.muted,
+      fontSize: 12,
+      lineHeight: 19,
+      marginTop: 9,
+    },
+    learningQuickLinks: {
+      flexDirection: 'row',
+      gap: 9,
+      marginTop: 15,
+    },
+    learningQuickLink: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 11,
+      paddingHorizontal: 8,
+      borderRadius: 13,
+      backgroundColor: dark ? 'rgba(117,104,245,0.12)' : 'rgba(101,88,232,0.08)',
+    },
+    learningQuickLinkText: {
+      color: colors.primary,
+      fontSize: 10,
+      fontWeight: '700',
     },
     statsContent: {
       gap: 14,
