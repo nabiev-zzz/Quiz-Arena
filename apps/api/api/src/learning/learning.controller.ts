@@ -7,7 +7,10 @@ import {
   Param,
   Request,
   UseGuards,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { LearningService } from './learning.service';
 import type { CreateLearningAttemptInput } from './learning.service';
@@ -26,6 +29,16 @@ export class LearningController {
   @Get('catalog')
   getCatalog() {
     return this.learningService.getCatalog();
+  }
+
+  @Post('document-quiz')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 15 * 1024 * 1024 } }))
+  createDocumentQuiz(
+    @Request() request: AuthenticatedRequest,
+    @UploadedFile() file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
+    @Body() body: { count?: string; difficulty?: string; language?: string },
+  ) {
+    return this.learningService.createDocumentQuiz(request.user.id, file, body);
   }
 
   @Post('web/questions')
