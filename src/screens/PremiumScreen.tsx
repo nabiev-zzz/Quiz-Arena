@@ -14,21 +14,21 @@ const planBenefits = (planKey: string): string[] => {
   if (planKey.startsWith('legenda_plus_')) return [
     'Cheksiz PDF va batafsil AI hisobotlari',
     'Oyiga 100 ta hujjatdan 100 tagacha savol · 15 MB gacha',
-    '10 kishilik Battle, elita turnirlar va Legend maqomi',
+    'Kuniga 30 ta do‘stlar Battle, elita turnirlar va Legend maqomi',
     'Cheksiz AI Ustoz va shaxsiy rivojlanish rejasi',
     'Noyob bezaklar va animatsiyali oltin ramka',
   ];
   if (planKey.startsWith('premium_pro_')) return [
     'Cheksiz PDF va AI statistik xulosalari',
     'Oyiga 30 ta hujjatdan 50 tagacha savol · 12 MB gacha',
-    '10 kishilik Battle va maxsus sozlamalar',
+    'Kuniga 20 ta xususiy Friends Battle',
     'AI Ustoz, xatolar tahlili va to‘liq tarix',
     'Cheksiz AI Smart Practice va maxsus turnirlar',
   ];
   return [
     'Oyiga 10 ta kengaytirilgan PDF hisobot',
     'Oyiga 5 ta hujjatdan 25 tagacha savol · 8 MB gacha',
-    'Kuniga 10 ta do‘stlar Battle va 6 ishtirokchi',
+    'Kuniga 10 ta xususiy Friends Battle (1 ga 1)',
     'Premium profil nishoni va eksklyuziv bezaklar',
     'Kengaytirilgan statistika va maxsus Battle sozlamalari',
   ];
