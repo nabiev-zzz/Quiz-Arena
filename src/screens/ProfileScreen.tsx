@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
-import { getLearningHistory, type LearningHistoryItem } from '../services/learningService';
+import { getLearningHistory, getLearningHistoryItem, type LearningHistoryItem, type LearningHistorySummary } from '../services/learningService';
 
 interface ProfileScreenProps {
   onClosePress?: () => void;
@@ -82,8 +82,10 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const [followingUserId, setFollowingUserId] = useState<string | null>(null);
   const [cosmeticType, setCosmeticType] = useState<'decoration' | 'frame' | null>(null);
   const [cosmeticSaving, setCosmeticSaving] = useState(false);
-  const [learningHistory, setLearningHistory] = useState<LearningHistoryItem[]>([]);
+  const [learningHistory, setLearningHistory] = useState<LearningHistorySummary[]>([]);
+  const [historyDetails, setHistoryDetails] = useState<Record<string, LearningHistoryItem>>({});
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [loadingHistoryDetailId, setLoadingHistoryDetailId] = useState<string | null>(null);
   const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -217,6 +219,24 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
       showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Bezakni saqlab bo‘lmadi');
     } finally {
       setCosmeticSaving(false);
+    }
+  };
+
+  const toggleHistoryAttempt = async (attemptId: string) => {
+    if (expandedAttemptId === attemptId) {
+      setExpandedAttemptId(null);
+      return;
+    }
+    setExpandedAttemptId(attemptId);
+    if (historyDetails[attemptId]) return;
+    setLoadingHistoryDetailId(attemptId);
+    try {
+      const detail = await getLearningHistoryItem(attemptId);
+      setHistoryDetails((current) => ({ ...current, [attemptId]: detail }));
+    } catch (error) {
+      showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Test tahlilini yuklab bo‘lmadi.');
+    } finally {
+      setLoadingHistoryDetailId(null);
     }
   };
 
@@ -419,9 +439,11 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
                 <Ionicons name="document-text-outline" size={28} color={C.muted} />
                 <LocalizedText style={styles.cardSubtitle}>Hozircha saqlangan test tarixi yo‘q.</LocalizedText>
               </View>
-            ) : learningHistory.map((attempt) => (
+            ) : learningHistory.map((attempt) => {
+              const detail = historyDetails[attempt.id];
+              return (
               <View key={attempt.id} style={styles.historyCard}>
-                <Pressable style={styles.historyHeader} onPress={() => setExpandedAttemptId((current) => current === attempt.id ? null : attempt.id)}>
+                <Pressable style={styles.historyHeader} onPress={() => void toggleHistoryAttempt(attempt.id)}>
                   <View style={styles.historyIcon}><Ionicons name="document-text-outline" size={19} color={C.purple} /></View>
                   <View style={styles.rowBody}>
                     <LocalizedText style={styles.cardTitle} numberOfLines={1}>{attempt.subjectName} · {attempt.topicName}</LocalizedText>
@@ -436,7 +458,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
                 {expandedAttemptId === attempt.id ? (
                   <View style={styles.historyReview}>
                     <LocalizedText style={styles.historyReviewTitle}>Savollar tahlili</LocalizedText>
-                    {attempt.review?.length ? attempt.review.map((item, index) => (
+                    {loadingHistoryDetailId === attempt.id ? <ActivityIndicator color={C.purple} /> : detail?.review?.length ? detail.review.map((item, index) => (
                       <View key={item.id} style={styles.historyQuestion}>
                         <LocalizedText style={styles.historyQuestionTitle}>{index + 1}. {item.question}</LocalizedText>
                         <LocalizedText style={styles.cardSubtitle}>Sizning javobingiz: {item.options[item.selectedAnswer] ?? '—'}</LocalizedText>
@@ -455,7 +477,8 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
                   </View>
                 ) : null}
               </View>
-            ))}
+              );
+            })}
             <View style={styles.sectionHeader}><LocalizedText style={styles.sectionTitle}>Erishilgan yutuqlar</LocalizedText></View>
             <View style={styles.achievementList}>
               {getProfileAchievements(user.xp ?? 0, user.level ?? 1, rankPoints).map((achievement) => (
