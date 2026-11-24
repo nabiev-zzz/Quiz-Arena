@@ -251,7 +251,7 @@ function AppContent() {
             <Pressable style={({ pressed }) => [styles.discordChallenge, pressed && styles.discordPressed]} onPress={() => openTab('battle')}>
               <View style={styles.discordChallengeTop}>
                 <View style={styles.discordChallengeBadge}><Ionicons name="flash" size={13} color="#FFFFFF" /><Text style={styles.discordChallengeBadgeText}>TAVSIYA</Text></View>
-                <Ionicons name="arrow-up-right" size={19} color="#B5B9C4" />
+                <Ionicons name="open-outline" size={19} color="#B5B9C4" />
               </View>
               <Text style={styles.discordChallengeTitle}>Battle maydoniga qo‘shil</Text>
               <Text style={styles.discordChallengeText}>Do‘stlaring bilan bellash, XP yig‘ va reytingda yuqoriga ko‘taril.</Text>
