@@ -429,8 +429,6 @@ function AppContent() {
         ) : (
           <RegisterScreen
             onRegister={register}
-            onVerifyEmail={verifyEmail}
-            onRequestVerification={requestEmailVerification}
             onLoginPress={() => setAuthScreen('login')}
           />
         )}
