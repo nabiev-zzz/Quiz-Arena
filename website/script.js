@@ -64,3 +64,23 @@ if (themeToggle) {
     applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
   });
 }
+
+const mobileMenuToggle = document.getElementById("mobileMenuToggle");
+const siteNav = document.getElementById("siteNav");
+if (mobileMenuToggle && siteNav) {
+  const closeMobileMenu = () => {
+    siteNav.classList.remove("is-open");
+    mobileMenuToggle.setAttribute("aria-expanded", "false");
+    mobileMenuToggle.setAttribute("aria-label", "Open navigation");
+  };
+  mobileMenuToggle.addEventListener("click", () => {
+    const isOpen = mobileMenuToggle.getAttribute("aria-expanded") === "true";
+    mobileMenuToggle.setAttribute("aria-expanded", String(!isOpen));
+    mobileMenuToggle.setAttribute("aria-label", isOpen ? "Open navigation" : "Close navigation");
+    siteNav.classList.toggle("is-open", !isOpen);
+  });
+  siteNav.querySelectorAll("a").forEach((link) => link.addEventListener("click", closeMobileMenu));
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 650) closeMobileMenu();
+  });
+}
