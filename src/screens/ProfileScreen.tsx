@@ -750,8 +750,10 @@ function makeStyles(
       justifyContent: 'center',
     },
     heroCard: {
+      marginHorizontal: 9,
       padding: 18,
-      borderRadius: 29,
+      paddingVertical: 22,
+      borderRadius: 23,
       borderWidth: 1,
       borderColor: glassBorder,
       backgroundColor: isDark
@@ -760,15 +762,12 @@ function makeStyles(
     },
     heroHighlight: {
       position: 'absolute',
-      top: -65,
-      right: -35,
-      width: 175,
-      height: 130,
-      borderRadius: 90,
-      backgroundColor: isDark
-        ? 'rgba(180, 157, 255, 0.10)'
-        : 'rgba(255, 255, 255, 0.52)',
-      transform: [{ rotate: '-18deg' }],
+      top: -95,
+      right: -80,
+      width: 170,
+      height: 170,
+      borderRadius: 85,
+      backgroundColor: isDark ? 'rgba(142, 116, 220, 0.07)' : 'rgba(255,255,255,0.2)',
     },
     heroTopLine: {
       flexDirection: 'row',
@@ -809,23 +808,24 @@ function makeStyles(
       letterSpacing: 0.7,
     },
     identityBlock: {
-      flexDirection: 'row',
+      flexDirection: 'column',
       alignItems: 'center',
-      gap: 14,
-      paddingTop: 22,
-      paddingBottom: 18,
+      gap: 10,
+      paddingTop: 24,
+      paddingBottom: 22,
     },
     identityTextBlock: {
-      flex: 1,
+      width: '100%',
       minWidth: 0,
-      alignItems: 'flex-start',
+      alignItems: 'center',
+      paddingHorizontal: 4,
     },
     avatarStage: {
       width: 116,
       height: 116,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 0,
+      marginBottom: 2,
       flexShrink: 0,
     },
     avatarHalo: {
@@ -908,12 +908,12 @@ function makeStyles(
       fontWeight: '800',
       letterSpacing: -0.45,
       maxWidth: '100%',
-      textAlign: 'left',
+      textAlign: 'center',
     },
     usernameRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'flex-start',
+      justifyContent: 'center',
       gap: 8,
       marginTop: 4,
     },
@@ -936,9 +936,9 @@ function makeStyles(
     bio: {
       color: colors.textSecondary,
       fontSize: 13,
-      textAlign: 'left',
+      textAlign: 'center',
       marginTop: 9,
-      lineHeight: 19,
+      lineHeight: 20,
       maxWidth: 270,
     },
     heroDivider: {
