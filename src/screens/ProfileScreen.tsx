@@ -395,6 +395,7 @@ export default function ProfileScreen({
         ) : null}
 
         {activeProfileTab === 'main' ? (
+          <>
         <View style={styles.socialHeading}>
           <View>
             <Text style={styles.sectionEyebrow}>COMMUNITY</Text>
@@ -495,6 +496,7 @@ export default function ProfileScreen({
           ))}
           {getProfileAchievements(user.xp ?? 0, user.level ?? 1, rankPoints).every((item) => !item.unlocked) ? <Text style={styles.noSuggestions}>Yutuqlar hali qo‘lga kiritilmagan</Text> : null}
         </ScrollView>
+          </>
         ) : null}
 
         {activeProfileTab === 'board' ? (
