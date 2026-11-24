@@ -7,6 +7,7 @@ import Animated, {
   withSpring,
   type SharedValue,
 } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import {
   ActivityIndicator,
   Pressable,
