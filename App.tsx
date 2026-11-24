@@ -425,6 +425,7 @@ function AppContent() {
         <AiTutorScreen
           onBack={() => openTab('home')}
           bottomDockSpace={96}
+          dockStretch={dockStretch}
         />
       ) : tab === 'battle' || tab === 'ranking' ? (
         <BattleScreen
@@ -449,6 +450,7 @@ function AppContent() {
             subject={selectedSubject}
             topic={selectedTopic}
             onBack={() => setSelectedTopic(null)}
+            dockStretch={dockStretch}
           />
         ) : tab === 'home' ? (
           renderHome()
