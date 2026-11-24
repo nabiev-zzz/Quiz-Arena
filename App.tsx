@@ -102,7 +102,7 @@ function AppContent() {
   const [showSettings, setShowSettings] = useState(false);
   const [selectedPublicUsername, setSelectedPublicUsername] = useState<string | null>(null);
 
-  const backgroundColor = tokens.colors.background;
+  const backgroundColor = isDark ? '#0A0C1C' : tokens.colors.background;
   const cardColor = tokens.colors.surfaceGlass;
   const textColor = tokens.colors.text;
   const mutedColor = tokens.colors.textMuted;
@@ -432,7 +432,7 @@ function AppContent() {
             styles.ambientOrbOne,
             {
               backgroundColor: isDark
-                ? 'rgba(113, 85, 232, 0.20)'
+                ? 'rgba(112, 83, 206, 0.18)'
                 : 'rgba(113, 85, 232, 0.12)',
             },
           ]}
@@ -443,8 +443,8 @@ function AppContent() {
             styles.ambientOrbTwo,
             {
               backgroundColor: isDark
-                ? 'rgba(53, 200, 216, 0.12)'
-                : 'rgba(53, 200, 216, 0.10)',
+                ? 'rgba(54, 105, 210, 0.13)'
+                : 'rgba(53, 130, 216, 0.10)',
             },
           ]}
         />
@@ -534,7 +534,7 @@ export default function App() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#080D1D',
+    backgroundColor: '#0A0C1C',
   },
   blurTarget: {
     flex: 1,

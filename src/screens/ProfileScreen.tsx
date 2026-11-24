@@ -240,9 +240,6 @@ export default function ProfileScreen({
 
   return (
     <View style={styles.screen}>
-      <View pointerEvents="none" style={styles.ambientGlowTop} />
-      <View pointerEvents="none" style={styles.ambientGlowBottom} />
-
       <Animated.ScrollView
         onScroll={dockScrollHandler}
         scrollEventThrottle={16}
@@ -265,81 +262,42 @@ export default function ProfileScreen({
           </Pressable>
         </View>
 
-        <GlassSurface intensity={glassIntensity} style={styles.heroCard}>
-          <View style={styles.heroHighlight} />
-          <View style={styles.heroTopLine}>
-            <View style={styles.identityLabel}>
-              <View style={styles.onlineDot} />
-              <Text style={styles.identityLabelText}>PLAYER PROFILE</Text>
-            </View>
-            <View style={styles.rankPill}>
-              <Ionicons name="shield-checkmark" size={13} color={rankInfo.color} />
-              <Text style={[styles.rankPillText, { color: rankInfo.color }]}>
-                {rankInfo.name.toUpperCase()}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.identityBlock}>
-            <View style={styles.avatarStage}>
-              <View style={styles.avatarHalo} />
-              <View style={[styles.avatarBorder, user.profileFrame === 'aurora' ? styles.frameAurora : user.profileFrame === 'royal' ? styles.frameRoyal : user.profileFrame === 'ocean' ? styles.frameOcean : null]}>
+        <Pressable
+          onPress={() => setEditVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Profilni tahrirlash"
+          style={({ pressed }) => [
+            styles.profileCardPressable,
+            pressed && styles.profileCardPressed,
+          ]}
+        >
+          <GlassSurface intensity={isDark ? 42 : 48} style={styles.heroCard}>
+            <View style={styles.compactIdentityBlock}>
+              <View style={[styles.compactAvatarWrap, user.profileFrame === 'aurora' ? styles.frameAurora : user.profileFrame === 'royal' ? styles.frameRoyal : user.profileFrame === 'ocean' ? styles.frameOcean : null]}>
                 {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                  <Image source={{ uri: avatarUri }} style={styles.compactAvatar} />
                 ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarInitials}>{initials || '?'}</Text>
+                  <View style={styles.compactAvatarFallback}>
+                    <Text style={styles.compactAvatarInitials}>{initials || 'FN'}</Text>
                   </View>
                 )}
+                {user.avatarDecoration ? (
+                  <View style={styles.compactDecoration}>
+                    <Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={10} color="#F8D477" />
+                  </View>
+                ) : null}
               </View>
-              {user.avatarDecoration ? (
-                <View style={styles.decoration}>
-                  <Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={13} color="#F8D477" />
+              <View style={styles.compactIdentityText}>
+                <Text style={styles.compactDisplayName} numberOfLines={1}>{user.displayName}</Text>
+                <View style={styles.compactMetaRow}>
+                  <Text style={styles.compactUsername} numberOfLines={1}>@{user.username}</Text>
+                  <Text style={[styles.compactRank, { color: rankInfo.color }]}>{rankInfo.name.toUpperCase()}</Text>
                 </View>
-              ) : null}
-              <Pressable
-                style={styles.cameraButton}
-                onPress={chooseAvatar}
-                accessibilityRole="button"
-                accessibilityLabel="Avatarni o‘zgartirish"
-              >
-                <Ionicons name="camera-outline" size={16} color={colors.text} />
-              </Pressable>
-            </View>
-            <View style={styles.identityTextBlock}>
-              <Text style={styles.displayName} numberOfLines={2}>{user.displayName}</Text>
-              <View style={styles.usernameRow}>
-                <Text style={styles.username}>@{user.username}</Text>
-                <Pressable onPress={copyUsername} hitSlop={10} accessibilityRole="button" accessibilityLabel="Username nusxalash" style={styles.copyButton}>
-                  <Ionicons name="copy-outline" size={15} color={colors.textMuted} />
-                </Pressable>
               </View>
-              <Text style={styles.bio} numberOfLines={3}>{user.bio || 'Tarjimai hol hali kiritilmagan'}</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </View>
-          </View>
-
-          <View style={styles.heroDivider} />
-          <View style={styles.followRow}>
-            <View style={styles.followItem}>
-              <Text style={styles.followNumber}>{socialProfile?.followersCount ?? 0}</Text>
-              <Text style={styles.followLabel}>Kuzatuvchilar</Text>
-            </View>
-            <View style={styles.followDivider} />
-            <View style={styles.followItem}>
-              <Text style={styles.followNumber}>{socialProfile?.followingCount ?? 0}</Text>
-              <Text style={styles.followLabel}>Kuzatilayotganlar</Text>
-            </View>
-          </View>
-
-          <Pressable
-            style={styles.editButton}
-            onPress={() => setEditVisible(true)}
-          >
-            <Ionicons name="create-outline" size={17} color={colors.text} />
-            <Text style={styles.editButtonText}>Profilni tahrirlash</Text>
-            <Ionicons name="arrow-forward" size={16} color={colors.textMuted} />
-          </Pressable>
-        </GlassSurface>
+          </GlassSurface>
+        </Pressable>
 
         <View style={styles.socialHeading}>
           <View>
@@ -663,7 +621,7 @@ function makeStyles(
   return StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: isDark ? '#0A0C1C' : colors.background,
       overflow: 'hidden',
     },
     container: {
@@ -671,7 +629,7 @@ function makeStyles(
       backgroundColor: 'transparent',
     },
     content: {
-      paddingHorizontal: 18,
+      paddingHorizontal: 6,
       paddingTop: 12,
       paddingBottom: 132,
     },
@@ -707,7 +665,7 @@ function makeStyles(
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 19,
+      marginBottom: 14,
     },
     eyebrow: {
       color: colors.textMuted,
@@ -718,9 +676,9 @@ function makeStyles(
     },
     headerTitle: {
       color: colors.text,
-      fontSize: 29,
-      fontWeight: '800',
-      letterSpacing: -0.8,
+      fontSize: 22,
+      fontWeight: '500',
+      letterSpacing: -0.3,
     },
     headerButton: {
       width: 43,
@@ -732,15 +690,66 @@ function makeStyles(
       alignItems: 'center',
       justifyContent: 'center',
     },
-    heroCard: {
-      padding: 18,
-      borderRadius: 29,
-      borderWidth: 1,
-      borderColor: glassBorder,
-      backgroundColor: isDark
-        ? 'rgba(35, 31, 57, 0.46)'
-        : 'rgba(255, 255, 255, 0.46)',
+    profileCardPressable: {
+      borderRadius: 16,
+      marginBottom: 8,
     },
+    profileCardPressed: {
+      transform: [{ scale: 0.98 }],
+      opacity: 0.94,
+    },
+    heroCard: {
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+      borderRadius: 16,
+      borderWidth: 0.5,
+      borderColor: 'rgba(255,255,255,0.18)',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.58)',
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    compactIdentityBlock: {
+      minHeight: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    compactAvatarWrap: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.22)',
+      backgroundColor: 'rgba(255,255,255,0.10)',
+    },
+    compactAvatar: { width: 48, height: 48, borderRadius: 24 },
+    compactAvatarFallback: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(137,116,220,0.24)',
+    },
+    compactAvatarInitials: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+    compactDecoration: {
+      position: 'absolute',
+      right: 0,
+      bottom: 0,
+      width: 17,
+      height: 17,
+      borderRadius: 9,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#25213B',
+    },
+    compactIdentityText: { flex: 1, minWidth: 0, gap: 4 },
+    compactDisplayName: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+    compactMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+    compactUsername: { color: '#B7A1FF', fontSize: 11, fontWeight: '600', flexShrink: 1 },
+    compactRank: { fontSize: 9, fontWeight: '800', letterSpacing: 0.8 },
     heroHighlight: {
       position: 'absolute',
       top: -65,
