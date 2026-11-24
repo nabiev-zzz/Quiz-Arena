@@ -1,9 +1,10 @@
+import { LocalizedText } from '../../i18n/LocalizedText';
 ﻿import React from 'react';
 import {
   Modal,
   Pressable,
   StyleSheet,
-  Text,
+  NativeText,
   View,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
@@ -41,9 +42,9 @@ export default function GlassModal({
         />
         <GlassSurface style={styles.content} intensity={35}>
           {title ? (
-            <Text style={[styles.title, { color: tokens.colors.text }]}>
+            <LocalizedText style={[styles.title, { color: tokens.colors.text }]}>
               {title}
-            </Text>
+            </LocalizedText>
           ) : null}
           {children}
         </GlassSurface>
