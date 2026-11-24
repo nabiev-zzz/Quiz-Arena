@@ -23,6 +23,18 @@ export interface LearningReviewQuestion {
   aiExplanation?: string;
 }
 
+export interface LearningHistorySummary {
+  id: string;
+  subjectId: string;
+  subjectName: string;
+  topicId: string;
+  topicName: string;
+  totalQuestions: number;
+  correctAnswers: number;
+  accuracy: number;
+  completedAt: string;
+}
+
 export interface LearningHistoryItem {
   id: string;
   subjectId: string;
@@ -101,7 +113,11 @@ export function saveLearningAttempt(input: LearningAttemptInput): Promise<Learni
 }
 
 export function getLearningHistory() {
-  return learningRequest<LearningHistoryItem[]>('/api/learning/attempts');
+  return learningRequest<LearningHistorySummary[]>('/api/learning/attempts');
+}
+
+export function getLearningHistoryItem(attemptId: string) {
+  return learningRequest<LearningHistoryItem>(`/api/learning/attempts/${encodeURIComponent(attemptId)}`);
 }
 
 export function updateLearningAttemptReview(attemptId: string, review: LearningReviewQuestion[]) {
