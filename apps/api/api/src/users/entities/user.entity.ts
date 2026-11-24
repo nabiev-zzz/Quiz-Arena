@@ -57,7 +57,7 @@ export class User {
   @Column({ type: 'integer', default: 1 })
   level: number;
 
-  @Column({ type: 'varchar', length: 500, nullable: true })
+  @Column({ type: 'text', nullable: true })
   avatarUrl: string | null;
 
   @Column({ type: 'varchar', length: 500, nullable: true })

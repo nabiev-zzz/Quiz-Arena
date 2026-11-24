@@ -27,6 +27,7 @@ import { CreateAuthOtps20261124150000 } from './database/migrations/CreateAuthOt
 import { CreateAuthOAuthCodes20261124151000 } from './database/migrations/CreateAuthOAuthCodes';
 import { CreateAuthEmailCodes20261124170000 } from './database/migrations/CreateAuthEmailCodes';
 import { AddTelegramIdentity20261124190000 } from './database/migrations/AddTelegramIdentity';
+import { AddAvatarImageSupport20261124230000 } from './database/migrations/AddAvatarImageSupport';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
 
@@ -61,6 +62,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         CreateAuthOAuthCodes20261124151000,
         CreateAuthEmailCodes20261124170000,
         AddTelegramIdentity20261124190000,
+        AddAvatarImageSupport20261124230000,
       ],
       migrationsRun: true,
       migrationsTableName: 'typeorm_migrations',

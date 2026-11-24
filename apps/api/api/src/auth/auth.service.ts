@@ -23,6 +23,7 @@ export interface UpdateProfileInput {
   displayName?: string;
   username?: string;
   bio?: string | null;
+  avatarUrl?: string | null;
   avatarDecoration?: string | null;
   profileFrame?: string | null;
 }
@@ -109,6 +110,7 @@ export class AuthService {
     }
 
     if (input.bio !== undefined) user.bio = input.bio?.trim() || null;
+    if (input.avatarUrl !== undefined) user.avatarUrl = input.avatarUrl;
     if (input.avatarDecoration !== undefined) user.avatarDecoration = input.avatarDecoration;
     if (input.profileFrame !== undefined) user.profileFrame = input.profileFrame;
 

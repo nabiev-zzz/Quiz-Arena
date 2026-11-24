@@ -295,6 +295,25 @@ const phrases: Record<string, readonly [string, string]> = {
   'ingliz tili': ['English language', 'Английский язык'],
   'ingliz tilini bosqichma-bosqich o‘rganing': ['Learn English step by step', 'Изучайте английский шаг за шагом'],
 
+
+  'avatar tanlash': ['Choose avatar', 'Выбрать аватар'],
+  'o‘zingizga mos uslubni tanlang': ['Choose a style that fits you', 'Выберите стиль по душе'],
+  'galereyadan rasm tanlash': ['Choose photo from gallery', 'Выбрать фото из галереи'],
+  'o‘zingizning rasmingizni yuklang': ['Upload your own photo', 'Загрузите собственное фото'],
+  'standart avatarni ishlatish': ['Use default avatar', 'Использовать стандартный аватар'],
+  'avatar profilingizga saqlandi.': ['Avatar saved to your profile.', 'Аватар сохранён в вашем профиле.'],
+  'rasmni tayyorlab bo‘lmadi. boshqa rasm tanlang.': ['Could not prepare the image. Choose another photo.', 'Не удалось подготовить изображение. Выберите другое фото.'],
+  'rasm juda katta': ['Image is too large', 'Изображение слишком большое'],
+  'rasm hajmi katta. uni kichraytirib, qayta tanlang.': ['The image is too large. Resize it and choose it again.', 'Изображение слишком большое. Уменьшите его и выберите снова.'],
+  'anime': ['Anime', 'Аниме'],
+  'gaming': ['Gaming', 'Игровые'],
+  'robotlar': ['Robots', 'Роботы'],
+  'fantasy': ['Fantasy', 'Фэнтези'],
+  'hayvonlar': ['Animals', 'Животные'],
+  'minimal': ['Minimal', 'Минимализм'],
+  'cartoon': ['Cartoon', 'Мультфильмы'],
+  'emoji': ['Emoji', 'Эмодзи'],
+
 };
 
 const phraseLookup = new Map<string, readonly [string, string]>(
