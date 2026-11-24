@@ -520,9 +520,9 @@ export class AuthService {
     return `quizarena://auth?code=${encodeURIComponent(rawCode)}`;
   }
 
-  async exchangeGoogleCode(rawCode: string) {
+  private async exchangeOAuthCode(rawCode: string, provider: 'Google' | 'Telegram') {
     if (!/^[A-Za-z0-9_-]{40,60}$/.test(rawCode)) {
-      throw new UnauthorizedException('Google kirish kodi noto‘g‘ri yoki muddati tugagan');
+      throw new UnauthorizedException(`${provider} kirish kodi noto‘g‘ri yoki muddati tugagan`);
     }
     const codeHash = createHash('sha256').update(rawCode).digest('hex');
     const challenge = await this.oauthCodeRepository
@@ -532,7 +532,9 @@ export class AuthService {
       .andWhere('oauth.consumedAt IS NULL')
       .andWhere('oauth.expiresAt > :now', { now: new Date() })
       .getOne();
-    if (!challenge) throw new UnauthorizedException('Google kirish kodi noto‘g‘ri yoki muddati tugagan');
+    if (!challenge) {
+      throw new UnauthorizedException(`${provider} kirish kodi noto‘g‘ri yoki muddati tugagan`);
+    }
 
     const consumed = await this.oauthCodeRepository
       .createQueryBuilder()
@@ -543,11 +545,21 @@ export class AuthService {
       .andWhere('"expiresAt" > :now', { now: new Date() })
       .execute();
     if (consumed.affected !== 1) {
-      throw new UnauthorizedException('Google kirish kodi noto‘g‘ri yoki muddati tugagan');
+      throw new UnauthorizedException(`${provider} kirish kodi noto‘g‘ri yoki muddati tugagan`);
     }
     const user = await this.userRepository.findOne({ where: { id: challenge.userId } });
-    if (!user || user.status !== 'active') throw new UnauthorizedException('Hisob topilmadi yoki bloklangan');
+    if (!user || user.status !== 'active') {
+      throw new UnauthorizedException('Hisob topilmadi yoki bloklangan');
+    }
     return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
+  }
+
+  async exchangeTelegramCode(rawCode: string) {
+    return this.exchangeOAuthCode(rawCode, 'Telegram');
+  }
+
+  async exchangeGoogleCode(rawCode: string) {
+    return this.exchangeOAuthCode(rawCode, 'Google');
   }
 
   async loginWithGoogle(idToken: string, expectedNonce?: string) {
