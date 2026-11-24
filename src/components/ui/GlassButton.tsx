@@ -5,7 +5,7 @@ import {
   Pressable,
   StyleProp,
   StyleSheet,
-  NativeText,
+  Text as NativeText,
   ViewStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
