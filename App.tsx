@@ -1,4 +1,4 @@
-import { LocalizedText, LocalizedTextInput } from './src/i18n/LocalizedText';
+import { LocalizedText, LocalizedTextInput, translateText } from './src/i18n/LocalizedText';
 
 import { useRef, useState } from 'react';
 import Animated, {
@@ -74,7 +74,7 @@ function AppContent() {
     startGoogleLogin,
     startTelegramLogin,
   } = useAuth();
-  const { theme, ready } = useAppSettings();
+  const { theme, language, ready } = useAppSettings();
   const insets = useSafeAreaInsets();
   const { tokens } = useTheme();
 
@@ -126,20 +126,20 @@ function AppContent() {
   const renderHome = () => {
     const normalizedQuery = searchQuery.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
     const features = [
-      { key: 'learn', title: 'Fanlar va testlar', detail: 'Fanlarni tanlang, mavzularni yeching', icon: 'book-outline' as const },
-      { key: 'battle', title: 'Battle', detail: 'Raqiblar bilan bilim bellashuvi', icon: 'flash-outline' as const },
-      { key: 'ranking', title: 'Reyting', detail: 'Liderlar va natijalarni ko‘ring', icon: 'trophy-outline' as const },
-      { key: 'tutor', title: 'AI Ustoz', detail: 'Savol bering, mavzuni tushuning', icon: 'sparkles-outline' as const },
-      { key: 'friends', title: 'Hamjamiyat', detail: 'Bilimdonlarni toping va kuzating', icon: 'people-outline' as const },
-      { key: 'profile', title: 'Profil', detail: 'Hisob, avatar va yutuqlaringiz', icon: 'person-outline' as const },
-      { key: 'premium', title: 'Premium', detail: 'Qo‘shimcha tarif va imkoniyatlar', icon: 'diamond-outline' as const },
-      { key: 'settings', title: 'Sozlamalar', detail: 'Til, mavzu va bildirishnomalar', icon: 'settings-outline' as const },
+      { key: 'learn', title: translateText('Fanlar va testlar', language), detail: translateText('Fanlarni tanlang, mavzularni yeching', language), icon: 'book-outline' as const },
+      { key: 'battle', title: 'Battle', detail: translateText('Raqiblar bilan bilim bellashuvi', language), icon: 'flash-outline' as const },
+      { key: 'ranking', title: translateText('Reyting', language), detail: translateText('Liderlar va natijalarni ko‘ring', language), icon: 'trophy-outline' as const },
+      { key: 'tutor', title: translateText('AI Ustoz', language), detail: translateText('Savol bering, mavzuni tushuning', language), icon: 'sparkles-outline' as const },
+      { key: 'friends', title: translateText('Hamjamiyat', language), detail: translateText('Bilimdonlarni toping va kuzating', language), icon: 'people-outline' as const },
+      { key: 'profile', title: translateText('Profil', language), detail: translateText('Hisob, avatar va yutuqlaringiz', language), icon: 'person-outline' as const },
+      { key: 'premium', title: 'Premium', detail: translateText('Qo‘shimcha tarif va imkoniyatlar', language), icon: 'diamond-outline' as const },
+      { key: 'settings', title: translateText('Sozlamalar', language), detail: translateText('Til, mavzu va bildirishnomalar', language), icon: 'settings-outline' as const },
     ];
     const featureMatches = normalizedQuery
       ? features.filter((item) => `${item.title} ${item.detail}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery))
       : [];
     const subjectMatches = normalizedQuery
-      ? learningSubjects.filter((subject) => `${subject.name} ${subject.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8)
+      ? learningSubjects.filter((subject) => `${subject.name} ${translateText(subject.name, language)} ${subject.description} ${translateText(subject.description, language)}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8)
       : [];
     const topicMatches = normalizedQuery
       ? learningSubjects.flatMap((subject) => subject.topics.filter((topic) => `${subject.name} ${topic.name} ${topic.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).map((topic) => ({ subject, topic }))).slice(0, 20)
