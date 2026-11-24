@@ -18,6 +18,7 @@ import { AddUserRankPoints20261124002500 } from './database/migrations/AddUserRa
 import { AddBattleMatchRankChanges20261124040000 } from './database/migrations/AddBattleMatchRankChanges';
 import { CreateUserFollows20261124070000 } from './database/migrations/CreateUserFollows';
 import { CreateLearningAttempts20261124090000 } from './database/migrations/CreateLearningAttempts';
+import { AddLearningAttemptReview20261124235000 } from './database/migrations/AddLearningAttemptReview';
 import { CreateLearningQuestionBank20261124200000 } from './database/migrations/CreateLearningQuestionBank';
 import { CreateLearningWebSessions20261124210000 } from './database/migrations/CreateLearningWebSessions';
 import { CreateUserSubscriptions20261124120000 } from './database/migrations/CreateUserSubscriptions';
@@ -53,6 +54,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         AddBattleMatchRankChanges20261124040000,
         CreateUserFollows20261124070000,
         CreateLearningAttempts20261124090000,
+        AddLearningAttemptReview20261124235000,
         CreateLearningQuestionBank20261124200000,
         CreateLearningWebSessions20261124210000,
         CreateUserSubscriptions20261124120000,
