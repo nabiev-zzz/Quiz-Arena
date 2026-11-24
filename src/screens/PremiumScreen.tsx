@@ -13,21 +13,21 @@ const money = (value: number | null) => value === null ? 'Narx sozlanmagan' : ne
 const planBenefits = (planKey: string): string[] => {
   if (planKey.startsWith('legenda_plus_')) return [
     'Cheksiz PDF va batafsil AI hisobotlari',
-    'Oyiga 100 ta hujjatdan 100 tagacha savol',
+    'Oyiga 100 ta hujjatdan 100 tagacha savol · 15 MB gacha',
     '10 kishilik Battle, elita turnirlar va Legend maqomi',
     'Cheksiz AI Ustoz va shaxsiy rivojlanish rejasi',
     'Noyob bezaklar va animatsiyali oltin ramka',
   ];
   if (planKey.startsWith('premium_pro_')) return [
     'Cheksiz PDF va AI statistik xulosalari',
-    'Oyiga 30 ta hujjatdan 50 tagacha savol',
+    'Oyiga 30 ta hujjatdan 50 tagacha savol · 12 MB gacha',
     '10 kishilik Battle va maxsus sozlamalar',
     'AI Ustoz, xatolar tahlili va to‘liq tarix',
     'Cheksiz AI Smart Practice va maxsus turnirlar',
   ];
   return [
     'Oyiga 10 ta kengaytirilgan PDF hisobot',
-    'Oyiga 5 ta hujjatdan 25 tagacha savol',
+    'Oyiga 5 ta hujjatdan 25 tagacha savol · 8 MB gacha',
     'Kuniga 10 ta do‘stlar Battle va 6 ishtirokchi',
     'Premium profil nishoni va eksklyuziv bezaklar',
     'Kengaytirilgan statistika va maxsus Battle sozlamalari',
