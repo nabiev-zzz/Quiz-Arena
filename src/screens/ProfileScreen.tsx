@@ -289,7 +289,7 @@ export default function ProfileScreen({
           >
             <Ionicons name="create-outline" size={17} color={colors.text} />
             <Text style={styles.editButtonText}>Profilni tahrirlash</Text>
-            <Ionicons name="arrow-up-right" size={16} color={colors.textMuted} />
+            <Ionicons name="arrow-forward" size={16} color={colors.textMuted} />
           </Pressable>
         </GlassSurface>
 
