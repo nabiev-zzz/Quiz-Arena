@@ -190,7 +190,11 @@ export class AuthService {
 
   async requestPasswordReset(phoneNumber: string) {
     const phone = this.otpService.normalizePhone(phoneNumber);
-    const user = await this.userRepository\n      .createQueryBuilder('user')\n      .where('user.phoneNumber = :phone', { phone })\n      .andWhere('user.phoneVerifiedAt IS NOT NULL')\n      .getOne();
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.phoneNumber = :phone', { phone })
+      .andWhere('user.phoneVerifiedAt IS NOT NULL')
+      .getOne();
     // Keep the response identical whether the account exists or not.
     if (user) await this.otpService.issue(phone, 'password_reset');
     return { message: 'Agar raqam QUIZ ARENA hisobiga bog‘langan bo‘lsa, kod yuboriladi' };
