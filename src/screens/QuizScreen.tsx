@@ -75,6 +75,9 @@ export default function QuizScreen({
   const savedAttemptKey = useRef<string | null>(null);
 
   const loadQuestions = useCallback(async () => {
+    savedAttemptKey.current = null;
+    setAttemptSaved(false);
+    setAttemptSaveError(false);
     setLoading(true);
     setError('');
 
