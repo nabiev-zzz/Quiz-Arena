@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
 import { UserSubscription } from './entities/subscription.entity';
 import { User } from '../users/entities/user.entity';
+import { getPlanEntitlements, resolveSubscriptionTier } from './plan-entitlements';
 
 @Injectable()
 export class SubscriptionsService {
@@ -32,11 +33,14 @@ export class SubscriptionsService {
   async current(userId: string) {
     const user = await this.users.findOne({ where: { id: userId, status: 'active' } });
     if (user?.role === 'admin') {
+      const planKey = 'legenda_plus_yearly';
       return {
         isPremium: true,
         isOwner: true,
+        tier: resolveSubscriptionTier(planKey),
+        entitlements: getPlanEntitlements(planKey),
         subscription: {
-          planKey: 'legenda_plus_yearly',
+          planKey,
           provider: 'owner',
           status: 'active',
           startsAt: user.createdAt,
@@ -50,11 +54,22 @@ export class SubscriptionsService {
       where: { userId, status: 'active', expiresAt: MoreThan(new Date()) },
       order: { expiresAt: 'DESC' },
     });
-    if (!subscription || !subscription.expiresAt) {
-      return { isPremium: false, subscription: null };
+    const planKey = subscription?.expiresAt ? subscription.planKey : null;
+    const tier = resolveSubscriptionTier(planKey);
+
+    if (!subscription || !subscription.expiresAt || tier === 'free') {
+      return {
+        isPremium: false,
+        tier: 'free',
+        entitlements: getPlanEntitlements(null),
+        subscription: null,
+      };
     }
+
     return {
       isPremium: true,
+      tier,
+      entitlements: getPlanEntitlements(planKey),
       subscription: {
         planKey: subscription.planKey,
         provider: subscription.provider,
