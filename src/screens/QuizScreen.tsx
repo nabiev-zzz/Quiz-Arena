@@ -18,7 +18,7 @@ import {
 import type { Question } from '../data/questions';
 import type { Difficulty, Subject, Topic } from '../types';
 import { useTheme } from '../theme/ThemeContext';
-import { getTopicQuestions, saveLearningAttempt } from '../services/learningService';
+import { getTopicQuestions, saveLearningAttempt, updateLearningAttemptReview } from '../services/learningService';
 import { sendTutorMessage } from '../services/aiTutorService';
 
 interface QuizScreenProps {
@@ -73,6 +73,8 @@ export default function QuizScreen({
   const [savingAttempt, setSavingAttempt] = useState(false);
   const [attemptSaved, setAttemptSaved] = useState(false);
   const [attemptSaveError, setAttemptSaveError] = useState(false);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [showQuestionReview, setShowQuestionReview] = useState(false);
   const [answers, setAnswers] = useState<Array<number | null>>([]);
   const [explainingQuestionIds, setExplainingQuestionIds] = useState<Record<string, boolean>>({});
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
@@ -80,6 +82,8 @@ export default function QuizScreen({
 
   const loadQuestions = useCallback(async () => {
     savedAttemptKey.current = null;
+    setAttemptId(null);
+    setShowQuestionReview(false);
     setAttemptSaved(false);
     setAttemptSaveError(false);
     setLoading(true);
@@ -144,14 +148,25 @@ export default function QuizScreen({
     setAttemptSaveError(false);
 
     try {
-      await saveLearningAttempt({
+      const saved = await saveLearningAttempt({
         subjectId: subject.id,
         subjectName: subject.name,
         topicId: topic.id,
         topicName: topic.name,
         totalQuestions: questions.length,
         correctAnswers: score,
+        review: questions.map((question, index) => ({
+          id: question.id,
+          question: question.question,
+          options: question.options,
+          selectedAnswer: answers[index] ?? question.correctAnswer,
+          correctAnswer: question.correctAnswer,
+          isCorrect: answers[index] === question.correctAnswer,
+          explanation: question.explanation || '',
+          aiExplanation: aiExplanations[question.id] || '',
+        })),
       });
+      setAttemptId(saved.id);
       setAttemptSaved(true);
     } catch {
       savedAttemptKey.current = null;
@@ -159,11 +174,26 @@ export default function QuizScreen({
     } finally {
       setSavingAttempt(false);
     }
-  }, [finished, questions, score, subject.id, subject.name, topic.id, topic.name]);
+  }, [finished, questions, answers, aiExplanations, score, subject.id, subject.name, topic.id, topic.name]);
 
   useEffect(() => {
     if (finished) void saveFinishedAttempt();
   }, [finished, saveFinishedAttempt]);
+
+  useEffect(() => {
+    if (!attemptId || questions.length === 0) return;
+    const review = questions.map((question, index) => ({
+      id: question.id,
+      question: question.question,
+      options: question.options,
+      selectedAnswer: answers[index] ?? question.correctAnswer,
+      correctAnswer: question.correctAnswer,
+      isCorrect: answers[index] === question.correctAnswer,
+      explanation: question.explanation || '',
+      aiExplanation: aiExplanations[question.id] || '',
+    }));
+    void updateLearningAttemptReview(attemptId, review).catch(() => undefined);
+  }, [attemptId, questions, answers, aiExplanations]);
 
   const chooseAnswer = (index: number) => {
     if (selectedAnswer !== null || !currentQuestion) return;
@@ -258,8 +288,13 @@ export default function QuizScreen({
         <LocalizedText style={styles.muted}>To‘g‘ri javoblar soni · {Math.round((score / questions.length) * 100)}% aniqlik</LocalizedText>
 
         <View style={{ width: '100%', gap: 10, marginTop: 18 }}>
-          <LocalizedText style={styles.sectionTitle}>Savollar bo‘yicha tahlil</LocalizedText>
-          {questions.map((question, index) => {
+          <Pressable style={styles.primaryButton} onPress={() => setShowQuestionReview((value) => !value)}>
+            <LocalizedText style={styles.buttonText}>{showQuestionReview ? 'Natijaga qaytish' : 'Savollar tahlilini ko‘rish'}</LocalizedText>
+          </Pressable>
+          {showQuestionReview ? (
+            <>
+              <LocalizedText style={styles.sectionTitle}>Savollar tahlili</LocalizedText>
+              {questions.map((question, index) => {
             const selected = answers[index];
             const isCorrect = selected === question.correctAnswer;
             return (
@@ -278,7 +313,9 @@ export default function QuizScreen({
                 )}
               </View>
             );
-          })}
+              })}
+            </>
+          ) : null}
         </View>
 
         {savingAttempt ? (
