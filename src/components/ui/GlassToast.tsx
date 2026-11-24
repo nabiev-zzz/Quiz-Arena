@@ -2,7 +2,7 @@ import { LocalizedText } from '../../i18n/LocalizedText';
 ﻿import React from 'react';
 import {
   StyleSheet,
-  NativeText,
+  Text as NativeText,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
