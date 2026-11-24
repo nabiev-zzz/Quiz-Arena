@@ -2,7 +2,7 @@
   "use strict";
   const API = "https://humorous-imagination-production.up.railway.app";
   const $ = (id) => document.getElementById(id);
-  const state = { token: localStorage.getItem("qa_access_token") || "", user: null, subjects: [], subject: null, topic: null, questions: [], answers: [], result: null, index: 0, score: 0, selected: null, count: 10, difficulty: "medium", language: "uz", saved: false, saveError: false };
+  const state = { token: localStorage.getItem("qa_access_token") || "", user: null, subjects: [], subject: null, topic: null, questions: [], answers: [], result: null, sessionId: null, index: 0, score: 0, selected: null, count: 10, difficulty: "medium", language: "uz", saved: false, saveError: false };
   const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[char]));
   const show = (el, visible = true) => el.classList.toggle("hidden", !visible);
   const notice = (message, error = false) => { const el=$("globalNotice"); el.textContent=message; el.className="notice"+(error?" error":""); show(el,true); window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"}); };
@@ -99,7 +99,7 @@
     try {
       const result=await request("/api/learning/web/questions",{method:"POST",body:JSON.stringify({subjectId:state.subject.id,topicId:state.topic.id,count:state.count,difficulty:state.difficulty,language:state.language})});
       if(!Array.isArray(result.questions)||result.questions.length!==state.count) throw new Error("Savollar soni mos kelmadi. Qayta urinib ko‘ring.");
-      state.questions=result.questions; state.answers=[]; state.result=null; state.index=0; state.score=0; state.selected=null; state.saved=false; state.saveError=false;
+      state.questions=result.questions; state.sessionId=result.sessionId; state.answers=[]; state.result=null; state.index=0; state.score=0; state.selected=null; state.saved=false; state.saveError=false;
       renderQuestion();
     } catch(error) { $("quizPanel").innerHTML=`<p class="notice error">${escapeHtml(error.message)}</p><button id="retryLoad" class="primary" type="button">Qayta urinish</button>`; $("retryLoad").addEventListener("click",startQuiz); }
   }
@@ -119,7 +119,7 @@
   async function finishQuiz() {
     $("quizPanel").innerHTML='<div class="loading"><div class="spinner"></div>Javoblar serverda tekshirilmoqda va natijangiz saqlanmoqda...</div>';
     try {
-      state.result=await request("/api/learning/web/attempts",{method:"POST",body:JSON.stringify({subjectId:state.subject.id,topicId:state.topic.id,language:state.language,difficulty:state.difficulty,answers:state.answers})});
+      state.result=await request("/api/learning/web/attempts",{method:"POST",body:JSON.stringify({sessionId:state.sessionId,subjectId:state.subject.id,topicId:state.topic.id,language:state.language,difficulty:state.difficulty,answers:state.answers})});
       state.score=state.result.correctAnswers; state.saved=true;
     } catch(error) { state.saveError=true; state.saveMessage=error.message; }
     renderResult();
