@@ -11,6 +11,7 @@ import {
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -22,14 +23,17 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
+import { getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 
 interface ProfileScreenProps {
   onSettingsPress?: () => void;
+  onUserPress?: (username: string) => void;
   dockStretch?: SharedValue<number>;
 }
 
 export default function ProfileScreen({
   onSettingsPress,
+  onUserPress,
   dockStretch,
 }: ProfileScreenProps) {
   const { tokens, isDark } = useTheme();
@@ -74,6 +78,8 @@ export default function ProfileScreen({
   const [bio, setBio] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
+  const [socialProfile, setSocialProfile] = useState<PublicUser | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -83,6 +89,19 @@ export default function ProfileScreen({
       setAvatarUri(user.avatarUrl);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    Promise.all([getUserSuggestions(), getPublicUserProfile(user.username)])
+      .then(([people, ownProfile]) => {
+        if (!active) return;
+        setSuggestions(people);
+        setSocialProfile(ownProfile);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [user?.id, user?.username]);
 
   if (!user) {
     return (
@@ -273,12 +292,12 @@ export default function ProfileScreen({
           <View style={styles.heroDivider} />
           <View style={styles.followRow}>
             <View style={styles.followItem}>
-              <Text style={styles.followNumber}>—</Text>
+              <Text style={styles.followNumber}>{socialProfile?.followersCount ?? 0}</Text>
               <Text style={styles.followLabel}>Kuzatuvchilar</Text>
             </View>
             <View style={styles.followDivider} />
             <View style={styles.followItem}>
-              <Text style={styles.followNumber}>—</Text>
+              <Text style={styles.followNumber}>{socialProfile?.followingCount ?? 0}</Text>
               <Text style={styles.followLabel}>Kuzatilayotganlar</Text>
             </View>
           </View>
@@ -292,6 +311,30 @@ export default function ProfileScreen({
             <Ionicons name="arrow-forward" size={16} color={colors.textMuted} />
           </Pressable>
         </GlassSurface>
+
+        <View style={styles.socialHeading}>
+          <View>
+            <Text style={styles.sectionEyebrow}>COMMUNITY</Text>
+            <Text style={styles.sectionTitle}>Do‘stlar ortiring</Text>
+          </View>
+          <Pressable onPress={() => onUserPress?.('discover')} hitSlop={8}>
+            <Text style={styles.moreLink}>Ko‘proq <Ionicons name="chevron-forward" size={12} /></Text>
+          </Pressable>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsRow}>
+          {suggestions.map((person) => {
+            const personInitials = person.displayName.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+            return (
+              <Pressable key={person.id} style={styles.personCard} onPress={() => onUserPress?.(person.username)}>
+                {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.personAvatar} /> : <View style={styles.personAvatarFallback}><Text style={styles.personInitials}>{personInitials || '?'}</Text></View>}
+                <Text style={styles.personName} numberOfLines={1}>{person.displayName}</Text>
+                <Text style={styles.personFollowers} numberOfLines={1}>{person.followersCount} kuzatuvchi</Text>
+                <Text style={styles.personAction}>Profilni ko‘rish</Text>
+              </Pressable>
+            );
+          })}
+          {suggestions.length === 0 ? <Text style={styles.noSuggestions}>Hozircha yangi tavsiyalar yo‘q</Text> : null}
+        </ScrollView>
 
         <View style={styles.sectionHeading}>
           <View>
@@ -804,6 +847,74 @@ function makeStyles(
       color: colors.text,
       fontWeight: '700',
       fontSize: 13,
+    },
+    socialHeading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 24,
+      marginBottom: 10,
+    },
+    moreLink: {
+      color: colors.primary,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    suggestionsRow: {
+      gap: 10,
+      paddingBottom: 3,
+    },
+    personCard: {
+      width: 124,
+      minHeight: 151,
+      alignItems: 'center',
+      padding: 12,
+      borderRadius: 19,
+      borderWidth: 1,
+      borderColor: glassBorder,
+      backgroundColor: glassFill,
+    },
+    personAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      marginBottom: 8,
+    },
+    personAvatarFallback: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+      backgroundColor: colors.surfaceElevated,
+    },
+    personInitials: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: '800',
+    },
+    personName: {
+      color: colors.text,
+      fontSize: 11,
+      fontWeight: '800',
+      maxWidth: '100%',
+    },
+    personFollowers: {
+      color: colors.textMuted,
+      fontSize: 9,
+      marginTop: 4,
+    },
+    personAction: {
+      color: colors.primary,
+      fontSize: 10,
+      fontWeight: '700',
+      marginTop: 8,
+    },
+    noSuggestions: {
+      color: colors.textMuted,
+      fontSize: 12,
+      paddingVertical: 20,
     },
     sectionHeading: {
       flexDirection: 'row',
