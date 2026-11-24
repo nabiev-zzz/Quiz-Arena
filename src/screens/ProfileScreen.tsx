@@ -351,30 +351,32 @@ export default function ProfileScreen({
           {suggestions.map((person) => {
             const personInitials = person.displayName.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
             return (
-              <Pressable key={person.id} style={styles.personCard} onPress={() => onUserPress?.(person.username)}>
-                {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.personAvatar} /> : <View style={styles.personAvatarFallback}><Text style={styles.personInitials}>{personInitials || '?'}</Text></View>}
-                <Text style={styles.personName} numberOfLines={1}>{person.displayName}</Text>
-                <Text style={styles.personFollowers} numberOfLines={1}>{person.followersCount} kuzatuvchi</Text>
-              </Pressable>
-              <Pressable
-                style={styles.personFollowButton}
-                disabled={followingUserId === person.id}
-                onPress={async () => {
-                  setFollowingUserId(person.id);
-                  try {
-                    await followUser(person.id);
-                    setSuggestions((current) => current.filter((item) => item.id !== person.id));
-                    setSocialProfile((current) => current ? { ...current, followingCount: (current.followingCount ?? 0) + 1 } : current);
-                  } catch (error) {
-                    Alert.alert('Xatolik', error instanceof Error ? error.message : 'Kuzatib bo‘lmadi');
-                  } finally {
-                    setFollowingUserId(null);
-                  }
-                }}
-              >
-                <Ionicons name="person-add-outline" size={12} color={colors.primary} />
-                <Text style={styles.personAction}>{followingUserId === person.id ? '...' : 'Kuzatish'}</Text>
-              </Pressable>
+              <View key={person.id} style={styles.personCard}>
+                <Pressable style={styles.personIdentity} onPress={() => onUserPress?.(person.username)}>
+                  {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.personAvatar} /> : <View style={styles.personAvatarFallback}><Text style={styles.personInitials}>{personInitials || '?'}</Text></View>}
+                  <Text style={styles.personName} numberOfLines={1}>{person.displayName}</Text>
+                  <Text style={styles.personFollowers} numberOfLines={1}>{person.followersCount} kuzatuvchi</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.personFollowButton}
+                  disabled={followingUserId === person.id}
+                  onPress={async () => {
+                    setFollowingUserId(person.id);
+                    try {
+                      await followUser(person.id);
+                      setSuggestions((current) => current.filter((item) => item.id !== person.id));
+                      setSocialProfile((current) => current ? { ...current, followingCount: (current.followingCount ?? 0) + 1 } : current);
+                    } catch (error) {
+                      Alert.alert('Xatolik', error instanceof Error ? error.message : 'Kuzatib bo‘lmadi');
+                    } finally {
+                      setFollowingUserId(null);
+                    }
+                  }}
+                >
+                  <Ionicons name="person-add-outline" size={12} color={colors.primary} />
+                  <Text style={styles.personAction}>{followingUserId === person.id ? '...' : 'Kuzatish'}</Text>
+                </Pressable>
+              </View>
             );
           })}
           {suggestions.length === 0 ? <Text style={styles.noSuggestions}>Hozircha yangi tavsiyalar yo‘q</Text> : null}
@@ -969,6 +971,10 @@ function makeStyles(
       borderWidth: 1,
       borderColor: glassBorder,
       backgroundColor: glassFill,
+    },
+    personIdentity: {
+      alignItems: 'center',
+      width: '100%',
     },
     personAvatar: {
       width: 48,
