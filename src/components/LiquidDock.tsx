@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
-  NativeText,
+  Text as NativeText,
   View,
 } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
