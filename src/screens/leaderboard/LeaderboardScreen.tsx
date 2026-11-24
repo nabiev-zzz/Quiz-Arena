@@ -41,7 +41,7 @@ export default function LeaderboardScreen() {
       <View style={styles.heading}><LocalizedText style={[styles.sectionTitle, { color: colors.text }]}>Top bilimdonlar</LocalizedText><LocalizedText style={[styles.caption, { color: colors.textMuted }]}>{period}</LocalizedText></View>
       <Animated.View style={animatedList}>
         <Podium users={users.slice(0,3)}/>
-        <View style={styles.heading}><LocalizedText style={styles.sectionTitle}>Reyting jadvali</LocalizedText><LocalizedText style={styles.caption}>{users.length} ishtirokchi</LocalizedText></View>
+        <View style={styles.heading}><LocalizedText style={[styles.sectionTitle, { color: colors.text }]}>Reyting jadvali</LocalizedText><LocalizedText style={[styles.caption, { color: colors.textMuted }]}>{users.length} ishtirokchi</LocalizedText></View>
         {users.slice(3).map((user,index)=><LeaderRow key={user.id} user={user} index={index}/>)}
         <GlassCard style={styles.note}><Ionicons name="sparkles" size={17} color={t.cyan}/><LocalizedText style={[styles.noteText, { color: colors.textSecondary }]}>Har bir to‘g‘ri javob seni yuqoriga olib chiqadi.</LocalizedText></GlassCard>
       </Animated.View>
