@@ -82,6 +82,8 @@ export default function ProfileScreen({
   const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
   const [socialProfile, setSocialProfile] = useState<PublicUser | null>(null);
   const [followingUserId, setFollowingUserId] = useState<string | null>(null);
+  const [cosmeticType, setCosmeticType] = useState<'decoration' | 'frame' | null>(null);
+  const [cosmeticSaving, setCosmeticSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -139,6 +141,19 @@ export default function ProfileScreen({
           100,
       )
     : 100;
+
+  const saveCosmetic = async (value: string | null) => {
+    if (!cosmeticType || cosmeticSaving) return;
+    setCosmeticSaving(true);
+    try {
+      await updateProfile(cosmeticType === 'decoration' ? { avatarDecoration: value } : { profileFrame: value });
+      setCosmeticType(null);
+    } catch (error) {
+      Alert.alert('Xatolik', error instanceof Error ? error.message : 'Bezakni saqlab bo‘lmadi');
+    } finally {
+      setCosmeticSaving(false);
+    }
+  };
 
   const copyUsername = async () => {
     try {
@@ -460,31 +475,35 @@ export default function ProfileScreen({
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </GlassSurface>
 
-        <GlassSurface intensity={glassIntensity} style={styles.infoCard}>
-          <View style={[styles.infoIconWrap, styles.purpleIconWrap]}>
-            <Ionicons name="color-palette-outline" size={21} color="#BBA8FF" />
-          </View>
-          <View style={styles.infoTextContainer}>
-            <Text style={styles.infoTitle}>Avatar bezaklari</Text>
-            <Text style={styles.infoSubtitle}>
-              {user.avatarDecoration || 'Hozircha bezak tanlanmagan'}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </GlassSurface>
+        <Pressable onPress={() => setCosmeticType('decoration')} accessibilityRole="button">
+          <GlassSurface intensity={glassIntensity} style={styles.infoCard}>
+            <View style={[styles.infoIconWrap, styles.purpleIconWrap]}>
+              <Ionicons name="color-palette-outline" size={21} color="#BBA8FF" />
+            </View>
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoTitle}>Avatar bezaklari</Text>
+              <Text style={styles.infoSubtitle}>
+                {user.avatarDecoration || 'Hozircha bezak tanlanmagan'}
+              </Text>
+            </View>
+            <Text style={styles.cosmeticAction}>Sozlash</Text>
+          </GlassSurface>
+        </Pressable>
 
-        <GlassSurface intensity={glassIntensity} style={styles.infoCard}>
-          <View style={[styles.infoIconWrap, styles.blueIconWrap]}>
-            <Ionicons name="albums-outline" size={21} color="#8BCDF7" />
-          </View>
-          <View style={styles.infoTextContainer}>
-            <Text style={styles.infoTitle}>Profil ramkasi</Text>
-            <Text style={styles.infoSubtitle}>
-              {user.profileFrame || 'Standart ramka'}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </GlassSurface>
+        <Pressable onPress={() => setCosmeticType('frame')} accessibilityRole="button">
+          <GlassSurface intensity={glassIntensity} style={styles.infoCard}>
+            <View style={[styles.infoIconWrap, styles.blueIconWrap]}>
+              <Ionicons name="albums-outline" size={21} color="#8BCDF7" />
+            </View>
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoTitle}>Profil ramkasi</Text>
+              <Text style={styles.infoSubtitle}>
+                {user.profileFrame || 'Standart ramka'}
+              </Text>
+            </View>
+            <Text style={styles.cosmeticAction}>Sozlash</Text>
+          </GlassSurface>
+        </Pressable>
 
         <Pressable
           style={styles.logoutButton}
@@ -570,6 +589,37 @@ export default function ProfileScreen({
                 <Text style={styles.saveButtonText}>O‘zgarishlarni saqlash</Text>
               )}
             </Pressable>
+          </GlassSurface>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={cosmeticType !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCosmeticType(null)}
+      >
+        <View style={styles.modalBackground}>
+          <GlassSurface intensity={glassIntensity + 10} style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{cosmeticType === 'decoration' ? 'Avatar bezagini tanlang' : 'Profil ramkasini tanlang'}</Text>
+              <Pressable onPress={() => setCosmeticType(null)} style={styles.modalClose}>
+                <Ionicons name="close" size={19} color={colors.text} />
+              </Pressable>
+            </View>
+            {(cosmeticType === 'decoration'
+              ? [{ value: null, label: 'Standart bezak' }, { value: 'sparkle', label: 'Yulduzcha' }, { value: 'crown', label: 'Toj' }, { value: 'laurel', label: 'Laurel' }]
+              : [{ value: null, label: 'Standart ramka' }, { value: 'aurora', label: 'Aurora' }, { value: 'royal', label: 'Royal' }, { value: 'ocean', label: 'Ocean' }]
+            ).map((option) => {
+              const selected = cosmeticType === 'decoration' ? user.avatarDecoration === option.value : user.profileFrame === option.value;
+              return (
+                <Pressable key={option.label} style={[styles.cosmeticOption, selected && styles.cosmeticOptionSelected]} disabled={cosmeticSaving} onPress={() => void saveCosmetic(option.value)}>
+                  <Text style={styles.cosmeticOptionText}>{option.label}</Text>
+                  {selected ? <Ionicons name="checkmark-circle" size={19} color={colors.primary} /> : <Ionicons name="ellipse-outline" size={18} color={colors.textMuted} />}
+                </Pressable>
+              );
+            })}
+            {cosmeticSaving ? <ActivityIndicator color={colors.primary} style={{ marginTop: 10 }} /> : null}
           </GlassSurface>
         </View>
       </Modal>
@@ -1132,6 +1182,32 @@ function makeStyles(
     },
     blueIconWrap: {
       backgroundColor: 'rgba(139, 205, 247, 0.11)',
+    },
+    cosmeticAction: {
+      color: colors.primary,
+      fontSize: 11,
+      fontWeight: '800',
+    },
+    cosmeticOption: {
+      minHeight: 48,
+      borderRadius: 13,
+      borderWidth: 1,
+      borderColor: glassBorder,
+      backgroundColor: glassFill,
+      paddingHorizontal: 13,
+      marginTop: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    cosmeticOptionSelected: {
+      borderColor: colors.primary,
+      backgroundColor: isDark ? 'rgba(183,163,255,0.13)' : 'rgba(123,99,204,0.09)',
+    },
+    cosmeticOptionText: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '700',
     },
     infoTextContainer: {
       flex: 1,
