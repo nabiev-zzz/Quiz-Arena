@@ -6,7 +6,7 @@ import {
   Pressable,
   StyleSheet,
   Switch,
-  NativeText,
+  Text as NativeText,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
