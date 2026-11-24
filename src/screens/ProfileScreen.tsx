@@ -26,6 +26,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
+import { getPremiumStatus, type PremiumStatus } from '../services/subscriptionService';
 
 interface ProfileScreenProps {
   onSettingsPress?: () => void;
@@ -87,6 +88,7 @@ export default function ProfileScreen({
   const [followingUserId, setFollowingUserId] = useState<string | null>(null);
   const [cosmeticType, setCosmeticType] = useState<'decoration' | 'frame' | null>(null);
   const [cosmeticSaving, setCosmeticSaving] = useState(false);
+  const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -96,6 +98,15 @@ export default function ProfileScreen({
       setAvatarUri(user.avatarUrl);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    getPremiumStatus()
+      .then((status) => { if (active) setPremiumStatus(status); })
+      .catch(() => { if (active) setPremiumStatus(null); });
+    return () => { active = false; };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -239,6 +250,18 @@ export default function ProfileScreen({
     .toUpperCase();
 
   const glassIntensity = isDark ? 34 : 42;
+  const createdAtDate = user.createdAt ? new Date(user.createdAt) : null;
+  const memberSince = createdAtDate && !Number.isNaN(createdAtDate.getTime())
+    ? createdAtDate.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'Ma’lumot mavjud emas';
+  const premiumUntil = premiumStatus?.subscription?.expiresAt
+    ? new Date(premiumStatus.subscription.expiresAt)
+    : null;
+  const premiumDescription = premiumStatus?.isPremium
+    ? premiumUntil && !Number.isNaN(premiumUntil.getTime())
+      ? `Faol obuna · ${premiumUntil.toLocaleDateString('uz-UZ')} gacha`
+      : 'Premium obunangiz faol'
+    : 'Pullik tariflar va maxsus imkoniyatlar';
 
   return (
     <View style={styles.screen}>
@@ -284,7 +307,6 @@ export default function ProfileScreen({
 
           <View style={styles.identityBlock}>
             <View style={styles.avatarStage}>
-              <View style={styles.avatarHalo} />
               <View style={[styles.avatarBorder, user.profileFrame === 'aurora' ? styles.frameAurora : user.profileFrame === 'royal' ? styles.frameRoyal : user.profileFrame === 'ocean' ? styles.frameOcean : null]}>
                 {avatarUri ? (
                   <Image source={{ uri: avatarUri }} style={styles.avatar} />
@@ -294,11 +316,6 @@ export default function ProfileScreen({
                   </View>
                 )}
               </View>
-              {user.avatarDecoration ? (
-                <View style={styles.decoration}>
-                  <Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={13} color="#F8D477" />
-                </View>
-              ) : null}
               <Pressable
                 style={styles.cameraButton}
                 onPress={chooseAvatar}
@@ -316,7 +333,6 @@ export default function ProfileScreen({
                   <Ionicons name="copy-outline" size={15} color={colors.textMuted} />
                 </Pressable>
               </View>
-              <Text style={styles.bio} numberOfLines={3}>{user.bio || 'Tarjimai hol hali kiritilmagan'}</Text>
             </View>
           </View>
 
@@ -341,22 +357,38 @@ export default function ProfileScreen({
             <Text style={styles.editButtonText}>Profilni tahrirlash</Text>
             <Ionicons name="arrow-forward" size={16} color={colors.textMuted} />
           </Pressable>
+
         </GlassSurface>
 
-        <Pressable onPress={onPremiumPress} style={{ marginTop: 14, marginBottom: 22 }}>
-          <GlassSurface intensity={glassIntensity} style={{ padding: 17, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(239,203,120,0.38)', backgroundColor: isDark ? 'rgba(111,82,174,0.24)' : 'rgba(255,248,229,0.82)' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(239,203,120,0.18)', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="diamond" size={22} color="#EFCB78" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontSize: 15, fontWeight: '900' }}>QUIZ ARENA Premium</Text>
-                <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 3 }}>Maxsus imkoniyatlarni kashf eting</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#EFCB78" />
+        <Pressable onPress={onPremiumPress} style={styles.shopPressable}>
+          <GlassSurface intensity={glassIntensity} style={styles.shopCard}>
+            <View style={styles.shopIconWrap}>
+              <Ionicons name="storefront-outline" size={23} color={colors.primary} />
             </View>
+            <View style={styles.shopTextBlock}>
+              <Text style={styles.shopTitle}>QUIZ ARENA Premium</Text>
+              <Text style={styles.shopSubtitle}>{premiumDescription}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
           </GlassSurface>
         </Pressable>
+
+        <GlassSurface intensity={glassIntensity} style={styles.biographyCard}>
+          <View style={styles.biographyHeading}>
+            <View style={styles.biographyAccent} />
+            <Text style={styles.biographyTitle}>Biografiya</Text>
+          </View>
+        </GlassSurface>
+
+        <GlassSurface intensity={glassIntensity} style={styles.memberCard}>
+          <View style={styles.memberIconWrap}>
+            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+          </View>
+          <View style={styles.memberTextBlock}>
+            <Text style={styles.memberTitle}>QUIZ ARENA a’zosi</Text>
+            <Text style={styles.memberDate}>{memberSince}</Text>
+          </View>
+        </GlassSurface>
 
         <View style={styles.socialHeading}>
           <View>
@@ -750,8 +782,11 @@ function makeStyles(
       justifyContent: 'center',
     },
     heroCard: {
+      width: '88%',
+      alignSelf: 'center',
       padding: 18,
-      borderRadius: 29,
+      paddingVertical: 22,
+      borderRadius: 23,
       borderWidth: 1,
       borderColor: glassBorder,
       backgroundColor: isDark
@@ -809,23 +844,24 @@ function makeStyles(
       letterSpacing: 0.7,
     },
     identityBlock: {
-      flexDirection: 'row',
+      flexDirection: 'column',
       alignItems: 'center',
-      gap: 14,
-      paddingTop: 22,
-      paddingBottom: 18,
+      gap: 10,
+      paddingTop: 24,
+      paddingBottom: 22,
     },
     identityTextBlock: {
-      flex: 1,
+      width: '100%',
       minWidth: 0,
-      alignItems: 'flex-start',
+      alignItems: 'center',
+      paddingHorizontal: 4,
     },
     avatarStage: {
       width: 116,
       height: 116,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 0,
+      marginBottom: 2,
       flexShrink: 0,
     },
     avatarHalo: {
@@ -908,12 +944,12 @@ function makeStyles(
       fontWeight: '800',
       letterSpacing: -0.45,
       maxWidth: '100%',
-      textAlign: 'left',
+      textAlign: 'center',
     },
     usernameRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'flex-start',
+      justifyContent: 'center',
       gap: 8,
       marginTop: 4,
     },
@@ -936,9 +972,9 @@ function makeStyles(
     bio: {
       color: colors.textSecondary,
       fontSize: 13,
-      textAlign: 'left',
+      textAlign: 'center',
       marginTop: 9,
-      lineHeight: 19,
+      lineHeight: 20,
       maxWidth: 270,
     },
     heroDivider: {
@@ -994,12 +1030,79 @@ function makeStyles(
       fontWeight: '700',
       fontSize: 13,
     },
+    shopPressable: { marginTop: 12 },
+    shopCard: {
+      minHeight: 78, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 19,
+      borderWidth: 1, borderColor: glassBorder, backgroundColor: glassFill,
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+    },
+    shopIconWrap: {
+      width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(183,163,255,0.14)' : 'rgba(123,99,204,0.10)',
+    },
+    shopTextBlock: { flex: 1, minWidth: 0 },
+    shopTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
+    shopSubtitle: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
+    biographyCard: {
+      minHeight: 112, marginTop: 12, paddingHorizontal: 16, paddingVertical: 14,
+      borderRadius: 19, borderWidth: 1, borderColor: glassBorder, backgroundColor: glassFill,
+    },
+    biographyHeading: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+    biographyAccent: { width: 4, height: 20, borderRadius: 3, backgroundColor: colors.primary },
+    biographyTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
+    memberCard: {
+      minHeight: 70, marginTop: 12, paddingHorizontal: 14, paddingVertical: 12,
+      borderRadius: 19, borderWidth: 1, borderColor: glassBorder, backgroundColor: glassFill,
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+    },
+    memberIconWrap: {
+      width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(183,163,255,0.14)' : 'rgba(123,99,204,0.10)',
+    },
+    memberTextBlock: { flex: 1, minWidth: 0 },
+    memberTitle: { color: colors.text, fontSize: 13, fontWeight: '800' },
+    memberDate: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
     socialHeading: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       marginTop: 24,
       marginBottom: 10,
+    },
+    premiumPressable: {
+      marginTop: 18,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: 'rgba(239,203,120,0.38)',
+      backgroundColor: isDark ? 'rgba(111,82,174,0.24)' : 'rgba(255,248,229,0.82)',
+      padding: 12,
+    },
+    premiumContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    premiumIconWrap: {
+      width: 42,
+      height: 42,
+      borderRadius: 14,
+      backgroundColor: 'rgba(239,203,120,0.18)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    premiumTextBlock: {
+      flex: 1,
+      minWidth: 0,
+    },
+    premiumTitle: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    premiumSubtitle: {
+      color: colors.textMuted,
+      fontSize: 11,
+      marginTop: 3,
     },
     moreLink: {
       color: colors.primary,
