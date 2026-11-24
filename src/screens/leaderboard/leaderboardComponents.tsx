@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp, ZoomIn, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { leaderboardTheme as t, type LeaderboardPeriod, type LeaderboardUser } from './leaderboardTheme';
 
-export function GlassCard({ children, style }: { children: React.ReactNode; style?: object }) {
+export function GlassCard({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   return (
     <View style={[s.glass, style]}>
       <BlurView intensity={Platform.OS === 'android' ? 24 : 40} tint="light" style={StyleSheet.absoluteFill} />
