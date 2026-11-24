@@ -153,7 +153,7 @@ export class LearningService {
       const questions = extension === 'pdf'
         ? await this.aiService.generateQuestionsFromPdf(file.buffer, generationInput)
         : await this.aiService.generateQuestions(generationInput);
-      return { title: generationInput.topicName, sourceFileName: fileName, questionCount: questions.length, questions, quota };
+      return { title: generationInput.topicName, topicId, sourceFileName: fileName, questionCount: questions.length, questions, quota };
     } catch (error) {
       await this.featureUsageService.refund(userId, 'documentQuiz').catch(() => undefined);
       throw error;
