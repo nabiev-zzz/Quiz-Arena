@@ -145,3 +145,55 @@ export async function getTopicQuestions(input: {
   );
   return result.questions;
 }
+
+export interface DocumentQuizQuestion {
+  id: string;
+  subjectId: string;
+  topicId: string;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation: string;
+  difficulty: Difficulty;
+}
+
+export interface DocumentQuizResult {
+  title: string;
+  topicId: string;
+  sourceFileName: string;
+  questionCount: number;
+  questions: DocumentQuizQuestion[];
+}
+
+export async function createDocumentQuiz(
+  file: { uri: string; name: string; mimeType?: string | null; file?: Blob },
+  options: { count: number; difficulty: Difficulty; language: 'uz' | 'ru' | 'en' },
+): Promise<DocumentQuizResult> {
+  const token = await getToken();
+  if (!token) throw new Error('Tizimga qayta kirishingiz kerak.');
+
+  const form = new FormData();
+  if (file.file) {
+    form.append('file', file.file, file.name);
+  } else {
+    form.append('file', {
+      uri: file.uri,
+      name: file.name,
+      type: file.mimeType || 'application/octet-stream',
+    } as unknown as Blob);
+  }
+  form.append('count', String(options.count));
+  form.append('difficulty', options.difficulty);
+  form.append('language', options.language);
+
+  const response = await fetch(`${API_BASE_URL}/api/learning/document-quiz`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(typeof data.message === 'string' ? data.message : 'Hujjatdan test yaratib bo‘lmadi.');
+  }
+  return data as DocumentQuizResult;
+}
