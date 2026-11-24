@@ -1,5 +1,6 @@
+import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, NativeText, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
@@ -17,7 +18,7 @@ export default function DiscoverUsersScreen({ onBack, onUserPress }: Props) {
 
   const load = useCallback(async () => {
     try { setPeople(await getUserSuggestions()); }
-    catch (error) { Alert.alert('Xatolik', error instanceof Error ? error.message : 'Foydalanuvchilar yuklanmadi'); }
+    catch (error) { showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Foydalanuvchilar yuklanmadi'); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -28,30 +29,30 @@ export default function DiscoverUsersScreen({ onBack, onUserPress }: Props) {
     try {
       await followUser(person.id);
       setPeople((current) => current.filter((item) => item.id !== person.id));
-    } catch (error) { Alert.alert('Xatolik', error instanceof Error ? error.message : 'Kuzatib bo‘lmadi'); }
+    } catch (error) { showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Kuzatib bo‘lmadi'); }
     finally { setBusyId(null); }
   };
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><Text style={styles.backText}>Profilga qaytish</Text></Pressable>
-      <Text style={styles.title}>Do‘stlar ortiring</Text>
-      <Text style={styles.subtitle}>QUIZ ARENA hamjamiyatidagi foydalanuvchilar</Text>
+      <Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><LocalizedText style={styles.backText}>Profilga qaytish</LocalizedText></Pressable>
+      <LocalizedText style={styles.title}>Do‘stlar ortiring</LocalizedText>
+      <LocalizedText style={styles.subtitle}>QUIZ ARENA hamjamiyatidagi foydalanuvchilar</LocalizedText>
       {loading ? <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 35 }} /> : people.map((person) => {
         const initials = person.displayName.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
         return (
           <GlassSurface key={person.id} intensity={isDark ? 30 : 38} style={styles.person}>
             <Pressable style={styles.identity} onPress={() => onUserPress(person.username)}>
-              {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.avatar} /> : <View style={styles.avatarFallback}><Text style={styles.initials}>{initials || '?'}</Text></View>}
-              <View style={styles.details}><Text style={styles.name} numberOfLines={1}>{person.displayName}</Text><Text style={styles.handle}>@{person.username}</Text><Text style={styles.followers}>{person.followersCount} kuzatuvchi</Text></View>
+              {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.avatar} /> : <View style={styles.avatarFallback}><LocalizedText style={styles.initials}>{initials || '?'}</LocalizedText></View>}
+              <View style={styles.details}><LocalizedText style={styles.name} numberOfLines={1}>{person.displayName}</LocalizedText><LocalizedText style={styles.handle}>@{person.username}</LocalizedText><LocalizedText style={styles.followers}>{person.followersCount} kuzatuvchi</LocalizedText></View>
             </Pressable>
             <Pressable disabled={busyId === person.id} onPress={() => void follow(person)} style={styles.followButton}>
-              <Ionicons name="person-add-outline" size={15} color="#FFFFFF" /><Text style={styles.followText}>{busyId === person.id ? '...' : 'Kuzatish'}</Text>
+              <Ionicons name="person-add-outline" size={15} color="#FFFFFF" /><LocalizedText style={styles.followText}>{busyId === person.id ? '...' : 'Kuzatish'}</LocalizedText>
             </Pressable>
           </GlassSurface>
         );
       })}
-      {!loading && people.length === 0 ? <Text style={styles.empty}>Hozircha tavsiya qilinadigan foydalanuvchi yo‘q.</Text> : null}
+      {!loading && people.length === 0 ? <LocalizedText style={styles.empty}>Hozircha tavsiya qilinadigan foydalanuvchi yo‘q.</LocalizedText> : null}
     </ScrollView>
   );
 }
