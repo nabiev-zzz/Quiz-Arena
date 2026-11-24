@@ -1264,6 +1264,15 @@ export default function BattleScreen({
   }
 
   function renderStats() {
+    if (loadingData && !stats && !learningStats) {
+      return (
+        <View style={styles.statsLoading}>
+          <ActivityIndicator color={colors.primary} size="large" />
+          <Text style={styles.muted}>Ta’lim va Battle statistikasi yuklanmoqda...</Text>
+        </View>
+      );
+    }
+
     return (
       <View style={styles.statsContent}>
         <View style={styles.statsIntro}>
