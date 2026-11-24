@@ -53,10 +53,16 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
-        <Text style={styles.logo}>QUIZ ARENA</Text>
-        <Text style={styles.title}>Hisob yaratish</Text>
-        <Text style={styles.subtitle}>Hisobingizni yarating — email kodi shart emas.</Text>
-
+        <View style={styles.brandRow}>
+          <View style={styles.brandMark}><Text style={styles.brandMarkText}>Q</Text></View>
+          <View><Text style={styles.logo}>QUIZ ARENA</Text><Text style={styles.brandCaption}>BILIM · RAQOBAT · NATIJA</Text></View>
+        </View>
+        <View style={styles.hero}>
+          <Text style={styles.eyebrow}>YANGI IMKONIYATLAR SARI</Text>
+          <Text style={styles.title}>Hisob yaratish</Text>
+          <Text style={styles.subtitle}>O‘z hisobingizni yarating va bilimlar maydoniga qo‘shiling.</Text>
+        </View>
+        <View style={styles.formCard}>
         <Text style={styles.label}>Ism va familiya *</Text>
         <TextInput style={styles.input} placeholder="Masalan: Ali Valiyev" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={displayName} onChangeText={setDisplayName} maxLength={100} autoCapitalize="words" returnKeyType="next" />
 
@@ -76,6 +82,7 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
           {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Hisob yaratish</Text>}
         </Pressable>
 
+        </View>
         <View style={styles.footer}>
           <Text style={styles.footerText}>Hisobingiz bormi? </Text>
           <Pressable onPress={onLoginPress}><Text style={styles.link}>Kirish</Text></Pressable>
@@ -88,17 +95,24 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 25, paddingVertical: 35 },
-    logo: { color: colors.primary, fontSize: 13, fontWeight: 'bold', letterSpacing: 4, marginBottom: 25 },
-    title: { color: colors.text, fontSize: 29, fontWeight: 'bold' },
-    subtitle: { color: colors.textMuted, fontSize: 14, marginTop: 9, marginBottom: 20 },
-    label: { color: colors.textSecondary, fontSize: 13, marginBottom: 8, marginTop: 13 },
-    input: { height: 52, borderRadius: 13, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 15, color: colors.text, fontSize: 14 },
-    button: { height: 54, backgroundColor: '#7657E8', borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 25 },
-    buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: 'bold' },
-    disabled: { opacity: 0.6 },
-    footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+    content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 22, paddingVertical: 26 },
+    brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 26 },
+    brandMark: { width: 42, height: 42, borderRadius: 15, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+    brandMarkText: { color: '#FFFFFF', fontSize: 23, fontWeight: '800' },
+    logo: { color: colors.text, fontSize: 13, fontWeight: '800', letterSpacing: 3 },
+    brandCaption: { color: colors.textMuted, fontSize: 9, letterSpacing: 1.4, marginTop: 3 },
+    hero: { marginBottom: 18 },
+    eyebrow: { color: colors.primary, fontSize: 9, fontWeight: '800', letterSpacing: 1.5, marginBottom: 9 },
+    title: { color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.6 },
+    subtitle: { color: colors.textMuted, fontSize: 13, marginTop: 8, lineHeight: 19 },
+    formCard: { backgroundColor: colors.surfaceGlass, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: 26, padding: 18 },
+    label: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', marginBottom: 7, marginTop: 11 },
+    input: { height: 50, borderRadius: 15, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, color: colors.text, fontSize: 14 },
+    button: { height: 52, backgroundColor: colors.primary, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 21 },
+    buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+    disabled: { opacity: 0.55 },
+    footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
     footerText: { color: colors.textMuted, fontSize: 13 },
-    link: { color: colors.primary, fontSize: 13, fontWeight: 'bold' },
+    link: { color: colors.primary, fontSize: 13, fontWeight: '800' },
   });
 }
