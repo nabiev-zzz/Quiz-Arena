@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+import { AiService } from '../ai/ai.service';
+import { LearningQuestion } from './entities/learning-question.entity';
+import { LearningTopic } from './entities/learning-topic.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LearningAttempt } from './entities/learning-attempt.entity';
@@ -17,7 +21,87 @@ export class LearningService {
   constructor(
     @InjectRepository(LearningAttempt)
     private readonly attempts: Repository<LearningAttempt>,
+    @InjectRepository(LearningTopic)
+    private readonly topics: Repository<LearningTopic>,
+    @InjectRepository(LearningQuestion)
+    private readonly questions: Repository<LearningQuestion>,
+    private readonly dataSource: DataSource,
+    private readonly aiService: AiService,
   ) {}
+
+  async getTopicQuestions(input: {
+    subjectId: string;
+    topicId: string;
+    count: number;
+    difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+    language: 'uz' | 'ru' | 'en';
+  }) {
+    const subjectId = String(input?.subjectId ?? '').trim();
+    const topicId = String(input?.topicId ?? '').trim();
+    const count = Number(input?.count);
+    if (!subjectId || !topicId || !Number.isInteger(count) || count < 1 || count > 20) {
+      throw new BadRequestException('Test sozlamalari noto‘g‘ri.');
+    }
+
+    const topic = await this.topics.findOne({ where: { subjectId, topicId, isActive: true } });
+    if (!topic) throw new NotFoundException('Bu mavzu topilmadi yoki vaqtincha faol emas.');
+
+    // Bir mavzu/til/qiyinlik kombinatsiyasi uchun parallel so‘rovlar faqat bir marta AI chaqiradi.
+    const lockKey = [subjectId, topicId, input.language, input.difficulty].join(':');
+    return this.dataSource.transaction(async (manager) => {
+      await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [lockKey]);
+      const bank = manager.getRepository(LearningQuestion);
+      let cached = await bank.find({
+        where: { subjectId, topicId, language: input.language, difficulty: input.difficulty, isActive: true },
+        order: { createdAt: 'ASC' },
+        take: 20,
+      });
+
+      if (cached.length < 20) {
+        const generated = await this.aiService.generateQuestions({
+          subjectId,
+          topicId,
+          count: 20 - cached.length,
+          difficulty: input.difficulty,
+          language: input.language,
+        });
+        const rows = generated.map((question) => bank.create({
+          subjectId,
+          topicId,
+          language: input.language,
+          difficulty: input.difficulty,
+          question: question.question,
+          options: question.options,
+          correctAnswer: question.correctAnswer,
+          explanation: question.explanation,
+          isActive: true,
+        }));
+        await bank.save(rows);
+        cached = [...cached, ...rows];
+      }
+
+      const selected = await bank.createQueryBuilder('question')
+        .where('question.subjectId = :subjectId', { subjectId })
+        .andWhere('question.topicId = :topicId', { topicId })
+        .andWhere('question.language = :language', { language: input.language })
+        .andWhere('question.difficulty = :difficulty', { difficulty: input.difficulty })
+        .andWhere('question.isActive = TRUE')
+        .orderBy('RANDOM()')
+        .take(count)
+        .getMany();
+
+      return { questions: selected.map((question) => ({
+        id: question.id,
+        subjectId: question.subjectId,
+        topicId: question.topicId,
+        question: question.question,
+        options: question.options,
+        correctAnswer: question.correctAnswer,
+        explanation: question.explanation,
+        difficulty: question.difficulty,
+      })), source: 'database', cachedQuestionCount: cached.length };
+    });
+  }
 
   async createAttempt(userId: string, input: CreateLearningAttemptInput) {
     const totalQuestions = Number(input?.totalQuestions);
