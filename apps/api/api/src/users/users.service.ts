@@ -62,10 +62,10 @@ export class UsersService {
     const [followersCount, followingCount, isFollowing, isFriend] = await Promise.all([
       this.follows.count({ where: { followedId: user.id } }),
       this.follows.count({ where: { followerId: user.id } }),
-      viewerId ? this.follows.exist({ where: { followerId: viewerId, followedId: user.id } }) : false,
+      viewerId ? this.follows.exists({ where: { followerId: viewerId, followedId: user.id } }) : false,
       viewerId && viewerId !== user.id
-        ? this.follows.exist({ where: { followerId: user.id, followedId: viewerId } })
-          .then(async (followsViewer) => followsViewer && this.follows.exist({ where: { followerId: viewerId, followedId: user.id } }))
+        ? this.follows.exists({ where: { followerId: user.id, followedId: viewerId } })
+          .then(async (followsViewer) => followsViewer && this.follows.exists({ where: { followerId: viewerId, followedId: user.id } }))
         : false,
     ]);
 
