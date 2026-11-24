@@ -37,6 +37,27 @@ export class SubscriptionPayment {
   @Column({ type: 'timestamptz', nullable: true })
   paidAt: Date | null;
 
+  @Column({ type: 'bigint', nullable: true })
+  providerPrepareId: string | null;
+
+  @Column({ type: 'integer', nullable: true })
+  providerState: number | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  providerCreatedAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  providerPerformedAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  providerCancelledAt: Date | null;
+
+  @Column({ type: 'integer', nullable: true })
+  providerCancelReason: number | null;
+
+  @Column({ type: 'jsonb', nullable: true, select: false })
+  providerPayload: Record<string, unknown> | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
