@@ -3,7 +3,7 @@ import { LocalizedText } from '../../i18n/LocalizedText';
 import {
   ActivityIndicator,
   StyleSheet,
-  NativeText,
+  Text as NativeText,
   View,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
