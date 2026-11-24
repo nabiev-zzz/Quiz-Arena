@@ -306,14 +306,16 @@ export default function ProfileScreen({
                 <Ionicons name="camera-outline" size={16} color={colors.text} />
               </Pressable>
             </View>
-
-            <Text style={styles.displayName} numberOfLines={1}>
-              {user.displayName}
-            </Text>
-            <View style={styles.usernameRow}><Text style={styles.username}>@{user.username}</Text><Pressable onPress={copyUsername} hitSlop={10} accessibilityRole="button" accessibilityLabel="Username nusxalash" style={styles.copyButton}><Ionicons name="copy-outline" size={15} color={colors.textMuted} /></Pressable></View>
-            <Text style={styles.bio} numberOfLines={3}>
-              {user.bio || 'Tarjimai hol hali kiritilmagan'}
-            </Text>
+            <View style={styles.identityTextBlock}>
+              <Text style={styles.displayName} numberOfLines={2}>{user.displayName}</Text>
+              <View style={styles.usernameRow}>
+                <Text style={styles.username}>@{user.username}</Text>
+                <Pressable onPress={copyUsername} hitSlop={10} accessibilityRole="button" accessibilityLabel="Username nusxalash" style={styles.copyButton}>
+                  <Ionicons name="copy-outline" size={15} color={colors.textMuted} />
+                </Pressable>
+              </View>
+              <Text style={styles.bio} numberOfLines={3}>{user.bio || 'Tarjimai hol hali kiritilmagan'}</Text>
+            </View>
           </View>
 
           <View style={styles.heroDivider} />
@@ -790,16 +792,24 @@ function makeStyles(
       letterSpacing: 0.7,
     },
     identityBlock: {
+      flexDirection: 'row',
       alignItems: 'center',
-      paddingTop: 23,
-      paddingBottom: 19,
+      gap: 14,
+      paddingTop: 22,
+      paddingBottom: 18,
+    },
+    identityTextBlock: {
+      flex: 1,
+      minWidth: 0,
+      alignItems: 'flex-start',
     },
     avatarStage: {
       width: 116,
       height: 116,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 13,
+      marginBottom: 0,
+      flexShrink: 0,
     },
     avatarHalo: {
       position: 'absolute',
@@ -881,12 +891,12 @@ function makeStyles(
       fontWeight: '800',
       letterSpacing: -0.45,
       maxWidth: '100%',
-      textAlign: 'center',
+      textAlign: 'left',
     },
     usernameRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
       gap: 8,
       marginTop: 4,
     },
@@ -909,8 +919,8 @@ function makeStyles(
     bio: {
       color: colors.textSecondary,
       fontSize: 13,
-      textAlign: 'center',
-      marginTop: 11,
+      textAlign: 'left',
+      marginTop: 9,
       lineHeight: 19,
       maxWidth: 270,
     },
