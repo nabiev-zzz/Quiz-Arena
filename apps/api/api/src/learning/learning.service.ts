@@ -214,10 +214,11 @@ export class LearningService {
     const current = await this.subscriptionsService.current(userId);
     const personalized = current.entitlements.smartPractice.aiPersonalized;
     const maxQuestions = Math.min(10, mistakes.length);
-    const count = Number(input?.count ?? maxQuestions);
-    if (!Number.isInteger(count) || count < 1 || count > maxQuestions) {
-      throw new BadRequestException(`Savollar soni 1 dan ${maxQuestions} gacha bo‘lishi kerak.`);
+    const requestedCount = Number(input?.count ?? maxQuestions);
+    if (!Number.isInteger(requestedCount) || requestedCount < 1) {
+      throw new BadRequestException('Savollar soni noto‘g‘ri.');
     }
+    const count = Math.min(requestedCount, maxQuestions);
     const language = ['uz', 'ru', 'en'].includes(String(input?.language))
       ? String(input.language) as 'uz' | 'ru' | 'en' : 'uz';
 
