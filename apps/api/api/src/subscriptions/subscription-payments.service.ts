@@ -25,6 +25,12 @@ export class SubscriptionPaymentsService {
     if (provider === 'google_play') {
       throw new BadRequestException('Google Play xaridi Android ilovasida boshlanadi. Xarid tokenini serverga yuboring.');
     }
+    if (provider === 'click' && (!process.env.CLICK_SERVICE_ID || !process.env.CLICK_MERCHANT_ID || !process.env.CLICK_SECRET_KEY)) {
+      throw new BadRequestException('Click merchant sozlamalari hali to‘liq kiritilmagan');
+    }
+    if (provider === 'payme' && (!process.env.PAYME_MERCHANT_ID || !process.env.PAYME_MERCHANT_KEY)) {
+      throw new BadRequestException('Payme merchant sozlamalari hali to‘liq kiritilmagan');
+    }
 
     const payment = this.payments.create({
       userId, planKey, provider, amount: plan.price, currency: 'UZS', status: 'pending',
