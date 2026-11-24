@@ -11,10 +11,10 @@ import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
   StyleSheet,
-  NativeText,
+  Text as NativeText,
   View,
   Pressable,
-  NativeTextInput,
+  TextInput as NativeTextInput,
 } from 'react-native';
 import {
   SafeAreaProvider,
