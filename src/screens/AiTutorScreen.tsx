@@ -13,7 +13,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text as NativeText,
   TextInput as NativeTextInput,
@@ -219,7 +218,7 @@ export default function AiTutorScreen({
   };
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.container,
         bottomDockSpace > 0 && { paddingBottom: bottomDockSpace },
@@ -358,7 +357,7 @@ export default function AiTutorScreen({
           AI javoblarini muhim ma’lumotlar bilan solishtirib tekshiring.
         </LocalizedText>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
