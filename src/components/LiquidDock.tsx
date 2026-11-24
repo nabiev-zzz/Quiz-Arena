@@ -1,4 +1,4 @@
-import React, { useEffect, useState, type ComponentRef, type RefObject } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -30,7 +30,6 @@ type Props = {
   onSelect: (key: string) => void;
   bottomInset: number;
   scrollStretch: SharedValue<number>;
-  blurTarget: RefObject<ComponentRef<typeof View> | null>;
 };
 
 const SPRING = { damping: 11, stiffness: 160, mass: 0.7 };
