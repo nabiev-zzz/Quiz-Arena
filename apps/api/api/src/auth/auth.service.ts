@@ -169,7 +169,7 @@ export class AuthService {
   }
 
   async registerWithPhone(dto: PhoneRegisterDto) {
-    const phone = await this.otpService.verify(dto.phoneNumber, 'register', dto.code);
+    const phone = this.otpService.normalizePhone(dto.phoneNumber);
     const displayName = dto.displayName.trim();
     const username = dto.username.trim().toLowerCase();
     const email = dto.email?.trim().toLowerCase() || null;
@@ -180,6 +180,8 @@ export class AuthService {
     if (email && await this.userRepository.findOne({ where: { email } })) throw new ConflictException('Bu email allaqachon ro‘yxatdan o‘tgan');
     if (await this.userRepository.findOne({ where: { phoneNumber: phone } })) throw new ConflictException('Bu telefon raqami allaqachon ro‘yxatdan o‘tgan');
 
+    // Consume the OTP only after the submitted profile fields have passed validation.
+    await this.otpService.verify(phone, 'register', dto.code);
     const user = this.userRepository.create({
       displayName, username, email, phoneNumber: phone, phoneVerifiedAt: new Date(),
       passwordHash: await bcrypt.hash(dto.password, 12), role: 'user', status: 'active',
