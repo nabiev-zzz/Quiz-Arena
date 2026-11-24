@@ -139,13 +139,29 @@ export class AuthOtpService {
     const valid = expected.length === actual.length && timingSafeEqual(expected, actual);
 
     if (!valid) {
-      otp.attempts += 1;
-      await this.otpRepository.save(otp);
+      await this.otpRepository
+        .createQueryBuilder()
+        .update(AuthOtp)
+        .set({ attempts: () => '"attempts" + 1' })
+        .where('id = :id', { id: otp.id })
+        .andWhere('"consumedAt" IS NULL')
+        .andWhere('attempts < 5')
+        .execute();
       throw new UnauthorizedException('Kod noto‘g‘ri yoki muddati tugagan');
     }
 
-    otp.consumedAt = new Date();
-    await this.otpRepository.save(otp);
+    const consumed = await this.otpRepository
+      .createQueryBuilder()
+      .update(AuthOtp)
+      .set({ consumedAt: new Date() })
+      .where('id = :id', { id: otp.id })
+      .andWhere('"consumedAt" IS NULL')
+      .andWhere('"expiresAt" > :now', { now: new Date() })
+      .andWhere('attempts < 5')
+      .execute();
+    if (consumed.affected !== 1) {
+      throw new UnauthorizedException('Kod noto‘g‘ri yoki muddati tugagan');
+    }
     return phone;
   }
 }
