@@ -2,3 +2,5 @@
 .setup-fields{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0}.setup-fields label{display:block}.setup-fields .search{max-width:none;margin-top:8px}@media(max-width:560px){.setup-fields{grid-template-columns:1fr;gap:10px}}
 
 .learning-launch{margin-top:24px}.review-list{text-align:left;max-width:850px;margin:32px auto 0}.review-list h3{font:700 20px Manrope;margin-bottom:14px}.review-item{padding:18px 0;border-top:1px solid var(--line)}.review-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}.review-heading b{font:650 14px/1.5 Manrope}.review-heading span{font-size:11px;font-weight:800;white-space:nowrap}.good{color:var(--mint)}.bad{color:var(--danger)}.review-item p{margin:8px 0}.review-item .explanation{margin-top:10px}
+
+.topic-card.topic-completed{border-color:#8ce5d044;background:linear-gradient(110deg,#8ce5d00b,#a78bfa08)}.topic-card.topic-completed .topic-num{background:#8ce5d01c;color:var(--mint)}.topic-card.topic-completed small{color:var(--mint)}

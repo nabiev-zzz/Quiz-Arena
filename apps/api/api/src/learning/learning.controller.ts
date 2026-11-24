@@ -55,6 +55,11 @@ export class LearningController {
     return this.learningService.createAttempt(request.user.id, body);
   }
 
+  @Get('progress')
+  getTopicProgress(@Request() request: AuthenticatedRequest) {
+    return this.learningService.getTopicProgress(request.user.id);
+  }
+
   @Get('stats')
   getStats(@Request() request: AuthenticatedRequest) {
     return this.learningService.getStats(request.user.id);
