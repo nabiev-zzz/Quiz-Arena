@@ -155,7 +155,7 @@ export class SubscriptionPaymentsService {
           if (!payment) return fail(-31050, 'Платёж не найден', { account: 'payment_id' });
           if (Number(params.amount) !== payment.amount * 100) return fail(-31001, 'Неверная сумма');
           const txId = String(params.id ?? '');
-          if (!txId || !Number.isFinite(Number(params.time))) return fail(-32600, 'Неверные параметры');
+          if (!/^[a-fA-F0-9]{24}$/.test(txId) || !Number.isSafeInteger(Number(params.time)) || Number(params.time) <= 0) return fail(-32600, 'Неверные параметры');
           if (payment.status === 'paid') return fail(-31008, 'Платёж уже выполнен');
           if (payment.providerTransactionId && payment.providerTransactionId !== txId) return fail(-31008, 'Платёж уже зарезервирован');
           const existing = await this.payments.findOne({ where: { provider: 'payme', providerTransactionId: txId } });
@@ -215,7 +215,7 @@ export class SubscriptionPaymentsService {
         }
         case 'GetStatement': {
           const from = Number(params.from), to = Number(params.to);
-          if (!Number.isFinite(from) || !Number.isFinite(to) || from > to) return fail(-32600, 'Неверный период');
+          if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to) || from < 0 || from > to) return fail(-32600, 'Неверный период');
           const rows = await this.payments.find({
             where: { provider: 'payme', providerCreatedAt: MoreThan(new Date(from - 1)) },
             order: { providerCreatedAt: 'ASC' },
