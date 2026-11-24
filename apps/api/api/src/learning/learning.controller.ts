@@ -20,6 +20,11 @@ interface AuthenticatedRequest {
 export class LearningController {
   constructor(private readonly learningService: LearningService) {}
 
+  @Get('catalog')
+  getCatalog() {
+    return this.learningService.getCatalog();
+  }
+
   @Post('questions')
   getTopicQuestions(@Body() body: GetTopicQuestionsDto) {
     return this.learningService.getTopicQuestions(body);
