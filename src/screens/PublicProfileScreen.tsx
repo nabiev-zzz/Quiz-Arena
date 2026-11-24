@@ -53,7 +53,7 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><Text style={styles.backText}>Orqaga</Text></Pressable>
       <GlassSurface intensity={isDark ? 34 : 42} style={styles.hero}>
-        <View style={[styles.avatarRing, profile.profileFrame ? styles.equippedFrame : null]}>
+        <View style={[styles.avatarRing, profile.profileFrame === 'aurora' ? styles.frameAurora : profile.profileFrame === 'royal' ? styles.frameRoyal : profile.profileFrame === 'ocean' ? styles.frameOcean : null]}>
           {profile.avatarUrl ? <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} /> : <View style={styles.avatarFallback}><Text style={styles.initials}>{initials || '?'}</Text></View>}
           {profile.avatarDecoration ? <View style={styles.decoration}><Ionicons name="sparkles" size={17} color="#F3C96A" /></View> : null}
         </View>
@@ -116,7 +116,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     empty: { color: colors.textMuted, textAlign: 'center', marginTop: 40 },
     hero: { alignItems: 'center', padding: 22, borderRadius: 27, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: isDark ? 'rgba(35,31,57,0.46)' : 'rgba(255,255,255,0.54)' },
     avatarRing: { width: 108, height: 108, borderRadius: 54, padding: 4, borderWidth: 2, borderColor: 'rgba(157,133,232,0.65)', marginBottom: 13 },
-    equippedFrame: { borderColor: '#EFCB78', borderWidth: 4 },
+    frameAurora: { borderColor: '#A78BFA', borderWidth: 4 },
+    frameRoyal: { borderColor: '#EFCB78', borderWidth: 4 },
+    frameOcean: { borderColor: '#60A5FA', borderWidth: 4 },
     avatar: { width: '100%', height: '100%', borderRadius: 50 },
     avatarFallback: { flex: 1, borderRadius: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceElevated },
     initials: { color: colors.text, fontSize: 29, fontWeight: '800' },
