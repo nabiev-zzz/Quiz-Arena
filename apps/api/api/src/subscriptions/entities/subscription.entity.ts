@@ -20,7 +20,7 @@ export class UserSubscription {
   @Column({ type: 'varchar', length: 30, default: 'pending' })
   status: SubscriptionStatus;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 2048, nullable: true })
   providerReference: string | null;
 
   @Column({ type: 'timestamptz', nullable: true })
