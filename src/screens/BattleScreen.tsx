@@ -192,6 +192,7 @@ export default function BattleScreen({
         },
         learning: learningStats,
         battle: stats,
+        tier: usage.tier,
       });
     } catch (err) {
       showLocalizedAlert(
