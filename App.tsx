@@ -1,12 +1,11 @@
 
-import { useRef, useState, type ComponentRef } from 'react';
+import { useRef, useState } from 'react';
 import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
 import * as SplashScreen from 'expo-splash-screen';
-import { BlurTargetView } from 'expo-blur';
 import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
@@ -77,7 +76,6 @@ function AppContent() {
   const { theme, ready } = useAppSettings();
   const insets = useSafeAreaInsets();
   const { tokens } = useTheme();
-  const blurTargetRef = useRef<ComponentRef<typeof View>>(null);
 
   const dockStretch = useSharedValue(0);
   const lastDockScrollY = useSharedValue(0);
@@ -394,7 +392,6 @@ function AppContent() {
     >
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
-      <BlurTargetView ref={blurTargetRef} style={styles.blurTarget}>
       <View pointerEvents="none" style={styles.ambientBackground}>
         <View
           style={[
@@ -454,9 +451,7 @@ function AppContent() {
         )}
       </Animated.ScrollView>
       )}
-      </BlurTargetView>
       <LiquidDock
-        blurTarget={blurTargetRef}
         items={navigation}
         activeKey={tab === 'tutor' ? 'home' : tab}
         onSelect={(key) => openTab(key as Tab)}
@@ -574,9 +569,6 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#080D1D',
-  },
-  blurTarget: {
-    flex: 1,
   },
   ambientBackground: {
     ...StyleSheet.absoluteFill,
