@@ -1,11 +1,9 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 export type SubscriptionProvider = 'google_play' | 'click' | 'payme';
 export type SubscriptionStatus = 'pending' | 'active' | 'expired' | 'cancelled' | 'refunded';
 
 @Entity('user_subscriptions')
-@Index('IDX_user_subscriptions_user_status', ['userId', 'status'])
-@Index('UQ_user_subscriptions_provider_reference', ['provider', 'providerReference'], { unique: true })
 export class UserSubscription {
   @PrimaryGeneratedColumn('uuid')
   id: string;
