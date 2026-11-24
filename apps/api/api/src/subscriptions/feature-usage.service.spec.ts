@@ -43,6 +43,15 @@ describe('FeatureUsageService', () => {
     expect(query).not.toHaveBeenCalled();
   });
 
+  it('enforces the FREE daily AI Tutor message limit', async () => {
+    current.mockResolvedValue({ tier: 'free', entitlements: getPlanEntitlements(null) });
+    query.mockResolvedValue([{ usageCount: 1 }]);
+
+    await expect(service.consume('user-1', 'aiTutor')).resolves.toMatchObject({
+      allowed: true, featureKey: 'aiTutor', limit: 3, used: 1, remaining: 2, period: 'daily',
+    });
+  });
+
   it('rejects unsupported feature keys', async () => {
     await expect(service.consume('user-1', 'admin')).rejects.toBeInstanceOf(BadRequestException);
     expect(current).not.toHaveBeenCalled();
