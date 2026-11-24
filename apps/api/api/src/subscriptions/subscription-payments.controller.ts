@@ -25,6 +25,15 @@ export class SubscriptionPaymentsController {
     return this.payments.verifyGooglePlayPurchase(request.user.id, body?.purchaseToken);
   }
 
+  @Post('google-play/notifications')
+  @HttpCode(HttpStatus.OK)
+  googlePlayNotifications(
+    @Headers('authorization') authorization: string | undefined,
+    @Body() body: { message?: { data?: string }; subscription?: string },
+  ) {
+    return this.payments.handleGooglePlayNotification(authorization, body ?? {});
+  }
+
   @Post('click')
   @HttpCode(HttpStatus.OK)
   click(@Body() body: ClickBody) {
