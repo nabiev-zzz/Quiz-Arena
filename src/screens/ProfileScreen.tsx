@@ -21,6 +21,23 @@ interface ProfileScreenProps {
 
 type ProfileTab = 'main' | 'board' | 'activity' | 'wishlist';
 
+const AVATAR_CATEGORIES = [
+  { id: 'anime', label: 'Anime', style: 'lorelei', seeds: ['Aiko', 'Hana', 'Akira', 'Yuki', 'Ren', 'Sora', 'Mika', 'Kai'] },
+  { id: 'gaming', label: 'Gaming', style: 'pixel-art', seeds: ['PlayerOne', 'NightWolf', 'Shadow', 'Blaze', 'Nova', 'Vortex', 'Ranger', 'Phantom'] },
+  { id: 'robots', label: 'Robotlar', style: 'bottts', seeds: ['Atlas', 'RoboX', 'Circuit', 'Byte', 'Mecha', 'Neon', 'Orbit', 'Titan'] },
+  { id: 'fantasy', label: 'Fantasy', style: 'adventurer', seeds: ['Arwen', 'Draco', 'Luna', 'Orion', 'Elara', 'Phoenix', 'Merlin', 'Raven'] },
+  { id: 'animals', label: 'Hayvonlar', style: 'fun-emoji', seeds: ['Fox', 'Panda', 'Tiger', 'Koala', 'Wolf', 'Cat', 'Lion', 'Bear'] },
+  { id: 'minimal', label: 'Minimal', style: 'notionists', seeds: ['Calm', 'Pure', 'Mono', 'Soft', 'Cloud', 'Muse', 'Echo', 'Zen'] },
+  { id: 'cartoon', label: 'Cartoon', style: 'avataaars', seeds: ['Sunny', 'Milo', 'Coco', 'Leo', 'Ruby', 'Max', 'Bella', 'Theo'] },
+  { id: 'emoji', label: 'Emoji', style: 'thumbs', seeds: ['Happy', 'Cool', 'Smart', 'Brave', 'Lucky', 'Chill', 'Star', 'Hero'] },
+] as const;
+
+type AvatarCategoryId = typeof AVATAR_CATEGORIES[number]['id'];
+
+function getAvatarUrl(style: string, seed: string) {
+  return `https://api.dicebear.com/9.x/${style}/png?seed=${encodeURIComponent(seed)}&size=160`;
+}
+
 export default function ProfileScreen({ onClosePress, onSettingsPress, onPremiumPress, onUserPress, dockStretch }: ProfileScreenProps) {
   const { user, updateProfile, logout } = useAuth();
   const { tokens, isDark } = useTheme();
@@ -54,7 +71,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);\n  const [avatarPickerVisible, setAvatarPickerVisible] = useState(false);\n  const [avatarCategory, setAvatarCategory] = useState<AvatarCategoryId>('anime');\n  const [avatarSaving, setAvatarSaving] = useState(false);
   const [saving, setSaving] = useState(false);
   const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
   const [socialProfile, setSocialProfile] = useState<PublicUser | null>(null);
@@ -103,20 +120,51 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const rankProgress = nextRank ? Math.min(100, ((rankPoints - rankInfo.min) / (nextRank.min - rankInfo.min)) * 100) : 100;
   const initials = user.displayName.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 
-  const chooseAvatar = async () => {
+  const applyAvatar = async (uri: string | null) => {
+    if (avatarSaving) return;
+    setAvatarSaving(true);
+    try {
+      await updateProfile({ avatarUrl: uri });
+      setAvatarUri(uri);
+      setAvatarPickerVisible(false);
+      showLocalizedAlert('Saqlandi', 'Avatar profilingizga saqlandi.');
+    } catch (error) {
+      showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Avatarni saqlab bo‘lmadi.');
+    } finally {
+      setAvatarSaving(false);
+    }
+  };
+
+  const chooseAvatar = () => setAvatarPickerVisible(true);
+
+  const chooseFromGallery = async () => {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         showLocalizedAlert('Ruxsat kerak', 'Avatar tanlash uchun galereyaga ruxsat bering.');
         return;
       }
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
-      if (!result.canceled && result.assets.length > 0) {
-        const uri = result.assets[0].uri;
-        setAvatarUri(uri);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.65,
+        base64: true,
+      });
+      if (result.canceled || result.assets.length === 0) return;
+      const asset = result.assets[0];
+      if (!asset.base64) {
+        showLocalizedAlert('Xatolik', 'Rasmni tayyorlab bo‘lmadi. Boshqa rasm tanlang.');
+        return;
       }
-    } catch {
-      showLocalizedAlert('Xatolik', 'Rasm tanlashda xatolik yuz berdi.');
+      if (asset.base64.length > 850_000) {
+        showLocalizedAlert('Rasm juda katta', 'Rasm hajmi katta. Uni kichraytirib, qayta tanlang.');
+        return;
+      }
+      const mime = asset.mimeType === 'image/png' ? 'image/png' : asset.mimeType === 'image/webp' ? 'image/webp' : 'image/jpeg';
+      await applyAvatar(`data:${mime};base64,${asset.base64}`);
+    } catch (error) {
+      showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Rasm tanlashda xatolik yuz berdi.');
     }
   };
 
@@ -131,7 +179,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     }
     setSaving(true);
     try {
-      await updateProfile({ displayName: displayName.trim(), username: username.trim(), bio: bio.trim() || null });
+      await updateProfile({ displayName: displayName.trim(), username: username.trim(), bio: bio.trim() || null, ...(avatarUri !== user.avatarUrl ? { avatarUrl: avatarUri } : {}) });
       setEditVisible(false);
       showLocalizedAlert('Saqlandi', 'Profil ma’lumotlari yangilandi.');
     } catch (error) {
@@ -399,6 +447,51 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
         </View>
       </Modal>
 
+      <Modal visible={avatarPickerVisible} transparent animationType="slide" onRequestClose={() => setAvatarPickerVisible(false)}>
+        <View style={styles.modalBackground}>
+          <View style={[styles.modalCard, styles.avatarModalCard]}>
+            <View style={styles.modalHeader}>
+              <View style={styles.avatarModalHeading}>
+                <LocalizedText style={styles.modalTitle}>Avatar tanlash</LocalizedText>
+                <LocalizedText style={styles.avatarModalSubtitle}>O‘zingizga mos uslubni tanlang</LocalizedText>
+              </View>
+              <Pressable onPress={() => setAvatarPickerVisible(false)} hitSlop={12}><Ionicons name="close" size={22} color={C.text} /></Pressable>
+            </View>
+            <Pressable style={styles.galleryButton} onPress={() => void chooseFromGallery()} disabled={avatarSaving}>
+              <Ionicons name="images-outline" size={21} color="#FFFFFF" />
+              <View style={styles.galleryButtonText}>
+                <LocalizedText style={styles.galleryButtonTitle}>Galereyadan rasm tanlash</LocalizedText>
+                <LocalizedText style={styles.galleryButtonHint}>O‘zingizning rasmingizni yuklang</LocalizedText>
+              </View>
+              <Ionicons name="chevron-forward" size={19} color="#FFFFFF" />
+            </Pressable>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.avatarCategories}>
+              {AVATAR_CATEGORIES.map((category) => (
+                <Pressable key={category.id} onPress={() => setAvatarCategory(category.id)} style={[styles.avatarCategoryChip, avatarCategory === category.id && styles.avatarCategoryChipActive]}>
+                  <LocalizedText style={[styles.avatarCategoryText, avatarCategory === category.id && styles.avatarCategoryTextActive]}>{category.label}</LocalizedText>
+                </Pressable>
+              ))}
+            </ScrollView>
+            <ScrollView style={styles.avatarGridScroll} contentContainerStyle={styles.avatarGrid} showsVerticalScrollIndicator={false}>
+              {AVATAR_CATEGORIES.find((item) => item.id === avatarCategory)!.seeds.map((seed) => {
+                const uri = getAvatarUrl(AVATAR_CATEGORIES.find((item) => item.id === avatarCategory)!.style, seed);
+                return (
+                  <Pressable key={seed} style={styles.avatarOption} disabled={avatarSaving} onPress={() => void applyAvatar(uri)}>
+                    <Image source={{ uri }} style={styles.avatarOptionImage} />
+                    <LocalizedText style={styles.avatarOptionName}>{seed}</LocalizedText>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <Pressable style={styles.removeAvatarButton} disabled={avatarSaving || !user.avatarUrl} onPress={() => void applyAvatar(null)}>
+              <Ionicons name="person-remove-outline" size={17} color={C.muted} />
+              <LocalizedText style={styles.removeAvatarText}>Standart avatarni ishlatish</LocalizedText>
+            </Pressable>
+            {avatarSaving ? <ActivityIndicator color={C.purple} style={{ marginTop: 10 }} /> : null}
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={cosmeticType !== null} transparent animationType="fade" onRequestClose={() => setCosmeticType(null)}>
         <View style={styles.modalBackground}>
           <View style={styles.modalCard}>
@@ -505,6 +598,25 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     saveButton: { minHeight: 48, backgroundColor: C.purple, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
     disabled: { opacity: 0.65 },
     saveButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+    avatarModalCard: { maxHeight: '88%', paddingBottom: 14 },
+    avatarModalHeading: { flex: 1, gap: 3 },
+    avatarModalSubtitle: { color: C.muted, fontSize: 11 },
+    galleryButton: { minHeight: 66, borderRadius: 15, backgroundColor: C.purple, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, marginTop: 12 },
+    galleryButtonText: { flex: 1, gap: 3 },
+    galleryButtonTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+    galleryButtonHint: { color: 'rgba(255,255,255,0.76)', fontSize: 10 },
+    avatarCategories: { gap: 8, paddingVertical: 14 },
+    avatarCategoryChip: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 20, borderWidth: 1, borderColor: C.border, backgroundColor: C.background },
+    avatarCategoryChipActive: { borderColor: C.purple, backgroundColor: C.purpleSoft },
+    avatarCategoryText: { color: C.muted, fontSize: 11, fontWeight: '700' },
+    avatarCategoryTextActive: { color: C.purple },
+    avatarGridScroll: { flexGrow: 0, minHeight: 180 },
+    avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 8 },
+    avatarOption: { width: '23%', alignItems: 'center', paddingVertical: 8, marginBottom: 7, borderRadius: 13, backgroundColor: C.background, borderWidth: 1, borderColor: C.border },
+    avatarOptionImage: { width: 62, height: 62, borderRadius: 31, backgroundColor: C.surfaceRaised },
+    avatarOptionName: { color: C.muted, fontSize: 9, marginTop: 5, fontWeight: '700' },
+    removeAvatarButton: { minHeight: 42, borderRadius: 12, backgroundColor: C.background, borderWidth: 1, borderColor: C.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 9 },
+    removeAvatarText: { color: C.muted, fontSize: 11, fontWeight: '700' },
     cosmeticOption: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 13, borderRadius: 13, borderWidth: 1, borderColor: C.border, backgroundColor: C.background, marginTop: 8 },
     cosmeticSelected: { borderColor: C.purple, backgroundColor: C.purpleSoft },
   });
