@@ -25,6 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { subjects as learningSubjects } from './src/data/subjects';
 
 import LearnScreen from './src/screens/LearnScreen';
+import DocumentQuizScreen from './src/screens/DocumentQuizScreen';
 import QuizScreen from './src/screens/QuizScreen';
 import AiTutorScreen from './src/screens/AiTutorScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -106,6 +107,7 @@ function AppContent() {
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
+  const [showDocumentQuiz, setShowDocumentQuiz] = useState(false);
   const [selectedPublicUsername, setSelectedPublicUsername] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -118,6 +120,7 @@ function AppContent() {
     setTab(nextTab);
     setShowSettings(false);
     setShowPremium(false);
+    setShowDocumentQuiz(false);
     setSelectedPublicUsername(null);
     setSelectedTopic(null);
     setSelectedSubject(null);
@@ -254,6 +257,7 @@ function AppContent() {
       return (
         <LearnScreen
           dockStretch={dockStretch}
+          onDocumentQuiz={() => setShowDocumentQuiz(true)}
           initialSubject={selectedSubject}
           onTopicSelect={(subject, topic) => {
             setSelectedSubject(subject);
@@ -413,7 +417,12 @@ function AppContent() {
         />
       </View>
 
-      {selectedTopic && selectedSubject ? (
+      {showDocumentQuiz ? (
+        <DocumentQuizScreen
+          onBack={() => setShowDocumentQuiz(false)}
+          language={language}
+        />
+      ) : selectedTopic && selectedSubject ? (
         <QuizScreen
           subject={selectedSubject}
           topic={selectedTopic}
