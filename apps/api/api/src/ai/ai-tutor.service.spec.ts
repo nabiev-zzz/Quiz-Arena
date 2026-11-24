@@ -71,6 +71,17 @@ describe('AiTutorService tier-aware progress context', () => {
     expect(progress.entitlements.detailedErrorAnalysis).toBe(true);
   });
 
+  it('blocks AI Tutor messages when the daily quota is exhausted', async () => {
+    usage.consume.mockResolvedValue({
+      allowed: false, featureKey: 'aiTutor', tier: 'free',
+      period: 'daily', limit: 3, used: 3, remaining: 0,
+    });
+
+    await expect(service.sendMessage('user-1', 'Menga yordam bering', 'uz'))
+      .rejects.toThrow('kunlik xabar limiti tugagan');
+    expect(messages.save).not.toHaveBeenCalled();
+  });
+
   it('limits basic AI Tutor history to 20 messages and returns the newest messages in order', async () => {
     subscriptions.current.mockResolvedValue({
       tier: 'free',
