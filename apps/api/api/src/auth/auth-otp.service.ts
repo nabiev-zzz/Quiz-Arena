@@ -53,6 +53,7 @@ export class AuthOtpService {
     const response = await fetch('https://notify.eskiz.uz/api/auth/login', {
       method: 'POST',
       body,
+      signal: AbortSignal.timeout(10_000),
     });
     const payload = await response.json().catch(() => null) as
       | { data?: { token?: string }; message?: string }
@@ -85,6 +86,7 @@ export class AuthOtpService {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body,
+        signal: AbortSignal.timeout(10_000),
       });
       const payload = await response.json().catch(() => null) as
         | { success?: boolean; status?: string; message?: string }
