@@ -1,12 +1,15 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useIAP, type Purchase } from 'expo-iap';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
-import { createPremiumCheckout, getPremiumPlans, getPremiumStatus, type PremiumPlan, type PremiumStatus } from '../services/subscriptionService';
+import { createPremiumCheckout, getPremiumPlans, getPremiumStatus, verifyGooglePlayPurchase, type PremiumPlan, type PremiumStatus } from '../services/subscriptionService';
 
 interface Props { onBack?: () => void }
 const money = (value: number | null) => value === null ? 'Narx sozlanmagan' : new Intl.NumberFormat('uz-UZ').format(value) + ' so‘m';
+const GOOGLE_MONTHLY_SKU = process.env.EXPO_PUBLIC_GOOGLE_PLAY_MONTHLY_PRODUCT_ID?.trim();
+const GOOGLE_YEARLY_SKU = process.env.EXPO_PUBLIC_GOOGLE_PLAY_YEARLY_PRODUCT_ID?.trim();
 
 export default function PremiumScreen({ onBack }: Props) {
   const { tokens, isDark } = useTheme();
@@ -24,6 +27,62 @@ export default function PremiumScreen({ onBack }: Props) {
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+
+  const purchaseHandlerRef = useRef<((purchase: Purchase) => Promise<void>) | null>(null);
+  const { connected, subscriptions, fetchProducts, requestPurchase, finishTransaction } = useIAP({
+    onPurchaseSuccess: (purchase) => {
+      const task = purchaseHandlerRef.current?.(purchase);
+      if (task) void task.catch((e) => {
+        setBusy(null);
+        Alert.alert('Xaridni tasdiqlashda xatolik', e instanceof Error ? e.message : 'Keyinroq qayta urinib ko‘ring');
+      });
+    },
+    onPurchaseError: (purchaseError) => {
+      setBusy(null);
+      Alert.alert('Google Play xaridi', purchaseError.message || 'Xarid amalga oshmadi');
+    },
+  });
+
+  purchaseHandlerRef.current = async (purchase) => {
+    if (!purchase.purchaseToken) throw new Error('Google Play purchase token topilmadi');
+    await verifyGooglePlayPurchase(purchase.purchaseToken);
+    await finishTransaction({ purchase, isConsumable: false });
+    setBusy(null);
+    await load();
+    Alert.alert('Premium faollashtirildi', 'Google Play obunangiz serverda tasdiqlandi.');
+  };
+
+  useEffect(() => {
+    if (!connected) return;
+    const skus = [GOOGLE_MONTHLY_SKU, GOOGLE_YEARLY_SKU].filter((sku): sku is string => Boolean(sku));
+    if (skus.length) void fetchProducts({ skus, type: 'subs' }).catch(() => {
+      // Store products may be unavailable until the Play Console products are activated.
+    });
+  }, [connected, fetchProducts]);
+
+  const startGooglePlayPurchase = async (planKey: string) => {
+    const sku = planKey === 'premium_monthly' ? GOOGLE_MONTHLY_SKU : GOOGLE_YEARLY_SKU;
+    if (!sku || !connected) {
+      Alert.alert('Google Play tayyor emas', 'Play Console mahsulot ID’lari va Android development build sozlanishi kerak.');
+      return;
+    }
+    const product = subscriptions.find((item) => item.id === sku);
+    const offerToken = product?.subscriptionOffers?.find((offer) => Boolean(offer.offerTokenAndroid))?.offerTokenAndroid;
+    if (!offerToken) {
+      Alert.alert('Obuna topilmadi', 'Google Play Console’da ushbu tarif uchun faol base plan va offer yarating.');
+      return;
+    }
+    setBusy('google:' + planKey);
+    try {
+      await requestPurchase({
+        request: { google: { skus: [sku], subscriptionOffers: [{ sku, offerToken }] } },
+        type: 'subs',
+      });
+    } catch (e) {
+      setBusy(null);
+      Alert.alert('Google Play xaridi', e instanceof Error ? e.message : 'Xaridni boshlash imkoni bo‘lmadi');
+    }
+  };
 
   const startCheckout = async (provider: 'click' | 'payme', planKey: string) => {
     const key = provider + ':' + planKey;
@@ -66,6 +125,11 @@ export default function PremiumScreen({ onBack }: Props) {
               {busy === 'payme:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="wallet" size={17} color="#FFFFFF" /><Text style={s.checkoutText}>Payme</Text></>}
             </Pressable>
           </View>
+          {Platform.OS === 'android' && (plan.key === 'premium_monthly' ? GOOGLE_MONTHLY_SKU : GOOGLE_YEARLY_SKU) ? (
+            <Pressable disabled={!connected || busy !== null} onPress={() => void startGooglePlayPurchase(plan.key)} style={[s.googleButton, (!connected || busy !== null) && s.dim]}>
+              {busy === 'google:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="logo-google-playstore" size={17} color="#FFFFFF" /><Text style={s.checkoutText}>Google Play orqali obuna</Text></>}
+            </Pressable>
+          ) : null}
           {!plan.available && <Text style={[s.planDuration, { color: c.textMuted }]}>Tarif narxi serverda sozlanmagan.</Text>}
         </GlassSurface>
       ))}
@@ -84,5 +148,5 @@ export default function PremiumScreen({ onBack }: Props) {
 const s=StyleSheet.create({
  content:{padding:20,paddingBottom:130,gap:16},header:{flexDirection:'row',alignItems:'center',gap:14},back:{width:42,height:42,borderRadius:15,alignItems:'center',justifyContent:'center'},heading:{fontSize:21,fontWeight:'900'},
  hero:{padding:22,borderRadius:25,backgroundColor:'rgba(111,83,206,0.22)',borderColor:'rgba(194,170,255,0.3)',gap:10},heroTitle:{fontSize:23,fontWeight:'900',color:'#F4F0FF'},heroText:{fontSize:14,lineHeight:21,color:'#D1C7F3'},active:{fontSize:12,fontWeight:'900',color:'#6DE0B8'},inactive:{fontSize:12,fontWeight:'800',color:'#D8C6FF'},refresh:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:6,paddingTop:4},refreshText:{fontSize:12,fontWeight:'800',color:'#E8E0FF'},
- section:{fontSize:18,fontWeight:'900',marginTop:5},plan:{padding:18,borderRadius:22,gap:13,borderWidth:1,borderColor:'rgba(160,145,210,0.22)'},featured:{borderColor:'rgba(239,199,111,0.55)',backgroundColor:'rgba(130,95,200,0.16)'},planTop:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8},planName:{fontSize:17,fontWeight:'900'},planDuration:{fontSize:12,marginTop:4},price:{fontSize:15,fontWeight:'900',color:'#EFCB78',textAlign:'right'},benefit:{flexDirection:'row',alignItems:'center',gap:8},benefitText:{fontSize:12,flex:1},checkoutRow:{flexDirection:'row',gap:10,marginTop:3},checkoutButton:{flex:1,minHeight:45,borderRadius:13,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},clickButton:{backgroundColor:'#2878D0'},paymeButton:{backgroundColor:'#21A89A'},checkoutText:{fontSize:14,fontWeight:'900',color:'#FFFFFF'},dim:{opacity:0.45},googleNotice:{padding:16,borderRadius:18,flexDirection:'row',alignItems:'center',gap:12},footnote:{fontSize:11,lineHeight:17},notice:{padding:18,gap:10},noticeText:{fontSize:13},retry:{color:'#A995FF',fontWeight:'800'}
+ section:{fontSize:18,fontWeight:'900',marginTop:5},plan:{padding:18,borderRadius:22,gap:13,borderWidth:1,borderColor:'rgba(160,145,210,0.22)'},featured:{borderColor:'rgba(239,199,111,0.55)',backgroundColor:'rgba(130,95,200,0.16)'},planTop:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8},planName:{fontSize:17,fontWeight:'900'},planDuration:{fontSize:12,marginTop:4},price:{fontSize:15,fontWeight:'900',color:'#EFCB78',textAlign:'right'},benefit:{flexDirection:'row',alignItems:'center',gap:8},benefitText:{fontSize:12,flex:1},checkoutRow:{flexDirection:'row',gap:10,marginTop:3},googleButton:{minHeight:44,borderRadius:13,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,backgroundColor:'#477B4A'},checkoutButton:{flex:1,minHeight:45,borderRadius:13,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},clickButton:{backgroundColor:'#2878D0'},paymeButton:{backgroundColor:'#21A89A'},checkoutText:{fontSize:14,fontWeight:'900',color:'#FFFFFF'},dim:{opacity:0.45},googleNotice:{padding:16,borderRadius:18,flexDirection:'row',alignItems:'center',gap:12},footnote:{fontSize:11,lineHeight:17},notice:{padding:18,gap:10},noticeText:{fontSize:13},retry:{color:'#A995FF',fontWeight:'800'}
 });
