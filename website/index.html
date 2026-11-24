@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#100d20">
-  <meta name="description" content="QUIZ ARENA — bilim, do‘stlar va raqobat bir maydonda. Onlayn quiz janglari, turnirlar va reytinglar.">
+  <meta name="description" content="QUIZ ARENA — fan va mavzular bo‘yicha AI testlar, tushuntirishlar va bilim statistikasi. Do‘stlar bilan Battle musobaqalari ham mavjud.">
   <meta name="robots" content="index, follow">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="QUIZ ARENA">
   <meta property="og:title" content="QUIZ ARENA — Bilimingni sinovdan o‘tkaz">
-  <meta property="og:description" content="Do‘stlar bilan bellash, bilimlaringni sinovdan o‘tkaz va reytingda yuqoriga ko‘taril.">
+  <meta property="og:description" content="Fan va mavzuni tanla, AI yaratgan testlarni ishlagin, har bir javob izohini o‘rgan va natijangni kuzat.">
   <meta property="og:url" content="https://quiz-arena-website-production.up.railway.app/">
   <meta property="og:image" content="https://raw.githubusercontent.com/nabiev-zzz/Quiz-Arena/main/assets/icon.png">
   <meta name="twitter:card" content="summary">
@@ -53,11 +53,11 @@
     <section class="hero section-shell">
       <div class="hero-copy">
         <div class="eyebrow"><span class="live-dot"></span><span data-i18n="eyebrow">BILIMING — SENING KUCHING</span></div>
-        <h1 data-i18n="heroTitle">Bilimingni sinovdan o‘tkaz. <span>Maydonda g‘alaba qozon.</span></h1>
-        <p class="hero-description" data-i18n="heroText">QUIZ ARENA — do‘stlar bilan bellashish, yangi bilimlarni kashf etish va o‘z reytingingni ko‘tarish uchun yagona maydon.</p>
+        <h1 data-i18n="heroTitle">Fan va mavzuni tanla. <span>Bilimingni har kuni oshir.</span></h1>
+        <p class="hero-description" data-i18n="heroText">QUIZ ARENA — fanlar va mavzular bo‘yicha AI yaratgan testlar, har bir javobga tushuntirish va shaxsiy bilim statistikasi. O‘rgan, natijangni kuzat, keyin Battle’da bellash.</p>
         <div class="hero-actions">
-          <a class="button button-primary" href="#download"><span data-i18n="heroCta">Arena sari yo‘l ol</span><span aria-hidden="true">↗</span></a>
-          <a class="text-link" href="#features"><span data-i18n="discover">Imkoniyatlarni ko‘rish</span><span aria-hidden="true">↓</span></a>
+          <a class="button button-primary" href="#learning"><span data-i18n="heroCta">Mavzuli testlarni boshlash</span><span aria-hidden="true">↗</span></a>
+          <a class="text-link" href="#battle"><span data-i18n="discover">Battle rejimini ko‘rish</span><span aria-hidden="true">↓</span></a>
         </div>
         <div class="hero-proof">
           <div class="proof-avatars" aria-hidden="true"><span>Q</span><span>A</span><span>+</span></div>
@@ -74,14 +74,14 @@
             <div class="welcome-line" data-i18n="phoneWelcome">Xush kelibsan, o‘yinchi!</div>
             <div class="phone-heading" data-i18n="phoneHeading">Bugun qaysi maydonda?</div>
             <div class="battle-card">
-              <div class="battle-card-top"><span class="battle-tag" data-i18n="liveBattle">JONLI BATTLE</span><span class="battle-spark">✦</span></div>
-              <div class="battle-title" data-i18n="battleTitle">Bilimlar jangi</div>
-              <div class="battle-sub" data-i18n="battleSub">Do‘stlaring bilan bellash</div>
-              <div class="battle-players"><span>● ● ● ●</span><b>1v1 · 2v2</b></div>
+              <div class="battle-card-top"><span class="battle-tag" data-i18n="liveBattle">AI TEST</span><span class="battle-spark">✦</span></div>
+              <div class="battle-title" data-i18n="battleTitle">Mavzuli test</div>
+              <div class="battle-sub" data-i18n="battleSub">AI savollari va tushuntirishlar</div>
+              <div class="battle-players"><span>10 SAVOL</span><b>AI · 3 TIL</b></div>
             </div>
             <div class="phone-stats"><div><small data-i18n="yourLevel">SENING DARAJANG</small><b>LVL 08</b></div><div><small data-i18n="yourPoints">JAMI BALL</small><b>2,450 XP</b></div></div>
-            <div class="phone-section-title" data-i18n="phoneExplore">Kashf et</div>
-            <div class="phone-tiles"><div><span>♜</span><b data-i18n="tileTournament">Turnirlar</b></div><div><span>♧</span><b data-i18n="tileFriends">Do‘stlar</b></div></div>
+            <div class="phone-section-title" data-i18n="phoneExplore">Fanlarni tanla</div>
+            <div class="phone-tiles"><div><span>∑</span><b data-i18n="tileTournament">Matematika</b></div><div><span>⚛</span><b data-i18n="tileFriends">Fizika</b></div></div>
             <div class="phone-tabbar"><span>⌂</span><span>⚔</span><span>♜</span><span>◉</span></div>
           </div>
         </div>
@@ -96,10 +96,21 @@
       <div><strong>24/7</strong><small data-i18n="metricArena">Bilim maydoni</small></div>
     </section>
 
+    <section class="section-shell section-block learning-section" id="learning">
+      <div class="section-heading"><span class="section-kicker" data-i18n="learningKicker">ASOSIY TA’LIMIY IMKONIYAT</span><h2 data-i18n="learningTitle">Har bir fan. Har bir mavzu. <span>O‘zingga mos test.</span></h2><p data-i18n="learningText">Fanni va mavzuni tanla, savollar soni, qiyinlik darajasi hamda tilni belgilagin. AI yangi test tayyorlaydi va har bir javobni tushuntiradi.</p></div>
+      <div class="learning-grid">
+        <article class="learning-card"><span class="learning-icon">∑</span><b data-i18n="learningMath">Matematika</b><small data-i18n="learningMathSub">Algebra, geometriya va masalalar</small></article>
+        <article class="learning-card"><span class="learning-icon">⚛</span><b data-i18n="learningPhysics">Fizika</b><small data-i18n="learningPhysicsSub">Mexanika, elektr va optika</small></article>
+        <article class="learning-card"><span class="learning-icon">⚗</span><b data-i18n="learningChemistry">Kimyo</b><small data-i18n="learningChemistrySub">Elementlar va reaksiyalar</small></article>
+        <article class="learning-card"><span class="learning-icon">✿</span><b data-i18n="learningBiology">Biologiya</b><small data-i18n="learningBiologySub">Hujayra, genetika va tabiat</small></article>
+      </div>
+      <div class="learning-benefits"><span>✦ <b data-i18n="learningBenefit1">5 tadan 25 tagacha savol</b></span><span>✦ <b data-i18n="learningBenefit2">Osondan ekspertgacha</b></span><span>✦ <b data-i18n="learningBenefit3">O‘zbek, rus va ingliz tili</b></span><span>✦ <b data-i18n="learningBenefit4">Natija va shaxsiy statistika</b></span></div>
+    </section>
+
     <section class="section-shell section-block" id="features">
       <div class="section-heading"><span class="section-kicker" data-i18n="featuresKicker">ARENA IMKONIYATLARI</span><h2 data-i18n="featuresTitle">Oddiy quizdan <span>ko‘proq.</span></h2><p data-i18n="featuresText">Har bir o‘yin — yangi tajriba. Har bir g‘alaba — keyingi marraga qadam.</p></div>
       <div class="feature-grid">
-        <article class="feature-card feature-large"><div class="feature-icon icon-purple">⚔</div><span class="card-label" data-i18n="feature1Label">RAQOBAT</span><h3 data-i18n="feature1Title">Real vaqt rejimidagi Battle</h3><p data-i18n="feature1Text">Yakkama-yakka yoki jamoa bo‘lib bellash. Tez fikrla, to‘g‘ri javob ber va g‘alabaga intil.</p><div class="mini-battle"><span>YOU</span><div class="versus-line"><i></i><b>VS</b><i></i></div><span>RIVAL</span></div></article>
+        <article class="feature-card feature-large" id="battle"><div class="feature-icon icon-purple">⚔</div><span class="card-label" data-i18n="feature1Label">RAQOBAT</span><h3 data-i18n="feature1Title">Real vaqt rejimidagi Battle</h3><p data-i18n="feature1Text">Yakkama-yakka yoki jamoa bo‘lib bellash. Tez fikrla, to‘g‘ri javob ber va g‘alabaga intil.</p><div class="mini-battle"><span>YOU</span><div class="versus-line"><i></i><b>VS</b><i></i></div><span>RIVAL</span></div></article>
         <article class="feature-card"><div class="feature-icon icon-mint">♜</div><span class="card-label" data-i18n="feature2Label">MUSOBAQA</span><h3 data-i18n="feature2Title">Turnirlar va ligalar</h3><p data-i18n="feature2Text">Natijalaringni kuzat, bosqichlardan o‘t va yuqori o‘rinlar uchun kurash.</p></article>
         <article class="feature-card"><div class="feature-icon icon-gold">✦</div><span class="card-label" data-i18n="feature3Label">RIVOJLANISH</span><h3 data-i18n="feature3Title">XP, daraja va mukofotlar</h3><p data-i18n="feature3Text">Faolliging uchun ball to‘pla, darajangni oshir va yutuqlaringni namoyish et.</p></article>
         <article class="feature-card"><div class="feature-icon icon-blue">♧</div><span class="card-label" data-i18n="feature4Label">HAMJAMIYAT</span><h3 data-i18n="feature4Title">Do‘stlar va jamoa</h3><p data-i18n="feature4Text">Do‘stlaringni top, kuzat va birgalikda bilim maydoniga chiq.</p></article>
@@ -110,7 +121,7 @@
 
     <section class="how-section" id="how"><div class="section-shell how-inner">
       <div class="section-heading"><span class="section-kicker" data-i18n="howKicker">BOSHLASH OSON</span><h2 data-i18n="howTitle">Uch qadam. <span>Bitta arena.</span></h2></div>
-      <div class="steps"><article><b>01</b><h3 data-i18n="step1Title">Ro‘yxatdan o‘t</h3><p data-i18n="step1Text">Hisob yarat va o‘z profilingni sozla.</p></article><article><b>02</b><h3 data-i18n="step2Title">Maydonni tanla</h3><p data-i18n="step2Text">Battle, turnir yoki bilim sinovini tanla.</p></article><article><b>03</b><h3 data-i18n="step3Title">O‘yna va yuksal</h3><p data-i18n="step3Text">Ball to‘pla, tajriba orttir va reytingda ko‘taril.</p></article></div>
+      <div class="steps"><article><b>01</b><h3 data-i18n="step1Title">Ro‘yxatdan o‘t</h3><p data-i18n="step1Text">Hisob yarat va o‘z profilingni sozla.</p></article><article><b>02</b><h3 data-i18n="step2Title">Maydonni tanla</h3><p data-i18n="step2Text">Fan, mavzu, savollar soni, qiyinlik va test tilini tanla.</p></article><article><b>03</b><h3 data-i18n="step3Title">O‘yna va yuksal</h3><p data-i18n="step3Text">Javob izohlarini o‘rgan, natijangni kuzat va xohlasang Battle’da bellash.</p></article></div>
     </div></section>
 
     <section class="section-shell section-block plans-section" id="plans">
