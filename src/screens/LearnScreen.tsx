@@ -51,7 +51,7 @@ export default function LearnScreen({ initialSubject, onTopicSelect, onDocumentQ
   return (
     <Animated.ScrollView onScroll={dockScrollHandler} scrollEventThrottle={16} style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
       <Pressable onPress={onDocumentQuiz} style={styles.documentQuizBanner}>      <Pressable onPress={onSmartPractice} style={styles.smartPracticeBanner}>
-        <View style={styles.smartPracticeIcon}><Ionicons name="brain" size={22} color="#FFFFFF" /></View>
+        <View style={styles.smartPracticeIcon}><Ionicons name="bulb-outline" size={22} color="#FFFFFF" /></View>
         <View style={styles.documentQuizCopy}>
           <LocalizedText style={styles.documentQuizTitle}>Smart Practice</LocalizedText>
           <LocalizedText style={styles.documentQuizDescription}>Avvalgi xatolaringizdan shaxsiy mashq yarating</LocalizedText>
