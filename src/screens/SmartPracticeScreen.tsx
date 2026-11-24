@@ -111,7 +111,7 @@ export default function SmartPracticeScreen({ onBack, language }: Props) {
           <LocalizedText style={s.eyebrow}>QUIZ ARENA · SMART LEARNING</LocalizedText>
           <LocalizedText style={s.title}>Smart Practice</LocalizedText>
         </View>
-        <View style={s.headerIcon}><Ionicons name="brain" size={21} color="#FFFFFF" /></View>
+        <View style={s.headerIcon}><Ionicons name="bulb-outline" size={21} color="#FFFFFF" /></View>
       </View>
 
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
@@ -138,7 +138,7 @@ export default function SmartPracticeScreen({ onBack, language }: Props) {
 
         {phase === 'loading' ? (
           <View style={s.loadingCard}>
-            <View style={s.loadingIcon}><Ionicons name="brain" size={30} color="#FFFFFF" /></View>
+            <View style={s.loadingIcon}><Ionicons name="bulb-outline" size={30} color="#FFFFFF" /></View>
             <ActivityIndicator size="large" color={colors.primary} />
             <LocalizedText style={s.loadingTitle}>Bilimlaringiz tahlil qilinmoqda</LocalizedText>
             <LocalizedText style={s.muted}>Avvalgi xatolar tanlanmoqda va siz uchun mashq tayyorlanmoqda.</LocalizedText>
