@@ -27,6 +27,7 @@
   function setBusy(form, busy, label) { const button=form.querySelector("button[type=submit]"); button.disabled=busy; button.dataset.original ||= button.textContent; button.textContent=busy?label:button.dataset.original; }
   async function authenticate(form, mode) {
     const values=Object.fromEntries(new FormData(form).entries());
+    if (mode === "register" && !String(values.email || "").trim()) delete values.email;
     setBusy(form,true,mode==="login"?"Tekshirilmoqda...":"Hisob yaratilmoqda...");
     try {
       const result=await request(mode==="login"?"/api/auth/login":"/api/auth/register",{method:"POST",body:JSON.stringify(values)},false);
