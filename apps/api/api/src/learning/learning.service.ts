@@ -4,9 +4,10 @@ import { AiService } from '../ai/ai.service';
 import { LearningQuestion } from './entities/learning-question.entity';
 import { LearningTopic } from './entities/learning-topic.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { LearningAttempt } from './entities/learning-attempt.entity';
 import { learningCatalog } from './learning-catalog';
+import { LearningWebSession } from './entities/learning-web-session.entity';
 
 export interface CreateLearningAttemptInput {
   subjectId: string;
@@ -24,6 +25,8 @@ export class LearningService {
     private readonly attempts: Repository<LearningAttempt>,
     @InjectRepository(LearningTopic)
     private readonly topics: Repository<LearningTopic>,
+    @InjectRepository(LearningWebSession)
+    private readonly webSessions: Repository<LearningWebSession>,
     private readonly dataSource: DataSource,
     private readonly aiService: AiService,
   ) {}
@@ -106,7 +109,7 @@ export class LearningService {
     });
   }
 
-  async getWebTopicQuestions(input: {
+  async getWebTopicQuestions(userId: string, input: {
     subjectId: string;
     topicId: string;
     count: number;
@@ -114,7 +117,20 @@ export class LearningService {
     language: 'uz' | 'ru' | 'en';
   }) {
     const result = await this.getTopicQuestions(input);
+    const session = this.webSessions.create({
+      userId,
+      subjectId: input.subjectId,
+      topicId: input.topicId,
+      language: input.language,
+      difficulty: input.difficulty,
+      questionIds: result.questions.map((question) => question.id),
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      submittedAt: null,
+    });
+    await this.webSessions.save(session);
+
     return {
+      sessionId: session.id,
       source: result.source,
       cachedQuestionCount: result.cachedQuestionCount,
       questions: result.questions.map(({ id, subjectId, topicId, question, options, difficulty }) => ({
@@ -124,70 +140,95 @@ export class LearningService {
   }
 
   async submitWebAttempt(userId: string, input: {
+    sessionId: string;
     subjectId: string;
     topicId: string;
     language: 'uz' | 'ru' | 'en';
     difficulty: 'easy' | 'medium' | 'hard' | 'expert';
     answers: Array<{ questionId: string; selectedAnswer: number }>;
   }) {
-    const ids = input.answers.map((answer) => answer.questionId);
-    if (new Set(ids).size !== ids.length) {
-      throw new BadRequestException('Bir savolga ikki marta javob yuborildi.');
-    }
+    return this.dataSource.transaction(async (manager) => {
+      const sessionRepo = manager.getRepository(LearningWebSession);
+      const session = await sessionRepo.findOne({
+        where: { id: input.sessionId, userId, submittedAt: IsNull() },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!session || session.expiresAt.getTime() <= Date.now()) {
+        throw new BadRequestException('Test sessiyasi tugagan. Iltimos, testni qayta boshlang.');
+      }
+      if (
+        session.subjectId !== input.subjectId ||
+        session.topicId !== input.topicId ||
+        session.language !== input.language ||
+        session.difficulty !== input.difficulty
+      ) {
+        throw new BadRequestException('Test sozlamalari sessiyaga mos kelmadi.');
+      }
 
-    const topic = await this.topics.findOne({
-      where: { subjectId: input.subjectId, topicId: input.topicId, isActive: true },
-    });
-    if (!topic) throw new NotFoundException('Bu mavzu topilmadi.');
+      const expectedIds = session.questionIds;
+      const answerIds = input.answers.map((answer) => answer.questionId);
+      if (
+        answerIds.length !== expectedIds.length ||
+        new Set(answerIds).size !== answerIds.length ||
+        expectedIds.some((id) => !answerIds.includes(id))
+      ) {
+        throw new BadRequestException('Barcha savollarga bittadan javob berish shart.');
+      }
 
-    const questions = await this.dataSource.getRepository(LearningQuestion).find({
-      where: {
-        id: In(ids),
-        subjectId: input.subjectId,
-        topicId: input.topicId,
-        language: input.language,
-        difficulty: input.difficulty,
-        isActive: true,
-      },
-    });
-    if (questions.length !== ids.length) {
-      throw new BadRequestException('Test savollari mos kelmadi. Testni qayta boshlang.');
-    }
+      const questions = await manager.getRepository(LearningQuestion).find({
+        where: {
+          id: In(expectedIds),
+          subjectId: session.subjectId,
+          topicId: session.topicId,
+          language: session.language,
+          difficulty: session.difficulty,
+          isActive: true,
+        },
+      });
+      if (questions.length !== expectedIds.length) {
+        throw new BadRequestException('Test savollari bazada topilmadi. Testni qayta boshlang.');
+      }
 
-    const byId = new Map(questions.map((question) => [question.id, question]));
-    const review = input.answers.map((answer) => {
-      const question = byId.get(answer.questionId)!;
-      return {
-        id: question.id,
-        question: question.question,
-        options: question.options,
-        selectedAnswer: answer.selectedAnswer,
-        correctAnswer: question.correctAnswer,
-        isCorrect: answer.selectedAnswer === question.correctAnswer,
-        explanation: question.explanation,
-      };
-    });
-    const correctAnswers = review.filter((item) => item.isCorrect).length;
-    const totalQuestions = review.length;
-    const attempt = this.attempts.create({
-      userId,
-      subjectId: topic.subjectId,
-      subjectName: topic.subjectName,
-      topicId: topic.topicId,
-      topicName: topic.topicName,
-      totalQuestions,
-      correctAnswers,
-      accuracy: Math.round((correctAnswers / totalQuestions) * 10000) / 100,
-    });
-    await this.attempts.save(attempt);
+      const byId = new Map(questions.map((question) => [question.id, question]));
+      const answersById = new Map(input.answers.map((answer) => [answer.questionId, answer.selectedAnswer]));
+      const review = expectedIds.map((id) => {
+        const question = byId.get(id)!;
+        const selectedAnswer = answersById.get(id)!;
+        return {
+          id: question.id,
+          question: question.question,
+          options: question.options,
+          selectedAnswer,
+          correctAnswer: question.correctAnswer,
+          isCorrect: selectedAnswer === question.correctAnswer,
+          explanation: question.explanation,
+        };
+      });
+      const correctAnswers = review.filter((item) => item.isCorrect).length;
+      const totalQuestions = review.length;
+      const accuracy = Math.round((correctAnswers / totalQuestions) * 10000) / 100;
+      const attempt = manager.getRepository(LearningAttempt).create({
+        userId,
+        subjectId: session.subjectId,
+        subjectName: (await manager.getRepository(LearningTopic).findOneByOrFail({
+          subjectId: session.subjectId,
+          topicId: session.topicId,
+        })).subjectName,
+        topicId: session.topicId,
+        topicName: (await manager.getRepository(LearningTopic).findOneByOrFail({
+          subjectId: session.subjectId,
+          topicId: session.topicId,
+        })).topicName,
+        totalQuestions,
+        correctAnswers,
+        accuracy,
+      });
+      await manager.getRepository(LearningAttempt).save(attempt);
+      session.submittedAt = new Date();
+      await sessionRepo.save(session);
 
-    return {
-      attemptId: attempt.id,
-      totalQuestions,
-      correctAnswers,
-      accuracy: attempt.accuracy,
-      review,
-    };
+      return { attemptId: attempt.id, totalQuestions, correctAnswers, accuracy, review };
+    });
   }
 
   async createAttempt(userId: string, input: CreateLearningAttemptInput) {
