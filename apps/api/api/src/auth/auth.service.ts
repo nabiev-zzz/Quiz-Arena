@@ -314,6 +314,7 @@ export class AuthService {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body,
+      signal: AbortSignal.timeout(10_000),
     });
     const tokenPayload = await tokenResponse.json().catch(() => null) as
       | { id_token?: string }
@@ -370,6 +371,7 @@ export class AuthService {
 
     const response = await fetch(
       `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+      { signal: AbortSignal.timeout(10_000) },
     );
     const claims = await response.json().catch(() => null) as
       | { aud?: string; iss?: string; sub?: string; email?: string; email_verified?: string; name?: string; nonce?: string }
