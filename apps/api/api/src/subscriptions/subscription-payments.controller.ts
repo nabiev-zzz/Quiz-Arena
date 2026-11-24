@@ -20,6 +20,12 @@ export class SubscriptionPaymentsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('google-play/account-id')
+  googlePlayAccountId(@Request() request: AuthRequest) {
+    return { obfuscatedAccountId: this.payments.googlePlayAccountId(request.user.id) };
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('google-play/verify')
   googlePlayVerify(@Request() request: AuthRequest, @Body() body: GooglePurchaseBody) {
     return this.payments.verifyGooglePlayPurchase(request.user.id, body?.purchaseToken);
