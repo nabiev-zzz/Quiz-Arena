@@ -2,6 +2,7 @@
 import {
   IsOptional,
   IsString,
+  IsIn,
   Matches,
   MaxLength,
   MinLength,
@@ -27,4 +28,14 @@ export class UpdateProfileDto {
   @IsString()
   @MaxLength(500)
   bio?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['sparkle', 'crown', 'laurel'])
+  avatarDecoration?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['aurora', 'royal', 'ocean'])
+  profileFrame?: string | null;
 }
