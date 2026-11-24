@@ -69,7 +69,7 @@ async function persistAuth(result: AuthResponse): Promise<AuthResponse> {
 export async function registerUser(input: {
   displayName: string;
   username: string;
-  email: string;
+  email?: string;
   password: string;
 }): Promise<AuthResponse> {
   return persistAuth(await request<AuthResponse>('/api/auth/register', {
