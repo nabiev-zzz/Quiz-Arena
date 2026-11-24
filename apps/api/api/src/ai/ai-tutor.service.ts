@@ -13,6 +13,7 @@ import { Repository } from 'typeorm';
 
 import { BattleMatch } from '../battle/entities/battle-match.entity';
 import { FeatureUsageService } from '../subscriptions/feature-usage.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { User } from '../users/entities/user.entity';
 
 import {
@@ -34,6 +35,7 @@ export class AiTutorService {
     @InjectRepository(BattleMatch)
     private readonly battleRepository: Repository<BattleMatch>,
     private readonly featureUsageService: FeatureUsageService,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   private async getPreviousMessages(userId: string) {
@@ -271,14 +273,19 @@ Answer the student's new message in the requested language.
   }
 
   async getHistory(userId: string) {
+    const current = await this.subscriptionsService.current(userId);
+    const fullHistory = current.entitlements.aiTutor.fullHistory;
+    const historyLimit = fullHistory ? 100 : 20;
     const messages = await this.messageRepository.find({
       where: { userId },
       order: { createdAt: 'ASC' },
-      take: 100,
+      take: historyLimit,
     });
 
     return {
       messages,
+      fullHistory,
+      historyLimit,
     };
   }
 }
