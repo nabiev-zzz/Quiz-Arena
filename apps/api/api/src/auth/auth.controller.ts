@@ -6,14 +6,14 @@ import {
   Post,
   Request,
   UseGuards,
-} from '@nestjs/common';
+} from '@nestjs/common';\nimport type { Response } from 'express';
 
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import {
-  GoogleAuthDto,
+  GoogleAuthDto,\n  GoogleCodeExchangeDto,
   PasswordResetDto,
   PhoneOtpRequestDto,
   PhoneOtpVerifyDto,
