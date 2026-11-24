@@ -254,6 +254,33 @@ const phrases: Record<string, readonly [string, string]> = {
   'dark mode': ['Dark mode', 'Тёмная тема'],
   'light mode': ['Light mode', 'Светлая тема'],
 
+
+  'ai ustoz': ['AI Tutor', 'ИИ-наставник'],
+  'hamjamiyat': ['Community', 'Сообщество'],
+  'battle maydoni': ['Battle arena', 'Арена баттлов'],
+  'fanlarni tanlang, mavzularni yeching': ['Choose subjects and practice topics', 'Выбирайте предметы и проходите темы'],
+  'liderlar va natijalarni ko‘ring': ['View leaders and results', 'Смотрите лидеров и результаты'],
+  'raqiblar bilan bilim bellashuvi': ['Compete with other players', 'Соревнуйтесь с другими игроками'],
+  'savol bering, mavzuni tushuning': ['Ask questions and understand topics', 'Задавайте вопросы и изучайте темы'],
+  'bilimdonlarni toping va kuzating': ['Discover and follow learners', 'Находите учеников и подписывайтесь'],
+  'hisob, avatar va yutuqlaringiz': ['Your account, avatar and achievements', 'Ваш аккаунт, аватар и достижения'],
+  'qo‘shimcha tarif va imkoniyatlar': ['More plans and features', 'Больше тарифов и возможностей'],
+  'til, mavzu va bildirishnomalar': ['Language, theme and notifications', 'Язык, тема и уведомления'],
+  'foydalanuvchilar yuklanmadi': ['Could not load users', 'Не удалось загрузить пользователей'],
+  'kuzatib bo‘lmadi': ['Could not follow user', 'Не удалось подписаться'],
+  'xatolik': ['Error', 'Ошибка'],
+  'saqlandi': ['Saved', 'Сохранено'],
+  'ruxsat kerak': ['Permission required', 'Требуется разрешение'],
+  'avatar tanlash uchun galereyaga ruxsat bering.': ['Allow gallery access to choose an avatar.', 'Разрешите доступ к галерее, чтобы выбрать аватар.'],
+  'rasm tanlashda xatolik yuz berdi.': ['There was a problem selecting the image.', 'Не удалось выбрать изображение.'],
+  'username 3–30 belgi bo‘lsin. faqat harf, raqam va _ ishlating.': ['Username must be 3–30 characters. Use only letters, numbers and _.', 'Имя пользователя должно содержать 3–30 символов. Используйте только буквы, цифры и _.'],
+  'profil ma’lumotlari yangilandi.': ['Profile details updated.', 'Данные профиля обновлены.'],
+  'profilni saqlashda xatolik yuz berdi.': ['Could not save profile details.', 'Не удалось сохранить данные профиля.'],
+  'bezakni saqlab bo‘lmadi': ['Could not save decoration.', 'Не удалось сохранить украшение.'],
+  'nusxalandi': ['Copied', 'Скопировано'],
+  'o‘yin yakunlandi': ['Match completed', 'Матч завершён'],
+  'sizning natijalaringiz': ['YOUR RESULTS', 'ВАШИ РЕЗУЛЬТАТЫ'],
+
 };
 
 const phraseLookup = new Map<string, readonly [string, string]>(
@@ -264,10 +291,13 @@ export function translateText(value: string, language: AppLanguage = activeLangu
   if (language === 'uz') return value;
   const key = normalizeKey(value);
   const exact = phraseLookup.get(key);
-  if (exact) {
-    const leading = value.match(/^\s*/)?.[0] ?? '';
-    const trailing = value.match(/\s*$/)?.[0] ?? '';
-    return leading + exact[language === 'en' ? 0 : 1] + trailing;
+  const leading = value.match(/^\s*/)?.[0] ?? '';
+  const trailing = value.match(/[\s.,!?;:…]+$/)?.[0] ?? '';
+  const core = value.slice(leading.length, value.length - trailing.length);
+  const punctuationMatch = phraseLookup.get(normalizeKey(core));
+  const selected = exact ?? punctuationMatch;
+  if (selected) {
+    return leading + selected[language === 'en' ? 0 : 1] + trailing;
   }
 
   const count = key.match(/^(\d+)\s+ta\s+(.+)$/);
