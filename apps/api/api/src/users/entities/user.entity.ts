@@ -12,6 +12,7 @@ import {
 @Index('UQ_users_email', ['email'], { unique: true })
 @Index('UQ_users_phone_number', ['phoneNumber'], { unique: true, where: '"phoneNumber" IS NOT NULL' })
 @Index('UQ_users_google_subject', ['googleSubject'], { unique: true, where: '"googleSubject" IS NOT NULL' })
+@Index('UQ_users_telegram_subject', ['telegramSubject'], { unique: true, where: '"telegramSubject" IS NOT NULL' })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -36,6 +37,9 @@ export class User {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   googleSubject: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  telegramSubject: string | null;
 
   @Column({ type: 'varchar', length: 255, select: false })
   passwordHash: string;

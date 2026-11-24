@@ -12,6 +12,7 @@ import {
   UpdateProfileInput,
   API_BASE_URL,
   exchangeGoogleCode,
+  exchangeTelegramCode,
   getCurrentUser,
   getToken,
   loginUser,
@@ -43,6 +44,7 @@ interface AuthContextValue {
   requestPhoneLink: (phoneNumber: string) => Promise<void>;
   linkPhone: (phoneNumber: string, code: string) => Promise<void>;
   startGoogleLogin: () => Promise<void>;
+  startTelegramLogin: () => Promise<void>;
   updateProfile: (input: UpdateProfileInput) => Promise<void>;
   refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
@@ -85,15 +87,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const parsed = new URL(url);
       if (parsed.protocol !== 'quizarena:' || parsed.hostname !== 'auth') return;
       if (parsed.searchParams.get('error')) {
-        Alert.alert('Google orqali kirish', 'Google hisobiga kirish yakunlanmadi. Qayta urinib ko‘ring.');
+        Alert.alert('Kirish', 'Kirish jarayoni yakunlanmadi. Qayta urinib ko‘ring.');
         return;
       }
       const code = parsed.searchParams.get('code');
       if (!code) return;
-      const result = await exchangeGoogleCode(code);
+      const provider = parsed.searchParams.get('provider');
+      const result = provider === 'telegram'
+        ? await exchangeTelegramCode(code)
+        : await exchangeGoogleCode(code);
       setUser(result.user);
     } catch {
-      Alert.alert('Google orqali kirish', 'Kirishni yakunlab bo‘lmadi. Qayta urinib ko‘ring.');
+      Alert.alert('Kirish', 'Kirishni yakunlab bo‘lmadi. Qayta urinib ko‘ring.');
     }
   }, []);
 
@@ -152,6 +157,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await Linking.openURL(`${API_BASE_URL}/api/auth/google/start`);
   };
 
+  const startTelegramLogin = async () => {
+    await Linking.openURL(`${API_BASE_URL}/api/auth/telegram/start`);
+  };
+
   const updateProfile = async (input: UpdateProfileInput) => {
     const updatedUser = await updateCurrentUser(input);
     setUser(updatedUser);
@@ -176,6 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         requestPhoneLink,
         linkPhone,
         startGoogleLogin,
+        startTelegramLogin,
         updateProfile,
         refreshUser,
         logout,

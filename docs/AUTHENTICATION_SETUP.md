@@ -13,8 +13,24 @@ Set these variables on the Railway API service. Do not commit credentials or put
 | `GOOGLE_CLIENT_ID` | Google OAuth 2.0 Web application client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 Web application client secret |
 | `GOOGLE_REDIRECT_URI` | Exact public callback URL: `https://humorous-imagination-production.up.railway.app/api/auth/google/callback` |
+| `TELEGRAM_CLIENT_ID` | Telegram Login Client ID provided by @BotFather |
+| `TELEGRAM_CLIENT_SECRET` | Telegram Login Client Secret provided by @BotFather; server-only |
+| `TELEGRAM_REDIRECT_URI` | Exact public callback URL: `https://humorous-imagination-production.up.railway.app/api/auth/telegram/callback` |
 
 Keep the existing `JWT_SECRET` configured. It is used to sign the existing application sessions and short-lived OAuth state.
+
+## Optional Telegram sign-in
+
+Telegram is an additional sign-in method. Username/password and Google sign-in remain unchanged. Telegram identities are stored in a separate nullable `telegramSubject` field; a Telegram account is never automatically merged with an existing account based only on a matching display name or username.
+
+1. Open @BotFather in Telegram and select or create the bot representing QUIZ ARENA.
+2. Open the bot's **Login Widget** settings and register this exact allowed redirect URL:
+   `https://humorous-imagination-production.up.railway.app/api/auth/telegram/callback`
+3. Copy the Login Widget **Client ID** and **Client Secret** from BotFather.
+4. Add them to the Railway API service as `TELEGRAM_CLIENT_ID` and `TELEGRAM_CLIENT_SECRET`.
+5. Set `TELEGRAM_REDIRECT_URI` to the exact callback URL above and redeploy the API.
+
+The app opens Telegram's official OpenID Connect authorization page. The backend uses Authorization Code + PKCE, validates the Telegram ID-token RS256 signature against Telegram's published JWKS, checks issuer/audience/expiry/nonce, and exchanges a short-lived single-use code for the normal QUIZ ARENA session. No Telegram bot token or client secret is placed in the mobile app. A new app build is not required solely for this feature because the existing `quizarena://auth` deep-link scheme is reused.
 
 ## Eskiz setup
 
@@ -51,6 +67,9 @@ The Expo app has the `quizarena://` deep-link scheme. Because this changes nativ
 | POST | `/api/auth/phone/password-reset/request-otp` | Request password-reset code |
 | POST | `/api/auth/phone/password-reset` | Verify code and set a new password |
 | GET | `/api/auth/google/start` | Start Google OAuth |
+| GET | `/api/auth/telegram/start` | Start optional Telegram OIDC sign-in |
+| GET | `/api/auth/telegram/callback` | Telegram server callback |
+| POST | `/api/auth/telegram/exchange` | Exchange the short-lived Telegram app code for the normal QUIZ ARENA session |
 | GET | `/api/auth/google/callback` | Google server callback |
 | POST | `/api/auth/google/exchange` | Exchange the short-lived app code for the normal QUIZ ARENA session |
 | POST | `/api/auth/login` | Existing username/password sign-in (unchanged) |

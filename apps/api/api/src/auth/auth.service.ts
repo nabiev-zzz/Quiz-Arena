@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { createHash, randomBytes, randomInt } from 'node:crypto';
+import { createHash, createPublicKey, randomBytes, randomInt, verify as verifySignature } from 'node:crypto';
 
 import { User } from '../users/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
@@ -259,6 +259,190 @@ export class AuthService {
     return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
   }
 
+
+  private getTelegramConfig() {
+    const clientId = this.config.get<string>('TELEGRAM_CLIENT_ID');
+    const clientSecret = this.config.get<string>('TELEGRAM_CLIENT_SECRET');
+    const redirectUri = this.config.get<string>('TELEGRAM_REDIRECT_URI');
+    if (!clientId || !clientSecret || !redirectUri) {
+      throw new ServiceUnavailableException('Telegram orqali kirish hali sozlanmagan');
+    }
+    return { clientId, clientSecret, redirectUri };
+  }
+
+  async getTelegramAuthorizationUrl(): Promise<string> {
+    const { clientId, redirectUri } = this.getTelegramConfig();
+    const nonce = randomBytes(24).toString('base64url');
+    const codeVerifier = randomBytes(48).toString('base64url');
+    const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
+    const state = await this.jwtService.signAsync(
+      { purpose: 'telegram_oauth', nonce, codeVerifier },
+      { expiresIn: 600 },
+    );
+    const url = new URL('https://oauth.telegram.org/auth');
+    url.searchParams.set('client_id', clientId);
+    url.searchParams.set('redirect_uri', redirectUri);
+    url.searchParams.set('response_type', 'code');
+    url.searchParams.set('scope', 'openid profile');
+    url.searchParams.set('state', state);
+    url.searchParams.set('nonce', nonce);
+    url.searchParams.set('code_challenge', codeChallenge);
+    url.searchParams.set('code_challenge_method', 'S256');
+    return url.toString();
+  }
+
+  async handleTelegramCallback(code: string, state: string): Promise<string> {
+    let statePayload: { purpose?: string; nonce?: string; codeVerifier?: string };
+    try {
+      statePayload = await this.jwtService.verifyAsync(state);
+    } catch {
+      throw new UnauthorizedException('Telegram kirish so‘rovi muddati tugagan yoki noto‘g‘ri');
+    }
+    if (
+      statePayload.purpose !== 'telegram_oauth' ||
+      !statePayload.nonce ||
+      !statePayload.codeVerifier
+    ) {
+      throw new UnauthorizedException('Telegram kirish so‘rovi noto‘g‘ri');
+    }
+
+    if (!code || code.length > 2048 || !state) {
+      throw new UnauthorizedException('Telegram kirish javobi noto‘g‘ri');
+    }
+    const { clientId, clientSecret, redirectUri } = this.getTelegramConfig();
+    const body = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
+      client_id: clientId,
+      code_verifier: statePayload.codeVerifier,
+    });
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const tokenResponse = await fetch('https://oauth.telegram.org/token', {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body,
+      signal: AbortSignal.timeout(10_000),
+    });
+    const tokenPayload = await tokenResponse.json().catch(() => null) as
+      | { id_token?: string }
+      | null;
+    if (!tokenResponse.ok || !tokenPayload?.id_token) {
+      throw new UnauthorizedException('Telegram hisobini tasdiqlash amalga oshmadi');
+    }
+
+    const result = await this.loginWithTelegram(tokenPayload.id_token, statePayload.nonce);
+    const rawCode = randomBytes(32).toString('base64url');
+    const codeHash = createHash('sha256').update(rawCode).digest('hex');
+    await this.oauthCodeRepository.save(this.oauthCodeRepository.create({
+      userId: result.user.id,
+      codeHash,
+      expiresAt: new Date(Date.now() + 90_000),
+      consumedAt: null,
+    }));
+    return `quizarena://auth?provider=telegram&code=${encodeURIComponent(rawCode)}`;
+  }
+
+  async loginWithTelegram(idToken: string, expectedNonce: string) {
+    const { clientId } = this.getTelegramConfig();
+    const parts = idToken.split('.');
+    if (parts.length !== 3) {
+      throw new UnauthorizedException('Telegram ID token noto‘g‘ri');
+    }
+
+    let header: { alg?: string; kid?: string };
+    let claims: {
+      iss?: string; aud?: string | string[]; sub?: string; exp?: number;
+      nonce?: string; name?: string; preferred_username?: string; picture?: string;
+    };
+    try {
+      header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+      claims = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    } catch {
+      throw new UnauthorizedException('Telegram ID token noto‘g‘ri');
+    }
+    if (header.alg !== 'RS256' || !header.kid) {
+      throw new UnauthorizedException('Telegram ID token imzosi noto‘g‘ri');
+    }
+
+    const jwksResponse = await fetch('https://oauth.telegram.org/.well-known/jwks.json', {
+      signal: AbortSignal.timeout(10_000),
+    });
+    const jwks = await jwksResponse.json().catch(() => null) as
+      | { keys?: Array<{ kid?: string; kty?: string; use?: string; alg?: string; n?: string; e?: string }> }
+      | null;
+    const jwk = jwks?.keys?.find(key => key.kid === header.kid && key.kty === 'RSA');
+    if (!jwksResponse.ok || !jwk) {
+      throw new UnauthorizedException('Telegram imzo kaliti tekshirilmadi');
+    }
+
+    const publicKey = createPublicKey({ key: jwk as any, format: 'jwk' });
+    const validSignature = verifySignature(
+      'RSA-SHA256',
+      Buffer.from(`${parts[0]}.${parts[1]}`),
+      publicKey,
+      Buffer.from(parts[2], 'base64url'),
+    );
+    const audienceMatches = Array.isArray(claims.aud)
+      ? claims.aud.includes(clientId)
+      : claims.aud === clientId;
+    if (
+      !validSignature ||
+      claims.iss !== 'https://oauth.telegram.org' ||
+      !audienceMatches ||
+      !claims.sub ||
+      !claims.exp ||
+      claims.exp <= Math.floor(Date.now() / 1000) ||
+      claims.nonce !== expectedNonce
+    ) {
+      throw new UnauthorizedException('Telegram hisobini tasdiqlash amalga oshmadi');
+    }
+
+    let user = await this.userRepository.findOne({
+      where: { telegramSubject: claims.sub },
+    });
+    if (!user) {
+      const displayName = (claims.name || claims.preferred_username || 'Telegram user')
+        .trim().slice(0, 100) || 'Telegram user';
+      const base = (claims.preferred_username || `tg_${claims.sub}`)
+        .toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 24) || `tg_${claims.sub.slice(-12)}`;
+      const usernameBase = base.length >= 3 ? base : `tg_${claims.sub.slice(-12)}`;
+      let username = usernameBase;
+      let suffix = 1;
+      while (await this.userRepository.findOne({ where: { username } })) {
+        const tail = `_${suffix++}`;
+        username = `${usernameBase.slice(0, 30 - tail.length)}${tail}`;
+      }
+      user = this.userRepository.create({
+        displayName,
+        username,
+        email: null,
+        telegramSubject: claims.sub,
+        passwordHash: await bcrypt.hash(randomBytes(32).toString('hex'), 12),
+        avatarUrl: claims.picture || null,
+        role: 'user',
+        status: 'active',
+      });
+      try {
+        user = await this.userRepository.save(user);
+      } catch (error) {
+        // A concurrent first login may have created the same Telegram identity.
+        const existing = await this.userRepository.findOne({
+          where: { telegramSubject: claims.sub },
+        });
+        if (!existing) throw error;
+        user = existing;
+      }
+    }
+
+    if (user.status !== 'active') {
+      throw new UnauthorizedException('Hisobingiz bloklangan');
+    }
+    return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
+  }
 
   private getGoogleRedirectUri(): string {
     const redirectUri = this.config.get<string>('GOOGLE_REDIRECT_URI');

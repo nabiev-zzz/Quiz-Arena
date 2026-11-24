@@ -11,11 +11,12 @@ interface Props {
   onLogin: (username: string, password: string) => Promise<void>;
   onRegisterPress: () => void;
   onGoogleLogin: () => Promise<void>;
+  onTelegramLogin: () => Promise<void>;
   onPasswordResetRequest: (email: string) => Promise<void>;
   onPasswordReset: (email: string, code: string, newPassword: string) => Promise<void>;
 }
 
-export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, onPasswordResetRequest, onPasswordReset }: Props) {
+export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, onTelegramLogin, onPasswordResetRequest, onPasswordReset }: Props) {
   const { tokens } = useTheme();
   const colors = tokens.colors;
   const styles = makeStyles(colors);
@@ -80,6 +81,9 @@ export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, o
             <Pressable style={[styles.googleButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onGoogleLogin)}>
               <Text style={styles.googleButtonText}>G  Google orqali kirish</Text>
             </Pressable>
+            <Pressable style={[styles.telegramButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onTelegramLogin)}>
+              <Text style={styles.telegramButtonText}>✈  Telegram orqali kirish</Text>
+            </Pressable>
           </>
         ) : (
           <>
@@ -132,6 +136,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
     googleButton: { height: 52, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceGlass, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
     googleButtonText: { color: colors.text, fontSize: 15, fontWeight: '600' },
+    telegramButton: { height: 52, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(40, 160, 220, 0.45)', backgroundColor: 'rgba(35, 150, 210, 0.12)', alignItems: 'center', justifyContent: 'center', marginTop: 10 },
+    telegramButtonText: { color: colors.text, fontSize: 15, fontWeight: '600' },
     textButton: { alignSelf: 'center', paddingVertical: 11 },
     footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 22 },
     footerText: { color: colors.textMuted, fontSize: 13 },
