@@ -11,12 +11,13 @@ interface LearnScreenProps {
   initialSubject?: Subject | null;
   onTopicSelect?: (subject: Subject, topic: Topic) => void;
   onDocumentQuiz?: () => void;
+  onSmartPractice?: () => void;
   dockStretch?: SharedValue<number>;
 }
 
 const normalize = (value: string) => value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
 
-export default function LearnScreen({ initialSubject, onTopicSelect, onDocumentQuiz, dockStretch }: LearnScreenProps) {
+export default function LearnScreen({ initialSubject, onTopicSelect, onDocumentQuiz, onSmartPractice, dockStretch }: LearnScreenProps) {
   const { tokens } = useTheme();
   const colors = tokens.colors;
   const styles = makeStyles(colors);
@@ -49,7 +50,15 @@ export default function LearnScreen({ initialSubject, onTopicSelect, onDocumentQ
 
   return (
     <Animated.ScrollView onScroll={dockScrollHandler} scrollEventThrottle={16} style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-      <Pressable onPress={onDocumentQuiz} style={styles.documentQuizBanner}>
+      <Pressable onPress={onDocumentQuiz} style={styles.documentQuizBanner}>      <Pressable onPress={onSmartPractice} style={styles.smartPracticeBanner}>
+        <View style={styles.smartPracticeIcon}><Ionicons name="brain" size={22} color="#FFFFFF" /></View>
+        <View style={styles.documentQuizCopy}>
+          <LocalizedText style={styles.documentQuizTitle}>Smart Practice</LocalizedText>
+          <LocalizedText style={styles.documentQuizDescription}>Avvalgi xatolaringizdan shaxsiy mashq yarating</LocalizedText>
+        </View>
+        <Ionicons name="arrow-forward-circle" size={23} color="#D9D0FF" />
+      </Pressable>
+
         <View style={styles.documentQuizIcon}><Ionicons name="document-text-outline" size={22} color="#FFFFFF" /></View>
         <View style={styles.documentQuizCopy}>
           <LocalizedText style={styles.documentQuizTitle}>Hujjatdan test yaratish</LocalizedText>
@@ -144,6 +153,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     container: { flex: 1, backgroundColor: colors.background },
     content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 132 },
     header: { marginTop: 8, marginBottom: 19 },
+    smartPracticeBanner: { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 13, marginBottom: 17, borderRadius: 18, backgroundColor: '#173B3B', borderWidth: 1, borderColor: 'rgba(125,227,189,0.24)' },
+    smartPracticeIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#229B84' },
     documentQuizBanner: { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 13, marginBottom: 17, borderRadius: 18, backgroundColor: '#2A1B4A', borderWidth: 1, borderColor: 'rgba(190,170,255,0.28)' },
     documentQuizIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#7059D6' },
     documentQuizCopy: { flex: 1, gap: 4 },
