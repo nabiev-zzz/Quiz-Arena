@@ -719,42 +719,151 @@ export default function BattleScreen({
       );
     }
 
+    const latestMatch = stats?.recentMatches?.[0];
+    const canStart = connected && !connecting;
+
     return (
-      <View style={styles.card}>
-        <View style={styles.arenaBadge}>
-          <Ionicons name="flash" size={13} color={colors.primary} />
-          <Text style={styles.arenaBadgeText}>REAL-TIME ARENA</Text>
+      <View style={styles.homeContent}>
+        <View style={styles.battleHero}>
+          <View pointerEvents="none" style={styles.heroGlowTop} />
+          <View pointerEvents="none" style={styles.heroGlowBottom} />
+          <View style={styles.heroTopLine}>
+            <View style={styles.heroBadge}>
+              <Ionicons name="flash" size={13} color="#FFFFFF" />
+              <Text style={styles.heroBadgeText}>BATTLE ARENA</Text>
+            </View>
+            <View style={styles.heroLive}>
+              <View style={[styles.liveDot, { backgroundColor: connected ? '#35E6A0' : '#F6B94A' }]} />
+              <Text style={styles.heroLiveText}>{connected ? 'ONLINE' : 'CONNECTING'}</Text>
+            </View>
+          </View>
+          <View style={styles.heroArtwork}>
+            <View style={styles.trophyHalo}>
+              <Ionicons name="trophy" size={62} color="#FFC85A" />
+            </View>
+            <View style={styles.heroCrossedSwords}>
+              <Ionicons name="flash" size={27} color="#C9B8FF" />
+            </View>
+          </View>
+          <Text style={styles.heroTitle}>Bilim janglari</Text>
+          <Text style={styles.heroSubtitle}>
+            Eng kuchli raqib bilan bilimingizni sinang. Har bir savolda 20 soniya!
+          </Text>
+          <Pressable
+            onPress={() => joinQueue('casual')}
+            disabled={!canStart}
+            style={[styles.heroPlayButton, !canStart && styles.disabledButton]}
+          >
+            <Ionicons name="play" size={19} color="#FFFFFF" />
+            <Text style={styles.heroPlayText}>Raqib topish</Text>
+            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          </Pressable>
         </View>
-        <Text style={styles.resultEmoji}>вљ”пёЏ</Text>
-        <Text style={styles.cardTitle}>1 ga 1 Battle</Text>
-        <Text style={styles.bodyText}>
-          Boshqa oвЂyinchi bilan real vaqt rejimida bilim sinovi.
-          Har bir savol uchun 20 soniya vaqt beriladi.
-        </Text>
 
-        <Text style={styles.scoreTitle}>OвЂyin rejimini tanlang</Text>
+        <View style={styles.sectionHeading}>
+          <View style={styles.sectionHeadingLeft}>
+            <Ionicons name="flash" size={21} color="#FFC84A" />
+            <Text style={styles.sectionHeadingTitle}>O‘yin rejimlari</Text>
+          </View>
+          <Text style={styles.sectionHeadingHint}>1 ga 1</Text>
+        </View>
 
-        <ActionButton
-          title="Casual вЂ” oddiy oвЂyin"
-          onPress={() => joinQueue('casual')}
-          styles={styles}
-          disabled={!connected || connecting}
-        />
+        <View style={styles.modeGrid}>
+          <Pressable
+            onPress={() => joinQueue('casual')}
+            disabled={!canStart}
+            style={[styles.modeCard, styles.casualMode]}
+          >
+            <View style={styles.modeIconBlue}>
+              <Ionicons name="stopwatch" size={31} color="#70BFFF" />
+            </View>
+            <Text style={styles.modeTitle}>Tez jang</Text>
+            <Text style={styles.modeSubtitle}>Oddiy o‘yin</Text>
+            <View style={styles.modeBottom}>
+              <Text style={styles.modeMeta}>20 soniya / savol</Text>
+              <Ionicons name="arrow-forward-circle" size={27} color="#A9BFFF" />
+            </View>
+          </Pressable>
 
-        <ActionButton
-          title="Ranked вЂ” reyting uchun"
-          onPress={() => joinQueue('ranked')}
-          styles={styles}
-          disabled={!connected || connecting}
-        />
+          <Pressable
+            onPress={() => joinQueue('ranked')}
+            disabled={!canStart}
+            style={[styles.modeCard, styles.rankedMode]}
+          >
+            <View style={styles.modeIconGold}>
+              <Ionicons name="trophy" size={31} color="#FFC85A" />
+            </View>
+            <Text style={styles.modeTitle}>Ranked</Text>
+            <Text style={styles.modeSubtitle}>Reyting uchun</Text>
+            <View style={styles.modeBottom}>
+              <Text style={styles.modeMeta}>Rank ochkolari</Text>
+              <Ionicons name="arrow-forward-circle" size={27} color="#F7C46B" />
+            </View>
+          </Pressable>
+        </View>
 
-        <Text style={styles.muted}>
-          {connecting
-            ? 'Serverga ulanmoqda...'
-            : connected
-              ? 'Serverga ulangan'
-              : 'Server bilan aloqa kutilmoqda'}
-        </Text>
+        {stats ? (
+          <View style={styles.quickStatsCard}>
+            <View style={styles.quickStatsHeader}>
+              <View style={styles.sectionHeadingLeft}>
+                <Ionicons name="stats-chart" size={19} color="#A99BFF" />
+                <Text style={styles.quickStatsTitle}>Sizning statistikangiz</Text>
+              </View>
+              <Pressable onPress={() => setSection('stats')}>
+                <Text style={styles.quickStatsLink}>Batafsil ›</Text>
+              </Pressable>
+            </View>
+            <View style={styles.quickStatsRow}>
+              <View style={styles.quickStatItem}>
+                <Text style={styles.quickStatValue}>{Math.round(Number(stats.winRate) || 0)}%</Text>
+                <Text style={styles.quickStatLabel}>G‘alaba</Text>
+              </View>
+              <View style={styles.quickStatDivider} />
+              <View style={styles.quickStatItem}>
+                <Text style={styles.quickStatValue}>{stats.wins}</Text>
+                <Text style={styles.quickStatLabel}>Yutuqlar</Text>
+              </View>
+              <View style={styles.quickStatDivider} />
+              <View style={styles.quickStatItem}>
+                <Text style={styles.quickStatValue}>{stats.totalMatches}</Text>
+                <Text style={styles.quickStatLabel}>O‘yinlar</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        {latestMatch ? (
+          <View style={styles.latestMatchCard}>
+            <View style={styles.quickStatsHeader}>
+              <View style={styles.sectionHeadingLeft}>
+                <Ionicons name="trophy" size={18} color="#FFC85A" />
+                <Text style={styles.quickStatsTitle}>Oxirgi jang</Text>
+              </View>
+              <Pressable onPress={() => setSection('history')}>
+                <Text style={styles.quickStatsLink}>Tarix ›</Text>
+              </Pressable>
+            </View>
+            <View style={styles.latestMatchRow}>
+              <View style={styles.latestMatchAvatar}>
+                <Ionicons name="person" size={21} color="#D7CCFF" />
+              </View>
+              <View style={styles.latestMatchCopy}>
+                <Text style={styles.latestMatchName}>1 ga 1 Battle</Text>
+                <Text style={styles.modeMeta}>{latestMatch.mode === 'ranked' ? 'Ranked' : 'Casual'}</Text>
+              </View>
+              <Text style={[styles.latestMatchResult, { color: latestMatch.result === 'win' ? '#35D99A' : latestMatch.result === 'loss' ? '#FF7D91' : '#AEB8D0' }]}>
+                {latestMatch.result === 'win' ? 'G‘alaba' : latestMatch.result === 'loss' ? 'Mag‘lubiyat' : 'Durang'}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        <View style={styles.connectionNote}>
+          <View style={[styles.liveDot, { backgroundColor: connected ? '#35D99A' : '#F6B94A' }]} />
+          <Text style={styles.connectionNoteText}>
+            {connecting ? 'Battle serveriga ulanmoqda…' : connected ? 'Battle serveriga ulangan' : 'Server bilan aloqa kutilmoqda'}
+          </Text>
+        </View>
       </View>
     );
   }
@@ -1446,6 +1555,103 @@ function makeStyles(colors: typeof COLORS, dark: boolean) {
       borderRadius: 130,
       backgroundColor: dark ? 'rgba(63,190,190,0.09)' : 'rgba(76,190,178,0.10)',
     },
+    homeContent: { gap: 16 },
+    battleHero: {
+      position: 'relative',
+      overflow: 'hidden',
+      borderRadius: 30,
+      padding: 20,
+      minHeight: 350,
+      backgroundColor: dark ? '#211052' : '#4B32A8',
+      borderWidth: 1,
+      borderColor: dark ? 'rgba(188,151,255,0.55)' : 'rgba(255,255,255,0.55)',
+      shadowColor: '#7C35FF',
+      shadowOpacity: 0.35,
+      shadowRadius: 24,
+      shadowOffset: { width: 0, height: 10 },
+      elevation: 8,
+    },
+    heroGlowTop: {
+      position: 'absolute', width: 240, height: 240, borderRadius: 120,
+      top: -115, right: -75, backgroundColor: 'rgba(160,82,255,0.30)',
+    },
+    heroGlowBottom: {
+      position: 'absolute', width: 190, height: 190, borderRadius: 95,
+      bottom: -105, left: -70, backgroundColor: 'rgba(39,132,255,0.22)',
+    },
+    heroTopLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    heroBadge: {
+      flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11,
+      paddingVertical: 7, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.16)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)',
+    },
+    heroBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
+    heroLive: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    liveDot: { width: 7, height: 7, borderRadius: 4 },
+    heroLiveText: { color: '#E5DCFF', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+    heroArtwork: { height: 112, alignItems: 'center', justifyContent: 'center', marginTop: 7 },
+    trophyHalo: {
+      width: 104, height: 104, borderRadius: 52, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: 'rgba(255,199,80,0.13)', borderWidth: 1,
+      borderColor: 'rgba(255,211,111,0.32)',
+      shadowColor: '#FFC85A', shadowOpacity: 0.55, shadowRadius: 24, elevation: 8,
+    },
+    heroCrossedSwords: {
+      position: 'absolute', right: '20%', bottom: 4, width: 47, height: 47,
+      borderRadius: 16, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    },
+    heroTitle: { color: '#FFFFFF', fontSize: 27, fontWeight: '900', textAlign: 'center', marginTop: 7 },
+    heroSubtitle: { color: '#E2D9FF', fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 7, marginBottom: 17 },
+    heroPlayButton: {
+      minHeight: 55, borderRadius: 19, flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'center', gap: 10, paddingHorizontal: 17,
+      backgroundColor: '#8B3DFF', borderWidth: 1, borderColor: 'rgba(255,255,255,0.68)',
+      shadowColor: '#B14CFF', shadowOpacity: 0.55, shadowRadius: 17,
+      shadowOffset: { width: 0, height: 5 }, elevation: 7,
+    },
+    heroPlayText: { color: '#FFFFFF', fontSize: 17, fontWeight: '900', flex: 1, textAlign: 'center' },
+    sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 },
+    sectionHeadingLeft: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+    sectionHeadingTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
+    sectionHeadingHint: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+    modeGrid: { flexDirection: 'row', gap: 11 },
+    modeCard: {
+      flex: 1, minHeight: 177, borderRadius: 24, padding: 14, overflow: 'hidden',
+      borderWidth: 1, justifyContent: 'space-between',
+      shadowColor: '#7C35FF', shadowOpacity: dark ? 0.20 : 0.08, shadowRadius: 15, elevation: 4,
+    },
+    casualMode: { backgroundColor: dark ? '#102653' : '#E7F0FF', borderColor: dark ? 'rgba(105,166,255,0.50)' : '#B9D4FF' },
+    rankedMode: { backgroundColor: dark ? '#382039' : '#FFF0DF', borderColor: dark ? 'rgba(255,183,99,0.42)' : '#F2C99D' },
+    modeIconBlue: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(66,145,255,0.17)' },
+    modeIconGold: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,190,75,0.17)' },
+    modeTitle: { color: colors.text, fontSize: 16, fontWeight: '900', marginTop: 10 },
+    modeSubtitle: { color: colors.muted, fontSize: 11, marginTop: 3 },
+    modeBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 13 },
+    modeMeta: { color: colors.muted, fontSize: 10, fontWeight: '700' },
+    quickStatsCard: {
+      padding: 16, borderRadius: 24, backgroundColor: dark ? 'rgba(27,24,59,0.88)' : 'rgba(255,255,255,0.9)',
+      borderWidth: 1, borderColor: dark ? 'rgba(160,135,255,0.36)' : 'rgba(117,104,245,0.18)',
+    },
+    quickStatsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    quickStatsTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
+    quickStatsLink: { color: dark ? '#B69AFF' : '#7254E8', fontSize: 11, fontWeight: '800' },
+    quickStatsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 18 },
+    quickStatItem: { flex: 1, alignItems: 'center', gap: 4 },
+    quickStatValue: { color: colors.text, fontSize: 23, fontWeight: '900' },
+    quickStatLabel: { color: colors.muted, fontSize: 10, fontWeight: '600' },
+    quickStatDivider: { width: 1, height: 38, backgroundColor: colors.border },
+    latestMatchCard: {
+      padding: 16, borderRadius: 24, backgroundColor: dark ? 'rgba(24,28,53,0.86)' : 'rgba(255,255,255,0.9)',
+      borderWidth: 1, borderColor: colors.border,
+    },
+    latestMatchRow: { flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 15 },
+    latestMatchAvatar: { width: 43, height: 43, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(117,104,245,0.22)' },
+    latestMatchCopy: { flex: 1, gap: 3 },
+    latestMatchName: { color: colors.text, fontSize: 13, fontWeight: '800' },
+    latestMatchResult: { fontSize: 11, fontWeight: '900' },
+    connectionNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 8 },
+    connectionNoteText: { color: colors.muted, fontSize: 10, fontWeight: '600' },
     arenaBadge: {
       alignSelf: 'center',
       flexDirection: 'row',
