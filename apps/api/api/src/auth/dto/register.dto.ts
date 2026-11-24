@@ -22,10 +22,9 @@ export class RegisterDto {
   })
   username: string;
 
-  @IsOptional()
   @IsEmail()
   @MaxLength(255)
-  email?: string;
+  email: string;
 
   @IsString()
   @MinLength(8)
