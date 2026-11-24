@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { SubscriptionsService } from './subscriptions.service';
 
-export type MeteredFeature = 'statsPdf' | 'documentQuiz' | 'privateBattle' | 'smartPractice';
+export type MeteredFeature = 'statsPdf' | 'documentQuiz' | 'privateBattle' | 'smartPractice' | 'aiTutor';
 
 @Injectable()
 export class FeatureUsageService {
@@ -12,7 +12,7 @@ export class FeatureUsageService {
   ) {}
 
   async refund(userId: string, featureKey: MeteredFeature): Promise<void> {
-    const isDaily = featureKey === 'privateBattle' || featureKey === 'smartPractice';
+    const isDaily = featureKey === 'privateBattle' || featureKey === 'smartPractice' || featureKey === 'aiTutor';
     const now = new Date();
     const periodKey = isDaily
       ? [now.getUTCFullYear(), String(now.getUTCMonth() + 1).padStart(2, '0'), String(now.getUTCDate()).padStart(2, '0')].join('-')
