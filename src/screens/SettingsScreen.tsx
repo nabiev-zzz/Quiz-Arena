@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../theme/ThemeContext';
 
 import {
   useAppSettings,
@@ -29,6 +30,7 @@ export default function SettingsScreen({
   dockStretch,
 }: SettingsScreenProps) {
   const { user } = useAuth();
+  const { tokens } = useTheme();
 
   const {
     language,
@@ -60,12 +62,12 @@ export default function SettingsScreen({
   });
 
   const colors = {
-    background: isDark ? '#0B1020' : '#F3F5FA',
-    card: isDark ? '#151D33' : '#FFFFFF',
-    text: isDark ? '#FFFFFF' : '#172033',
-    muted: isDark ? '#929BB0' : '#667085',
-    border: isDark ? '#293553' : '#E1E5ED',
-    accent: '#8B5CF6',
+    background: tokens.colors.background,
+    card: tokens.colors.surface,
+    text: tokens.colors.text,
+    muted: tokens.colors.textMuted,
+    border: tokens.colors.border,
+    accent: tokens.colors.primary,
   };
 
   const languages: {
