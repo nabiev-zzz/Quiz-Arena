@@ -96,6 +96,22 @@ describe('LearningService document quiz generation', () => {
     expect(aiService.generateQuestions).toHaveBeenCalledTimes(1);
   });
 
+  it('generates large document quizzes in validated batches of 25', async () => {
+    const batch = Array.from({ length: 25 }, (_, index) => ({
+      id: 'batch-q' + index, subjectId: 'document', topicId: 'batch-topic',
+      question: 'Question ' + index, options: ['A', 'B', 'C', 'D'],
+      correctAnswer: 0, explanation: 'Explanation', difficulty: 'medium' as const,
+    }));
+    aiService.generateQuestions.mockResolvedValue(batch);
+    const result = await service.createDocumentQuiz('user-1', {
+      buffer: Buffer.from('This document contains enough educational text for a fifty question quiz generation test.'),
+      originalname: 'long-lesson.txt', mimetype: 'text/plain', size: 90,
+    }, { count: '50' });
+
+    expect(aiService.generateQuestions).toHaveBeenCalledTimes(2);
+    expect(result.questionCount).toBe(50);
+    expect(new Set(result.questions.map((question) => question.id)).size).toBe(50);
+  });
   it('extracts text from a DOCX document before generating questions', async () => {
     const buffer = makeDocx('DOCX_TEST_TEXT: This document explains fractions, numerator, denominator and equivalent values for students.');
     await service.createDocumentQuiz('user-1', {
