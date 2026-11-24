@@ -273,7 +273,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
             )}
             <View style={styles.memberRow}>
               <Ionicons name="people-outline" size={18} color={C.muted} />
-              <Text style={styles.memberText}>QUIZ ARENA a’zosi</Text>
+              <Text style={styles.memberText}>{(socialProfile?.followersCount ?? 0) + ' kuzatuvchi · ' + (socialProfile?.followingCount ?? 0) + ' kuzatilayotgan'}</Text>
               <View style={styles.memberDot} />
             </View>
             {suggestions.length > 0 ? (
