@@ -416,7 +416,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   content: {
     paddingHorizontal: 18,
     paddingTop: 12,
-    paddingBottom: 48,
+    paddingBottom: 128,
   },
   loading: {
     flex: 1,
