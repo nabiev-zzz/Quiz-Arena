@@ -1,12 +1,11 @@
 
-import { useRef, useState, type ComponentRef } from 'react';
+import { useRef, useState } from 'react';
 import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
 import * as SplashScreen from 'expo-splash-screen';
-import { BlurTargetView } from 'expo-blur';
 import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
@@ -43,7 +42,6 @@ import {
 } from './src/context/AppSettingsContext';
 
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
-import { GlassSurface } from './src/components/ui';
 import LiquidDock, { type LiquidDockItem } from './src/components/LiquidDock';
 // @ts-ignore Keep the animated splash as the requested plain JavaScript component.
 import AnimatedSplash from './src/components/AnimatedSplash';
@@ -78,7 +76,6 @@ function AppContent() {
   const { theme, ready } = useAppSettings();
   const insets = useSafeAreaInsets();
   const { tokens } = useTheme();
-  const blurTargetRef = useRef<ComponentRef<typeof View>>(null);
 
   const dockStretch = useSharedValue(0);
   const lastDockScrollY = useSharedValue(0);
@@ -112,10 +109,8 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const backgroundColor = tokens.colors.background;
-  const cardColor = tokens.colors.surfaceGlass;
   const textColor = tokens.colors.text;
   const mutedColor = tokens.colors.textMuted;
-  const navColor = tokens.colors.surfaceGlass;
   const borderColor = tokens.colors.glassBorder;
 
   const openTab = (nextTab: Tab) => {
@@ -129,140 +124,124 @@ function AppContent() {
 
   const renderHome = () => {
     const normalizedQuery = searchQuery.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
-    const featureCatalog = [
-      { key: 'learn', title: 'Fanlar va mavzular', detail: 'Fanlar, darslar va testlar', aliases: 'dars test mavzu fan learning quiz' },
-      { key: 'battle', title: 'Battle', detail: 'Do‘stlar bilan bilim bellashuvi', aliases: 'jang bellashuv musobaqa duel multiplayer' },
-      { key: 'ranking', title: 'Reyting', detail: 'Liderlar jadvali va natijalar', aliases: 'top leaderboard xp ball ochko' },
-      { key: 'tutor', title: 'AI Ustoz', detail: 'Savollarga AI orqali javob oling', aliases: 'suniy intellekt yordamchi ai tutor' },
-      { key: 'profile', title: 'Profil', detail: 'Shaxsiy hisob va yutuqlar', aliases: 'account avatar bio hisob' },
-      { key: 'friends', title: 'Do‘stlar', detail: 'Bilimdonlarni toping va kuzating', aliases: 'hamjamiyat odam user friends follow' },
-      { key: 'premium', title: 'Premium', detail: 'Qo‘shimcha imkoniyatlar', aliases: 'premium pro legenda obuna tolov' },
-      { key: 'settings', title: 'Sozlamalar', detail: 'Ilova sozlamalari', aliases: 'settings til tema qorongu yorug' },
+    const features = [
+      { key: 'learn', title: 'Fanlar va testlar', detail: 'Fanlarni tanlang, mavzularni yeching', icon: 'book-outline' as const },
+      { key: 'battle', title: 'Battle', detail: 'Raqiblar bilan bilim bellashuvi', icon: 'flash-outline' as const },
+      { key: 'ranking', title: 'Reyting', detail: 'Liderlar va natijalarni ko‘ring', icon: 'trophy-outline' as const },
+      { key: 'tutor', title: 'AI Ustoz', detail: 'Savol bering, mavzuni tushuning', icon: 'sparkles-outline' as const },
+      { key: 'friends', title: 'Hamjamiyat', detail: 'Bilimdonlarni toping va kuzating', icon: 'people-outline' as const },
+      { key: 'profile', title: 'Profil', detail: 'Hisob, avatar va yutuqlaringiz', icon: 'person-outline' as const },
+      { key: 'premium', title: 'Premium', detail: 'Qo‘shimcha tarif va imkoniyatlar', icon: 'diamond-outline' as const },
+      { key: 'settings', title: 'Sozlamalar', detail: 'Til, mavzu va bildirishnomalar', icon: 'settings-outline' as const },
     ];
-    const featureMatches = normalizedQuery ? featureCatalog.filter((item) => `${item.title} ${item.detail} ${item.aliases}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8) : [];
-    const subjectMatches = normalizedQuery ? learningSubjects.filter((subject) => `${subject.name} ${subject.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8) : [];
-    const topicMatches = normalizedQuery ? learningSubjects.flatMap((subject) => subject.topics.filter((topic) => `${subject.name} ${topic.name} ${topic.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).map((topic) => ({ subject, topic }))).slice(0, 20) : [];
-    const openSearchFeature = (key: string) => {
-      if (key === 'friends') { openTab('profile'); setSelectedPublicUsername('__discover__'); return; }
-      if (key === 'premium') { openTab('profile'); setShowPremium(true); return; }
-      if (key === 'settings') { openTab('profile'); setShowSettings(true); return; }
-      if (key === 'tutor') { setTab('tutor'); setShowSettings(false); setShowPremium(false); setSelectedPublicUsername(null); setSelectedSubject(null); setSelectedTopic(null); return; }
+    const featureMatches = normalizedQuery
+      ? features.filter((item) => `${item.title} ${item.detail}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery))
+      : [];
+    const subjectMatches = normalizedQuery
+      ? learningSubjects.filter((subject) => `${subject.name} ${subject.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8)
+      : [];
+    const topicMatches = normalizedQuery
+      ? learningSubjects.flatMap((subject) => subject.topics.filter((topic) => `${subject.name} ${topic.name} ${topic.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).map((topic) => ({ subject, topic }))).slice(0, 20)
+      : [];
+    const openFeature = (key: string) => {
+      if (key === 'friends') {
+        openTab('profile');
+        setSelectedPublicUsername('__discover__');
+        return;
+      }
+      if (key === 'premium') {
+        openTab('profile');
+        setShowPremium(true);
+        return;
+      }
+      if (key === 'settings') {
+        openTab('profile');
+        setShowSettings(true);
+        return;
+      }
+      if (key === 'tutor') {
+        setTab('tutor');
+        setShowSettings(false);
+        setShowPremium(false);
+        setSelectedPublicUsername(null);
+        setSelectedSubject(null);
+        setSelectedTopic(null);
+        return;
+      }
       openTab(key as Tab);
     };
-    const channels = [
-      { key: 'learn', icon: 'book-outline' as const, name: 'fanlar-va-mavzular', detail: 'Fanlarni tanlang, bilimni oshiring' },
-      { key: 'battle', icon: 'flash-outline' as const, name: 'battle-maydoni', detail: 'Raqiblar bilan bellashing' },
-      { key: 'tutor', icon: 'sparkles-outline' as const, name: 'ai-ustoz', detail: 'Savol bering, javob oling' },
-      { key: 'ranking', icon: 'trophy-outline' as const, name: 'reyting', detail: 'Eng kuchli bilimdonlar' },
-      { key: 'friends', icon: 'people-outline' as const, name: 'hamjamiyat', detail: 'Do‘stlar va yangi bilimdonlar' },
-    ];
+
     return (
       <>
-        <View style={styles.discordHeader}>
-          <View style={styles.discordBrandIcon}><Text style={styles.discordBrandLetter}>Q</Text></View>
-          <View style={styles.discordBrandCopy}>
-            <Text style={styles.discordEyebrow}>QUIZ ARENA</Text>
-            <Text style={styles.discordBrandTitle}>O‘quv hamjamiyati</Text>
+        <View style={styles.homeHeader}>
+          <View style={styles.homeBrand}>
+            <View style={styles.homeBrandIcon}><Text style={styles.homeBrandLetter}>Q</Text></View>
+            <View style={styles.homeBrandText}>
+              <Text style={[styles.homeEyebrow, { color: mutedColor }]}>QUIZ ARENA</Text>
+              <Text style={[styles.homeGreeting, { color: textColor }]}>Salom, {user?.displayName || 'Bilimdon'}!</Text>
+            </View>
           </View>
-          <Pressable style={styles.discordHeaderAction} onPress={() => { openTab('profile'); setShowSettings(true); }} accessibilityRole="button" accessibilityLabel="Sozlamalar">
-            <Ionicons name="settings-outline" size={20} color={textColor} />
-          </Pressable>
-          <Pressable style={styles.discordAvatar} onPress={() => openTab('profile')} accessibilityRole="button" accessibilityLabel="Profil">
-            <Text style={styles.discordAvatarText}>{user?.displayName?.charAt(0)?.toUpperCase() || 'U'}</Text>
-            <View style={styles.discordOnlineDot} />
+          <Pressable style={[styles.homeProfileButton, { backgroundColor: tokens.colors.surfaceElevated, borderColor }]} onPress={() => openTab('profile')} accessibilityRole="button" accessibilityLabel="Profil">
+            <Ionicons name="person-outline" size={19} color={textColor} />
           </Pressable>
         </View>
 
-        <View style={styles.discordWelcome}>
-          <Text style={styles.discordWelcomeTitle}>Xush kelibsiz, {user?.displayName || 'Bilimdon'}!</Text>
-          <Text style={styles.discordWelcomeSubtitle}>Bugun nimani o‘rganamiz?</Text>
-        </View>
-
-        <View style={[styles.discordSearch, { borderColor, backgroundColor: cardColor }]}>
+        <View style={[styles.homeSearch, { borderColor, backgroundColor: tokens.colors.surface }]}>
           <Ionicons name="search-outline" size={19} color={mutedColor} />
-          <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Kanal, fan yoki mavzuni qidiring" placeholderTextColor={mutedColor} style={[styles.discordSearchInput, { color: textColor }]} returnKeyType="search" autoCorrect={false} accessibilityLabel="Ilova bo‘ylab qidirish" />
+          <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Funksiya, fan yoki mavzuni qidiring" placeholderTextColor={mutedColor} style={[styles.homeSearchInput, { color: textColor }]} returnKeyType="search" autoCorrect={false} accessibilityLabel="Ilova bo‘ylab qidirish" />
           {searchQuery.length > 0 && <Pressable onPress={() => setSearchQuery('')} hitSlop={10}><Ionicons name="close-circle" size={18} color={mutedColor} /></Pressable>}
         </View>
 
         {normalizedQuery.length > 0 ? (
-          <View style={styles.searchResults}>
-            {featureMatches.length > 0 && <Text style={[styles.searchSectionTitle, { color: textColor }]}>BO‘LIMLAR</Text>}
+          <View style={styles.homeSearchResults}>
+            {featureMatches.length > 0 && <Text style={[styles.homeSectionTitle, { color: mutedColor }]}>FUNKSIYALAR</Text>}
             {featureMatches.map((item) => (
-              <Pressable key={item.key} style={[styles.searchResultRow, { backgroundColor: cardColor, borderColor }]} onPress={() => openSearchFeature(item.key)}>
-                <View style={styles.searchResultIcon}><Ionicons name="grid-outline" size={18} color={tokens.colors.primary} /></View>
-                <View style={styles.searchResultCopy}><Text style={[styles.searchResultTitle, { color: textColor }]}>{item.title}</Text><Text style={[styles.searchResultDetail, { color: mutedColor }]}>{item.detail}</Text></View>
-                <Ionicons name="chevron-forward" size={18} color={mutedColor} />
+              <Pressable key={item.key} style={[styles.homeSearchRow, { backgroundColor: tokens.colors.surface, borderColor }]} onPress={() => openFeature(item.key)}>
+                <View style={[styles.homeSearchIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}><Ionicons name={item.icon} size={19} color={tokens.colors.primaryLight} /></View>
+                <View style={styles.homeFeatureCopy}><Text style={[styles.homeFeatureTitle, { color: textColor }]}>{item.title}</Text><Text style={[styles.homeFeatureDescription, { color: mutedColor }]}>{item.detail}</Text></View>
+                <Ionicons name="chevron-forward" size={17} color={mutedColor} />
               </Pressable>
             ))}
-            {subjectMatches.length > 0 && <Text style={[styles.searchSectionTitle, { color: textColor }]}>FANLAR</Text>}
+            {subjectMatches.length > 0 && <Text style={[styles.homeSectionTitle, { color: mutedColor }]}>FANLAR</Text>}
             {subjectMatches.map((subject) => (
-              <Pressable key={subject.id} style={[styles.searchResultRow, { backgroundColor: cardColor, borderColor }]} onPress={() => { openTab('learn'); setSelectedSubject(subject); }}>
-                <View style={styles.searchResultIcon}><Text style={styles.searchResultGlyph}>{subject.icon}</Text></View>
-                <View style={styles.searchResultCopy}><Text style={[styles.searchResultTitle, { color: textColor }]}>{subject.name}</Text><Text style={[styles.searchResultDetail, { color: mutedColor }]}>{subject.description}</Text></View>
-                <Ionicons name="chevron-forward" size={18} color={mutedColor} />
+              <Pressable key={subject.id} style={[styles.homeSearchRow, { backgroundColor: tokens.colors.surface, borderColor }]} onPress={() => { openTab('learn'); setSelectedSubject(subject); }}>
+                <View style={[styles.homeSearchIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}><Text style={styles.homeSearchGlyph}>{subject.icon}</Text></View>
+                <View style={styles.homeFeatureCopy}><Text style={[styles.homeFeatureTitle, { color: textColor }]}>{subject.name}</Text><Text style={[styles.homeFeatureDescription, { color: mutedColor }]}>{subject.description}</Text></View>
+                <Ionicons name="chevron-forward" size={17} color={mutedColor} />
               </Pressable>
             ))}
-            {topicMatches.length > 0 && <Text style={[styles.searchSectionTitle, { color: textColor }]}>MAVZULAR</Text>}
+            {topicMatches.length > 0 && <Text style={[styles.homeSectionTitle, { color: mutedColor }]}>MAVZULAR</Text>}
             {topicMatches.map(({ subject, topic }) => (
-              <Pressable key={subject.id + ':' + topic.id} style={[styles.searchResultRow, { backgroundColor: cardColor, borderColor }]} onPress={() => { setSelectedSubject(subject); setSelectedTopic(topic); setTab('learn'); }}>
-                <View style={styles.searchResultIcon}><Ionicons name="book-outline" size={18} color={tokens.colors.primary} /></View>
-                <View style={styles.searchResultCopy}><Text style={[styles.searchResultTitle, { color: textColor }]}>{topic.name}</Text><Text style={[styles.searchResultDetail, { color: mutedColor }]}>{subject.name} · {topic.description}</Text></View>
-                <Ionicons name="chevron-forward" size={18} color={mutedColor} />
+              <Pressable key={subject.id + ':' + topic.id} style={[styles.homeSearchRow, { backgroundColor: tokens.colors.surface, borderColor }]} onPress={() => { setSelectedSubject(subject); setSelectedTopic(topic); setTab('learn'); }}>
+                <View style={[styles.homeSearchIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}><Ionicons name="book-outline" size={18} color={tokens.colors.primaryLight} /></View>
+                <View style={styles.homeFeatureCopy}><Text style={[styles.homeFeatureTitle, { color: textColor }]}>{topic.name}</Text><Text style={[styles.homeFeatureDescription, { color: mutedColor }]}>{subject.name} · {topic.description}</Text></View>
+                <Ionicons name="chevron-forward" size={17} color={mutedColor} />
               </Pressable>
             ))}
-            {featureMatches.length + subjectMatches.length + topicMatches.length === 0 && <Text style={[styles.searchEmpty, { color: mutedColor }]}>“{searchQuery}” bo‘yicha natija topilmadi.</Text>}
+            {featureMatches.length + subjectMatches.length + topicMatches.length === 0 && <Text style={[styles.homeEmpty, { color: mutedColor }]}>“{searchQuery}” bo‘yicha natija topilmadi.</Text>}
           </View>
         ) : (
           <>
-            <View style={styles.discordSectionHeader}>
-              <Text style={styles.discordSectionTitle}>ASOSIY KANALLAR</Text>
-              <Ionicons name="chevron-down" size={15} color={mutedColor} />
+            <View style={styles.homeSectionHeader}>
+              <Text style={[styles.homeSectionTitle, { color: mutedColor }]}>BARCHA IMKONIYATLAR</Text>
+              <View style={styles.homeXpChip}>
+                <Ionicons name="star" size={13} color="#F5C451" />
+                <Text style={styles.homeXpText}>{user?.xp ?? 0} XP</Text>
+              </View>
             </View>
-            <View style={styles.discordChannelPanel}>
-              {channels.map((channel, index) => (
-                <Pressable key={channel.key} style={({ pressed }) => [styles.discordChannelRow, pressed && styles.discordPressed]} onPress={() => openSearchFeature(channel.key)}>
-                  <View style={styles.discordChannelIcon}><Ionicons name={channel.icon} size={19} color={tokens.colors.primary} /></View>
-                  <View style={styles.discordChannelCopy}>
-                    <Text style={styles.discordChannelName}># {channel.name}</Text>
-                    <Text style={styles.discordChannelDetail}>{channel.detail}</Text>
+            <View style={styles.homeFeatureGrid}>
+              {features.map((item) => (
+                <Pressable key={item.key} style={({ pressed }) => [styles.homeFeatureCard, { backgroundColor: tokens.colors.surface, borderColor }, pressed && styles.homeFeaturePressed]} onPress={() => openFeature(item.key)}>
+                  <View style={[styles.homeFeatureIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}>
+                    <Ionicons name={item.icon} size={21} color={tokens.colors.primaryLight} />
                   </View>
-                  <Ionicons name="chevron-forward" size={17} color={mutedColor} />
-                  {index < channels.length - 1 && <View style={styles.discordChannelDivider} />}
+                  <Text style={[styles.homeFeatureTitle, { color: textColor }]}>{item.title}</Text>
+                  <Text style={[styles.homeFeatureDescription, { color: mutedColor }]} numberOfLines={2}>{item.detail}</Text>
+                  <View style={styles.homeFeatureArrow}><Ionicons name="arrow-up-right" size={15} color={mutedColor} /></View>
                 </Pressable>
               ))}
             </View>
-
-            <View style={styles.discordSectionHeader}>
-              <Text style={styles.discordSectionTitle}>BUGUNGI FAOLLIK</Text>
-              <Text style={styles.discordSectionMeta}>SENING NATIJANG</Text>
-            </View>
-            <View style={styles.discordStatsPanel}>
-              <View style={styles.discordStat}>
-                <View style={[styles.discordStatIcon, { backgroundColor: 'rgba(250, 191, 82, 0.13)' }]}><Ionicons name="star" size={17} color="#F5C451" /></View>
-                <View><Text style={styles.discordStatValue}>{user?.xp ?? 0} XP</Text><Text style={styles.discordStatLabel}>Tajriba ballari</Text></View>
-              </View>
-              <View style={styles.discordStatDivider} />
-              <View style={styles.discordStat}>
-                <View style={[styles.discordStatIcon, { backgroundColor: 'rgba(88, 101, 242, 0.16)' }]}><Ionicons name="trophy" size={17} color="#8EA1FF" /></View>
-                <View><Text style={styles.discordStatValue}>Bronze</Text><Text style={styles.discordStatLabel}>Joriy daraja</Text></View>
-              </View>
-            </View>
-
-            <Pressable style={({ pressed }) => [styles.discordChallenge, pressed && styles.discordPressed]} onPress={() => openTab('battle')}>
-              <View style={styles.discordChallengeTop}>
-                <View style={styles.discordChallengeBadge}><Ionicons name="flash" size={13} color="#FFFFFF" /><Text style={styles.discordChallengeBadgeText}>TAVSIYA</Text></View>
-                <Ionicons name="open-outline" size={19} color="#B5B9C4" />
-              </View>
-              <Text style={styles.discordChallengeTitle}>Battle maydoniga qo‘shil</Text>
-              <Text style={styles.discordChallengeText}>Do‘stlaring bilan bellash, XP yig‘ va reytingda yuqoriga ko‘taril.</Text>
-              <View style={styles.discordChallengeAction}><Text style={styles.discordChallengeActionText}>Battle’ni ochish</Text><Ionicons name="arrow-forward" size={15} color="#FFFFFF" /></View>
-            </Pressable>
-
-            <Pressable style={styles.discordTutorRow} onPress={() => openTab('tutor')}>
-              <View style={styles.discordTutorIcon}><Ionicons name="sparkles" size={19} color="#B5A6FF" /></View>
-              <View style={styles.discordChannelCopy}><Text style={styles.discordTutorTitle}>AI Ustoz bilan suhbat</Text><Text style={styles.discordChannelDetail}>Murakkab mavzularni sodda tushuntirish</Text></View>
-              <Ionicons name="chevron-forward" size={17} color={mutedColor} />
-            </Pressable>
+            <Text style={[styles.homeFooterText, { color: mutedColor }]}>Bilimingni oshir. Bellash. Natijangni ko‘rsat.</Text>
           </>
         )}
       </>
@@ -411,7 +390,6 @@ function AppContent() {
     >
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
-      <BlurTargetView ref={blurTargetRef} style={styles.blurTarget}>
       <View pointerEvents="none" style={styles.ambientBackground}>
         <View
           style={[
@@ -471,9 +449,7 @@ function AppContent() {
         )}
       </Animated.ScrollView>
       )}
-      </BlurTargetView>
       <LiquidDock
-        blurTarget={blurTargetRef}
         items={navigation}
         activeKey={tab === 'tutor' ? 'home' : tab}
         onSelect={(key) => openTab(key as Tab)}
@@ -516,6 +492,35 @@ export default function App() {
 
 const styles = StyleSheet.create({
 
+
+  homeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 19 },
+  homeBrand: { flexDirection: 'row', alignItems: 'center', gap: 11, flex: 1 },
+  homeBrandIcon: { width: 42, height: 42, borderRadius: 13, backgroundColor: '#5865F2', alignItems: 'center', justifyContent: 'center' },
+  homeBrandLetter: { color: '#FFFFFF', fontSize: 23, fontWeight: '900' },
+  homeBrandText: { flex: 1, minWidth: 0 },
+  homeEyebrow: { fontSize: 9, fontWeight: '900', letterSpacing: 1.6 },
+  homeGreeting: { fontSize: 18, fontWeight: '800', marginTop: 3 },
+  homeProfileButton: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  homeSearch: { minHeight: 46, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 22 },
+  homeSearchInput: { flex: 1, minWidth: 0, paddingVertical: 10, fontSize: 12 },
+  homeSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 },
+  homeSectionTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
+  homeXpChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(245,196,81,0.12)', borderRadius: 7, paddingHorizontal: 8, paddingVertical: 5 },
+  homeXpText: { color: '#F5C451', fontSize: 10, fontWeight: '900' },
+  homeFeatureGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
+  homeFeatureCard: { width: '48.5%', minHeight: 128, borderRadius: 13, borderWidth: 1, padding: 12, position: 'relative' },
+  homeFeaturePressed: { opacity: 0.72, transform: [{ scale: 0.985 }] },
+  homeFeatureIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  homeFeatureTitle: { fontSize: 12, fontWeight: '800' },
+  homeFeatureDescription: { fontSize: 10, lineHeight: 14, marginTop: 4, paddingRight: 5 },
+  homeFeatureArrow: { position: 'absolute', right: 10, top: 11, opacity: 0.7 },
+  homeFeatureCopy: { flex: 1, minWidth: 0 },
+  homeSearchResults: { gap: 8, marginBottom: 20 },
+  homeSearchRow: { minHeight: 61, borderRadius: 12, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  homeSearchIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  homeSearchGlyph: { color: '#AAB7FF', fontSize: 19, fontWeight: '700' },
+  homeEmpty: { fontSize: 12, paddingVertical: 20, textAlign: 'center' },
+  homeFooterText: { textAlign: 'center', fontSize: 10, marginTop: 18, marginBottom: 10 },
   discordHeader: { flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 20 },
   discordBrandIcon: { width: 43, height: 43, borderRadius: 14, backgroundColor: '#5865F2', alignItems: 'center', justifyContent: 'center' },
   discordBrandLetter: { color: '#FFFFFF', fontSize: 24, fontWeight: '900' },
@@ -562,9 +567,6 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#080D1D',
-  },
-  blurTarget: {
-    flex: 1,
   },
   ambientBackground: {
     ...StyleSheet.absoluteFill,
