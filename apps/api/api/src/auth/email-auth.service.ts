@@ -168,9 +168,13 @@ export class EmailAuthService {
       role: 'user',
       status: 'active',
     });
-    const saved = await this.users.save(user);
-    await this.issueCode(email, 'verify_email');
-    return { message: 'Tasdiqlash kodi emailingizga yuborildi.', email };
+    await this.users.save(user);
+    try {
+      await this.issueCode(email, 'verify_email');
+      return { message: 'Tasdiqlash kodi emailingizga yuborildi.', email, emailSent: true };
+    } catch {
+      return { message: 'Hisob yaratildi. Email yuborishni qayta urinib ko‘rishingiz mumkin.', email, emailSent: false };
+    }
   }
 
   async requestVerification(emailInput: string) {
