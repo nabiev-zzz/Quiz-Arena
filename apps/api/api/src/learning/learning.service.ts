@@ -267,6 +267,28 @@ export class LearningService {
     return this.attempts.save(attempt);
   }
 
+  async getTopicProgress(userId: string) {
+    const rows = await this.attempts
+      .createQueryBuilder('attempt')
+      .select('attempt.subjectId', 'subjectId')
+      .addSelect('attempt.topicId', 'topicId')
+      .addSelect('COUNT(attempt.id)', 'attempts')
+      .addSelect('MAX(attempt.accuracy)', 'bestAccuracy')
+      .addSelect('MAX(attempt.completedAt)', 'lastAttemptAt')
+      .where('attempt.userId = :userId', { userId })
+      .groupBy('attempt.subjectId')
+      .addGroupBy('attempt.topicId')
+      .getRawMany();
+
+    return rows.map((row) => ({
+      subjectId: String(row.subjectId),
+      topicId: String(row.topicId),
+      attempts: Number(row.attempts) || 0,
+      bestAccuracy: Number(row.bestAccuracy) || 0,
+      lastAttemptAt: row.lastAttemptAt ? new Date(row.lastAttemptAt).toISOString() : null,
+    }));
+  }
+
   async getStats(userId: string) {
     const summary = await this.attempts
       .createQueryBuilder('attempt')
