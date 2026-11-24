@@ -210,7 +210,7 @@ export default function SettingsScreen({
           />
 
           <LocalizedText style={[styles.optionTitle, { color: colors.text }]}>
-            {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+            {theme === 'dark' ? 'Qorong‘i rejim' : 'Yorug‘ rejim'}
           </LocalizedText>
 
           <Switch
