@@ -1,5 +1,7 @@
 
 import {
+  HttpException,
+  HttpStatus,
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -222,7 +224,7 @@ Answer the student's new message in the requested language.
   ) {
     const quota = await this.featureUsageService.consume(userId, 'aiTutor');
     if (!quota.allowed) {
-      throw new ServiceUnavailableException('AI Ustoz uchun kunlik xabar limiti tugagan. Tarifingizni yangilang yoki ertaga qayta urinib ko‘ring.');
+      throw new HttpException('AI Ustoz uchun kunlik xabar limiti tugagan. Tarifingizni yangilang yoki ertaga qayta urinib ko‘ring.', HttpStatus.TOO_MANY_REQUESTS);
     }
 
     try {
