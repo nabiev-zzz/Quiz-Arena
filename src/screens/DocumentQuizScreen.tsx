@@ -12,11 +12,8 @@ import {
 import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import { useTheme } from '../theme/ThemeContext';
 import type { Difficulty } from '../types';
-import {
-  createDocumentQuiz,
-  DocumentQuizQuestion,
-  saveLearningAttempt,
-} from '../services/learningService';
+import { createDocumentQuiz, saveLearningAttempt } from '../services/learningService';
+import type { DocumentQuizQuestion } from '../services/learningService';
 import { getPremiumStatus } from '../services/subscriptionService';
 
 interface Props {
@@ -57,6 +54,7 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
   const [phase, setPhase] = useState<Phase>('setup');
   const [count, setCount] = useState(10);
   const [maxQuestions, setMaxQuestions] = useState(10);
+  const [maxFileSizeMb, setMaxFileSizeMb] = useState(5);
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [questions, setQuestions] = useState<DocumentQuizQuestion[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -71,6 +69,7 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
         if (!active) return;
         const limit = status.entitlements.documentQuiz.maxQuestionsPerDocument;
         setMaxQuestions(limit);
+        setMaxFileSizeMb(status.entitlements.documentQuiz.maxFileSizeMb);
         setCount(Math.min(10, limit));
       })
       .catch(() => undefined);
@@ -211,7 +210,7 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
               <View style={s.uploadIcon}><Ionicons name="cloud-upload-outline" size={27} color={colors.primary} /></View>
               <View style={s.uploadCopy}>
                 <LocalizedText style={s.uploadTitle}>{file ? 'Hujjat tanlandi' : 'Hujjat tanlash'}</LocalizedText>
-                <LocalizedText style={s.muted}>{file ? file.name : 'Qurilmangizdan PDF, DOCX, TXT, MD yoki CSV tanlang'}</LocalizedText>
+                <LocalizedText style={s.muted}>{file ? file.name : '${'PDF, DOCX, TXT, MD yoki CSV · ' + maxFileSizeMb + ' MB gacha'}'}</LocalizedText>
               </View>
               <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
             </Pressable>
