@@ -135,7 +135,7 @@ export default function QuizScreen({
     selectedLanguage,
   ]);
 
-  const countOptions = Array.from(new Set([5, 10, 15, topic.questionCount])).filter((count) => count <= topic.questionCount).sort((a, b) => a - b);
+  const countOptions = Array.from(new Set([5, 10, 15, 20, topic.questionCount])).filter((count) => count <= topic.questionCount).sort((a, b) => a - b);
 
   const currentQuestion = questions[currentIndex];
   const finished = questions.length > 0 && currentIndex >= questions.length;
