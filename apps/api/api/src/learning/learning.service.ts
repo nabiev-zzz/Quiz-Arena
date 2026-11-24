@@ -96,7 +96,7 @@ export class LearningService {
         {
           attempts: Number(row.attempts) || 0,
           correctAnswers: Number(row.correctAnswers) || 0,
-        },
+        } as const,
       ]),
     );
 
