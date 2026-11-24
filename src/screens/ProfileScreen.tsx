@@ -72,7 +72,9 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
-  const [avatarPickerVisible, setAvatarPickerVisible] = useState(false);\n  const [avatarCategory, setAvatarCategory] = useState<AvatarCategoryId>('anime');\n  const [avatarSaving, setAvatarSaving] = useState(false);
+  const [avatarPickerVisible, setAvatarPickerVisible] = useState(false);
+  const [avatarCategory, setAvatarCategory] = useState<AvatarCategoryId>('anime');
+  const [avatarSaving, setAvatarSaving] = useState(false);
   const [saving, setSaving] = useState(false);
   const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
   const [socialProfile, setSocialProfile] = useState<PublicUser | null>(null);
