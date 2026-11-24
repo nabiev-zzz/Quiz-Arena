@@ -4,7 +4,7 @@ import { useIAP, type Purchase } from 'expo-iap';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
-import { createPremiumCheckout, getPremiumPlans, getPremiumStatus, verifyGooglePlayPurchase, type PremiumPlan, type PremiumStatus } from '../services/subscriptionService';
+import { createPremiumCheckout, getGooglePlayAccountId, getPremiumPlans, getPremiumStatus, verifyGooglePlayPurchase, type PremiumPlan, type PremiumStatus } from '../services/subscriptionService';
 
 interface Props { onBack?: () => void }
 const money = (value: number | null) => value === null ? 'Narx sozlanmagan' : new Intl.NumberFormat('uz-UZ').format(value) + ' so‘m';
@@ -74,8 +74,9 @@ export default function PremiumScreen({ onBack }: Props) {
     }
     setBusy('google:' + planKey);
     try {
+      const obfuscatedAccountId = await getGooglePlayAccountId();
       await requestPurchase({
-        request: { google: { skus: [sku], subscriptionOffers: [{ sku, offerToken }] } },
+        request: { google: { skus: [sku], subscriptionOffers: [{ sku, offerToken }], obfuscatedAccountId } },
         type: 'subs',
       });
     } catch (e) {
