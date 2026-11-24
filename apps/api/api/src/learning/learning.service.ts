@@ -300,7 +300,28 @@ export class LearningService {
   }
 
   async getHistory(userId: string) {
-    return this.attempts.find({ where: { userId }, order: { completedAt: 'DESC' }, take: 100 });
+    return this.attempts.createQueryBuilder('attempt')
+      .select([
+        'attempt.id',
+        'attempt.subjectId',
+        'attempt.subjectName',
+        'attempt.topicId',
+        'attempt.topicName',
+        'attempt.totalQuestions',
+        'attempt.correctAnswers',
+        'attempt.accuracy',
+        'attempt.completedAt',
+      ])
+      .where('attempt.userId = :userId', { userId })
+      .orderBy('attempt.completedAt', 'DESC')
+      .take(100)
+      .getMany();
+  }
+
+  async getHistoryItem(userId: string, attemptId: string) {
+    const attempt = await this.attempts.findOne({ where: { id: attemptId, userId } });
+    if (!attempt) throw new NotFoundException('Test tarixi topilmadi.');
+    return attempt;
   }
 
   async updateAttemptReview(userId: string, attemptId: string, review: unknown[]) {
