@@ -790,6 +790,10 @@ export default function BattleScreen({
     return <LeaderboardScreen />;
   }
 
+  if (section === 'leaderboard') {
+    return <LeaderboardScreen />;
+  }
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
