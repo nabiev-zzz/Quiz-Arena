@@ -109,10 +109,8 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const backgroundColor = tokens.colors.background;
-  const cardColor = tokens.colors.surfaceGlass;
   const textColor = tokens.colors.text;
   const mutedColor = tokens.colors.textMuted;
-  const navColor = tokens.colors.surfaceGlass;
   const borderColor = tokens.colors.glassBorder;
 
   const openTab = (nextTab: Tab) => {
@@ -125,7 +123,7 @@ function AppContent() {
   };
 
   const renderHome = () => {
-    const normalizedQuery = searchQuery.trim().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase();
+    const normalizedQuery = searchQuery.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
     const features = [
       { key: 'learn', title: 'Fanlar va testlar', detail: 'Fanlarni tanlang, mavzularni yeching', icon: 'book-outline' as const },
       { key: 'battle', title: 'Battle', detail: 'Raqiblar bilan bilim bellashuvi', icon: 'flash-outline' as const },
@@ -137,13 +135,13 @@ function AppContent() {
       { key: 'settings', title: 'Sozlamalar', detail: 'Til, mavzu va bildirishnomalar', icon: 'settings-outline' as const },
     ];
     const featureMatches = normalizedQuery
-      ? features.filter((item) => `${item.title} ${item.detail}`.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery))
+      ? features.filter((item) => `${item.title} ${item.detail}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery))
       : [];
     const subjectMatches = normalizedQuery
-      ? learningSubjects.filter((subject) => `${subject.name} ${subject.description}`.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8)
+      ? learningSubjects.filter((subject) => `${subject.name} ${subject.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8)
       : [];
     const topicMatches = normalizedQuery
-      ? learningSubjects.flatMap((subject) => subject.topics.filter((topic) => `${subject.name} ${topic.name} ${topic.description}`.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).map((topic) => ({ subject, topic }))).slice(0, 20)
+      ? learningSubjects.flatMap((subject) => subject.topics.filter((topic) => `${subject.name} ${topic.name} ${topic.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).map((topic) => ({ subject, topic }))).slice(0, 20)
       : [];
     const openFeature = (key: string) => {
       if (key === 'friends') {
