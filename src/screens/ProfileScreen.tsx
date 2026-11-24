@@ -7,6 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
 
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../theme/ThemeContext';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
 
@@ -20,21 +21,21 @@ interface ProfileScreenProps {
 
 type ProfileTab = 'main' | 'board' | 'activity' | 'wishlist';
 
-const C = {
-  background: '#0F0A1F',
-  surface: '#171127',
-  surfaceRaised: '#1D1630',
-  border: '#302443',
-  purple: '#6B3FD4',
-  purpleSoft: '#24183D',
-  text: '#F5F1FF',
-  muted: '#958BAA',
-  subtle: '#6F6682',
-};
-
 export default function ProfileScreen({ onClosePress, onSettingsPress, onPremiumPress, onUserPress, dockStretch }: ProfileScreenProps) {
   const { user, updateProfile, logout } = useAuth();
-  const styles = makeStyles();
+  const { tokens, isDark } = useTheme();
+  const C = {
+    background: tokens.colors.background,
+    surface: tokens.colors.surface,
+    surfaceRaised: tokens.colors.surfaceElevated,
+    border: tokens.colors.border,
+    purple: tokens.colors.primary,
+    purpleSoft: isDark ? '#24183D' : '#EEE9FF',
+    text: tokens.colors.text,
+    muted: tokens.colors.textMuted,
+    subtle: tokens.colors.textMuted,
+  };
+  const styles = makeStyles(C);
   const lastDockScrollY = useSharedValue(0);
   const dockScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -420,7 +421,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   );
 }
 
-function makeStyles() {
+function makeStyles(C: { background: string; surface: string; surfaceRaised: string; border: string; purple: string; purpleSoft: string; text: string; muted: string; subtle: string }) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.background },
     container: { flex: 1, backgroundColor: C.background },
