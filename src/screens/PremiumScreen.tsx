@@ -21,8 +21,13 @@ const GOOGLE_PLAY_SKUS: Record<string, string | undefined> = {
 
 export default function PremiumScreen({ onBack }: Props) {
   const { tokens, isDark } = useTheme();
-  // SDK 58 may report appOwnership as null in the store client; use the runtime environment too.
-  const isExpoGo = Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient';
+  // Only mount expo-iap inside a native Android build. Expo Go does not include ExpoIap.
+  // Use an allow-list so unknown/store-client environments fail closed instead of crashing.
+  const canUseGooglePlayBilling = Platform.OS === 'android' && (
+    Constants.executionEnvironment === 'bare' ||
+    Constants.executionEnvironment === 'standalone'
+  );
+  const isExpoGo = Platform.OS === 'android' && !canUseGooglePlayBilling;
   const [plans, setPlans] = useState<PremiumPlan[]>([]);
   const [status, setStatus] = useState<PremiumStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,7 +87,7 @@ export default function PremiumScreen({ onBack }: Props) {
           {!plan.available && <LocalizedText style={[s.planDuration, { color: c.textMuted }]}>Tarif narxi serverda sozlanmagan.</LocalizedText>}
         </GlassSurface>
       ))}
-      {Platform.OS === 'android' && !isExpoGo ? (
+      {canUseGooglePlayBilling ? (
         <GooglePlayPurchaseControls plans={plans} busy={busy} setBusy={setBusy} load={load} />
       ) : null}
       <LocalizedText style={[s.section, { color: c.text }]}>Google Play</LocalizedText>
