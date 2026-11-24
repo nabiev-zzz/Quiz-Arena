@@ -1,7 +1,7 @@
 import { LocalizedText, LocalizedTextInput } from '../i18n/LocalizedText';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
+import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
   withSpring,
@@ -254,7 +254,7 @@ export default function AiTutorScreen({
             </LocalizedText>
           </View>
         ) : (
-          <FlatList
+          <Animated.FlatList
             ref={listRef}
             style={styles.messageScroll}
             onScroll={dockScrollHandler}
