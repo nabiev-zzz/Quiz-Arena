@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 
 import { useAuth } from '../context/AuthContext';
+import LeaderboardScreen from './leaderboard/LeaderboardScreen';
 
 import {
   BattleFinished,
@@ -785,42 +786,8 @@ export default function BattleScreen({
     );
   }
 
-  function renderLeaderboard() {
-    if (loadingData) {
-      return <ActivityIndicator color={colors.primary} />;
-    }
-
-    if (!leaderboard.length) {
-      return <Text style={styles.muted}>Reyting hozircha bo'sh.</Text>;
-    }
-
-    return leaderboard.map((player, index) => {
-      const rankPoints = Math.max(0, Number(player.rankPoints ?? 0));
-      const rankTier =
-        player.rankTier ||
-        (rankPoints >= 1400 ? 'Grandmaster' :
-        rankPoints >= 1100 ? 'Master' :
-        rankPoints >= 800 ? 'Diamond' :
-        rankPoints >= 600 ? 'Platinum' :
-        rankPoints >= 400 ? 'Gold' :
-        rankPoints >= 200 ? 'Silver' : 'Bronze');
-
-      return (
-        <View key={player.userId || String(index)} style={styles.listCard}>
-          <Text style={styles.cardTitle}>
-            #{player.rank ?? index + 1} {player.username}
-          </Text>
-          <Text style={styles.rankResultTier}>
-            {rankTier} · {rankPoints} RP
-          </Text>
-          <Text style={styles.bodyText}>
-            G'alaba: {player.wins} · Mag'lubiyat: {player.losses} ·
-            Durang: {player.draws}
-          </Text>
-          <Text style={styles.muted}>Battle ball: {player.points}</Text>
-        </View>
-      );
-    });
+  if (section === 'leaderboard') {
+    return <LeaderboardScreen />;
   }
 
   return (
@@ -882,7 +849,6 @@ export default function BattleScreen({
         {section === 'battle' && renderBattle()}
         {section === 'history' && renderHistory()}
         {section === 'stats' && renderStats()}
-        {section === 'leaderboard' && renderLeaderboard()}
       </Animated.ScrollView>
     </View>
   );
