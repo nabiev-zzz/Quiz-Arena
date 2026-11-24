@@ -18,6 +18,8 @@ import {
   registerWithPhoneUser,
   requestPhoneOtp,
   loginWithPhoneUser,
+  requestPhoneLinkOtp,
+  linkPhoneNumber,
   resetPasswordWithPhone,
   removeToken,
   updateCurrentUser,
@@ -37,6 +39,8 @@ interface AuthContextValue {
   }) => Promise<void>;
   requestRegistrationOtp: (phoneNumber: string) => Promise<void>;
   requestPhoneLogin: (phoneNumber: string) => Promise<void>;
+  requestPhoneLink: (phoneNumber: string) => Promise<void>;
+  linkPhone: (phoneNumber: string, code: string) => Promise<void>;
   loginWithPhone: (phoneNumber: string, code: string) => Promise<void>;
   requestPasswordReset: (phoneNumber: string) => Promise<void>;
   resetPassword: (phoneNumber: string, code: string, newPassword: string) => Promise<void>;
@@ -126,6 +130,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await requestPhoneOtp(phoneNumber, 'register');
   };
 
+  const requestPhoneLink = async (phoneNumber: string) => {
+    await requestPhoneLinkOtp(phoneNumber);
+  };
+
+  const linkPhone = async (phoneNumber: string, code: string) => {
+    const updatedUser = await linkPhoneNumber({ phoneNumber, code });
+    setUser(updatedUser);
+  };
+
   const requestPhoneLogin = async (phoneNumber: string) => {
     await requestPhoneOtp(phoneNumber, 'phone-login');
   };
@@ -166,6 +179,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         requestRegistrationOtp,
         requestPhoneLogin,
+        requestPhoneLink,
+        linkPhone,
         loginWithPhone,
         requestPasswordReset,
         resetPassword,
