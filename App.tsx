@@ -54,13 +54,6 @@ import type { Subject, Topic } from './src/types';
 
 type Tab = 'home' | 'learn' | 'battle' | 'ranking' | 'profile' | 'tutor';
 
-const subjects = [
-  { icon: 'calculator-outline', name: 'Matematika', topics: '12 ta mavzu', color: '#283C70' },
-  { icon: 'flask-outline', name: 'Fizika', topics: '8 ta mavzu', color: '#49346D' },
-  { icon: 'laptop-outline', name: 'Informatika', topics: '10 ta mavzu', color: '#245A59' },
-  { icon: 'language-outline', name: 'Ingliz tili', topics: '15 ta mavzu', color: '#65432D' },
-] as const;
-
 const navigation: LiquidDockItem[] = [
   { id: 'home', icon: 'home-outline', activeIcon: 'home', label: 'Bosh' },
   { id: 'learn', icon: 'book-outline', activeIcon: 'book', label: 'Darslar' },
@@ -137,7 +130,7 @@ function AppContent() {
   const renderHome = () => {
     const normalizedQuery = searchQuery.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
     const featureCatalog = [
-      { key: 'learn', title: 'Fanlar va mavzular', detail: 'Fan tanlash, mavzuli testlar, o‘rganish', aliases: 'dars test mavzu fan learning quiz' },
+      { key: 'learn', title: 'Fanlar va mavzular', detail: 'Barcha fanlar va mavzularni ko‘rish', aliases: 'dars test mavzu fan learning quiz' },
       { key: 'battle', title: 'Battle', detail: 'Do‘stlar va raqiblar bilan bellashuv', aliases: 'jang bellashuv musobaqa duel multiplayer' },
       { key: 'ranking', title: 'Reyting', detail: 'Liderlar jadvali va natijalar', aliases: 'top leaderboard xp ball ochko' },
       { key: 'tutor', title: 'AI Ustoz', detail: 'AI bilan savol-javob va tushuntirish', aliases: 'suniy intellekt yordamchi ai tutor' },
@@ -214,7 +207,7 @@ function AppContent() {
           ))}
           {subjectMatches.length > 0 && <Text style={[styles.searchSectionTitle, { color: textColor }]}>Fanlar</Text>}
           {subjectMatches.map((subject) => (
-            <Pressable key={subject.id} style={[styles.searchResultRow, { backgroundColor: cardColor, borderColor }]} onPress={() => { setSelectedSubject(subject); setSelectedTopic(null); openTab('learn'); setSelectedSubject(subject); }}>
+            <Pressable key={subject.id} style={[styles.searchResultRow, { backgroundColor: cardColor, borderColor }]} onPress={() => { openTab('learn'); setSelectedSubject(subject); }}>
               <View style={styles.searchResultIcon}><Text style={styles.searchResultGlyph}>{subject.icon}</Text></View>
               <View style={styles.searchResultCopy}><Text style={[styles.searchResultTitle, { color: textColor }]}>{subject.name}</Text><Text style={[styles.searchResultDetail, { color: mutedColor }]}>{subject.description}</Text></View>
               <Ionicons name="chevron-forward" size={18} color={mutedColor} />
@@ -246,7 +239,7 @@ function AppContent() {
         ]}
       >
         <Text style={[styles.heroTag, { color: isDark ? "#C5B8FF" : tokens.colors.primary }]}>QUIZ ARENA</Text>
-        <Text style={[styles.heroTitle, { color: textColor }]}>Fan va mavzular bo‘yicha bilimingni oshir</Text>
+        <Text style={[styles.heroTitle, { color: textColor }]}>Bilim olish sayohatingizni boshlang</Text>
         <Text style={[styles.heroDescription, { color: isDark ? "#D1C9F0" : tokens.colors.textSecondary }]}>
           AI bilan o‘rgan. Natijangni kuzat. Rivojlan.
         </Text>
@@ -255,7 +248,7 @@ function AppContent() {
           style={styles.primaryButton}
           onPress={() => openTab('learn')}
         >
-          <Text style={styles.primaryButtonText}>Mavzuli test boshlash</Text>
+          <Text style={styles.primaryButtonText}>Fanlar bo‘limini ochish</Text>
           <Ionicons name="arrow-forward" size={17} color="#FFFFFF" />
         </Pressable>
         <Pressable style={styles.secondaryHeroButton} onPress={() => openTab('battle')}>
@@ -335,53 +328,7 @@ function AppContent() {
       </Pressable>
       </GlassSurface>
 
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: textColor }]}>
-          Fanlarni o'rganish
-        </Text>
 
-        <Pressable onPress={() => openTab('learn')}>
-          <Text style={styles.link}>Barchasi →</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.subjectGrid}>
-        {subjects.map((subject) => (
-          <GlassSurface
-            key={subject.name}
-            intensity={tokens.blur.strong}
-            style={[
-              styles.subjectCard,
-              {
-                backgroundColor: isDark
-                  ? 'rgba(35, 49, 79, 0.52)'
-                  : 'rgba(255, 255, 255, 0.62)',
-                borderColor: isDark
-                  ? 'rgba(174, 158, 255, 0.22)'
-                  : 'rgba(113, 85, 232, 0.18)',
-              },
-            ]}
-          >
-            <Pressable
-              style={styles.subjectPressable}
-              onPress={() => openTab('learn')}
-            >
-              <Ionicons
-                name={subject.icon}
-                size={29}
-                color="#B9A7FF"
-                style={styles.subjectIcon}
-              />
-              <Text style={[styles.subjectName, { color: textColor }]}>
-                {subject.name}
-              </Text>
-              <Text style={[styles.subjectTopics, { color: mutedColor }]}>
-                {subject.topics}
-              </Text>
-            </Pressable>
-          </GlassSurface>
-        ))}
-      </View>
     </>
   );
   };
