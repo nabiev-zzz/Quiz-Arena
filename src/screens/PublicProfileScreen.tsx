@@ -1,5 +1,6 @@
+import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, NativeText, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
@@ -23,7 +24,7 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
     setLoading(true);
     getPublicUserProfile(username)
       .then((data) => { if (active) setProfile(data); })
-      .catch((error) => Alert.alert('Xatolik', error instanceof Error ? error.message : 'Profilni yuklab bo‘lmadi'))
+      .catch((error) => showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Profilni yuklab bo‘lmadi'))
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [username]);
@@ -37,7 +38,7 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
         : await followUser(profile.id);
       setProfile({ ...profile, isFollowing: result.following, followersCount: result.followersCount });
     } catch (error) {
-      Alert.alert('Xatolik', error instanceof Error ? error.message : 'Amal bajarilmadi');
+      showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Amal bajarilmadi');
     } finally {
       setBusy(false);
     }
@@ -45,66 +46,66 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
 
   const styles = makeStyles(colors, isDark);
   if (loading) return <View style={styles.loading}><ActivityIndicator size="large" color={colors.primary} /></View>;
-  if (!profile) return <View style={styles.screen}><Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><Text style={styles.backText}>Orqaga</Text></Pressable><Text style={styles.empty}>Profil topilmadi</Text></View>;
+  if (!profile) return <View style={styles.screen}><Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><LocalizedText style={styles.backText}>Orqaga</LocalizedText></Pressable><LocalizedText style={styles.empty}>Profil topilmadi</LocalizedText></View>;
 
   const initials = profile.displayName.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><Text style={styles.backText}>Orqaga</Text></Pressable>
+      <Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><LocalizedText style={styles.backText}>Orqaga</LocalizedText></Pressable>
       <GlassSurface intensity={isDark ? 34 : 42} style={styles.hero}>
         <View style={styles.identityRow}>
           <View style={[styles.avatarRing, profile.profileFrame === 'aurora' ? styles.frameAurora : profile.profileFrame === 'royal' ? styles.frameRoyal : profile.profileFrame === 'ocean' ? styles.frameOcean : null]}>
-            {profile.avatarUrl ? <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} /> : <View style={styles.avatarFallback}><Text style={styles.initials}>{initials || '?'}</Text></View>}
+            {profile.avatarUrl ? <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} /> : <View style={styles.avatarFallback}><LocalizedText style={styles.initials}>{initials || '?'}</LocalizedText></View>}
             {profile.avatarDecoration ? <View style={styles.decoration}><Ionicons name={profile.avatarDecoration === 'crown' ? 'ribbon' : profile.avatarDecoration === 'laurel' ? 'leaf' : 'sparkles'} size={17} color="#F3C96A" /></View> : null}
           </View>
           <View style={styles.identityText}>
-            <Text style={styles.name}>{profile.displayName}</Text>
-            <Text style={styles.username}>@{profile.username}</Text>
-            {!!profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
+            <LocalizedText style={styles.name}>{profile.displayName}</LocalizedText>
+            <LocalizedText style={styles.username}>@{profile.username}</LocalizedText>
+            {!!profile.bio && <LocalizedText style={styles.bio}>{profile.bio}</LocalizedText>}
           </View>
         </View>
         <View style={styles.counts}>
-          <View style={styles.count}><Text style={styles.countNumber}>{profile.followersCount}</Text><Text style={styles.countLabel}>Kuzatuvchilar</Text></View>
+          <View style={styles.count}><LocalizedText style={styles.countNumber}>{profile.followersCount}</LocalizedText><LocalizedText style={styles.countLabel}>Kuzatuvchilar</LocalizedText></View>
           <View style={styles.separator} />
-          <View style={styles.count}><Text style={styles.countNumber}>{profile.followingCount ?? 0}</Text><Text style={styles.countLabel}>Kuzatilayotganlar</Text></View>
+          <View style={styles.count}><LocalizedText style={styles.countNumber}>{profile.followingCount ?? 0}</LocalizedText><LocalizedText style={styles.countLabel}>Kuzatilayotganlar</LocalizedText></View>
         </View>
         {!profile.isSelf && (
           <Pressable disabled={busy} onPress={toggleFollow} style={[styles.followButton, profile.isFollowing && styles.followingButton]}>
             <Ionicons name={profile.isFollowing ? 'checkmark' : 'person-add-outline'} size={17} color={profile.isFollowing ? colors.text : '#FFFFFF'} />
-            <Text style={[styles.followButtonText, profile.isFollowing && styles.followingText]}>{busy ? '...' : profile.isFollowing ? 'Kuzatilmoqda' : 'Kuzatish'}</Text>
+            <LocalizedText style={[styles.followButtonText, profile.isFollowing && styles.followingText]}>{busy ? '...' : profile.isFollowing ? 'Kuzatilmoqda' : 'Kuzatish'}</LocalizedText>
           </Pressable>
         )}
       </GlassSurface>
-      <Text style={styles.sectionTitle}>Natijalar</Text>
+      <LocalizedText style={styles.sectionTitle}>Natijalar</LocalizedText>
       <View style={styles.stats}>
-        <GlassSurface intensity={isDark ? 30 : 38} style={styles.stat}><Text style={styles.statValue}>{profile.xp}</Text><Text style={styles.statLabel}>XP</Text></GlassSurface>
-        <GlassSurface intensity={isDark ? 30 : 38} style={styles.stat}><Text style={styles.statValue}>{profile.level}</Text><Text style={styles.statLabel}>Daraja</Text></GlassSurface>
-        <GlassSurface intensity={isDark ? 30 : 38} style={styles.stat}><Text style={styles.statValue}>{profile.rankPoints ?? 0}</Text><Text style={styles.statLabel}>RP</Text></GlassSurface>
+        <GlassSurface intensity={isDark ? 30 : 38} style={styles.stat}><LocalizedText style={styles.statValue}>{profile.xp}</LocalizedText><LocalizedText style={styles.statLabel}>XP</LocalizedText></GlassSurface>
+        <GlassSurface intensity={isDark ? 30 : 38} style={styles.stat}><LocalizedText style={styles.statValue}>{profile.level}</LocalizedText><LocalizedText style={styles.statLabel}>Daraja</LocalizedText></GlassSurface>
+        <GlassSurface intensity={isDark ? 30 : 38} style={styles.stat}><LocalizedText style={styles.statValue}>{profile.rankPoints ?? 0}</LocalizedText><LocalizedText style={styles.statLabel}>RP</LocalizedText></GlassSurface>
       </View>
-      <Text style={styles.sectionTitle}>Erishgan yutuqlari</Text>
+      <LocalizedText style={styles.sectionTitle}>Erishgan yutuqlari</LocalizedText>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 9 }}>
         {getProfileAchievements(profile.xp ?? 0, profile.level ?? 1, profile.rankPoints ?? 0).filter((item) => item.unlocked).map((achievement) => (
           <GlassSurface key={achievement.id} intensity={isDark ? 30 : 38} style={styles.achievementCard}>
             <Ionicons name={achievement.icon} size={20} color="#EFCB78" />
-            <Text style={styles.rankName}>{achievement.title}</Text>
-            <Text style={styles.rankHint}>{achievement.description}</Text>
+            <LocalizedText style={styles.rankName}>{achievement.title}</LocalizedText>
+            <LocalizedText style={styles.rankHint}>{achievement.description}</LocalizedText>
           </GlassSurface>
         ))}
-        {getProfileAchievements(profile.xp ?? 0, profile.level ?? 1, profile.rankPoints ?? 0).every((item) => !item.unlocked) ? <Text style={styles.rankHint}>Hozircha yutuqlar yo‘q</Text> : null}
+        {getProfileAchievements(profile.xp ?? 0, profile.level ?? 1, profile.rankPoints ?? 0).every((item) => !item.unlocked) ? <LocalizedText style={styles.rankHint}>Hozircha yutuqlar yo‘q</LocalizedText> : null}
       </ScrollView>
       <GlassSurface intensity={isDark ? 30 : 38} style={styles.rankCard}>
         <Ionicons name="medal-outline" size={22} color="#EFCB78" />
-        <View style={styles.rankText}><Text style={styles.rankName}>{profile.rankTier || 'Bronze'} ligasi</Text><Text style={styles.rankHint}>QUIZ ARENA rank</Text></View>
+        <View style={styles.rankText}><LocalizedText style={styles.rankName}>{profile.rankTier || 'Bronze'} ligasi</LocalizedText><LocalizedText style={styles.rankHint}>QUIZ ARENA rank</LocalizedText></View>
       </GlassSurface>
-      <Text style={styles.sectionTitle}>Profil bezaklari</Text>
+      <LocalizedText style={styles.sectionTitle}>Profil bezaklari</LocalizedText>
       <GlassSurface intensity={isDark ? 30 : 38} style={styles.cosmeticRow}>
         <Ionicons name="color-palette-outline" size={21} color="#BBA8FF" />
-        <View style={styles.rankText}><Text style={styles.rankName}>Avatar bezagi</Text><Text style={styles.rankHint}>{profile.avatarDecoration || 'Standart'}</Text></View>
+        <View style={styles.rankText}><LocalizedText style={styles.rankName}>Avatar bezagi</LocalizedText><LocalizedText style={styles.rankHint}>{profile.avatarDecoration || 'Standart'}</LocalizedText></View>
       </GlassSurface>
       <GlassSurface intensity={isDark ? 30 : 38} style={styles.cosmeticRow}>
         <Ionicons name="albums-outline" size={21} color="#8BCDF7" />
-        <View style={styles.rankText}><Text style={styles.rankName}>Profil ramkasi</Text><Text style={styles.rankHint}>{profile.profileFrame || 'Standart'}</Text></View>
+        <View style={styles.rankText}><LocalizedText style={styles.rankName}>Profil ramkasi</LocalizedText><LocalizedText style={styles.rankHint}>{profile.profileFrame || 'Standart'}</LocalizedText></View>
       </GlassSurface>
     </ScrollView>
   );
