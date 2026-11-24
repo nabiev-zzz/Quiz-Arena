@@ -281,6 +281,30 @@ const phrases: Record<string, readonly [string, string]> = {
   'o‘yin yakunlandi': ['Match completed', 'Матч завершён'],
   'sizning natijalaringiz': ['YOUR RESULTS', 'ВАШИ РЕЗУЛЬТАТЫ'],
 
+
+  'algebra': ['Algebra', 'Алгебра'],
+  'sonlar, tenglamalar va matematik munosabatlar': ['Numbers, equations and mathematical relationships', 'Числа, уравнения и математические зависимости'],
+  'geometriya': ['Geometry', 'Геометрия'],
+  'shakllar, o‘lchamlar va fazoviy tasavvur': ['Shapes, measurements and spatial reasoning', 'Формы, измерения и пространственное мышление'],
+  'fizika': ['Physics', 'Физика'],
+  'tabiat qonunlarini o‘rganing': ['Explore the laws of nature', 'Изучайте законы природы'],
+  'kimyo': ['Chemistry', 'Химия'],
+  'moddalar va kimyoviy reaksiyalar': ['Substances and chemical reactions', 'Вещества и химические реакции'],
+  'biologiya': ['Biology', 'Биология'],
+  'tirik organizmlar va tabiat': ['Living organisms and nature', 'Живые организмы и природа'],
+  'tarix': ['History', 'История'],
+  'o‘tmish voqealarini kashf eting': ['Discover the events of the past', 'Откройте события прошлого'],
+  'geografiya': ['Geography', 'География'],
+  'dunyo va tabiatni o‘rganing': ['Explore the world and nature', 'Изучайте мир и природу'],
+  'informatika': ['Computer Science', 'Информатика'],
+  'raqamli texnologiyalar olami': ['The world of digital technology', 'Мир цифровых технологий'],
+  'o‘zbek tili': ['Uzbek language', 'Узбекский язык'],
+  'ona tilimiz bilimlarini oshiring': ['Improve your Uzbek language skills', 'Совершенствуйте знания узбекского языка'],
+  'adabiyot': ['Literature', 'Литература'],
+  'adabiy meros bilan tanishing': ['Explore literary heritage', 'Познакомьтесь с литературным наследием'],
+  'ingliz tili': ['English language', 'Английский язык'],
+  'ingliz tilini bosqichma-bosqich o‘rganing': ['Learn English step by step', 'Изучайте английский шаг за шагом'],
+
 };
 
 const phraseLookup = new Map<string, readonly [string, string]>(
