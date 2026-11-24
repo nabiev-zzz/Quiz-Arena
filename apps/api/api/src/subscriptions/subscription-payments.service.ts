@@ -362,8 +362,8 @@ export class SubscriptionPaymentsService {
       const now = new Date();
       const existing = await manager.findOne(UserSubscription, { where: { provider, providerReference: reference } });
       if (payment.status === 'paid') {
-        if (provider === 'google_play' && existing && exactExpiry && (!existing.expiresAt || exactExpiry > existing.expiresAt)) {
-          existing.expiresAt = exactExpiry;
+        if (provider === 'google_play' && existing && exactExpiry && exactExpiry > now) {
+          if (!existing.expiresAt || exactExpiry > existing.expiresAt) existing.expiresAt = exactExpiry;
           existing.status = 'active';
           existing.autoRenew = autoRenew;
           await manager.save(existing);
