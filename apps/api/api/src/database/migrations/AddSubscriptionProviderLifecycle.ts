@@ -15,6 +15,8 @@ export class AddSubscriptionProviderLifecycle20261124140000 implements Migration
         ADD COLUMN IF NOT EXISTS "providerCancelReason" INTEGER,
         ADD COLUMN IF NOT EXISTS "providerPayload" JSONB
     `);
+    await queryRunner.query(`ALTER TABLE subscription_payments ALTER COLUMN "providerTransactionId" TYPE VARCHAR(2048)`);
+    await queryRunner.query(`ALTER TABLE user_subscriptions ALTER COLUMN "providerReference" TYPE VARCHAR(2048)`);
     await queryRunner.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS "UQ_subscription_payments_click_prepare"
       ON subscription_payments ("providerPrepareId")
