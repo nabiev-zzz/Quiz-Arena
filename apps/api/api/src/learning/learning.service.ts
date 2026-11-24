@@ -23,8 +23,6 @@ export class LearningService {
     private readonly attempts: Repository<LearningAttempt>,
     @InjectRepository(LearningTopic)
     private readonly topics: Repository<LearningTopic>,
-    @InjectRepository(LearningQuestion)
-    private readonly questions: Repository<LearningQuestion>,
     private readonly dataSource: DataSource,
     private readonly aiService: AiService,
   ) {}
