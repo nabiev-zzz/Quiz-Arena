@@ -1,8 +1,9 @@
+import { LocalizedText } from '../../i18n/LocalizedText';
 ﻿import React from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
-  Text,
+  NativeText,
   View,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
@@ -32,9 +33,9 @@ export default function GlassLoader({
     >
       <ActivityIndicator size="large" color={tokens.colors.primary} />
       {message ? (
-        <Text style={[styles.message, { color: tokens.colors.text }]}>
+        <LocalizedText style={[styles.message, { color: tokens.colors.text }]}>
           {message}
-        </Text>
+        </LocalizedText>
       ) : null}
     </View>
   );
