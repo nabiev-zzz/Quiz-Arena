@@ -524,7 +524,6 @@ export default function BattleScreen({
       return;
     }
     if (searching || matchIdRef.current) return;
-    setSearching(true);
     setError('');
     socket.emit('battle:private:join', { roomCode: code });
   }
