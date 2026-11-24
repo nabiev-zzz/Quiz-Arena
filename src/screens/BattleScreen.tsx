@@ -998,16 +998,6 @@ export default function BattleScreen({
           )}
         </View>
 
-        <Pressable
-          onPress={() => loadSectionData('stats')}
-          disabled={loadingData}
-          style={styles.statsRefresh}
-        >
-          <Ionicons name="refresh-outline" size={16} color={colors.primary} />
-          <Text style={styles.statsRefreshText}>
-            {loadingData ? 'Yangilanmoqda...' : 'Statistikani yangilash'}
-          </Text>
-        </Pressable>
       </View>
     );
   }
