@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-export type AuthOtpPurpose = 'register' | 'password_reset' | 'phone_login';
+export type AuthOtpPurpose = 'register' | 'password_reset' | 'phone_login' | 'phone_link';
 
 @Entity('auth_otps')
 @Index('IDX_auth_otps_phone_purpose_created', ['phoneNumber', 'purpose', 'createdAt'])
