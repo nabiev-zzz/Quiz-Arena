@@ -8,12 +8,14 @@ import { LearningQuestion } from './entities/learning-question.entity';
 import { LearningWebSession } from './entities/learning-web-session.entity';
 import { LearningController } from './learning.controller';
 import { LearningService } from './learning.service';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([LearningAttempt, LearningTopic, LearningQuestion, LearningWebSession]),
     AuthModule,
     AiModule,
+    SubscriptionsModule,
   ],
   controllers: [LearningController],
   providers: [LearningService],
