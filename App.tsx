@@ -34,6 +34,7 @@ import {
 
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { GlassSurface } from './src/components/ui';
+// @ts-ignore Keep the animated splash as the requested plain JavaScript component.
 import AnimatedSplash from './src/components/AnimatedSplash';
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
