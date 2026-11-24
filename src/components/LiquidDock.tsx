@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import {
-  LayoutChangeEvent,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
-  SharedValue,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     elevation: 14,
   },
   itemsRow: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
     alignItems: 'center',
     zIndex: 2,
