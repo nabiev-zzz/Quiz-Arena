@@ -182,7 +182,7 @@ export default function AiTutorScreen({
           </View>
         )}
 
-        <View>
+        <View style={styles.messageContent}>
           <View
             style={[
               styles.messageBubble,
@@ -445,8 +445,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     flexGrow: 1,
   },
   messageRow: {
+    width: '100%',
     flexDirection: 'row',
-    marginBottom: 14,
+    marginBottom: 10,
     alignItems: 'flex-end',
   },
   userRow: { justifyContent: 'flex-end' },
@@ -465,11 +466,18 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     fontSize: 10,
     fontWeight: '900',
   },
-  messageBubble: {
+  messageContent: {
     maxWidth: '84%',
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderRadius: 19,
+    minWidth: 0,
+    flexShrink: 1,
+  },
+  messageBubble: {
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    borderRadius: 17,
   },
   userBubble: {
     backgroundColor: '#6759E8',
@@ -482,8 +490,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     borderColor: colors.border,
   },
   messageText: {
+    flexShrink: 1,
     fontSize: 14,
-    lineHeight: 22,
+    lineHeight: 21,
   },
   userMessageText: { color: '#FFFFFF' },
   assistantMessageText: { color: colors.text },
