@@ -192,7 +192,6 @@ const phrases: Record<string, readonly [string, string]> = {
   'mavsum yakunlanishiga 3 kun qoldi': ['3 days left in the season', 'До конца сезона осталось 3 дня'],
 
   'siz': ['You', 'Вы'],
-  'barchasi': ['All', 'Все'],
   'bilim sari o‘sish': ['Learning progress', 'Прогресс обучения'],
   'bilimingni oshir. bellash. natijangni ko‘rsat.': ['Learn more. Compete. Show your results.', 'Учись. Соревнуйся. Покажи свой результат.'],
   'bu bo‘lim keyingi bosqichda ishlab chiqiladi.': ['This section is coming soon.', 'Этот раздел скоро появится.'],
@@ -263,7 +262,6 @@ const phrases: Record<string, readonly [string, string]> = {
   'yakunlangan test': ['Completed quiz', 'Завершённый тест'],
   'yordamga murojaat': ['Contact support', 'Обратиться в поддержку'],
   'qorong‘i rejim': ['Dark mode', 'Тёмная тема'],
-  'yorug‘ rejim': ['Light mode', 'Светлая тема'],
   'dark mode': ['Dark mode', 'Тёмная тема'],
   'light mode': ['Light mode', 'Светлая тема'],
 
