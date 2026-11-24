@@ -1,6 +1,7 @@
+import { LocalizedText, LocalizedTextInput } from '../i18n/LocalizedText';
 import { useMemo, useState } from 'react';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
-import { StyleSheet, Text, View, Pressable, TextInput } from 'react-native';
+import { StyleSheet, NativeText, View, Pressable, NativeTextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { subjects } from '../data/subjects';
@@ -57,71 +58,71 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
         <>
           <Pressable style={styles.backButton} onPress={() => { setSelectedSubject(null); setSearchQuery(''); }}>
             <Ionicons name="chevron-back" size={17} color={colors.primary} />
-            <Text style={styles.backText}>Barcha fanlar</Text>
+            <LocalizedText style={styles.backText}>Barcha fanlar</LocalizedText>
           </Pressable>
           <View style={styles.detailHeader}>
             <View style={[styles.largeIconBox, { backgroundColor: selectedSubject.color + '20', borderColor: selectedSubject.color + '55' }]}>
-              <Text style={[styles.largeIcon, { color: selectedSubject.color }]}>{selectedSubject.icon}</Text>
+              <LocalizedText style={[styles.largeIcon, { color: selectedSubject.color }]}>{selectedSubject.icon}</LocalizedText>
             </View>
-            <Text style={styles.title}>{selectedSubject.name}</Text>
-            <Text style={styles.subtitle}>{selectedSubject.description}</Text>
+            <LocalizedText style={styles.title}>{selectedSubject.name}</LocalizedText>
+            <LocalizedText style={styles.subtitle}>{selectedSubject.description}</LocalizedText>
           </View>
           <View style={styles.searchBox}>
             <Ionicons name="search-outline" size={19} color={colors.textMuted} />
-            <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Mavzularni qidiring..." placeholderTextColor={colors.textMuted} style={styles.searchInput} returnKeyType="search" autoCorrect={false} />
+            <LocalizedTextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Mavzularni qidiring..." placeholderTextColor={colors.textMuted} style={styles.searchInput} returnKeyType="search" autoCorrect={false} />
             {searchQuery.length > 0 && <Pressable onPress={() => setSearchQuery('')} hitSlop={10}><Ionicons name="close-circle" size={18} color={colors.textMuted} /></Pressable>}
           </View>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Mavzular</Text>
-            <Text style={styles.sectionCount}>{filteredTopics.length} ta</Text>
+            <LocalizedText style={styles.sectionTitle}>Mavzular</LocalizedText>
+            <LocalizedText style={styles.sectionCount}>{filteredTopics.length} ta</LocalizedText>
           </View>
           {filteredTopics.map((topic) => {
             const index = selectedSubject.topics.findIndex((item) => item.id === topic.id);
             return (
               <Pressable key={topic.id} style={({ pressed }) => [styles.topicCard, pressed && styles.pressed]} onPress={() => onTopicSelect?.(selectedSubject, topic)}>
-                <View style={styles.topicNumber}><Text style={styles.numberText}>{String(index + 1).padStart(2, '0')}</Text></View>
+                <View style={styles.topicNumber}><LocalizedText style={styles.numberText}>{String(index + 1).padStart(2, '0')}</LocalizedText></View>
                 <View style={styles.topicInfo}>
-                  <Text style={styles.topicName}>{topic.name}</Text>
-                  <Text style={styles.topicDescription}>{topic.description}</Text>
-                  <Text style={styles.questionCount}>{topic.questionCount} ta savol · Bazada saqlanadi</Text>
+                  <LocalizedText style={styles.topicName}>{topic.name}</LocalizedText>
+                  <LocalizedText style={styles.topicDescription}>{topic.description}</LocalizedText>
+                  <LocalizedText style={styles.questionCount}>{topic.questionCount} ta savol · Bazada saqlanadi</LocalizedText>
                 </View>
                 <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
               </Pressable>
             );
           })}
-          {filteredTopics.length === 0 && <Text style={styles.emptyText}>Bu qidiruv bo‘yicha mavzu topilmadi.</Text>}
+          {filteredTopics.length === 0 && <LocalizedText style={styles.emptyText}>Bu qidiruv bo‘yicha mavzu topilmadi.</LocalizedText>}
         </>
       ) : (
         <>
           <View style={styles.header}>
-            <Text style={styles.eyebrow}>QUIZ ARENA  /  TA'LIM</Text>
-            <Text style={styles.title}>Fanlar</Text>
-            <Text style={styles.subtitle}>O‘zingizga kerakli fanni tanlang va bilim sari yo‘l oling.</Text>
+            <LocalizedText style={styles.eyebrow}>QUIZ ARENA  /  TA'LIM</LocalizedText>
+            <LocalizedText style={styles.title}>Fanlar</LocalizedText>
+            <LocalizedText style={styles.subtitle}>O‘zingizga kerakli fanni tanlang va bilim sari yo‘l oling.</LocalizedText>
           </View>
           <View style={styles.searchBox}>
             <Ionicons name="search-outline" size={19} color={colors.textMuted} />
-            <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Fanlarni qidiring..." placeholderTextColor={colors.textMuted} style={styles.searchInput} returnKeyType="search" autoCorrect={false} />
+            <LocalizedTextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Fanlarni qidiring..." placeholderTextColor={colors.textMuted} style={styles.searchInput} returnKeyType="search" autoCorrect={false} />
             {searchQuery.length > 0 && <Pressable onPress={() => setSearchQuery('')} hitSlop={10}><Ionicons name="close-circle" size={18} color={colors.textMuted} /></Pressable>}
           </View>
           <View style={styles.moonPanel}>
             <View pointerEvents="none" style={styles.moonGlow} />
-            <View pointerEvents="none" style={styles.moonDisc}><Text style={styles.moonGlyph}>☾</Text></View>
-            <View style={styles.moonCaption}><Text style={styles.moonCaptionTitle}>Bilim olamiga xush kelibsiz</Text><Text style={styles.moonCaptionText}>Fanni tanlang — mavzularni kashf eting</Text></View>
+            <View pointerEvents="none" style={styles.moonDisc}><LocalizedText style={styles.moonGlyph}>☾</LocalizedText></View>
+            <View style={styles.moonCaption}><LocalizedText style={styles.moonCaptionTitle}>Bilim olamiga xush kelibsiz</LocalizedText><LocalizedText style={styles.moonCaptionText}>Fanni tanlang — mavzularni kashf eting</LocalizedText></View>
             <View style={styles.moonGrid}>
               {filteredSubjects.map((subject, index) => {
                 const column = index % 3;
                 return (
                   <Pressable key={subject.id} style={({ pressed }) => [styles.moonSubjectCard, { marginTop: column === 1 ? 0 : 34, borderColor: subject.color + '66' }, pressed && styles.pressed]} onPress={() => { setSelectedSubject(subject); setSearchQuery(''); }}>
-                    <View style={[styles.moonSubjectIcon, { backgroundColor: subject.color + '22' }]}><Text style={[styles.moonSubjectGlyph, { color: subject.color }]}>{subject.icon}</Text></View>
-                    <Text style={styles.moonSubjectName} numberOfLines={2}>{subject.name}</Text>
-                    <Text style={styles.moonSubjectCount}>{subject.topics.length} mavzu</Text>
+                    <View style={[styles.moonSubjectIcon, { backgroundColor: subject.color + '22' }]}><LocalizedText style={[styles.moonSubjectGlyph, { color: subject.color }]}>{subject.icon}</LocalizedText></View>
+                    <LocalizedText style={styles.moonSubjectName} numberOfLines={2}>{subject.name}</LocalizedText>
+                    <LocalizedText style={styles.moonSubjectCount}>{subject.topics.length} mavzu</LocalizedText>
                   </Pressable>
                 );
               })}
             </View>
-            {filteredSubjects.length === 0 && <Text style={styles.emptyText}>Bu qidiruv bo‘yicha fan topilmadi.</Text>}
+            {filteredSubjects.length === 0 && <LocalizedText style={styles.emptyText}>Bu qidiruv bo‘yicha fan topilmadi.</LocalizedText>}
           </View>
-          <Text style={styles.footerHint}>Har bir fan ichida mavzular alohida ochiladi.</Text>
+          <LocalizedText style={styles.footerHint}>Har bir fan ichida mavzular alohida ochiladi.</LocalizedText>
         </>
       )}
     </Animated.ScrollView>
