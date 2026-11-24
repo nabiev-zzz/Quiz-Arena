@@ -44,8 +44,8 @@ export default function GlassButton({
       style={({ pressed }) => [
         styles.wrapper,
         {
-          height: tokens.component.buttonHeight,
-          borderRadius: tokens.radius.md,
+          minHeight: tokens.component.buttonHeight,
+          borderRadius: tokens.radius.lg,
           opacity: inactive ? tokens.opacity.disabled : pressed ? tokens.opacity.pressed : 1,
           borderWidth: variant === 'outline' ? 1 : 0,
           borderColor: tokens.colors.borderStrong,
@@ -96,7 +96,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    letterSpacing: 0.1,
+    fontWeight: '800',
   },
 });
