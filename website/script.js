@@ -40,3 +40,27 @@ try { initialLanguage = localStorage.getItem("quiz-arena-language") || "uz"; } c
 setLanguage(initialLanguage);
 languageSelect.addEventListener("change", (event) => setLanguage(event.target.value));
 document.getElementById("year").textContent = new Date().getFullYear();
+
+const themeToggle = document.getElementById("themeToggle");
+function applyTheme(theme) {
+  const nextTheme = theme === "light" ? "light" : "dark";
+  document.documentElement.dataset.theme = nextTheme;
+  if (themeToggle) {
+    const isLight = nextTheme === "light";
+    themeToggle.innerHTML = isLight ? '<span aria-hidden="true">☾</span>' : '<span aria-hidden="true">☼</span>';
+    themeToggle.setAttribute("aria-label", isLight ? "Switch to dark theme" : "Switch to light theme");
+    themeToggle.setAttribute("aria-pressed", String(isLight));
+  }
+  try { localStorage.setItem("quiz-arena-theme", nextTheme); } catch (_) {}
+}
+let savedTheme = "dark";
+try {
+  savedTheme = localStorage.getItem("quiz-arena-theme") ||
+    (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+} catch (_) {}
+applyTheme(savedTheme);
+if (themeToggle) {
+  themeToggle.addEventListener("click", () => {
+    applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
+  });
+}
