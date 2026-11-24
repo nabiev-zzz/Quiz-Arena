@@ -39,12 +39,16 @@ Payme Merchant API sends amounts in tiyin (UZS × 100) and uses JSON-RPC 2.0 wit
 - `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` — complete service-account JSON, stored only as a Railway secret variable.
 - `GOOGLE_PLAY_MONTHLY_PRODUCT_ID`
 - `GOOGLE_PLAY_YEARLY_PRODUCT_ID`
+- `GOOGLE_PUBSUB_AUDIENCE` — exact HTTPS audience configured on the Pub/Sub push subscription.
+- `GOOGLE_PUBSUB_SERVICE_ACCOUNT_EMAIL` — email of the service account used by authenticated Pub/Sub push.
 
 Set these public product IDs in the Expo build environment:
 - `EXPO_PUBLIC_GOOGLE_PLAY_MONTHLY_PRODUCT_ID`
 - `EXPO_PUBLIC_GOOGLE_PLAY_YEARLY_PRODUCT_ID`
 
 The public product IDs must exactly match the IDs in Play Console and the corresponding Railway variables. Grant the Google service account the required Play Console access and enable the Google Play Android Developer API in its Google Cloud project.
+
+Configure Google Play Real-time Developer Notifications (RTDN) to publish subscription events to a Pub/Sub topic, then create an authenticated push subscription targeting `https://humorous-imagination-production.up.railway.app/api/subscriptions/google-play/notifications`. Set the same audience and push service-account email in the two Railway variables above. The endpoint verifies the OIDC identity token with Google before applying lifecycle changes.
 
 The app uses `expo-iap`; Google Play Billing is not available in Expo Go. Build a native Android app and test purchases through a Play Console internal-testing track. A purchase token is sent to the backend, checked with `purchases.subscriptionsv2.get`, and acknowledged only after successful verification.
 
@@ -54,6 +58,7 @@ The app uses `expo-iap`; Google Play Billing is not available in Expo Go. Build 
 - `GET /api/subscriptions/me` — JWT-protected current entitlement.
 - `POST /api/subscriptions/checkout` — JWT-protected Click/Payme order creation. Body: `{ "provider": "click" | "payme", "planKey": "premium_monthly" | "premium_yearly" }`.
 - `POST /api/subscriptions/google-play/verify` — JWT-protected server verification. Body: `{ "purchaseToken": "..." }`.
+- `POST /api/subscriptions/google-play/notifications` — authenticated Google Pub/Sub RTDN push endpoint.
 - `POST /api/subscriptions/click` — Click Prepare/Complete callback.
 - `POST /api/subscriptions/payme` — Payme Merchant API JSON-RPC callback.
 
