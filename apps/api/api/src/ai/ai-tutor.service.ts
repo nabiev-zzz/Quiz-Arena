@@ -9,6 +9,9 @@ import { GoogleGenAI } from '@google/genai';
 import Groq from 'groq-sdk';
 import { Repository } from 'typeorm';
 
+import { BattleMatch } from '../battle/entities/battle-match.entity';
+import { User } from '../users/entities/user.entity';
+
 import {
   AiTutorMessage,
   AiTutorMessageRole,
@@ -21,6 +24,12 @@ export class AiTutorService {
 
     @InjectRepository(AiTutorMessage)
     private readonly messageRepository: Repository<AiTutorMessage>,
+
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+
+    @InjectRepository(BattleMatch)
+    private readonly battleRepository: Repository<BattleMatch>,
   ) {}
 
   private async getPreviousMessages(userId: string) {
@@ -37,6 +46,7 @@ export class AiTutorService {
     message: string,
     language: 'uz' | 'ru' | 'en',
     history: AiTutorMessage[],
+    progress: Awaited<ReturnType<AiTutorService['getStudentProgress']>>,
   ): string {
     const languageNames = {
       uz: 'Uzbek',
@@ -60,10 +70,18 @@ Your task:
 - Encourage learning and critical thinking.
 - Do not invent facts.
 - If you are uncertain, say so honestly.
-- Keep answers useful and easy to understand.
+- Keep answers useful, readable and compact by default; expand only when the student asks for detail.
+- Use short paragraphs and simple bullet lists. Avoid wide tables, long unbroken lines and excessive headings.
+- When discussing progress, use only the supplied verified data. Never invent quiz scores, subject accuracy, study streaks or activity history.
+- If asked for quiz or subject-level metrics absent from the supplied data, say those statistics are not currently available.
+- Give one or two practical next steps based on available data.
+- Mention Premium naturally only when it genuinely fits the student's goal. Explain benefits without pressure, repeated sales pitches, fake scarcity or promises.
 - Do not reveal private information belonging to other users.
 
 Response language: ${languageNames[language]}.
+
+Verified student progress data:
+${JSON.stringify(progress)}
 
 Previous conversation:
 ${JSON.stringify(conversation)}
@@ -162,17 +180,54 @@ Answer the student's new message in the requested language.
     }
   }
 
+  async getStudentProgress(userId: string) {
+    const [user, matches] = await Promise.all([
+      this.userRepository.findOne({ where: { id: userId } }),
+      this.battleRepository.find({
+        where: [
+          { playerOneId: userId, status: 'finished' },
+          { playerTwoId: userId, status: 'finished' },
+        ],
+        order: { finishedAt: 'DESC' },
+        take: 100,
+      }),
+    ]);
+
+    const wins = matches.filter((match) => match.winnerId === userId).length;
+    const draws = matches.filter((match) => !match.winnerId).length;
+    const losses = matches.length - wins - draws;
+
+    return {
+      level: user?.level ?? null,
+      xp: user?.xp ?? null,
+      rankPoints: user?.rankPoints ?? null,
+      finishedBattles: matches.length,
+      wins,
+      losses,
+      draws,
+      winRate: matches.length ? Math.round((wins / matches.length) * 100) : 0,
+      battlePoints: matches.reduce(
+        (total, match) => total + (Number(match.scores?.[userId]) || 0),
+        0,
+      ),
+      dataNote: 'Test va fan statistikasi hozircha ushbu API manbasida saqlanmaydi.',
+    };
+  }
   async sendMessage(
     userId: string,
     message: string,
     language: 'uz' | 'ru' | 'en' = 'uz',
   ) {
-    const history = await this.getPreviousMessages(userId);
+    const [history, progress] = await Promise.all([
+      this.getPreviousMessages(userId),
+      this.getStudentProgress(userId),
+    ]);
 
     const prompt = this.createPrompt(
       message.trim(),
       language,
       history,
+      progress,
     );
 
     const answer = await this.generateAnswer(prompt);
