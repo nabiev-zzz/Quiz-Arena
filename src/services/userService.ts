@@ -10,7 +10,7 @@ export interface PublicUser extends Pick<AuthUser,
   isSelf?: boolean;
 }
 
-export type UserSuggestion = Omit<PublicUser, 'followingCount' | 'isFriend' | 'isSelf'>;
+export type UserSuggestion = Omit<PublicUser, 'followingCount' | 'isFriend' | 'isSelf'>;\nexport type FriendUser = UserSuggestion & { rankTier?: string };
 
 async function userRequest<T>(path: string, method = 'GET'): Promise<T> {
   const token = await getToken();
@@ -29,7 +29,7 @@ async function userRequest<T>(path: string, method = 'GET'): Promise<T> {
   return data as T;
 }
 
-export function getUserSuggestions(): Promise<UserSuggestion[]> {
+export function getFriends(): Promise<FriendUser[]> {\n  return userRequest<FriendUser[]>('/api/users/friends');\n}\n\nexport function getUserSuggestions(): Promise<UserSuggestion[]> {
   return userRequest<UserSuggestion[]>('/api/users/suggestions?limit=16');
 }
 
