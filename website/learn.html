@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#100d20">
+  <meta name="description" content="QUIZ ARENA — 11 fan, 1100 mavzu, saqlanadigan testlar va shaxsiy bilim statistikasi.">
+  <title>O‘rganish — QUIZ ARENA</title>
+  <link rel="icon" href="https://raw.githubusercontent.com/nabiev-zzz/Quiz-Arena/main/assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./learn.css">
+  <script defer src="./learn.js"></script>
+</head>
+<body>
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+  <header class="topbar">
+    <a class="brand" href="./"><img src="https://raw.githubusercontent.com/nabiev-zzz/Quiz-Arena/main/assets/icon.png" alt=""> <span>QUIZ <b>ARENA</b></span></a>
+    <div class="top-actions"><a class="back-link" href="./">Bosh sahifa</a><button id="logoutBtn" class="ghost hidden" type="button">Chiqish</button><div id="userBadge" class="user-badge hidden"></div></div>
+  </header>
+  <main class="page">
+    <section id="authView" class="auth-layout">
+      <div class="intro">
+        <span class="eyebrow">BILIMINGNI SINOVDAN O‘TKAZ</span>
+        <h1>Har bir mavzu —<br><span>yangi imkoniyat.</span></h1>
+        <p>11 ta fan, 1 100 ta mavzu va shaxsiy natijalar. Testlaring va o‘quv tarixing akkauntingda saqlanadi.</p>
+        <div class="intro-points"><span>✦ 100 mavzu / fan</span><span>✦ 3 tilda test</span><span>✦ Natijalar bazada saqlanadi</span></div>
+      </div>
+      <section class="glass auth-card">
+        <div class="auth-tabs"><button class="tab active" data-auth="login" type="button">Kirish</button><button class="tab" data-auth="register" type="button">Ro‘yxatdan o‘tish</button></div>
+        <form id="loginForm" class="auth-form">
+          <h2>Hisobingizga kiring</h2><label>Username<input name="username" autocomplete="username" minlength="3" maxlength="30" required></label>
+          <label>Parol<input name="password" type="password" autocomplete="current-password" minlength="8" required></label>
+          <button class="primary" type="submit">Kirish <span>→</span></button><p class="form-note">Akkauntingiz va o‘quv natijalaringiz serverda saqlanadi.</p>
+        </form>
+        <form id="registerForm" class="auth-form hidden">
+          <h2>Yangi hisob yarating</h2><label>Ism familiya<input name="displayName" autocomplete="name" minlength="2" maxlength="100" required></label>
+          <label>Username<input name="username" autocomplete="username" minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+" required></label>
+          <label>Email <small>(ixtiyoriy)</small><input name="email" type="email" autocomplete="email"></label>
+          <label>Parol<input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></label>
+          <button class="primary" type="submit">Hisob yaratish <span>→</span></button><p class="form-note">Tasdiqlash kodi shart emas. Email ixtiyoriy.</p>
+        </form>
+        <p id="authError" class="notice error hidden" role="alert"></p>
+      </section>
+    </section>
+
+    <section id="appView" class="hidden">
+      <div class="welcome-row"><div><span class="eyebrow">SHAXSIY O‘QUV MAYDONI</span><h1>Salom, <span id="displayName">o‘quvchi</span>!</h1><p>Fan tanlang va o‘z bilim darajangizni oshiring.</p></div><button id="refreshStats" class="ghost" type="button">↻ Yangilash</button></div>
+      <div id="statsGrid" class="stats-grid"></div>
+      <div id="catalogView">
+        <div class="section-title"><div><span class="eyebrow">BILIMLAR XARITASI</span><h2>Fanlarni tanlang</h2><p>Har bir fan ichida 100 ta alohida mavzu bor.</p></div><input id="subjectSearch" class="search" type="search" placeholder="Fan qidirish..."></div>
+        <div id="subjectsGrid" class="subjects-grid"><div class="loading">Fanlar yuklanmoqda...</div></div>
+        <div id="topicsPanel" class="glass topics-panel hidden">
+          <div class="panel-heading"><button id="backSubjects" class="ghost" type="button">← Fanlarga qaytish</button><div><h2 id="topicsTitle">Mavzular</h2><p id="topicsSub">100 ta mavzu</p></div></div>
+          <input id="topicSearch" class="search topic-search" type="search" placeholder="Mavzu qidirish...">
+          <div id="topicsList" class="topics-list"></div>
+        </div>
+      </div>
+      <section id="quizPanel" class="glass quiz-panel hidden"></section>
+      <section id="resultPanel" class="glass result-panel hidden"></section>
+      <section id="historyPanel" class="glass history-panel">
+        <div class="section-title"><div><span class="eyebrow">SIZNING YO‘LINGIZ</span><h2>So‘nggi testlar</h2></div></div><div id="recentAttempts" class="recent-list"></div>
+      </section>
+    </section>
+    <div id="globalNotice" class="notice hidden" role="status"></div>
+  </main>
+  <footer>© <span id="year"></span> QUIZ ARENA · Bilim bilan kuchliroq bo‘ling.</footer>
+</body>
+</html>
