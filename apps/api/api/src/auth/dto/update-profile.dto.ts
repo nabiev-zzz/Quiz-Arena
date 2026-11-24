@@ -32,7 +32,7 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   @MaxLength(900_000)
-  @Matches(/^(https:\/\/[^\\s]+|data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2})$/, {
+  @Matches(/^(https:\/\/\S+|data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2})$/, {
     message: 'Avatar manzili yoki rasm formati noto‘g‘ri',
   })
   avatarUrl?: string | null;
