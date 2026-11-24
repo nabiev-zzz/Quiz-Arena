@@ -1,5 +1,4 @@
 
-import React from 'react';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 import {
   Alert,
