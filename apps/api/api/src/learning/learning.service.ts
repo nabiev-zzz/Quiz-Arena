@@ -67,6 +67,9 @@ export class LearningService {
         const generated = await this.aiService.generateQuestions({
           subjectId,
           topicId,
+          subjectName: topic.subjectName,
+          topicName: topic.topicName,
+          topicDescription: topic.description,
           count: 20 - cached.length,
           difficulty: input.difficulty,
           language: input.language,
