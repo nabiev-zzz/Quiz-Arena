@@ -43,6 +43,7 @@ interface AuthContextValue {
   requestPhoneLink: (phoneNumber: string) => Promise<void>;
   linkPhone: (phoneNumber: string, code: string) => Promise<void>;
   startGoogleLogin: () => Promise<void>;
+  startTelegramLogin: () => Promise<void>;
   updateProfile: (input: UpdateProfileInput) => Promise<void>;
   refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
@@ -152,6 +153,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await Linking.openURL(`${API_BASE_URL}/api/auth/google/start`);
   };
 
+  const startTelegramLogin = async () => {
+    await Linking.openURL(`${API_BASE_URL}/api/auth/telegram/start`);
+  };
+
   const updateProfile = async (input: UpdateProfileInput) => {
     const updatedUser = await updateCurrentUser(input);
     setUser(updatedUser);
@@ -176,6 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         requestPhoneLink,
         linkPhone,
         startGoogleLogin,
+        startTelegramLogin,
         updateProfile,
         refreshUser,
         logout,
