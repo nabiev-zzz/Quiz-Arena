@@ -13,11 +13,12 @@ import type { Subject, Topic } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 
 interface LearnScreenProps {
+  initialSubject?: Subject | null;
   onTopicSelect?: (subject: Subject, topic: Topic) => void;
   dockStretch?: SharedValue<number>;
 }
 
-export default function LearnScreen({ onTopicSelect, dockStretch }: LearnScreenProps) {
+export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch }: LearnScreenProps) {
   const { tokens } = useTheme();
   const colors = tokens.colors;
   const styles = makeStyles(colors);
@@ -34,7 +35,7 @@ export default function LearnScreen({ onTopicSelect, dockStretch }: LearnScreenP
     onMomentumEnd: () => { if (dockStretch) dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 }); },
   });
 
-  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(initialSubject ?? null);
 
   return (
     <Animated.ScrollView

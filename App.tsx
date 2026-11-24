@@ -171,17 +171,21 @@ function AppContent() {
         ]}
       >
         <Text style={[styles.heroTag, { color: isDark ? "#C5B8FF" : tokens.colors.primary }]}>QUIZ ARENA</Text>
-        <Text style={[styles.heroTitle, { color: textColor }]}>Bilimingni sinab ko'r!</Text>
+        <Text style={[styles.heroTitle, { color: textColor }]}>Fan va mavzular bo‘yicha bilimingni oshir</Text>
         <Text style={[styles.heroDescription, { color: isDark ? "#D1C9F0" : tokens.colors.textSecondary }]}>
-          O'rgan. Rivojlan. Raqobatlash.
+          AI bilan o‘rgan. Natijangni kuzat. Rivojlan.
         </Text>
 
         <Pressable
           style={styles.primaryButton}
-          onPress={() => openTab('battle')}
+          onPress={() => openTab('learn')}
         >
-          <Text style={styles.primaryButtonText}>Battle boshlash</Text>
+          <Text style={styles.primaryButtonText}>Mavzuli test boshlash</Text>
           <Ionicons name="arrow-forward" size={17} color="#FFFFFF" />
+        </Pressable>
+        <Pressable style={styles.secondaryHeroButton} onPress={() => openTab('battle')}>
+          <Text style={styles.secondaryHeroButtonText}>Battle rejimiga o‘tish</Text>
+          <Ionicons name="flash-outline" size={16} color={isDark ? '#D7C9FF' : tokens.colors.primary} />
         </Pressable>
 
         <Ionicons
@@ -311,6 +315,7 @@ function AppContent() {
       return (
         <LearnScreen
           dockStretch={dockStretch}
+          initialSubject={selectedSubject}
           onTopicSelect={(subject, topic) => {
             setSelectedSubject(subject);
             setSelectedTopic(topic);
@@ -473,7 +478,14 @@ function AppContent() {
         />
       </View>
 
-      {tab === 'tutor' && !selectedTopic ? (
+      {selectedTopic && selectedSubject ? (
+        <QuizScreen
+          subject={selectedSubject}
+          topic={selectedTopic}
+          onBack={() => setSelectedTopic(null)}
+          dockStretch={dockStretch}
+        />
+      ) : tab === 'tutor' ? (
         <AiTutorScreen
           onBack={() => openTab('home')}
           bottomDockSpace={96}
@@ -497,14 +509,7 @@ function AppContent() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {selectedTopic && selectedSubject ? (
-          <QuizScreen
-            subject={selectedSubject}
-            topic={selectedTopic}
-            onBack={() => setSelectedTopic(null)}
-            dockStretch={dockStretch}
-          />
-        ) : tab === 'home' ? (
+        {tab === 'home' ? (
           renderHome()
         ) : (
           renderOtherTab()
@@ -680,6 +685,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  secondaryHeroButton: {
+    minHeight: 42,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 4,
+    marginTop: 7,
+  },
+  secondaryHeroButtonText: {
+    color: '#D7C9FF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   heroDecoration: {
     position: 'absolute',

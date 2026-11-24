@@ -18,7 +18,7 @@ import {
   generateQuestions,
   type Question,
 } from '../data/questions';
-import type { Subject, Topic } from '../types';
+import type { Difficulty, Subject, Topic } from '../types';
 import { API_BASE_URL } from '../config/api';
 import { useTheme } from '../theme/ThemeContext';
 import { saveLearningAttempt } from '../services/learningService';
@@ -64,6 +64,9 @@ export default function QuizScreen({
   });
 
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [selectedCount, setSelectedCount] = useState(Math.min(10, topic.questionCount));
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(topic.difficulty);
+  const [selectedLanguage, setSelectedLanguage] = useState<'uz' | 'ru' | 'en'>('uz');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [score, setScore] = useState(0);
@@ -82,7 +85,7 @@ export default function QuizScreen({
     setError('');
 
     try {
-      const totalCount = topic.questionCount;
+      const totalCount = selectedCount;
       const batchSize = 20;
       const allQuestions: Question[] = [];
 
@@ -98,8 +101,8 @@ export default function QuizScreen({
           subjectId: subject.id,
           topicId: topic.id,
           count,
-          difficulty: topic.difficulty,
-          language: 'uz',
+          difficulty: selectedDifficulty,
+          language: selectedLanguage,
         });
 
         if (result.length !== count) {
@@ -127,13 +130,12 @@ export default function QuizScreen({
   }, [
     subject.id,
     topic.id,
-    topic.questionCount,
-    topic.difficulty,
+    selectedCount,
+    selectedDifficulty,
+    selectedLanguage,
   ]);
 
-  useEffect(() => {
-    void loadQuestions();
-  }, [loadQuestions]);
+  const countOptions = Array.from(new Set([5, 10, 15, 20, topic.questionCount])).filter((count) => count <= topic.questionCount).sort((a, b) => a - b);
 
   const currentQuestion = questions[currentIndex];
   const finished = questions.length > 0 && currentIndex >= questions.length;
@@ -231,7 +233,7 @@ export default function QuizScreen({
         <Text style={styles.score}>
           {score} / {questions.length}
         </Text>
-        <Text style={styles.muted}>To‘g‘ri javoblar soni</Text>
+        <Text style={styles.muted}>To‘g‘ri javoblar soni · {Math.round((score / questions.length) * 100)}% aniqlik</Text>
 
         {savingAttempt ? (
           <Text style={styles.muted}>Natija statistika uchun saqlanmoqda...</Text>
@@ -254,6 +256,27 @@ export default function QuizScreen({
           <Text style={styles.backText}>Mavzularga qaytish</Text>
         </Pressable>
       </View>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <Animated.ScrollView onScroll={dockScrollHandler} scrollEventThrottle={16} style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Pressable onPress={onBack} style={styles.backButton}><Text style={styles.backText}>‹ Mavzularga qaytish</Text></Pressable>
+        <Text style={styles.eyebrow}>{subject.name.toUpperCase()}</Text>
+        <Text style={styles.title}>{topic.name}</Text>
+        <Text style={styles.setupDescription}>Testni o‘zingizga moslang. AI tanlangan sozlamalar asosida yangi savollar tayyorlaydi.</Text>
+        <View style={styles.setupCard}>
+          <Text style={styles.setupLabel}>SAVOLLAR SONI</Text>
+          <View style={styles.choiceRow}>{countOptions.map((count) => <Pressable key={count} onPress={() => setSelectedCount(count)} style={[styles.choiceChip, selectedCount === count && styles.selectedChoiceChip]}><Text style={[styles.choiceText, selectedCount === count && styles.selectedChoiceText]}>{count === topic.questionCount ? `${count} · Barchasi` : String(count)}</Text></Pressable>)}</View>
+          <Text style={styles.setupLabel}>QIYINLIK DARAJASI</Text>
+          <View style={styles.choiceRow}>{([{ value: 'easy', label: 'Oson' }, { value: 'medium', label: 'O‘rta' }, { value: 'hard', label: 'Qiyin' }, { value: 'expert', label: 'Ekspert' }] as const).map((item) => <Pressable key={item.value} onPress={() => setSelectedDifficulty(item.value)} style={[styles.choiceChip, selectedDifficulty === item.value && styles.selectedChoiceChip]}><Text style={[styles.choiceText, selectedDifficulty === item.value && styles.selectedChoiceText]}>{item.label}</Text></Pressable>)}</View>
+          <Text style={styles.setupLabel}>TEST TILI</Text>
+          <View style={styles.choiceRow}>{([{ value: 'uz', label: 'O‘zbekcha' }, { value: 'ru', label: 'Русский' }, { value: 'en', label: 'English' }] as const).map((item) => <Pressable key={item.value} onPress={() => setSelectedLanguage(item.value)} style={[styles.choiceChip, selectedLanguage === item.value && styles.selectedChoiceChip]}><Text style={[styles.choiceText, selectedLanguage === item.value && styles.selectedChoiceText]}>{item.label}</Text></Pressable>)}</View>
+        </View>
+        <View style={styles.setupNote}><Text style={styles.setupNoteTitle}>AI Ustoz nimalar qiladi?</Text><Text style={styles.setupNoteText}>Mavzuga mos savollar yaratadi, har bir javobdan keyin to‘g‘ri javobni va tushuntirishni ko‘rsatadi. Yakuniy natija profilingiz statistikasiga saqlanadi.</Text></View>
+        <Pressable style={styles.primaryButton} onPress={() => void loadQuestions()}><Text style={styles.buttonText}>Testni boshlash</Text></Pressable>
+      </Animated.ScrollView>
     );
   }
 
@@ -379,6 +402,17 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     marginTop: 4,
     textAlign: 'center',
   },
+  setupDescription: { color: colors.textMuted, fontSize: 14, lineHeight: 21, marginBottom: 18 },
+  setupCard: { backgroundColor: colors.surface, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12 },
+  setupLabel: { color: colors.textMuted, fontSize: 10, fontWeight: '800', letterSpacing: 1.1, marginTop: 5 },
+  choiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 5 },
+  choiceChip: { minHeight: 38, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.surfaceElevated },
+  selectedChoiceChip: { borderColor: colors.primary, backgroundColor: colors.primary + '22' },
+  choiceText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
+  selectedChoiceText: { color: colors.primary },
+  setupNote: { padding: 16, marginTop: 14, borderRadius: 17, backgroundColor: colors.surfaceElevated },
+  setupNoteTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 7 },
+  setupNoteText: { color: colors.textSecondary, fontSize: 12, lineHeight: 19 },
   loadingText: {
     color: colors.text,
     fontSize: 17,
