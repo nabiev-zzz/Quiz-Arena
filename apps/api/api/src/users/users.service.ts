@@ -55,6 +55,23 @@ export class UsersService {
     })));
   }
 
+  async friends(viewerId: string) {
+    const following = await this.follows.find({ where: { followerId: viewerId }, order: { createdAt: 'DESC' }, take: 200 });
+    const mutual = await Promise.all(following.map(async (relation) => {
+      const followsBack = await this.follows.exists({ where: { followerId: relation.followedId, followedId: viewerId } });
+      if (!followsBack) return null;
+      const user = await this.users.findOne({ where: { id: relation.followedId, status: 'active' } });
+      if (!user) return null;
+      return {
+        ...this.safeUser(user),
+        followersCount: await this.follows.count({ where: { followedId: user.id } }),
+        isFollowing: true,
+        isFriend: true,
+      };
+    }));
+    return mutual.filter((user): user is NonNullable<typeof user> => user !== null);
+  }
+
   async publicProfile(username: string, viewerId?: string) {
     const user = await this.users.findOne({ where: { username: username.toLowerCase(), status: 'active' } });
     if (!user) throw new NotFoundException('Foydalanuvchi topilmadi');

@@ -11,6 +11,7 @@ export interface PublicUser extends Pick<AuthUser,
 }
 
 export type UserSuggestion = Omit<PublicUser, 'followingCount' | 'isFriend' | 'isSelf'>;
+export type FriendUser = UserSuggestion & { rankTier?: string };
 
 async function userRequest<T>(path: string, method = 'GET'): Promise<T> {
   const token = await getToken();
@@ -27,6 +28,10 @@ async function userRequest<T>(path: string, method = 'GET'): Promise<T> {
     throw new Error(typeof data.message === 'string' ? data.message : 'Server bilan aloqa xatosi');
   }
   return data as T;
+}
+
+export function getFriends(): Promise<FriendUser[]> {
+  return userRequest<FriendUser[]>('/api/users/friends');
 }
 
 export function getUserSuggestions(): Promise<UserSuggestion[]> {

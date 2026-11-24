@@ -26,6 +26,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
+import FriendsScreen from './FriendsScreen';
 
 interface ProfileScreenProps {
   onSettingsPress?: () => void;
@@ -83,6 +84,7 @@ export default function ProfileScreen({
   const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
   const [socialProfile, setSocialProfile] = useState<PublicUser | null>(null);
   const [followingUserId, setFollowingUserId] = useState<string | null>(null);
+  const [showFriends, setShowFriends] = useState(false);
   const [cosmeticType, setCosmeticType] = useState<'decoration' | 'frame' | null>(null);
   const [cosmeticSaving, setCosmeticSaving] = useState(false);
 
@@ -113,6 +115,16 @@ export default function ProfileScreen({
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
+    );
+  }
+
+  if (showFriends) {
+    return (
+      <FriendsScreen
+        onBack={() => setShowFriends(false)}
+        onUserPress={(nextUsername) => { setShowFriends(false); onUserPress?.(nextUsername); }}
+        onDiscover={() => { setShowFriends(false); onUserPress?.('discover'); }}
+      />
     );
   }
 
@@ -346,9 +358,14 @@ export default function ProfileScreen({
             <Text style={styles.sectionEyebrow}>COMMUNITY</Text>
             <Text style={styles.sectionTitle}>Do‘stlar ortiring</Text>
           </View>
-          <Pressable onPress={() => onUserPress?.('discover')} hitSlop={8}>
-            <Text style={styles.moreLink}>Ko‘proq <Ionicons name="chevron-forward" size={12} /></Text>
-          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            <Pressable onPress={() => setShowFriends(true)} hitSlop={8}>
+              <Text style={styles.moreLink}>Do‘stlarim <Ionicons name="chevron-forward" size={12} /></Text>
+            </Pressable>
+            <Pressable onPress={() => onUserPress?.('discover')} hitSlop={8}>
+              <Text style={styles.moreLink}>Ko‘proq <Ionicons name="chevron-forward" size={12} /></Text>
+            </Pressable>
+          </View>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsRow}>
           {suggestions.map((person) => {

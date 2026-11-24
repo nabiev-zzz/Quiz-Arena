@@ -9,6 +9,12 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @UseGuards(JwtAuthGuard)
+  @Get('friends')
+  friends(@Request() request: AuthRequest) {
+    return this.usersService.friends(request.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('suggestions')
   suggestions(@Request() request: AuthRequest, @Query('limit') limit?: string) {
     return this.usersService.suggestions(request.user.id, Number(limit) || 12);
