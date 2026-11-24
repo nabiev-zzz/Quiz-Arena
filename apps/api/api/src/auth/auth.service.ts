@@ -10,13 +10,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { randomBytes, randomInt } from 'node:crypto';
+import { createHash, randomBytes, randomInt } from 'node:crypto';
 
 import { User } from '../users/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { PhoneRegisterDto, PasswordResetDto } from './dto/phone-otp.dto';
 import { AuthOtpService } from './auth-otp.service';
+import { AuthOAuthCode } from './entities/auth-oauth-code.entity';
 
 export interface UpdateProfileInput {
   displayName?: string;
@@ -224,6 +225,101 @@ export class AuthService {
     if (!user || !user.phoneVerifiedAt || user.status !== 'active') {
       throw new UnauthorizedException('Kod noto‘g‘ri yoki muddati tugagan');
     }
+    return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
+  }
+
+
+  private getGoogleRedirectUri(): string {
+    const redirectUri = this.config.get<string>('GOOGLE_REDIRECT_URI');
+    if (!redirectUri) {
+      throw new ServiceUnavailableException('Google OAuth callback manzili sozlanmagan');
+    }
+    return redirectUri;
+  }
+
+  async getGoogleAuthorizationUrl(): Promise<string> {
+    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
+    if (!clientId) throw new ServiceUnavailableException('Google orqali kirish hali sozlanmagan');
+    const state = await this.jwtService.signAsync(
+      { purpose: 'google_oauth', nonce: randomBytes(18).toString('hex') },
+      { expiresIn: 600 },
+    );
+    const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    url.searchParams.set('client_id', clientId);
+    url.searchParams.set('redirect_uri', this.getGoogleRedirectUri());
+    url.searchParams.set('response_type', 'code');
+    url.searchParams.set('scope', 'openid email profile');
+    url.searchParams.set('state', state);
+    url.searchParams.set('prompt', 'select_account');
+    return url.toString();
+  }
+
+  async handleGoogleCallback(code: string, state: string): Promise<string> {
+    let statePayload: { purpose?: string };
+    try {
+      statePayload = await this.jwtService.verifyAsync(state);
+    } catch {
+      throw new UnauthorizedException('Google kirish so‘rovi muddati tugagan yoki noto‘g‘ri');
+    }
+    if (statePayload.purpose !== 'google_oauth') {
+      throw new UnauthorizedException('Google kirish so‘rovi noto‘g‘ri');
+    }
+
+    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
+    const clientSecret = this.config.get<string>('GOOGLE_CLIENT_SECRET');
+    if (!clientId || !clientSecret) {
+      throw new ServiceUnavailableException('Google OAuth hali to‘liq sozlanmagan');
+    }
+
+    const body = new URLSearchParams({
+      code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: this.getGoogleRedirectUri(),
+      grant_type: 'authorization_code',
+    });
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    });
+    const tokenPayload = await tokenResponse.json().catch(() => null) as
+      | { id_token?: string }
+      | null;
+    if (!tokenResponse.ok || !tokenPayload?.id_token) {
+      throw new UnauthorizedException('Google hisobini tasdiqlash amalga oshmadi');
+    }
+
+    const result = await this.loginWithGoogle(tokenPayload.id_token);
+    const rawCode = randomBytes(32).toString('base64url');
+    const codeHash = createHash('sha256').update(rawCode).digest('hex');
+    await this.oauthCodeRepository.save(this.oauthCodeRepository.create({
+      userId: result.user.id,
+      codeHash,
+      expiresAt: new Date(Date.now() + 90_000),
+      consumedAt: null,
+    }));
+    return `quizarena://auth?code=${encodeURIComponent(rawCode)}`;
+  }
+
+  async exchangeGoogleCode(rawCode: string) {
+    if (!/^[A-Za-z0-9_-]{40,60}$/.test(rawCode)) {
+      throw new UnauthorizedException('Google kirish kodi noto‘g‘ri yoki muddati tugagan');
+    }
+    const codeHash = createHash('sha256').update(rawCode).digest('hex');
+    const challenge = await this.oauthCodeRepository
+      .createQueryBuilder('oauth')
+      .addSelect('oauth.codeHash')
+      .where('oauth.codeHash = :codeHash', { codeHash })
+      .andWhere('oauth.consumedAt IS NULL')
+      .andWhere('oauth.expiresAt > :now', { now: new Date() })
+      .getOne();
+    if (!challenge) throw new UnauthorizedException('Google kirish kodi noto‘g‘ri yoki muddati tugagan');
+
+    challenge.consumedAt = new Date();
+    await this.oauthCodeRepository.save(challenge);
+    const user = await this.userRepository.findOne({ where: { id: challenge.userId } });
+    if (!user || user.status !== 'active') throw new UnauthorizedException('Hisob topilmadi yoki bloklangan');
     return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
   }
 
