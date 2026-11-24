@@ -22,12 +22,16 @@ import { useTheme } from '../theme/ThemeContext';
 
 interface AiTutorScreenProps {
   onBack: () => void;
+  bottomDockSpace?: number;
 }
 
 const CONNECTION_ERROR =
   'Serverga ulanib bo‘lmadi. Internetni tekshirib, qayta urinib ko‘ring.';
 
-export default function AiTutorScreen({ onBack }: AiTutorScreenProps) {
+export default function AiTutorScreen({
+  onBack,
+  bottomDockSpace = 0,
+}: AiTutorScreenProps) {
   const { tokens } = useTheme();
   const colors = tokens.colors;
   const styles = makeStyles(colors);
@@ -183,7 +187,12 @@ export default function AiTutorScreen({ onBack }: AiTutorScreenProps) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        bottomDockSpace > 0 && { paddingBottom: bottomDockSpace },
+      ]}
+    >
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
