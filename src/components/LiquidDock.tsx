@@ -87,7 +87,7 @@ function DockItem({
         <Ionicons
           name={active ? item.activeIcon : item.icon}
           size={23}
-          color={active ? colors.text : colors.textMuted}
+          color={active ? colors.primary : colors.textMuted}
         />
         <Text
           numberOfLines={1}
@@ -143,8 +143,8 @@ export default function LiquidDock({
         style={[
           styles.dock,
           {
-            borderColor: tokens.colors.glassBorder,
-            backgroundColor: tokens.colors.surfaceGlass,
+            borderColor: '#3F4147',
+            backgroundColor: '#232428',
           },
         ]}
       >
@@ -158,7 +158,7 @@ export default function LiquidDock({
           pointerEvents="none"
           colors={
             isDark
-              ? ['rgba(255,255,255,0.13)', 'rgba(125,103,190,0.10)', 'rgba(20,25,43,0.38)']
+              ? ['rgba(255,255,255,0.04)', 'rgba(35,36,40,0.96)', 'rgba(35,36,40,0.98)']
               : ['rgba(255,255,255,0.78)', 'rgba(240,235,255,0.56)', 'rgba(218,230,255,0.38)']
           }
           start={{ x: 0, y: 0 }}
@@ -172,10 +172,10 @@ export default function LiquidDock({
               styles.liquidPill,
               {
                 backgroundColor: isDark
-                  ? 'rgba(168,143,255,0.22)'
+                  ? 'rgba(88,101,242,0.22)'
                   : 'rgba(126,101,232,0.13)',
                 borderColor: isDark
-                  ? 'rgba(205,190,255,0.34)'
+                  ? 'rgba(142,161,255,0.42)'
                   : 'rgba(126,101,232,0.22)',
               },
               indicatorStyle,
@@ -208,8 +208,8 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   dock: {
-    height: 68,
-    borderRadius: 24,
+    height: 64,
+    borderRadius: 17,
     borderWidth: 1,
     overflow: 'hidden',
     flexDirection: 'row',
