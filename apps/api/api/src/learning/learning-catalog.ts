@@ -595,14 +595,14 @@ const definitions=[
       "Reading, writing and communication"
     ]
   }
-];
+] as const;
 export const learningCatalog: LearningCatalogSubject[] = definitions.map((subject) => {
  const topics:LearningCatalogTopic[]=subject.legacy.map(([id,name,description,difficulty])=>({id,name,description,questionCount:20,difficulty:difficulty as LearningCatalogTopic['difficulty']}));
  const used=new Set(topics.map((topic)=>topic.name.toLocaleLowerCase()));
  for(let moduleIndex=0;moduleIndex<subject.modules.length&&topics.length<100;moduleIndex+=1){
   for(let facetIndex=0;facetIndex<facets.length&&topics.length<100;facetIndex+=1){
    const moduleName=subject.modules[moduleIndex];const name=moduleName+' — '+facets[facetIndex];if(used.has(name.toLocaleLowerCase()))continue;used.add(name.toLocaleLowerCase());
-   const id=moduleName.normalize('NFKD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,46)+'-'+(facetIndex+1);
+   const id=moduleName.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,46)+'-'+(facetIndex+1);
    topics.push({id,name,description:moduleName+' mavzusining '+facets[facetIndex].toLowerCase()+' bo‘yicha testlari',questionCount:20,difficulty:facetIndex===4?'hard':facetIndex===0?'easy':'medium'});
   }
  }
