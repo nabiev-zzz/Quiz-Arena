@@ -12,6 +12,8 @@ import {
 import type { Response } from 'express';
 
 import { AuthService } from './auth.service';
+import { EmailAuthService } from './email-auth.service';
+import { EmailCodeDto, EmailPasswordResetDto, EmailRequestDto } from './dto/email-auth.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -31,11 +33,34 @@ interface AuthenticatedRequest {
 
 @Controller('api/auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly emailAuthService: EmailAuthService,
+  ) {}
 
   @Post('register')
   register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+    return this.emailAuthService.register(dto);
+  }
+
+  @Post('email/verification/request')
+  requestEmailVerification(@Body() dto: EmailRequestDto) {
+    return this.emailAuthService.requestVerification(dto.email);
+  }
+
+  @Post('email/verify')
+  verifyEmail(@Body() dto: EmailCodeDto) {
+    return this.emailAuthService.verifyEmail(dto.email, dto.code);
+  }
+
+  @Post('email/password-reset/request')
+  requestEmailPasswordReset(@Body() dto: EmailRequestDto) {
+    return this.emailAuthService.requestPasswordReset(dto.email);
+  }
+
+  @Post('email/password-reset')
+  resetEmailPassword(@Body() dto: EmailPasswordResetDto) {
+    return this.emailAuthService.resetPassword(dto.email, dto.code, dto.newPassword);
   }
 
   @Post('login')
