@@ -1,5 +1,6 @@
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
@@ -33,6 +34,10 @@ import {
 
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { GlassSurface } from './src/components/ui';
+// @ts-ignore Keep the animated splash as the requested plain JavaScript component.
+import AnimatedSplash from './src/components/AnimatedSplash';
+
+void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 import type { Subject, Topic } from './src/types';
 
@@ -120,9 +125,9 @@ function AppContent() {
           },
         ]}
       >
-        <Text style={styles.heroTag}>QUIZ ARENA</Text>
-        <Text style={styles.heroTitle}>Bilimingni sinab ko'r!</Text>
-        <Text style={styles.heroDescription}>
+        <Text style={[styles.heroTag, { color: isDark ? "#C5B8FF" : tokens.colors.primary }]}>QUIZ ARENA</Text>
+        <Text style={[styles.heroTitle, { color: textColor }]}>Bilimingni sinab ko'r!</Text>
+        <Text style={[styles.heroDescription, { color: isDark ? "#D1C9F0" : tokens.colors.textSecondary }]}>
           O'rgan. Rivojlan. Raqobatlash.
         </Text>
 
@@ -185,8 +190,8 @@ function AppContent() {
         style={styles.tutorPressable}
         onPress={() => openTab('tutor')}
       >
-        <View style={styles.tutorIcon}>
-          <Ionicons name="sparkles" size={26} color="#C9B9FF" />
+        <View style={[styles.tutorIcon, { backgroundColor: isDark ? "#33446B" : "#E9E4FF" }]}>
+          <Ionicons name="sparkles" size={26} color={isDark ? "#C9B9FF" : tokens.colors.primary} />
         </View>
 
         <View style={styles.tutorTextContainer}>
@@ -305,7 +310,7 @@ function AppContent() {
 
     return (
       <View style={styles.emptyPage}>
-        <Ionicons name={page.icon} size={65} color="#A88FFF" />
+        <Ionicons name={page.icon} size={65} color={tokens.colors.primary} />
         <Text style={[styles.pageTitle, { color: textColor }]}>
           {page.title}
         </Text>
@@ -464,15 +469,13 @@ function AppContent() {
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={item.label}
               >
-                <Ionicons
-                  name={
-                    active
-                      ? (item.icon.replace('-outline', '') as never)
-                      : item.icon
-                  }
-                  size={22}
-                  color={active ? '#A88FFF' : mutedColor}
-                />
+                <View style={[styles.navIconWrap, active && styles.activeNavIconWrap]}>
+                  <Ionicons
+                    name={active ? (item.icon.replace('-outline', '') as never) : item.icon}
+                    size={22}
+                    color={active ? '#A88FFF' : mutedColor}
+                  />
+                </View>
 
                 <Text
                   style={[
@@ -495,16 +498,32 @@ function AppContent() {
 }
 
 export default function App() {
+  const [done, setDone] = useState(false);
+  const nativeSplashHidden = useRef(false);
+
+  const handleRootLayout = () => {
+    if (nativeSplashHidden.current) {
+      return;
+    }
+
+    nativeSplashHidden.current = true;
+    void SplashScreen.hideAsync().catch(() => undefined);
+  };
+
   return (
-    <SafeAreaProvider>
-      <AppSettingsProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
-        </ThemeProvider>
-      </AppSettingsProvider>
-    </SafeAreaProvider>
+    <View style={{ flex: 1 }} onLayout={handleRootLayout}>
+      <SafeAreaProvider>
+        <AppSettingsProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </ThemeProvider>
+        </AppSettingsProvider>
+      </SafeAreaProvider>
+
+      {!done && <AnimatedSplash onFinish={() => setDone(true)} />}
+    </View>
   );
 }
 
@@ -548,13 +567,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
+    paddingHorizontal: 18,
+    paddingTop: 14,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 25,
+    marginBottom: 20,
     gap: 12,
   },
   greetingContainer: {
@@ -571,6 +590,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 5,
     flexShrink: 1,
+    letterSpacing: -0.3,
   },
   avatar: {
     width: 45,
@@ -587,9 +607,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   hero: {
-    borderRadius: 25,
-    padding: 23,
-    marginBottom: 18,
+    borderRadius: 26,
+    padding: 22,
+    marginBottom: 16,
     overflow: 'hidden',
   },
   heroTag: {
@@ -600,25 +620,30 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: '#FFFFFF',
-    fontSize: 27,
+    fontSize: 26,
+    lineHeight: 33,
     fontWeight: 'bold',
-    marginTop: 15,
+    marginTop: 12,
     maxWidth: 240,
+    letterSpacing: -0.5,
   },
   heroDescription: {
     color: '#D1C9F0',
     fontSize: 14,
-    marginTop: 8,
+    lineHeight: 20,
+    marginTop: 7,
   },
   primaryButton: {
+    minHeight: 50,
     backgroundColor: '#9678FF',
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 13,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    borderRadius: 15,
     alignSelf: 'flex-start',
-    marginTop: 22,
+    marginTop: 20,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 9,
   },
   primaryButtonText: {
@@ -634,31 +659,35 @@ const styles = StyleSheet.create({
   },
   stats: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 18,
+    gap: 9,
+    marginBottom: 16,
   },
   statCard: {
     flex: 1,
     minWidth: 0,
-    borderRadius: 17,
-    padding: 13,
+    minHeight: 100,
+    borderRadius: 18,
+    padding: 11,
+    justifyContent: 'center',
   },
   statNumber: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 5,
+    marginTop: 8,
+    marginBottom: 4,
   },
   tutorCard: {
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 0,
-    marginBottom: 27,
+    marginBottom: 24,
+    overflow: 'hidden',
   },
   tutorPressable: {
+    minHeight: 78,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
+    padding: 14,
     gap: 12,
   },
   tutorIcon: {
@@ -683,11 +712,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 13,
   },
   sectionTitle: {
     color: '#FFFFFF',
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   link: {
@@ -697,17 +726,19 @@ const styles = StyleSheet.create({
   subjectGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
+    rowGap: 12,
   },
   subjectCard: {
-    width: '48%',
-    minHeight: 125,
-    borderRadius: 18,
+    width: '47.5%',
+    minHeight: 136,
+    borderRadius: 19,
+    overflow: 'hidden',
   },
   subjectPressable: {
     flex: 1,
-    minHeight: 125,
-    padding: 15,
+    minHeight: 136,
+    padding: 14,
     justifyContent: 'center',
   },
   subjectIcon: {
@@ -725,26 +756,41 @@ const styles = StyleSheet.create({
   },
   bottomNavGlass: {
     marginHorizontal: 12,
-    marginBottom: 8,
-    borderRadius: 22,
+    marginBottom: 6,
+    borderRadius: 23,
+    overflow: 'hidden',
   },
   bottomNav: {
+    minHeight: 64,
     flexDirection: 'row',
+    alignItems: 'stretch',
     backgroundColor: 'transparent',
     borderTopWidth: 0,
-    paddingTop: 10,
+    paddingTop: 6,
+    paddingHorizontal: 4,
   },
   navItem: {
     flex: 1,
     minWidth: 0,
+    minHeight: 54,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 3,
     paddingHorizontal: 2,
+    paddingVertical: 4,
   },
+  navIconWrap: {
+    width: 36,
+    height: 31,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeNavIconWrap: { backgroundColor: 'rgba(168, 143, 255, 0.15)' },
   navLabel: {
     color: '#758098',
-    fontSize: 9,
+    fontSize: 10,
+    lineHeight: 13,
     textAlign: 'center',
   },
   activeNavLabel: {

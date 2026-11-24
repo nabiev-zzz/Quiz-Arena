@@ -102,7 +102,7 @@ export default function BattleScreen({
     danger: COLORS.danger,
   };
 
-  const styles = makeStyles(colors);
+  const styles = makeStyles(colors, dark);
 
   const clearMatchState = useCallback(() => {
     matchIdRef.current = null;
@@ -715,10 +715,10 @@ export default function BattleScreen({
     return history.map((item) => (
       <View key={item.id} style={styles.listCard}>
         <Text style={styles.cardTitle}>
-          {item.mode === 'ranked' ? 'Ranked' : 'Casual'} В· {item.roomCode}
+          {item.mode === 'ranked' ? 'Ranked' : 'Casual'} · {item.roomCode}
         </Text>
         <Text style={styles.muted}>
-          Holati: {item.status} В· {new Date(item.createdAt).toLocaleString()}
+          Holati: {item.status} · {new Date(item.createdAt).toLocaleString()}
         </Text>
         <Text style={styles.bodyText}>
           {item.winnerId ? `GвЂolib ID: ${item.winnerId}` : 'GвЂolib: aniqlanmagan'}
@@ -781,10 +781,10 @@ export default function BattleScreen({
             #{player.rank ?? index + 1} {player.username}
           </Text>
           <Text style={styles.rankResultTier}>
-            {rankTier} В· {rankPoints} RP
+            {rankTier} · {rankPoints} RP
           </Text>
           <Text style={styles.bodyText}>
-            G'alaba: {player.wins} В· Mag'lubiyat: {player.losses} В·
+            G'alaba: {player.wins} · Mag'lubiyat: {player.losses} ·
             Durang: {player.draws}
           </Text>
           <Text style={styles.muted}>Battle ball: {player.points}</Text>
@@ -884,7 +884,7 @@ function ActionButton({
   );
 }
 
-function makeStyles(colors: typeof COLORS) {
+function makeStyles(colors: typeof COLORS, dark: boolean) {
   return StyleSheet.create({
     screen: {
       flex: 1,

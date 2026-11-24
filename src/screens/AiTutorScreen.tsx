@@ -18,6 +18,7 @@ import {
   getTutorHistory,
   sendTutorMessage,
 } from '../services/aiTutorService';
+import { useTheme } from '../theme/ThemeContext';
 
 interface AiTutorScreenProps {
   onBack: () => void;
@@ -27,6 +28,10 @@ const CONNECTION_ERROR =
   'Serverga ulanib bo‘lmadi. Internetni tekshirib, qayta urinib ko‘ring.';
 
 export default function AiTutorScreen({ onBack }: AiTutorScreenProps) {
+  const { tokens } = useTheme();
+  const colors = tokens.colors;
+  const styles = makeStyles(colors);
+
   const [messages, setMessages] = useState<AiTutorMessage[]>([]);
   const [input, setInput] = useState('');
   const [loadingHistory, setLoadingHistory] = useState(true);
@@ -203,7 +208,7 @@ export default function AiTutorScreen({ onBack }: AiTutorScreenProps) {
 
         {loadingHistory ? (
           <View style={styles.center}>
-            <ActivityIndicator size="large" color="#A88FFF" />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.loadingText}>
               Suhbat tarixi yuklanmoqda...
             </Text>
@@ -253,7 +258,7 @@ export default function AiTutorScreen({ onBack }: AiTutorScreenProps) {
             ListFooterComponent={
               sending ? (
                 <View style={styles.typingRow}>
-                  <ActivityIndicator size="small" color="#A88FFF" />
+                  <ActivityIndicator size="small" color={colors.primary} />
                   <Text style={styles.typingText}>
                     AI Ustoz javob tayyorlamoqda...
                   </Text>
@@ -278,9 +283,9 @@ export default function AiTutorScreen({ onBack }: AiTutorScreenProps) {
           <TextInput
             style={styles.input}
             placeholder="Savolingizni yozing..."
-            placeholderTextColor="#8B90A7"
-            selectionColor="#A88FFF"
-            cursorColor="#A88FFF"
+            placeholderTextColor={colors.textMuted}
+            selectionColor={colors.primary}
+            cursorColor={colors.primary}
             value={input}
             onChangeText={setInput}
             multiline
@@ -314,30 +319,49 @@ export default function AiTutorScreen({ onBack }: AiTutorScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B1020' },
+function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
+  return StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   keyboardContainer: { flex: 1 },
   header: {
-    minHeight: 72,
-    paddingHorizontal: 18,
+    minHeight: 74,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#11182A',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#252D41',
+    borderBottomColor: colors.border,
   },
   backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: '#252044',
+    width: 44,
+    height: 44,
+    borderRadius: 15,
+    backgroundColor: colors.primary + '22',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backText: { fontSize: 34, lineHeight: 38, color: '#A88FFF' },
-  headerInfo: { flex: 1, marginLeft: 12 },
-  headerTitle: { fontSize: 17, fontWeight: '800', color: '#FFFFFF' },
-  onlineRow: { flexDirection: 'row', alignItems: 'center', marginTop: 5 },
+  backText: {
+    fontSize: 34,
+    lineHeight: 38,
+    color: colors.primary,
+  },
+  headerInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  onlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
   onlineDot: {
     width: 7,
     height: 7,
@@ -345,7 +369,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#25B879',
     marginRight: 6,
   },
-  onlineText: { fontSize: 12, color: '#8993AA' },
+  onlineText: {
+    fontSize: 12,
+    color: colors.textMuted,
+  },
   headerAvatar: {
     width: 42,
     height: 42,
@@ -354,14 +381,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerAvatarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { marginTop: 12, color: '#8993AA', fontSize: 13 },
+  headerAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    color: colors.textMuted,
+    fontSize: 13,
+  },
   messageScroll: { flex: 1 },
-  messageList: { padding: 18, paddingBottom: 24, flexGrow: 1 },
+  messageList: {
+    padding: 16,
+    paddingBottom: 22,
+    flexGrow: 1,
+  },
   messageRow: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 14,
     alignItems: 'flex-end',
   },
   userRow: { justifyContent: 'flex-end' },
@@ -375,29 +418,43 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 8,
   },
-  avatarText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
-  messageBubble: {
-    maxWidth: '82%',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 18,
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
   },
-  userBubble: { backgroundColor: '#6759E8', borderBottomRightRadius: 5 },
+  messageBubble: {
+    maxWidth: '84%',
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderRadius: 19,
+  },
+  userBubble: {
+    backgroundColor: '#6759E8',
+    borderBottomRightRadius: 5,
+  },
   assistantBubble: {
-    backgroundColor: '#171F34',
+    backgroundColor: colors.surface,
     borderBottomLeftRadius: 5,
     borderWidth: 1,
-    borderColor: '#29334B',
+    borderColor: colors.border,
   },
-  messageText: { fontSize: 14, lineHeight: 22 },
+  messageText: {
+    fontSize: 14,
+    lineHeight: 22,
+  },
   userMessageText: { color: '#FFFFFF' },
-  assistantMessageText: { color: '#E5E7F0' },
+  assistantMessageText: { color: colors.text },
   messageRetryButton: {
     alignSelf: 'flex-end',
     paddingVertical: 6,
     paddingHorizontal: 9,
   },
-  messageRetryText: { color: '#C3B5FF', fontSize: 12, fontWeight: '700' },
+  messageRetryText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
   welcomeContainer: {
     flex: 1,
     alignItems: 'center',
@@ -406,88 +463,120 @@ const styles = StyleSheet.create({
     paddingVertical: 35,
   },
   welcomeIcon: {
-    width: 66,
-    height: 66,
-    borderRadius: 23,
-    backgroundColor: '#252044',
+    width: 64,
+    height: 64,
+    borderRadius: 22,
+    backgroundColor: colors.primary + '22',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 18,
   },
-  welcomeIconText: { fontSize: 34, color: '#A88FFF' },
+  welcomeIconText: {
+    fontSize: 34,
+    color: colors.primary,
+  },
   welcomeTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: colors.text,
     textAlign: 'center',
   },
   welcomeDescription: {
     fontSize: 14,
     lineHeight: 22,
-    color: '#A5AEC2',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 12,
     marginBottom: 22,
   },
   suggestion: {
     width: '100%',
-    padding: 13,
-    borderRadius: 13,
-    backgroundColor: '#171F34',
+    minHeight: 46,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#29334B',
+    borderColor: colors.border,
     marginTop: 9,
   },
-  suggestionText: { color: '#C3B5FF', fontSize: 13, textAlign: 'center' },
-  typingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 9 },
-  typingText: { color: '#8993AA', fontSize: 12 },
+  suggestionText: {
+    color: colors.primary,
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  typingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    gap: 9,
+  },
+  typingText: {
+    color: colors.textMuted,
+    fontSize: 12,
+  },
   errorContainer: {
     marginHorizontal: 16,
     marginBottom: 8,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: '#351F32',
+    backgroundColor: colors.dangerSurface,
   },
-  errorText: { color: '#FF9DAA', fontSize: 12 },
-  retryText: { color: '#C3B5FF', fontSize: 12, fontWeight: '700', marginTop: 5 },
+  errorText: {
+    color: colors.danger,
+    fontSize: 12,
+  },
+  retryText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 5,
+  },
   inputContainer: {
+    minHeight: 58,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginHorizontal: 14,
+    marginHorizontal: 12,
     marginTop: 8,
-    padding: 8,
-    backgroundColor: '#171F34',
+    padding: 7,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#29334B',
-    borderRadius: 20,
+    borderColor: colors.border,
+    borderRadius: 19,
   },
   input: {
     flex: 1,
-    minHeight: 42,
-    maxHeight: 110,
-    paddingHorizontal: 10,
+    minHeight: 44,
+    maxHeight: 112,
+    paddingHorizontal: 11,
     paddingVertical: 10,
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 14,
     backgroundColor: 'transparent',
     textAlignVertical: 'center',
   },
   sendButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: 46,
+    height: 46,
+    borderRadius: 15,
     backgroundColor: '#7657E8',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 6,
   },
   sendButtonDisabled: { opacity: 0.45 },
-  sendButtonText: { color: '#FFFFFF', fontSize: 25, fontWeight: '700' },
+  sendButtonText: {
+    color: '#FFFFFF',
+    fontSize: 25,
+    fontWeight: '700',
+  },
   footerText: {
     fontSize: 10,
-    color: '#8993AA',
+    color: colors.textMuted,
     textAlign: 'center',
     paddingVertical: 8,
     paddingHorizontal: 10,
   },
-});
+  });
+}

@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../theme/ThemeContext';
 
 interface ProfileScreenProps {
   onSettingsPress?: () => void;
@@ -24,6 +25,10 @@ interface ProfileScreenProps {
 export default function ProfileScreen({
   onSettingsPress,
 }: ProfileScreenProps) {
+  const { tokens } = useTheme();
+  const colors = tokens.colors;
+  const styles = makeStyles(colors);
+
   const { user, updateProfile, logout } = useAuth();
 
   const [editVisible, setEditVisible] = useState(false);
@@ -45,7 +50,7 @@ export default function ProfileScreen({
   if (!user) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -161,7 +166,7 @@ export default function ProfileScreen({
           style={styles.settingsButton}
           onPress={onSettingsPress}
         >
-          <Ionicons name="settings-outline" size={23} color="#FFFFFF" />
+          <Ionicons name="settings-outline" size={23} color={colors.text} />
         </Pressable>
       </View>
 
@@ -276,7 +281,7 @@ export default function ProfileScreen({
             Yutuqlar va medallar shu yerda ko‘rinadi
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#8B91A5" />
+        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
       </View>
 
       <Text style={styles.sectionTitle}>Profil bezaklari</Text>
@@ -332,7 +337,7 @@ export default function ProfileScreen({
               <Text style={styles.modalTitle}>Profilni tahrirlash</Text>
 
               <Pressable onPress={() => setEditVisible(false)}>
-                <Ionicons name="close" size={25} color="#FFFFFF" />
+                <Ionicons name="close" size={25} color={colors.text} />
               </Pressable>
             </View>
 
@@ -342,7 +347,7 @@ export default function ProfileScreen({
               value={displayName}
               onChangeText={setDisplayName}
               placeholder="Ismingiz"
-              placeholderTextColor="#777F94"
+              placeholderTextColor={colors.textMuted}
               maxLength={100}
             />
 
@@ -352,7 +357,7 @@ export default function ProfileScreen({
               value={username}
               onChangeText={setUsername}
               placeholder="username"
-              placeholderTextColor="#777F94"
+              placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
               maxLength={30}
             />
@@ -363,7 +368,7 @@ export default function ProfileScreen({
               value={bio}
               onChangeText={setBio}
               placeholder="O‘zingiz haqingizda..."
-              placeholderTextColor="#777F94"
+              placeholderTextColor={colors.textMuted}
               multiline
               maxLength={500}
             />
@@ -386,18 +391,20 @@ export default function ProfileScreen({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B1020',
+    backgroundColor: colors.background,
   },
   content: {
-    padding: 20,
-    paddingBottom: 40,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 48,
   },
   loading: {
     flex: 1,
-    backgroundColor: '#0B1020',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -405,37 +412,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 22,
+    marginBottom: 18,
   },
   headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 23,
+    color: colors.text,
+    fontSize: 22,
     fontWeight: '800',
+    letterSpacing: -0.3,
   },
   settingsButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#1B2440',
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    backgroundColor: colors.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileCard: {
-    backgroundColor: '#151D33',
-    borderRadius: 25,
-    padding: 22,
+    backgroundColor: colors.surface,
+    borderRadius: 24,
+    padding: 20,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#293553',
+    borderColor: colors.border,
   },
   avatarContainer: {
     position: 'relative',
     marginBottom: 15,
   },
   avatarBorder: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
     padding: 4,
     backgroundColor: '#8B5CF6',
   },
@@ -447,12 +455,12 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {
     flex: 1,
     borderRadius: 52,
-    backgroundColor: '#293553',
+    backgroundColor: colors.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarInitials: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 35,
     fontWeight: '800',
   },
@@ -465,7 +473,7 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     backgroundColor: '#8B5CF6',
     borderWidth: 3,
-    borderColor: '#151D33',
+    borderColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -476,56 +484,61 @@ const styles = StyleSheet.create({
     width: 29,
     height: 29,
     borderRadius: 15,
-    backgroundColor: '#293553',
+    backgroundColor: colors.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
   },
   displayName: {
-    color: '#FFFFFF',
-    fontSize: 23,
+    color: colors.text,
+    fontSize: 22,
     fontWeight: '800',
+    textAlign: 'center',
   },
   username: {
-    color: '#A78BFA',
+    color: colors.primary,
     fontSize: 14,
     marginTop: 5,
   },
   bio: {
-    color: '#AAB2C5',
+    color: colors.textSecondary,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 13,
     lineHeight: 21,
   },
   followRow: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 23,
-    marginBottom: 20,
+    justifyContent: 'center',
+    marginTop: 20,
+    marginBottom: 18,
   },
   followItem: {
+    flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 8,
   },
   followNumber: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 20,
     fontWeight: '800',
   },
   followLabel: {
-    color: '#929BB0',
-    fontSize: 12,
+    color: colors.textMuted,
+    fontSize: 11,
+    textAlign: 'center',
     marginTop: 4,
   },
   followDivider: {
     width: 1,
     height: 35,
-    backgroundColor: '#35405B',
+    backgroundColor: colors.borderStrong,
   },
   editButton: {
     width: '100%',
-    height: 48,
-    borderRadius: 14,
+    minHeight: 50,
+    borderRadius: 15,
     backgroundColor: '#7548DB',
     flexDirection: 'row',
     alignItems: 'center',
@@ -538,44 +551,44 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   sectionTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
+    color: colors.text,
+    fontSize: 17,
     fontWeight: '800',
-    marginTop: 27,
-    marginBottom: 13,
+    marginTop: 23,
+    marginBottom: 12,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#151D33',
+    backgroundColor: colors.surface,
     borderRadius: 18,
-    padding: 18,
+    padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#293553',
+    borderColor: colors.border,
   },
   statNumber: {
-    color: '#FFFFFF',
-    fontSize: 25,
+    color: colors.text,
+    fontSize: 24,
     fontWeight: '800',
-    marginTop: 9,
+    marginTop: 8,
   },
   statLabel: {
-    color: '#929BB0',
+    color: colors.textMuted,
     fontSize: 13,
     marginTop: 4,
   },
   rankCard: {
-    backgroundColor: '#151D33',
-    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
     padding: 17,
-    marginTop: 16,
-    marginBottom: 12,
+    marginTop: 14,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#514078',
+    borderColor: colors.borderStrong,
   },
   rankTopRow: {
     flexDirection: 'row',
@@ -586,12 +599,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 15,
-    backgroundColor: '#25213D',
+    backgroundColor: colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rankName: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 17,
     fontWeight: '800',
   },
@@ -600,14 +613,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   rankSubtext: {
-    color: '#929BB0',
+    color: colors.textMuted,
     fontSize: 12,
     marginTop: 4,
   },
   rankProgressTrack: {
     height: 9,
     borderRadius: 10,
-    backgroundColor: '#30384D',
+    backgroundColor: colors.backgroundSecondary,
     overflow: 'hidden',
     marginTop: 18,
   },
@@ -616,60 +629,63 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   rankProgressText: {
-    color: '#B7BED0',
+    color: colors.textSecondary,
     fontSize: 12,
     marginTop: 9,
-  },  infoCard: {
+  },
+  infoCard: {
+    minHeight: 74,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#151D33',
-    borderRadius: 17,
-    padding: 17,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    padding: 15,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#293553',
+    borderColor: colors.border,
     gap: 13,
   },
   infoTextContainer: {
     flex: 1,
   },
   infoTitle: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 15,
     fontWeight: '700',
   },
   infoSubtitle: {
-    color: '#929BB0',
+    color: colors.textMuted,
     fontSize: 12,
     marginTop: 5,
   },
   logoutButton: {
+    minHeight: 50,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 9,
-    backgroundColor: '#281B2A',
-    padding: 16,
+    backgroundColor: colors.dangerSurface,
+    paddingHorizontal: 16,
     borderRadius: 15,
-    marginTop: 25,
+    marginTop: 22,
   },
   logoutText: {
-    color: '#F87171',
+    color: colors.danger,
     fontSize: 15,
     fontWeight: '700',
   },
   modalBackground: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     padding: 20,
   },
   modalCard: {
-    backgroundColor: '#151D33',
+    backgroundColor: colors.surface,
     borderRadius: 23,
     padding: 22,
     borderWidth: 1,
-    borderColor: '#35405B',
+    borderColor: colors.borderStrong,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -678,26 +694,27 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   modalTitle: {
-    color: '#FFFFFF',
+    color: colors.text,
     fontSize: 20,
     fontWeight: '800',
   },
   inputLabel: {
-    color: '#D8DDF0',
+    color: colors.textSecondary,
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 8,
     marginTop: 12,
   },
   input: {
-    backgroundColor: '#0B1020',
-    color: '#FFFFFF',
-    borderRadius: 12,
+    minHeight: 48,
+    backgroundColor: colors.background,
+    color: colors.text,
+    borderRadius: 13,
     paddingHorizontal: 14,
-    paddingVertical: 13,
+    paddingVertical: 12,
     fontSize: 15,
     borderWidth: 1,
-    borderColor: '#35405B',
+    borderColor: colors.borderStrong,
   },
   bioInput: {
     height: 95,
@@ -716,4 +733,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
   },
-});
+  });
+}
