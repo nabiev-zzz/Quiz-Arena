@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { createObserveModule } from '@nestjs/observe';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -30,8 +29,6 @@ import { CreateAuthEmailCodes20261124170000 } from './database/migrations/Create
 import { AddTelegramIdentity20261124190000 } from './database/migrations/AddTelegramIdentity';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
-
-export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
 @Module({
   imports: [
@@ -67,11 +64,6 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       ],
       migrationsRun: true,
       migrationsTableName: 'typeorm_migrations',
-    }),
-    ObserveModule.forRoot({
-      appKey: process.env.OBSERVE_APP_KEY ?? 'YOUR_APP_KEY',
-      appSecret: process.env.OBSERVE_APP_SECRET ?? 'YOUR_APP_SECRET',
-      serviceId: 'api',
     }),
     AiModule,
     AuthModule,
