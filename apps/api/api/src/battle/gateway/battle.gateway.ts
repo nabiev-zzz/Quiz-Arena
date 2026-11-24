@@ -89,6 +89,7 @@ export class BattleGateway
   private readonly activeBattles = new Map<string, ActiveBattle>();
   private readonly queuedSockets = new Map<string, string>();
   private readonly privateRooms = new Map<string, PrivateBattleRoom>();
+  private readonly privateJoinAttempts = new Map<string, { count: number; windowStartedAt: number }>();
   private readonly questionDuration = 20_000;
   private readonly reconnectGracePeriod = 30_000;
 
@@ -247,7 +248,7 @@ export class BattleGateway
       }
       quotaConsumed = true;
 
-      const roomCode = randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+      const roomCode = randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase();
       const expiresAt = Date.now() + 10 * 60 * 1000;
       const timer = setTimeout(() => { void this.expirePrivateRoom(roomCode); }, 10 * 60 * 1000);
       this.privateRooms.set(roomCode, { roomCode, hostUserId: userId, hostSocketId: client.id, expiresAt, timer });
@@ -277,8 +278,25 @@ export class BattleGateway
   ): Promise<void> {
     const userId = client.data.userId as string | undefined;
     const roomCode = String(payload?.roomCode || payload?.code || '').trim().toUpperCase();
-    if (!userId || !/^[A-F0-9]{8}$/.test(roomCode)) {
-      client.emit('battle:error', { message: 'Xona kodi noto‘g‘ri.' });
+    if (!userId) {
+      client.emit('battle:error', { message: 'Avval tizimga kiring.' });
+      return;
+    }
+
+    const now = Date.now();
+    const previousAttempts = this.privateJoinAttempts.get(userId);
+    const attempts = !previousAttempts || now - previousAttempts.windowStartedAt >= 60_000
+      ? { count: 0, windowStartedAt: now }
+      : previousAttempts;
+    if (attempts.count >= 8) {
+      client.emit('battle:error', { message: 'Xona kodini tekshirish limiti tugadi. Bir daqiqadan so‘ng qayta urinib ko‘ring.' });
+      return;
+    }
+    attempts.count += 1;
+    this.privateJoinAttempts.set(userId, attempts);
+
+    if (!/^[A-F0-9]{12}$/.test(roomCode)) {
+      client.emit('battle:error', { message: '12 belgili xona kodi noto‘g‘ri.' });
       return;
     }
     if ([...this.activeBattles.values()].some((battle) => battle.playerIds.includes(userId))) {
