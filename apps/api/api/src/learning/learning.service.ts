@@ -63,7 +63,7 @@ export class LearningService {
           difficulty: input.difficulty,
           language: input.language,
         });
-        const rows = generated.map((question) => bank.create({
+        const rows = generated.map((question: { question: string; options: string[]; correctAnswer: number; explanation: string }) => bank.create({
           subjectId,
           topicId,
           language: input.language,
