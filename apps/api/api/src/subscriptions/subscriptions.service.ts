@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { UserSubscription } from './entities/subscription.entity';
 
 @Injectable()
@@ -21,10 +21,10 @@ export class SubscriptionsService {
 
   async current(userId: string) {
     const subscription = await this.subscriptions.findOne({
-      where: { userId, status: 'active' },
+      where: { userId, status: 'active', expiresAt: MoreThan(new Date()) },
       order: { expiresAt: 'DESC' },
     });
-    if (!subscription || !subscription.expiresAt || subscription.expiresAt.getTime() <= Date.now()) {
+    if (!subscription || !subscription.expiresAt) {
       return { isPremium: false, subscription: null };
     }
     return {
