@@ -68,7 +68,18 @@ const navigation: LiquidDockItem[] = [
 ];
 
 function AppContent() {
-  const { user, loading, login, register } = useAuth();
+  const {
+    user,
+    loading,
+    login,
+    register,
+    requestRegistrationOtp,
+    requestPhoneLogin,
+    loginWithPhone,
+    requestPasswordReset,
+    resetPassword,
+    startGoogleLogin,
+  } = useAuth();
   const { theme, ready } = useAppSettings();
   const insets = useSafeAreaInsets();
   const { tokens } = useTheme();
@@ -412,10 +423,16 @@ function AppContent() {
           <LoginScreen
             onLogin={login}
             onRegisterPress={() => setAuthScreen('register')}
+            onGoogleLogin={startGoogleLogin}
+            onPhoneOtpRequest={requestPhoneLogin}
+            onPhoneLogin={loginWithPhone}
+            onPasswordResetRequest={requestPasswordReset}
+            onPasswordReset={resetPassword}
           />
         ) : (
           <RegisterScreen
             onRegister={register}
+            onRequestOtp={requestRegistrationOtp}
             onLoginPress={() => setAuthScreen('login')}
           />
         )}

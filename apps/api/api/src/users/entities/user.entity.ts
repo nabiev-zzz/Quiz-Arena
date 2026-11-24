@@ -1,4 +1,3 @@
-
 import {
   Column,
   CreateDateColumn,
@@ -11,6 +10,8 @@ import {
 @Entity('users')
 @Index('UQ_users_username', ['username'], { unique: true })
 @Index('UQ_users_email', ['email'], { unique: true })
+@Index('UQ_users_phone_number', ['phoneNumber'], { unique: true, where: '"phoneNumber" IS NOT NULL' })
+@Index('UQ_users_google_subject', ['googleSubject'], { unique: true, where: '"googleSubject" IS NOT NULL' })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -23,6 +24,15 @@ export class User {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   email: string | null;
+
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  phoneNumber: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  phoneVerifiedAt: Date | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  googleSubject: string | null;
 
   @Column({ type: 'varchar', length: 255, select: false })
   passwordHash: string;

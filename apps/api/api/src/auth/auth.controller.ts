@@ -1,24 +1,32 @@
-
 import {
   Body,
   Controller,
   Get,
   Patch,
   Post,
+  Query,
   Request,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import {
+  GoogleAuthDto,
+  GoogleCodeExchangeDto,
+  PasswordResetDto,
+  PhoneOtpRequestDto,
+  PhoneOtpVerifyDto,
+  PhoneRegisterDto,
+} from './dto/phone-otp.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 interface AuthenticatedRequest {
-  user: {
-    id: string;
-  };
+  user: { id: string };
 }
 
 @Controller('api/auth')
@@ -33,6 +41,83 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Post('phone/register/request-otp')
+  requestRegistrationOtp(@Body() dto: PhoneOtpRequestDto) {
+    return this.authService.requestRegistrationOtp(dto.phoneNumber);
+  }
+
+  @Post('phone/register')
+  registerWithPhone(@Body() dto: PhoneRegisterDto) {
+    return this.authService.registerWithPhone(dto);
+  }
+
+  @Post('phone/password-reset/request-otp')
+  requestPasswordReset(@Body() dto: PhoneOtpRequestDto) {
+    return this.authService.requestPasswordReset(dto.phoneNumber);
+  }
+
+  @Post('phone/password-reset')
+  resetPassword(@Body() dto: PasswordResetDto) {
+    return this.authService.resetPassword(dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('phone/link/request-otp')
+  requestPhoneLink(
+    @Request() request: AuthenticatedRequest,
+    @Body() dto: PhoneOtpRequestDto,
+  ) {
+    return this.authService.requestPhoneLink(request.user.id, dto.phoneNumber);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('phone/link')
+  linkPhone(
+    @Request() request: AuthenticatedRequest,
+    @Body() dto: PhoneOtpVerifyDto,
+  ) {
+    return this.authService.linkPhone(request.user.id, dto.phoneNumber, dto.code);
+  }
+
+  @Post('phone/login/request-otp')
+  requestPhoneLogin(@Body() dto: PhoneOtpRequestDto) {
+    return this.authService.requestPhoneLogin(dto.phoneNumber);
+  }
+
+  @Post('phone/login')
+  loginWithPhone(@Body() dto: PhoneOtpVerifyDto) {
+    return this.authService.loginWithPhone(dto.phoneNumber, dto.code);
+  }
+
+  @Get('google/start')
+  async googleStart(@Res() response: Response) {
+    response.redirect(302, await this.authService.getGoogleAuthorizationUrl());
+  }
+
+  @Get('google/callback')
+  async googleCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Res() response: Response,
+  ) {
+    try {
+      const appUrl = await this.authService.handleGoogleCallback(code, state);
+      response.redirect(302, appUrl);
+    } catch {
+      response.redirect(302, 'quizarena://auth?error=google_sign_in_failed');
+    }
+  }
+
+  @Post('google/exchange')
+  exchangeGoogleCode(@Body() dto: GoogleCodeExchangeDto) {
+    return this.authService.exchangeGoogleCode(dto.code);
+  }
+
+  @Post('google')
+  loginWithGoogle(@Body() dto: GoogleAuthDto) {
+    return this.authService.loginWithGoogle(dto.idToken);
   }
 
   @UseGuards(JwtAuthGuard)
