@@ -128,7 +128,7 @@ function AppContent() {
   };
 
   const renderHome = () => {
-    const normalizedQuery = searchQuery.trim().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase();
+    const normalizedQuery = searchQuery.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
     const featureCatalog = [
       { key: 'learn', title: 'Fanlar va mavzular', detail: 'Fanlar, darslar va testlar', aliases: 'dars test mavzu fan learning quiz' },
       { key: 'battle', title: 'Battle', detail: 'Do‘stlar bilan bilim bellashuvi', aliases: 'jang bellashuv musobaqa duel multiplayer' },
@@ -139,9 +139,9 @@ function AppContent() {
       { key: 'premium', title: 'Premium', detail: 'Qo‘shimcha imkoniyatlar', aliases: 'premium pro legenda obuna tolov' },
       { key: 'settings', title: 'Sozlamalar', detail: 'Ilova sozlamalari', aliases: 'settings til tema qorongu yorug' },
     ];
-    const featureMatches = normalizedQuery ? featureCatalog.filter((item) => `${item.title} ${item.detail} ${item.aliases}`.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8) : [];
-    const subjectMatches = normalizedQuery ? learningSubjects.filter((subject) => `${subject.name} ${subject.description}`.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8) : [];
-    const topicMatches = normalizedQuery ? learningSubjects.flatMap((subject) => subject.topics.filter((topic) => `${subject.name} ${topic.name} ${topic.description}`.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).map((topic) => ({ subject, topic }))).slice(0, 20) : [];
+    const featureMatches = normalizedQuery ? featureCatalog.filter((item) => `${item.title} ${item.detail} ${item.aliases}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8) : [];
+    const subjectMatches = normalizedQuery ? learningSubjects.filter((subject) => `${subject.name} ${subject.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8) : [];
+    const topicMatches = normalizedQuery ? learningSubjects.flatMap((subject) => subject.topics.filter((topic) => `${subject.name} ${topic.name} ${topic.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).map((topic) => ({ subject, topic }))).slice(0, 20) : [];
     const openSearchFeature = (key: string) => {
       if (key === 'friends') { openTab('profile'); setSelectedPublicUsername('__discover__'); return; }
       if (key === 'premium') { openTab('profile'); setShowPremium(true); return; }
@@ -164,7 +164,7 @@ function AppContent() {
             <Text style={styles.discordEyebrow}>QUIZ ARENA</Text>
             <Text style={styles.discordBrandTitle}>O‘quv hamjamiyati</Text>
           </View>
-          <Pressable style={styles.discordHeaderAction} onPress={() => setShowSettings(true)} accessibilityRole="button" accessibilityLabel="Sozlamalar">
+          <Pressable style={styles.discordHeaderAction} onPress={() => { openTab('profile'); setShowSettings(true); }} accessibilityRole="button" accessibilityLabel="Sozlamalar">
             <Ionicons name="settings-outline" size={20} color={textColor} />
           </Pressable>
           <Pressable style={styles.discordAvatar} onPress={() => openTab('profile')} accessibilityRole="button" accessibilityLabel="Profil">
