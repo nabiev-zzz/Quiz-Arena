@@ -9,7 +9,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -460,7 +459,7 @@ function AppContent() {
       )}
       <LiquidDock
         items={navigation}
-        activeKey={tab}
+        activeKey={tab === 'tutor' ? 'home' : tab}
         onSelect={(key) => openTab(key as Tab)}
         bottomInset={bottomInset}
         scrollStretch={dockStretch}
