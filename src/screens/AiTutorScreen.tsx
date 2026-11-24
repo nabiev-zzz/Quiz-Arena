@@ -107,7 +107,7 @@ export default function AiTutorScreen({
     if (sending) return;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    const timeout = setTimeout(() => controller.abort(), 45000);
 
     setSending(true);
     setError('');
