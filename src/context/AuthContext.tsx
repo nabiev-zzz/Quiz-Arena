@@ -15,14 +15,15 @@ import {
   getCurrentUser,
   getToken,
   loginUser,
-  registerWithPhoneUser,
-  requestPhoneOtp,
-  loginWithPhoneUser,
   requestPhoneLinkOtp,
   linkPhoneNumber,
-  resetPasswordWithPhone,
   removeToken,
   updateCurrentUser,
+  registerUser,
+  requestEmailVerification,
+  verifyEmailUser,
+  requestEmailPasswordReset,
+  resetPasswordWithEmail,
 } from '../services/authService';
 
 interface AuthContextValue {
@@ -30,20 +31,17 @@ interface AuthContextValue {
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (input: {
-    phoneNumber: string;
-    code: string;
     displayName: string;
     username: string;
-    email?: string;
+    email: string;
     password: string;
-  }) => Promise<void>;
-  requestRegistrationOtp: (phoneNumber: string) => Promise<void>;
-  requestPhoneLogin: (phoneNumber: string) => Promise<void>;
+  }) => Promise<{ email: string; emailSent: boolean }>;
+  requestEmailVerification: (email: string) => Promise<void>;
+  verifyEmail: (email: string, code: string) => Promise<void>;
+  requestEmailPasswordReset: (email: string) => Promise<void>;
+  resetEmailPassword: (email: string, code: string, newPassword: string) => Promise<void>;
   requestPhoneLink: (phoneNumber: string) => Promise<void>;
   linkPhone: (phoneNumber: string, code: string) => Promise<void>;
-  loginWithPhone: (phoneNumber: string, code: string) => Promise<void>;
-  requestPasswordReset: (phoneNumber: string) => Promise<void>;
-  resetPassword: (phoneNumber: string, code: string, newPassword: string) => Promise<void>;
   startGoogleLogin: () => Promise<void>;
   updateProfile: (input: UpdateProfileInput) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -115,19 +113,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const register = async (input: {
-    phoneNumber: string;
-    code: string;
     displayName: string;
     username: string;
-    email?: string;
+    email: string;
     password: string;
-  }) => {
-    const result = await registerWithPhoneUser(input);
+  }) => registerUser(input);
+
+  const requestEmailVerificationCode = async (email: string) => {
+    await requestEmailVerification(email);
+  };
+
+  const verifyEmail = async (email: string, code: string) => {
+    const result = await verifyEmailUser(email, code);
     setUser(result.user);
   };
 
-  const requestRegistrationOtp = async (phoneNumber: string) => {
-    await requestPhoneOtp(phoneNumber, 'register');
+  const requestEmailReset = async (email: string) => {
+    await requestEmailPasswordReset(email);
+  };
+
+  const resetEmailPassword = async (email: string, code: string, newPassword: string) => {
+    await resetPasswordWithEmail({ email, code, newPassword });
   };
 
   const requestPhoneLink = async (phoneNumber: string) => {
@@ -137,23 +143,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const linkPhone = async (phoneNumber: string, code: string) => {
     const updatedUser = await linkPhoneNumber({ phoneNumber, code });
     setUser(updatedUser);
-  };
-
-  const requestPhoneLogin = async (phoneNumber: string) => {
-    await requestPhoneOtp(phoneNumber, 'phone-login');
-  };
-
-  const loginWithPhone = async (phoneNumber: string, code: string) => {
-    const result = await loginWithPhoneUser({ phoneNumber, code });
-    setUser(result.user);
-  };
-
-  const requestPasswordReset = async (phoneNumber: string) => {
-    await requestPhoneOtp(phoneNumber, 'password-reset');
-  };
-
-  const resetPassword = async (phoneNumber: string, code: string, newPassword: string) => {
-    await resetPasswordWithPhone({ phoneNumber, code, newPassword });
   };
 
   const startGoogleLogin = async () => {
@@ -177,13 +166,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         login,
         register,
-        requestRegistrationOtp,
-        requestPhoneLogin,
+        requestEmailVerification: requestEmailVerificationCode,
+        verifyEmail,
+        requestEmailPasswordReset: requestEmailReset,
+        resetEmailPassword,
         requestPhoneLink,
         linkPhone,
-        loginWithPhone,
-        requestPasswordReset,
-        resetPassword,
         startGoogleLogin,
         updateProfile,
         refreshUser,
