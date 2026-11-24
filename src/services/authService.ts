@@ -1,4 +1,3 @@
-
 import * as SecureStore from 'expo-secure-store';
 import { API_BASE_URL } from '../config/api';
 
@@ -11,6 +10,8 @@ export interface AuthUser {
   displayName: string;
   username: string;
   email: string | null;
+  phoneNumber?: string | null;
+  phoneVerified?: boolean;
   role: 'user' | 'admin';
   status: 'active' | 'blocked';
   xp: number;
@@ -48,9 +49,7 @@ async function request<T>(
       ...options.headers,
     },
   });
-
   const data = await response.json().catch(() => ({}));
-
   if (!response.ok) {
     throw new Error(
       typeof data.message === 'string'
@@ -58,8 +57,12 @@ async function request<T>(
         : 'Server bilan aloqa qilishda xatolik',
     );
   }
-
   return data as T;
+}
+
+async function persistAuth(result: AuthResponse): Promise<AuthResponse> {
+  await saveToken(result.accessToken);
+  return result;
 }
 
 export async function registerUser(input: {
@@ -68,40 +71,85 @@ export async function registerUser(input: {
   email?: string;
   password: string;
 }): Promise<AuthResponse> {
-  const result = await request<AuthResponse>('/api/auth/register', {
+  return persistAuth(await request<AuthResponse>('/api/auth/register', {
     method: 'POST',
     body: JSON.stringify(input),
-  });
-
-  await saveToken(result.accessToken);
-  return result;
+  }));
 }
 
 export async function loginUser(input: {
   username: string;
   password: string;
 }): Promise<AuthResponse> {
-  const result = await request<AuthResponse>('/api/auth/login', {
+  return persistAuth(await request<AuthResponse>('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }));
+}
+
+export async function requestPhoneOtp(
+  phoneNumber: string,
+  purpose: 'register' | 'password-reset' | 'phone-login',
+): Promise<{ message: string }> {
+  const endpoint = purpose === 'register'
+    ? '/api/auth/phone/register/request-otp'
+    : purpose === 'password-reset'
+      ? '/api/auth/phone/password-reset/request-otp'
+      : '/api/auth/phone/login/request-otp';
+  return request(endpoint, {
+    method: 'POST',
+    body: JSON.stringify({ phoneNumber }),
+  });
+}
+
+export async function registerWithPhoneUser(input: {
+  phoneNumber: string;
+  code: string;
+  displayName: string;
+  username: string;
+  email?: string;
+  password: string;
+}): Promise<AuthResponse> {
+  return persistAuth(await request<AuthResponse>('/api/auth/phone/register', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }));
+}
+
+export async function loginWithPhoneUser(input: {
+  phoneNumber: string;
+  code: string;
+}): Promise<AuthResponse> {
+  return persistAuth(await request<AuthResponse>('/api/auth/phone/login', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }));
+}
+
+export async function resetPasswordWithPhone(input: {
+  phoneNumber: string;
+  code: string;
+  newPassword: string;
+}): Promise<{ message: string }> {
+  return request('/api/auth/phone/password-reset', {
     method: 'POST',
     body: JSON.stringify(input),
   });
+}
 
-  await saveToken(result.accessToken);
-  return result;
+export async function exchangeGoogleCode(code: string): Promise<AuthResponse> {
+  return persistAuth(await request<AuthResponse>('/api/auth/google/exchange', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  }));
 }
 
 export async function getCurrentUser(): Promise<AuthUser> {
   const token = await getToken();
-
-  if (!token) {
-    throw new Error('Kirish tokeni topilmadi');
-  }
-
+  if (!token) throw new Error('Kirish tokeni topilmadi');
   return request<AuthUser>('/api/auth/me', {
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
   });
 }
 
@@ -109,16 +157,10 @@ export async function updateCurrentUser(
   input: UpdateProfileInput,
 ): Promise<AuthUser> {
   const token = await getToken();
-
-  if (!token) {
-    throw new Error('Kirish tokeni topilmadi');
-  }
-
+  if (!token) throw new Error('Kirish tokeni topilmadi');
   return request<AuthUser>('/api/auth/profile', {
     method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(input),
   });
 }
