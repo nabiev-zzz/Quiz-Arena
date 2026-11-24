@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { BadRequestException } from '@nestjs/common';
 import { SubscriptionPaymentsService } from './subscription-payments.service';
 
