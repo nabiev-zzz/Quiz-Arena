@@ -488,8 +488,6 @@ const styles = StyleSheet.create({
   groupCard: {
     borderRadius: 21,
     borderWidth: 1,
-    borderColor: isDark ? 'rgba(196, 180, 255, 0.16)' : colors.glassBorder,
-    backgroundColor: isDark ? 'rgba(27, 35, 58, 0.72)' : 'rgba(255,255,255,0.78)',
     padding: 16,
     marginBottom: 5,
   },
