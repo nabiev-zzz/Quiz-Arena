@@ -15,6 +15,11 @@ export class WebLearningAnswerDto {
 
 export class SubmitWebLearningAttemptDto {
   @IsString()
+  @MinLength(36)
+  @MaxLength(36)
+  sessionId: string;
+
+  @IsString()
   @MinLength(1)
   @MaxLength(80)
   subjectId: string;
