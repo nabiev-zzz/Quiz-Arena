@@ -299,6 +299,14 @@ export class BattleGateway
       client.emit('battle:error', { message: '12 belgili xona kodi noto‘g‘ri.' });
       return;
     }
+    if (this.queuedSockets.has(client.id)) {
+      client.emit('battle:error', { message: 'Avval raqib qidirish navbatidan chiqing.' });
+      return;
+    }
+    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId)) {
+      client.emit('battle:error', { message: 'Avval o‘zingiz yaratgan taklif xonasini bekor qiling.' });
+      return;
+    }
     if ([...this.activeBattles.values()].some((battle) => battle.playerIds.includes(userId))) {
       client.emit('battle:error', { message: 'Avval joriy Battle ni yakunlang.' });
       return;
@@ -411,6 +419,11 @@ export class BattleGateway
       client.emit('battle:error', {
         message: 'Avval tizimga kiring.',
       });
+      return;
+    }
+
+    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId)) {
+      client.emit('battle:error', { message: 'Avval xususiy taklif xonasini bekor qiling.' });
       return;
     }
 
