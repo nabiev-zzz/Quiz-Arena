@@ -17,9 +17,12 @@ describe('subscription plan entitlements', () => {
     expect(resolveSubscriptionTier('unknown_plan')).toBe('free');
   });
 
-  it('keeps the AI Tutor exclusive to PREMIUM PRO and LEGENDA+', () => {
-    expect(getPlanEntitlements('premium_monthly').aiTutor.available).toBe(false);
-    expect(getPlanEntitlements('premium_pro_monthly').aiTutor.available).toBe(true);
+  it('provides tiered AI Tutor quotas and advanced analysis to PREMIUM PRO+', () => {
+    expect(getPlanEntitlements(null).aiTutor.dailyMessages).toBe(3);
+    expect(getPlanEntitlements('premium_monthly').aiTutor.dailyMessages).toBe(10);
+    expect(getPlanEntitlements('premium_pro_monthly').aiTutor).toMatchObject({
+      available: true, dailyMessages: 100, errorAnalysis: true, fullHistory: true,
+    });
     expect(getPlanEntitlements('legenda_plus_yearly').aiTutor.dailyMessages).toBeNull();
   });
 
