@@ -8,8 +8,14 @@ import { createPremiumCheckout, getGooglePlayAccountId, getPremiumPlans, getPrem
 
 interface Props { onBack?: () => void }
 const money = (value: number | null) => value === null ? 'Narx sozlanmagan' : new Intl.NumberFormat('uz-UZ').format(value) + ' so‘m';
-const GOOGLE_MONTHLY_SKU = process.env.EXPO_PUBLIC_GOOGLE_PLAY_MONTHLY_PRODUCT_ID?.trim();
-const GOOGLE_YEARLY_SKU = process.env.EXPO_PUBLIC_GOOGLE_PLAY_YEARLY_PRODUCT_ID?.trim();
+const GOOGLE_PLAY_SKUS: Record<string, string | undefined> = {
+  premium_monthly: process.env.EXPO_PUBLIC_GOOGLE_PLAY_MONTHLY_PRODUCT_ID?.trim(),
+  premium_yearly: process.env.EXPO_PUBLIC_GOOGLE_PLAY_YEARLY_PRODUCT_ID?.trim(),
+  premium_pro_monthly: process.env.EXPO_PUBLIC_GOOGLE_PLAY_PREMIUM_PRO_MONTHLY_PRODUCT_ID?.trim(),
+  premium_pro_yearly: process.env.EXPO_PUBLIC_GOOGLE_PLAY_PREMIUM_PRO_YEARLY_PRODUCT_ID?.trim(),
+  legenda_plus_monthly: process.env.EXPO_PUBLIC_GOOGLE_PLAY_LEGENDA_PLUS_MONTHLY_PRODUCT_ID?.trim(),
+  legenda_plus_yearly: process.env.EXPO_PUBLIC_GOOGLE_PLAY_LEGENDA_PLUS_YEARLY_PRODUCT_ID?.trim(),
+};
 
 export default function PremiumScreen({ onBack }: Props) {
   const { tokens, isDark } = useTheme();
@@ -54,14 +60,14 @@ export default function PremiumScreen({ onBack }: Props) {
 
   useEffect(() => {
     if (!connected) return;
-    const skus = [GOOGLE_MONTHLY_SKU, GOOGLE_YEARLY_SKU].filter((sku): sku is string => Boolean(sku));
+    const skus = Object.values(GOOGLE_PLAY_SKUS).filter((sku): sku is string => Boolean(sku));
     if (skus.length) void fetchProducts({ skus, type: 'subs' }).catch(() => {
       // Store products may be unavailable until the Play Console products are activated.
     });
   }, [connected, fetchProducts]);
 
   const startGooglePlayPurchase = async (planKey: string) => {
-    const sku = planKey === 'premium_monthly' ? GOOGLE_MONTHLY_SKU : GOOGLE_YEARLY_SKU;
+    const sku = GOOGLE_PLAY_SKUS[planKey];
     if (!sku || !connected) {
       Alert.alert('Google Play tayyor emas', 'Play Console mahsulot ID’lari va Android development build sozlanishi kerak.');
       return;
@@ -114,7 +120,7 @@ export default function PremiumScreen({ onBack }: Props) {
       <Text style={[s.section, { color: c.text }]}>Obuna tariflari</Text>
       {loading ? <ActivityIndicator color={c.primary} style={{ marginTop: 24 }} /> : error ? <GlassSurface intensity={30} style={s.notice}><Text style={[s.noticeText, { color: c.text }]}>{error}</Text><Pressable onPress={() => void load()}><Text style={s.retry}>Qayta urinish</Text></Pressable></GlassSurface> : plans.map((plan, index) => (
         <GlassSurface key={plan.key} intensity={isDark ? 34 : 42} style={[s.plan, index === 1 && s.featured]}>
-          <View style={s.planTop}><View><Text style={[s.planName, { color: c.text }]}>{plan.name} {plan.durationDays === 365 ? 'Yillik' : 'Oylik'}</Text><Text style={[s.planDuration, { color: c.textMuted }]}>{plan.durationDays} kunlik obuna</Text></View><Text style={s.price}>{money(plan.price)}</Text></View>
+          <View style={s.planTop}><View><Text style={[s.planName, { color: c.text }]}>{plan.name} {plan.durationDays === 365 ? 'Yillik' : 'Oylik'}</Text><Text style={[s.planDuration, { color: c.textMuted }]}>{plan.durationDays} kunlik obuna</Text>{plan.durationDays === 365 && plan.price !== null ? (() => { const monthlyPlan = plans.find((item) => item.key === plan.key.replace(/_yearly$/, '_monthly')); if (!monthlyPlan?.price) return null; const saving = Math.round((1 - plan.price / (monthlyPlan.price * 12)) * 100); return <Text style={[s.planDuration, { color: '#70D7B4' }]}>Oyiga taxminan {money(Math.round(plan.price / 12))} · {saving}% chegirma</Text>; })() : null}</View><Text style={s.price}>{money(plan.price)}</Text></View>
           <View style={s.benefit}><Ionicons name="checkmark-circle" size={17} color="#70D7B4" /><Text style={[s.benefitText, { color: c.text }]}>Eksklyuziv profil bezaklari va Premium nishoni</Text></View>
           <View style={s.benefit}><Ionicons name="checkmark-circle" size={17} color="#70D7B4" /><Text style={[s.benefitText, { color: c.text }]}>Kengaytirilgan statistika va maxsus imkoniyatlar</Text></View>
           <View style={s.benefit}><Ionicons name="checkmark-circle" size={17} color="#70D7B4" /><Text style={[s.benefitText, { color: c.text }]}>Yangi Premium funksiyalari qo‘shilganda foydalanish</Text></View>
@@ -126,7 +132,7 @@ export default function PremiumScreen({ onBack }: Props) {
               {busy === 'payme:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="wallet" size={17} color="#FFFFFF" /><Text style={s.checkoutText}>Payme</Text></>}
             </Pressable>
           </View>
-          {Platform.OS === 'android' && (plan.key === 'premium_monthly' ? GOOGLE_MONTHLY_SKU : GOOGLE_YEARLY_SKU) ? (
+          {Platform.OS === 'android' && GOOGLE_PLAY_SKUS[plan.key] ? (
             <Pressable disabled={!connected || busy !== null} onPress={() => void startGooglePlayPurchase(plan.key)} style={[s.googleButton, (!connected || busy !== null) && s.dim]}>
               {busy === 'google:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="logo-google-playstore" size={17} color="#FFFFFF" /><Text style={s.checkoutText}>Google Play orqali obuna</Text></>}
             </Pressable>

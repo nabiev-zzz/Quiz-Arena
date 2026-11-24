@@ -268,9 +268,15 @@ export class SubscriptionPaymentsService {
     }
     const item = purchase.lineItems?.[0];
     const productId = item?.productId;
-    const monthlyId = process.env.GOOGLE_PLAY_MONTHLY_PRODUCT_ID;
-    const yearlyId = process.env.GOOGLE_PLAY_YEARLY_PRODUCT_ID;
-    const planKey = productId === monthlyId && monthlyId ? 'premium_monthly' : productId === yearlyId && yearlyId ? 'premium_yearly' : null;
+    const googleProducts: Array<{ env: string; planKey: string }> = [
+      { env: 'GOOGLE_PLAY_MONTHLY_PRODUCT_ID', planKey: 'premium_monthly' },
+      { env: 'GOOGLE_PLAY_YEARLY_PRODUCT_ID', planKey: 'premium_yearly' },
+      { env: 'GOOGLE_PLAY_PREMIUM_PRO_MONTHLY_PRODUCT_ID', planKey: 'premium_pro_monthly' },
+      { env: 'GOOGLE_PLAY_PREMIUM_PRO_YEARLY_PRODUCT_ID', planKey: 'premium_pro_yearly' },
+      { env: 'GOOGLE_PLAY_LEGENDA_PLUS_MONTHLY_PRODUCT_ID', planKey: 'legenda_plus_monthly' },
+      { env: 'GOOGLE_PLAY_LEGENDA_PLUS_YEARLY_PRODUCT_ID', planKey: 'legenda_plus_yearly' },
+    ];
+    const planKey = googleProducts.find((item) => Boolean(process.env[item.env]) && process.env[item.env] === productId)?.planKey ?? null;
     if (!planKey || !productId || !item?.expiryTime) throw new BadRequestException('Google Play mahsuloti tan olinmadi');
     if (!['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD', 'SUBSCRIPTION_STATE_CANCELED'].includes(purchase.subscriptionState ?? '')) {
       throw new BadRequestException('Google Play obunasi faol emas');
