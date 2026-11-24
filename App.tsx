@@ -290,6 +290,7 @@ function AppContent() {
     if (tab === 'learn') {
       return (
         <LearnScreen
+          dockStretch={dockStretch}
           onTopicSelect={(subject, topic) => {
             setSelectedSubject(subject);
             setSelectedTopic(topic);
@@ -303,6 +304,7 @@ function AppContent() {
         return (
           <SettingsScreen
             onBack={() => setShowSettings(false)}
+            dockStretch={dockStretch}
           />
         );
       }
@@ -310,6 +312,7 @@ function AppContent() {
       return (
         <ProfileScreen
           onSettingsPress={() => setShowSettings(true)}
+          dockStretch={dockStretch}
         />
       );
     }
