@@ -22,14 +22,14 @@ const planBenefits = (planKey: string): string[] => {
     'Cheksiz kengaytirilgan PDF hisobotlar',
     'Oyiga 30 ta hujjatdan 50 tagacha savol · 12 MB gacha',
     'Kuniga 20 ta xususiy Friends Battle',
-    'AI Ustoz, xatolar tahlili va to‘liq tarix',
+    'AI Ustoz · kuniga 100 xabar, xatolar tahlili va to‘liq tarix',
     'Cheksiz AI Smart Practice va maxsus turnirlar',
   ];
   return [
     'Oyiga 10 ta kengaytirilgan PDF hisobot',
     'Oyiga 5 ta hujjatdan 25 tagacha savol · 8 MB gacha',
     'Kuniga 10 ta xususiy Friends Battle (1 ga 1)',
-    'Premium profil nishoni va eksklyuziv bezaklar',
+    'AI Ustoz · kuniga 10 xabar, premium profil nishoni va eksklyuziv bezaklar',
     'Kengaytirilgan statistika va maxsus Battle sozlamalari',
   ];
 };
