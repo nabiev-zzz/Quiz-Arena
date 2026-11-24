@@ -7,8 +7,10 @@ This branch adds server-side payment processing for Click Shop API, Payme Mercha
 Set these in the Railway API service's Variables page. Never commit credentials or send them in chat.
 
 ### Shared plans
-- `PREMIUM_MONTHLY_PRICE_UZS` — monthly price as a positive integer in UZS.
-- `PREMIUM_YEARLY_PRICE_UZS` — yearly price as a positive integer in UZS.
+- `PREMIUM_MONTHLY_PRICE_UZS` / `PREMIUM_YEARLY_PRICE_UZS` — PREMIUM monthly/yearly prices.
+- `PREMIUM_PRO_MONTHLY_PRICE_UZS` / `PREMIUM_PRO_YEARLY_PRICE_UZS` — PREMIUM PRO monthly/yearly prices.
+- `LEGENDA_PLUS_MONTHLY_PRICE_UZS` / `LEGENDA_PLUS_YEARLY_PRICE_UZS` — LEGENDA+ monthly/yearly prices.
+- Every price is a positive integer in UZS. A plan remains unavailable until its price is configured.
 
 Prices are intentionally not hardcoded. The API returns a plan as unavailable until its price is configured.
 
@@ -39,6 +41,10 @@ Payme Merchant API sends amounts in tiyin (UZS × 100) and uses JSON-RPC 2.0 wit
 - `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` — complete service-account JSON, stored only as a Railway secret variable.
 - `GOOGLE_PLAY_MONTHLY_PRODUCT_ID`
 - `GOOGLE_PLAY_YEARLY_PRODUCT_ID`
+- `GOOGLE_PLAY_PREMIUM_PRO_MONTHLY_PRODUCT_ID`
+- `GOOGLE_PLAY_PREMIUM_PRO_YEARLY_PRODUCT_ID`
+- `GOOGLE_PLAY_LEGENDA_PLUS_MONTHLY_PRODUCT_ID`
+- `GOOGLE_PLAY_LEGENDA_PLUS_YEARLY_PRODUCT_ID`
 - `GOOGLE_PLAY_ACCOUNT_ID_SECRET` — long random secret used to generate a non-reversible per-user Play account binding.
 - `GOOGLE_PUBSUB_AUDIENCE` — exact HTTPS audience configured on the Pub/Sub push subscription.
 - `GOOGLE_PUBSUB_SERVICE_ACCOUNT_EMAIL` — email of the service account used by authenticated Pub/Sub push.
@@ -46,6 +52,10 @@ Payme Merchant API sends amounts in tiyin (UZS × 100) and uses JSON-RPC 2.0 wit
 Set these public product IDs in the Expo build environment:
 - `EXPO_PUBLIC_GOOGLE_PLAY_MONTHLY_PRODUCT_ID`
 - `EXPO_PUBLIC_GOOGLE_PLAY_YEARLY_PRODUCT_ID`
+- `EXPO_PUBLIC_GOOGLE_PLAY_PREMIUM_PRO_MONTHLY_PRODUCT_ID`
+- `EXPO_PUBLIC_GOOGLE_PLAY_PREMIUM_PRO_YEARLY_PRODUCT_ID`
+- `EXPO_PUBLIC_GOOGLE_PLAY_LEGENDA_PLUS_MONTHLY_PRODUCT_ID`
+- `EXPO_PUBLIC_GOOGLE_PLAY_LEGENDA_PLUS_YEARLY_PRODUCT_ID`
 
 The public product IDs must exactly match the IDs in Play Console and the corresponding Railway variables. Grant the Google service account the required Play Console access and enable the Google Play Android Developer API in its Google Cloud project.
 
@@ -58,7 +68,7 @@ The app uses `expo-iap`; Google Play Billing is not available in Expo Go. Build 
 - `GET /api/subscriptions/plans` — public plan list.
 - `GET /api/subscriptions/me` — JWT-protected current entitlement.
 - `GET /api/subscriptions/google-play/account-id` — JWT-protected obfuscated account identifier for the Play Billing purchase request.
-- `POST /api/subscriptions/checkout` — JWT-protected Click/Payme order creation. Body: `{ "provider": "click" | "payme", "planKey": "premium_monthly" | "premium_yearly" }`.
+- `POST /api/subscriptions/checkout` — JWT-protected Click/Payme order creation. Body: `{ "provider": "click" | "payme", "planKey": "premium_monthly" | "premium_yearly" | "premium_pro_monthly" | "premium_pro_yearly" | "legenda_plus_monthly" | "legenda_plus_yearly" }`.
 - `POST /api/subscriptions/google-play/verify` — JWT-protected server verification. Body: `{ "purchaseToken": "..." }`.
 - `POST /api/subscriptions/google-play/notifications` — authenticated Google Pub/Sub RTDN push endpoint.
 - `POST /api/subscriptions/click` — Click Prepare/Complete callback.
@@ -69,7 +79,7 @@ The app uses `expo-iap`; Google Play Billing is not available in Expo Go. Build 
 1. Configure test merchant credentials and test product IDs in Railway.
 2. Apply the additive TypeORM migrations; they preserve existing payment and subscription records.
 3. Configure Click and Payme callback URLs in their merchant dashboards.
-4. Create monthly and yearly subscription products/base plans in Play Console and add the service account.
+4. Create monthly and yearly subscription products/base plans for all three paid tiers in Play Console and add the service account.
 5. Run the negative and retry scenarios: wrong signature, wrong amount, unknown payment, duplicate callback, Click cancellation, Payme timeout/cancel, Google pending purchase, expired/refunded token.
 6. Make a low-value sandbox/test purchase with each provider and verify the resulting entitlement through `GET /api/subscriptions/me`.
 
