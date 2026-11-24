@@ -12,14 +12,14 @@ interface Props { onBack?: () => void }
 const money = (value: number | null) => value === null ? 'Narx sozlanmagan' : new Intl.NumberFormat('uz-UZ').format(value) + ' so‘m';
 const planBenefits = (planKey: string): string[] => {
   if (planKey.startsWith('legenda_plus_')) return [
-    'Cheksiz PDF va batafsil AI hisobotlari',
+    'Cheksiz kengaytirilgan PDF hisobotlar',
     'Oyiga 100 ta hujjatdan 100 tagacha savol · 15 MB gacha',
     'Kuniga 30 ta do‘stlar Battle, elita turnirlar va Legend maqomi',
     'Cheksiz AI Ustoz va shaxsiy rivojlanish rejasi',
     'Noyob bezaklar va animatsiyali oltin ramka',
   ];
   if (planKey.startsWith('premium_pro_')) return [
-    'Cheksiz PDF va AI statistik xulosalari',
+    'Cheksiz kengaytirilgan PDF hisobotlar',
     'Oyiga 30 ta hujjatdan 50 tagacha savol · 12 MB gacha',
     'Kuniga 20 ta xususiy Friends Battle',
     'AI Ustoz, xatolar tahlili va to‘liq tarix',
