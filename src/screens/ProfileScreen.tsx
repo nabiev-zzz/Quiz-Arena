@@ -337,16 +337,6 @@ export default function ProfileScreen({
 
         </GlassSurface>
 
-        <GlassSurface intensity={glassIntensity} style={styles.orbsCard}>
-          <View style={styles.orbsCopy}>
-            <Text style={styles.orbsTitle}>Balans Orbs</Text>
-          </View>
-          <View style={styles.orbsValue}>
-            <Ionicons name="diamond" size={19} color={colors.primary} />
-            <Text style={styles.orbsAmount}>—</Text>
-          </View>
-        </GlassSurface>
-
         <Pressable onPress={onPremiumPress} style={styles.shopPressable}>
           <GlassSurface intensity={glassIntensity} style={styles.shopCard}>
             <View style={styles.shopIconWrap}>
@@ -1007,20 +997,6 @@ function makeStyles(
       fontWeight: '700',
       fontSize: 13,
     },
-    orbsCard: {
-      minHeight: 68, marginTop: 16, paddingHorizontal: 16, paddingVertical: 12,
-      borderRadius: 19, borderWidth: 1, borderColor: glassBorder, backgroundColor: glassFill,
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    },
-    orbsCopy: { flex: 1 },
-    orbsTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
-    orbsValue: {
-      minWidth: 78, minHeight: 42, borderRadius: 14, paddingHorizontal: 12,
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
-      backgroundColor: isDark ? 'rgba(183,163,255,0.12)' : 'rgba(123,99,204,0.10)',
-      borderWidth: 1, borderColor: glassBorder,
-    },
-    orbsAmount: { color: colors.text, fontSize: 15, fontWeight: '800' },
     shopPressable: { marginTop: 12 },
     shopCard: {
       minHeight: 78, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 19,
