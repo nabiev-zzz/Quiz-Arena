@@ -207,18 +207,17 @@ export class LearningService {
       const correctAnswers = review.filter((item) => item.isCorrect).length;
       const totalQuestions = review.length;
       const accuracy = Math.round((correctAnswers / totalQuestions) * 10000) / 100;
+      const topic = await manager.getRepository(LearningTopic).findOne({
+        where: { subjectId: session.subjectId, topicId: session.topicId, isActive: true },
+      });
+      if (!topic) throw new NotFoundException('Bu mavzu topilmadi.');
+
       const attempt = manager.getRepository(LearningAttempt).create({
         userId,
         subjectId: session.subjectId,
-        subjectName: (await manager.getRepository(LearningTopic).findOneByOrFail({
-          subjectId: session.subjectId,
-          topicId: session.topicId,
-        })).subjectName,
+        subjectName: topic.subjectName,
         topicId: session.topicId,
-        topicName: (await manager.getRepository(LearningTopic).findOneByOrFail({
-          subjectId: session.subjectId,
-          topicId: session.topicId,
-        })).topicName,
+        topicName: topic.topicName,
         totalQuestions,
         correctAnswers,
         accuracy,
