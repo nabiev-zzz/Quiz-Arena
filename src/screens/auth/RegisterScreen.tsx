@@ -32,7 +32,7 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
     const cleanEmail = email.trim().toLowerCase();
     if (cleanName.length < 2) return Alert.alert('Ism xatosi', 'Ism kamida 2 ta belgidan iborat bo‘lsin.');
     if (!/^[a-zA-Z0-9_]{3,30}$/.test(cleanUsername)) return Alert.alert('Username xatosi', 'Username 3–30 ta belgi bo‘lsin. Lotin harflari, raqamlar va _ ishlating.');
-    if (cleanEmail && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(cleanEmail)) return Alert.alert('Email xatosi', 'Email manzilini to‘g‘ri kiriting.');
+    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return Alert.alert('Email xatosi', 'Email manzilini to‘g‘ri kiriting.');
     if (password.length < 8) return Alert.alert('Parol xatosi', 'Parol kamida 8 ta belgidan iborat bo‘lsin.');
     if (password !== confirmPassword) return Alert.alert('Parol xatosi', 'Kiritilgan parollar bir xil emas.');
     try {
