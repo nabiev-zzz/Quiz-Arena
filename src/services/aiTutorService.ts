@@ -12,6 +12,7 @@ export interface AiTutorMessage {
 interface AiTutorChatResponse {
   userMessage: AiTutorMessage;
   assistantMessage: AiTutorMessage;
+  usage?: { limit: number | null; remaining: number | null; used: number | null };
 }
 
 interface AiTutorHistoryResponse {
