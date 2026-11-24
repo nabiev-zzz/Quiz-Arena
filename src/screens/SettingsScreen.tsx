@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 18,
     paddingTop: 10,
-    paddingBottom: 48,
+    paddingBottom: 128,
   },
   header: {
     minHeight: 48,
