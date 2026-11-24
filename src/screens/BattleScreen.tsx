@@ -519,8 +519,8 @@ export default function BattleScreen({
       setError('Battle serveriga ulanish kutilmoqda.');
       return;
     }
-    if (!/^[A-F0-9]{8}$/.test(code)) {
-      showLocalizedAlert('Xona kodi noto‘g‘ri', 'Do‘stingiz yuborgan 8 belgili kodni kiriting.');
+    if (!/^[A-F0-9]{12}$/.test(code)) {
+      showLocalizedAlert('Xona kodi noto‘g‘ri', 'Do‘stingiz yuborgan 12 belgili kodni kiriting.');
       return;
     }
     if (searching || matchIdRef.current) return;
@@ -948,15 +948,15 @@ export default function BattleScreen({
               <View style={styles.privateJoinRow}>
                 <LocalizedTextInput
                   value={privateJoinCode}
-                  onChangeText={(value) => setPrivateJoinCode(value.toUpperCase().replace(/[^A-F0-9]/g, '').slice(0, 8))}
-                  placeholder="8 belgili xona kodi"
+                  onChangeText={(value) => setPrivateJoinCode(value.toUpperCase().replace(/[^A-F0-9]/g, '').slice(0, 12))}
+                  placeholder="12 belgili xona kodi"
                   placeholderTextColor={colors.muted}
                   autoCapitalize="characters"
                   autoCorrect={false}
-                  maxLength={8}
+                  maxLength={12}
                   style={styles.privateCodeInput}
                 />
-                <Pressable onPress={joinPrivateBattleRoom} disabled={!canStart || searching || privateJoinCode.length !== 8} style={[styles.privateJoinButton, (!canStart || searching || privateJoinCode.length !== 8) && styles.disabledButton]}>
+                <Pressable onPress={joinPrivateBattleRoom} disabled={!canStart || searching || privateJoinCode.length !== 12} style={[styles.privateJoinButton, (!canStart || searching || privateJoinCode.length !== 8) && styles.disabledButton]}>
                   <LocalizedText style={styles.privateJoinText}>Qo‘shilish</LocalizedText>
                 </Pressable>
               </View>
