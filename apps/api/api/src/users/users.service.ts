@@ -41,18 +41,25 @@ export class UsersService {
   async suggestions(viewerId: string, limit = 12) {
     const following = await this.follows.find({ where: { followerId: viewerId } });
     const excluded = [viewerId, ...following.map((item) => item.followedId)];
-    const users = await this.users.createQueryBuilder('user')
+    const result = await this.users.createQueryBuilder('user')
+      .addSelect(
+        (query) => query
+          .select('COUNT(*)')
+          .from(UserFollow, 'follow')
+          .where('follow.followedId = user.id'),
+        'followersCount',
+      )
       .where('user.status = :status', { status: 'active' })
       .andWhere('user.id NOT IN (:...excluded)', { excluded })
       .orderBy('user.createdAt', 'DESC')
       .take(Math.min(Math.max(limit, 1), 30))
-      .getMany();
+      .getRawAndEntities();
 
-    return Promise.all(users.map(async (user) => ({
+    return result.entities.map((user, index) => ({
       ...this.safeUser(user),
-      followersCount: await this.follows.count({ where: { followedId: user.id } }),
+      followersCount: Number(result.raw[index]?.followersCount ?? 0),
       isFollowing: false,
-    })));
+    }));
   }
 
   async publicProfile(username: string, viewerId?: string) {
@@ -95,14 +102,26 @@ export class UsersService {
   }
 
   async followers(userId: string) {
-    const rows = await this.follows.find({ where: { followedId: userId }, order: { createdAt: 'DESC' }, take: 100 });
-    const users = await Promise.all(rows.map((row) => this.users.findOne({ where: { id: row.followerId, status: 'active' } })));
-    return users.filter((user): user is User => Boolean(user)).map((user) => this.safeUser(user));
+    const users = await this.users.createQueryBuilder('user')
+      .innerJoin(UserFollow, 'follow', 'follow.followerId = user.id')
+      .where('follow.followedId = :userId', { userId })
+      .andWhere('user.status = :status', { status: 'active' })
+      .orderBy('follow.createdAt', 'DESC')
+      .take(100)
+      .getMany();
+
+    return users.map((user) => this.safeUser(user));
   }
 
   async following(userId: string) {
-    const rows = await this.follows.find({ where: { followerId: userId }, order: { createdAt: 'DESC' }, take: 100 });
-    const users = await Promise.all(rows.map((row) => this.users.findOne({ where: { id: row.followedId, status: 'active' } })));
-    return users.filter((user): user is User => Boolean(user)).map((user) => this.safeUser(user));
+    const users = await this.users.createQueryBuilder('user')
+      .innerJoin(UserFollow, 'follow', 'follow.followedId = user.id')
+      .where('follow.followerId = :userId', { userId })
+      .andWhere('user.status = :status', { status: 'active' })
+      .orderBy('follow.createdAt', 'DESC')
+      .take(100)
+      .getMany();
+
+    return users.map((user) => this.safeUser(user));
   }
 }
