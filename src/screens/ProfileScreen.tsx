@@ -240,9 +240,6 @@ export default function ProfileScreen({
 
   return (
     <View style={styles.screen}>
-      <View pointerEvents="none" style={styles.ambientGlowTop} />
-      <View pointerEvents="none" style={styles.ambientGlowBottom} />
-
       <Animated.ScrollView
         onScroll={dockScrollHandler}
         scrollEventThrottle={16}
