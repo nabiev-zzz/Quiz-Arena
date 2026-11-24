@@ -288,6 +288,49 @@ export class SubscriptionPaymentsService {
     return { isPremium: true, expiresAt: expiry, provider: 'google_play' };
   }
 
+  async handleGooglePlayNotification(authorization: string | undefined, body: { message?: { data?: string }; subscription?: string }) {
+    const bearer = authorization?.match(/^Bearer\\s+(.+)$/i)?.[1];
+    const audience = process.env.GOOGLE_PUBSUB_AUDIENCE;
+    const serviceEmail = process.env.GOOGLE_PUBSUB_SERVICE_ACCOUNT_EMAIL;
+    if (!bearer || !audience || !serviceEmail) throw new UnauthorizedException('Google Pub/Sub push is not configured');
+    const tokenInfoResponse = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(bearer)}`);
+    if (!tokenInfoResponse.ok) throw new UnauthorizedException('Invalid Pub/Sub identity token');
+    const tokenInfo = await tokenInfoResponse.json() as { aud?: string; email?: string; email_verified?: boolean };
+    if (tokenInfo.aud !== audience || tokenInfo.email !== serviceEmail || tokenInfo.email_verified !== true) {
+      throw new UnauthorizedException('Pub/Sub identity does not match');
+    }
+    if (!body.message?.data) return { received: true };
+    let notification: { subscriptionNotification?: { purchaseToken?: string; notificationType?: number }; testNotification?: unknown };
+    try { notification = JSON.parse(Buffer.from(body.message.data, 'base64').toString('utf8')); }
+    catch { throw new BadRequestException('Invalid Pub/Sub message data'); }
+    const event = notification.subscriptionNotification;
+    if (!event?.purchaseToken) return { received: true, ignored: true };
+    const payment = await this.payments.findOne({
+      where: { provider: 'google_play', providerTransactionId: event.purchaseToken },
+    });
+    if (!payment) return { received: true, ignored: true };
+    const type = Number(event.notificationType);
+    if (type === 12 || type === 13 || type === 5 || type === 10) {
+      const nextStatus = type === 12 ? 'refunded' : type === 13 ? 'expired' : 'cancelled';
+      await this.subscriptions.update(
+        { provider: 'google_play', providerReference: event.purchaseToken, status: 'active' },
+        { status: nextStatus },
+      );
+      if (type === 12) await this.payments.update({ id: payment.id }, { status: 'refunded', providerState: -2, providerCancelledAt: new Date() });
+      return { received: true, updated: true };
+    }
+    try {
+      await this.verifyGooglePlayPurchase(payment.userId, event.purchaseToken);
+    } catch {
+      // Google Play remains the source of truth; an expired or revoked token never gains access.
+      await this.subscriptions.update(
+        { provider: 'google_play', providerReference: event.purchaseToken, status: 'active' },
+        { status: 'expired' },
+      );
+    }
+    return { received: true, updated: true };
+  }
+
   private async googleAccessToken(account: { client_email: string; private_key: string }) {
     if (!account.client_email || !account.private_key) throw new BadRequestException('Google Play service account is incomplete');
     const now = Math.floor(Date.now() / 1000);
@@ -321,6 +364,7 @@ export class SubscriptionPaymentsService {
       if (payment.status === 'paid') {
         if (provider === 'google_play' && existing && exactExpiry && (!existing.expiresAt || exactExpiry > existing.expiresAt)) {
           existing.expiresAt = exactExpiry;
+          existing.status = 'active';
           existing.autoRenew = autoRenew;
           await manager.save(existing);
           payment.providerPerformedAt = now;
