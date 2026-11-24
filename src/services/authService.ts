@@ -71,11 +71,11 @@ export async function registerUser(input: {
   username: string;
   email: string;
   password: string;
-}): Promise<{ message: string; email: string; emailSent: boolean }> {
-  return request('/api/auth/register', {
+}): Promise<AuthResponse> {
+  return persistAuth(await request<AuthResponse>('/api/auth/register', {
     method: 'POST',
     body: JSON.stringify(input),
-  });
+  }));
 }
 
 export async function requestEmailVerification(email: string): Promise<{ message: string }> {
