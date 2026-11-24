@@ -46,7 +46,7 @@ export default function PremiumScreen({ onBack }: Props) {
   purchaseHandlerRef.current = async (purchase) => {
     if (!purchase.purchaseToken) throw new Error('Google Play purchase token topilmadi');
     await verifyGooglePlayPurchase(purchase.purchaseToken);
-    await finishTransaction({ purchase, isConsumable: false });
+    try { await finishTransaction({ purchase, isConsumable: false }); } catch { /* Backend has already verified and acknowledged the subscription. */ }
     setBusy(null);
     await load();
     Alert.alert('Premium faollashtirildi', 'Google Play obunangiz serverda tasdiqlandi.');
