@@ -1,6 +1,6 @@
 # QUIZ ARENA authentication setup
 
-The existing username/password endpoints remain available. New phone and Google sign-in flows are additive and use the existing JWT session format.
+Username/password login and Google sign-in remain available. Email verification and email-based password recovery use the existing JWT session format. SMS endpoints are retained for a later rollout but are not used by the current mobile authentication screens.
 
 ## Railway API variables
 
@@ -8,10 +8,8 @@ Set these variables on the Railway API service. Do not commit credentials or put
 
 | Variable | Purpose |
 | --- | --- |
-| `ESKIZ_EMAIL` | Eskiz account email used by the server to request an SMS API token |
-| `ESKIZ_PASSWORD` | Eskiz API password |
-| `ESKIZ_FROM` | Approved sender name/ID (defaults to `4546`) |
-| `ESKIZ_OTP_TEMPLATE` | Eskiz-approved SMS text containing the `{code}` placeholder |
+| `RESEND_API_KEY` | Resend API key used by the server to send transactional email |
+| `EMAIL_FROM` | Verified sender, for example `QUIZ ARENA <auth@your-domain.uz>` |
 | `GOOGLE_CLIENT_ID` | Google OAuth 2.0 Web application client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 Web application client secret |
 | `GOOGLE_REDIRECT_URI` | Exact public callback URL: `https://humorous-imagination-production.up.railway.app/api/auth/google/callback` |
@@ -44,8 +42,8 @@ The Expo app has the `quizarena://` deep-link scheme. Because this changes nativ
 
 | Method | Route | Purpose |
 | --- | --- | --- |
-| POST | `/api/auth/phone/register/request-otp` | Send registration code |
-| POST | `/api/auth/phone/register` | Verify code and create account |
+| POST | `/api/auth/register` | Create a pending account and send email verification code |\n| POST | `/api/auth/email/verification/request` | Resend a pending email verification code |\n| POST | `/api/auth/email/verify` | Verify email and create a session |\n| POST | `/api/auth/email/password-reset/request` | Request an email password-reset code |\n| POST | `/api/auth/email/password-reset` | Verify code and set a new password |\n| POST | `/api/auth/phone/register/request-otp` | Legacy SMS registration endpoint (not used in current app UI) |
+| POST | `/api/auth/phone/register` | Legacy SMS registration endpoint |
 | POST | `/api/auth/phone/link/request-otp` | Authenticated existing user requests a phone-link code |
 | POST | `/api/auth/phone/link` | Authenticated existing user verifies and links a phone number |
 | POST | `/api/auth/phone/login/request-otp` | Request phone sign-in code |

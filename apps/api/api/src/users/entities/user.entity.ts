@@ -25,6 +25,9 @@ export class User {
   @Column({ type: 'varchar', length: 255, nullable: true })
   email: string | null;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  emailVerifiedAt: Date | null;
+
   @Column({ type: 'varchar', length: 16, nullable: true })
   phoneNumber: string | null;
 

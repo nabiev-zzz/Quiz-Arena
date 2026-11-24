@@ -12,6 +12,7 @@ export interface AuthUser {
   email: string | null;
   phoneNumber?: string | null;
   phoneVerified?: boolean;
+  emailVerified?: boolean;
   role: 'user' | 'admin';
   status: 'active' | 'blocked';
   xp: number;
@@ -68,13 +69,45 @@ async function persistAuth(result: AuthResponse): Promise<AuthResponse> {
 export async function registerUser(input: {
   displayName: string;
   username: string;
-  email?: string;
+  email: string;
   password: string;
-}): Promise<AuthResponse> {
-  return persistAuth(await request<AuthResponse>('/api/auth/register', {
+}): Promise<{ message: string; email: string; emailSent: boolean }> {
+  return request('/api/auth/register', {
     method: 'POST',
     body: JSON.stringify(input),
+  });
+}
+
+export async function requestEmailVerification(email: string): Promise<{ message: string }> {
+  return request('/api/auth/email/verification/request', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function verifyEmailUser(email: string, code: string): Promise<AuthResponse> {
+  return persistAuth(await request<AuthResponse>('/api/auth/email/verify', {
+    method: 'POST',
+    body: JSON.stringify({ email, code }),
   }));
+}
+
+export async function requestEmailPasswordReset(email: string): Promise<{ message: string }> {
+  return request('/api/auth/email/password-reset/request', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPasswordWithEmail(input: {
+  email: string;
+  code: string;
+  newPassword: string;
+}): Promise<{ message: string }> {
+  return request('/api/auth/email/password-reset', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
 }
 
 export async function loginUser(input: {

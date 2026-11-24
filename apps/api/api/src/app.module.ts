@@ -24,6 +24,7 @@ import { CreateSubscriptionPayments20261124130000 } from './database/migrations/
 import { AddSubscriptionProviderLifecycle20261124140000 } from './database/migrations/AddSubscriptionProviderLifecycle';
 import { CreateAuthOtps20261124150000 } from './database/migrations/CreateAuthOtps';
 import { CreateAuthOAuthCodes20261124151000 } from './database/migrations/CreateAuthOAuthCodes';
+import { CreateAuthEmailCodes20261124170000 } from './database/migrations/CreateAuthEmailCodes';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
 
@@ -56,6 +57,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         AddSubscriptionProviderLifecycle20261124140000,
         CreateAuthOtps20261124150000,
         CreateAuthOAuthCodes20261124151000,
+        CreateAuthEmailCodes20261124170000,
       ],
       migrationsRun: true,
       migrationsTableName: 'typeorm_migrations',
