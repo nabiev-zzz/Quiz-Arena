@@ -33,6 +33,8 @@ export interface UpdateProfileInput {
   displayName?: string;
   username?: string;
   bio?: string | null;
+  avatarDecoration?: string | null;
+  profileFrame?: string | null;
 }
 
 async function request<T>(
