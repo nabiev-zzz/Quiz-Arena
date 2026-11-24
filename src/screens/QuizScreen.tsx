@@ -14,14 +14,10 @@ import {
   View,
 } from 'react-native';
 
-import {
-  generateQuestions,
-  type Question,
-} from '../data/questions';
+import type { Question } from '../data/questions';
 import type { Difficulty, Subject, Topic } from '../types';
-import { API_BASE_URL } from '../config/api';
 import { useTheme } from '../theme/ThemeContext';
-import { saveLearningAttempt } from '../services/learningService';
+import { getTopicQuestions, saveLearningAttempt } from '../services/learningService';
 
 interface QuizScreenProps {
   subject: Subject;
@@ -70,7 +66,7 @@ export default function QuizScreen({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [score, setScore] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [savingAttempt, setSavingAttempt] = useState(false);
   const [attemptSaved, setAttemptSaved] = useState(false);
@@ -85,33 +81,17 @@ export default function QuizScreen({
     setError('');
 
     try {
-      const totalCount = selectedCount;
-      const batchSize = 20;
-      const allQuestions: Question[] = [];
+      const result = await getTopicQuestions({
+        subjectId: subject.id,
+        topicId: topic.id,
+        count: selectedCount,
+        difficulty: selectedDifficulty,
+        language: selectedLanguage,
+      });
+      const allQuestions = result;
 
-      const batchCount = Math.ceil(totalCount / batchSize);
-
-      for (let i = 0; i < batchCount; i++) {
-        const count = Math.min(
-          batchSize,
-          totalCount - allQuestions.length,
-        );
-
-        const result = await generateQuestions(API_BASE_URL, {
-          subjectId: subject.id,
-          topicId: topic.id,
-          count,
-          difficulty: selectedDifficulty,
-          language: selectedLanguage,
-        });
-
-        if (result.length !== count) {
-          throw new Error(
-            `AI ${count} ta savol o'rniga ${result.length} ta savol yaratdi. Qayta urinib ko'ring.`,
-          );
-        }
-
-        allQuestions.push(...result);
+      if (allQuestions.length !== selectedCount) {
+        throw new Error(`Bazadan ${selectedCount} ta savol o‘rniga ${allQuestions.length} ta savol olindi.`);
       }
 
       setQuestions(allQuestions);
@@ -198,9 +178,9 @@ export default function QuizScreen({
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>
-          AI Ustoz savollar tayyorlamoqda...
+          Mavzuning testlari yuklanmoqda...
         </Text>
-        <Text style={styles.muted}>Bir necha soniya kuting</Text>
+        <Text style={styles.muted}>Savollar umumiy testlar bazasidan olinadi</Text>
       </View>
     );
   }
@@ -249,7 +229,7 @@ export default function QuizScreen({
           style={styles.primaryButton}
           onPress={() => void loadQuestions()}
         >
-          <Text style={styles.buttonText}>Yangi test yaratish</Text>
+          <Text style={styles.buttonText}>Yangi test ishlash</Text>
         </Pressable>
 
         <Pressable onPress={onBack} style={styles.backButton}>
@@ -265,7 +245,7 @@ export default function QuizScreen({
         <Pressable onPress={onBack} style={styles.backButton}><Text style={styles.backText}>‹ Mavzularga qaytish</Text></Pressable>
         <Text style={styles.eyebrow}>{subject.name.toUpperCase()}</Text>
         <Text style={styles.title}>{topic.name}</Text>
-        <Text style={styles.setupDescription}>Testni o‘zingizga moslang. AI tanlangan sozlamalar asosida yangi savollar tayyorlaydi.</Text>
+        <Text style={styles.setupDescription}>Test sozlamalarini tanlang. Savollar bazadan olinadi va birinchi tayyorlangandan keyin qayta ishlatiladi.</Text>
         <View style={styles.setupCard}>
           <Text style={styles.setupLabel}>SAVOLLAR SONI</Text>
           <View style={styles.choiceRow}>{countOptions.map((count) => <Pressable key={count} onPress={() => setSelectedCount(count)} style={[styles.choiceChip, selectedCount === count && styles.selectedChoiceChip]}><Text style={[styles.choiceText, selectedCount === count && styles.selectedChoiceText]}>{count === topic.questionCount ? `${count} · Barchasi` : String(count)}</Text></Pressable>)}</View>
@@ -274,7 +254,7 @@ export default function QuizScreen({
           <Text style={styles.setupLabel}>TEST TILI</Text>
           <View style={styles.choiceRow}>{([{ value: 'uz', label: 'O‘zbekcha' }, { value: 'ru', label: 'Русский' }, { value: 'en', label: 'English' }] as const).map((item) => <Pressable key={item.value} onPress={() => setSelectedLanguage(item.value)} style={[styles.choiceChip, selectedLanguage === item.value && styles.selectedChoiceChip]}><Text style={[styles.choiceText, selectedLanguage === item.value && styles.selectedChoiceText]}>{item.label}</Text></Pressable>)}</View>
         </View>
-        <View style={styles.setupNote}><Text style={styles.setupNoteTitle}>AI Ustoz nimalar qiladi?</Text><Text style={styles.setupNoteText}>Mavzuga mos savollar yaratadi, har bir javobdan keyin to‘g‘ri javobni va tushuntirishni ko‘rsatadi. Yakuniy natija profilingiz statistikasiga saqlanadi.</Text></View>
+        <View style={styles.setupNote}><Text style={styles.setupNoteTitle}>Testlar bazasi qanday ishlaydi?</Text><Text style={styles.setupNoteText}>Har bir mavzu uchun savollar server bazasida saqlanadi. Birinchi tayyorlashdan keyin keyingi foydalanuvchilar ham shu savollarni AI chaqirmasdan oladi. Natijangiz profilingizga saqlanadi.</Text></View>
         <Pressable style={styles.primaryButton} onPress={() => void loadQuestions()}><Text style={styles.buttonText}>Testni boshlash</Text></Pressable>
       </Animated.ScrollView>
     );
