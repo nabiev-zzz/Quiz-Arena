@@ -44,7 +44,7 @@ The Expo app has the `quizarena://` deep-link scheme. Because this changes nativ
 | --- | --- | --- |
 | POST | `/api/auth/phone/register/request-otp` | Send registration code |
 | POST | `/api/auth/phone/register` | Verify code and create account |
-| POST | `/api/auth/phone/login/request-otp` | Request phone sign-in code |
+| POST | `/api/auth/phone/link/request-otp` | Authenticated existing user requests a phone-link code |\n| POST | `/api/auth/phone/link` | Authenticated existing user verifies and links a phone number |\n| POST | `/api/auth/phone/login/request-otp` | Request phone sign-in code |
 | POST | `/api/auth/phone/login` | Verify code and sign in |
 | POST | `/api/auth/phone/password-reset/request-otp` | Request password-reset code |
 | POST | `/api/auth/phone/password-reset` | Verify code and set a new password |
