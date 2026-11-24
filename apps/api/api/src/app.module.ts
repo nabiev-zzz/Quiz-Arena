@@ -25,6 +25,7 @@ import { AddSubscriptionProviderLifecycle20261124140000 } from './database/migra
 import { CreateAuthOtps20261124150000 } from './database/migrations/CreateAuthOtps';
 import { CreateAuthOAuthCodes20261124151000 } from './database/migrations/CreateAuthOAuthCodes';
 import { CreateAuthEmailCodes20261124170000 } from './database/migrations/CreateAuthEmailCodes';
+import { AddTelegramIdentity20261124190000 } from './database/migrations/AddTelegramIdentity';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
 
@@ -58,6 +59,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         CreateAuthOtps20261124150000,
         CreateAuthOAuthCodes20261124151000,
         CreateAuthEmailCodes20261124170000,
+        AddTelegramIdentity20261124190000,
       ],
       migrationsRun: true,
       migrationsTableName: 'typeorm_migrations',
