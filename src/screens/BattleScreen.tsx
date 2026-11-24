@@ -1443,7 +1443,15 @@ export default function BattleScreen({
   }
 
   if (section === 'leaderboard') {
-    return <LeaderboardScreen />;
+    return (
+      <LeaderboardScreen
+        leaderboard={leaderboard}
+        currentUserId={user?.id}
+        loading={loadingData}
+        error={error}
+        onRefresh={() => loadSectionData('leaderboard')}
+      />
+    );
   }
 
   return (
