@@ -4,7 +4,7 @@ import {
   Modal,
   Pressable,
   StyleSheet,
-  NativeText,
+  Text as NativeText,
   View,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
