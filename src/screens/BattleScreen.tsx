@@ -1,5 +1,6 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
@@ -759,29 +760,234 @@ export default function BattleScreen({
   }
 
   function renderStats() {
-    if (loadingData) {
-      return <ActivityIndicator color={colors.primary} />;
+    if (loadingData && !stats) {
+      return (
+        <View style={styles.statsLoading}>
+          <ActivityIndicator color={colors.primary} size="large" />
+          <Text style={styles.muted}>Natijalaringiz yuklanmoqda...</Text>
+        </View>
+      );
     }
 
     if (!stats) {
-      return <Text style={styles.muted}>Statistika topilmadi.</Text>;
+      return (
+        <View style={styles.emptyStats}>
+          <View style={styles.emptyStatsIcon}>
+            <Ionicons name="analytics-outline" size={30} color={colors.primary} />
+          </View>
+          <Text style={styles.cardTitle}>Statistika hozircha yo‘q</Text>
+          <Text style={styles.muted}>
+            Birinchi Battle o‘yinini yakunlaganingizdan so‘ng natijalaringiz shu yerda ko‘rinadi.
+          </Text>
+          <ActionButton
+            title="Qayta yuklash"
+            onPress={() => loadSectionData('stats')}
+            styles={styles}
+          />
+        </View>
+      );
     }
 
-    const entries = Object.entries(stats).filter(
-      ([, value]) =>
-        typeof value === 'string' ||
-        typeof value === 'number' ||
-        typeof value === 'boolean',
+    const total = Math.max(0, Number(stats.totalMatches) || 0);
+    const wins = Math.max(0, Number(stats.wins) || 0);
+    const losses = Math.max(0, Number(stats.losses) || 0);
+    const draws = Math.max(0, Number(stats.draws) || 0);
+    const points = Math.max(0, Number(stats.totalPoints) || 0);
+    const average = Math.max(0, Number(stats.averagePoints) || 0);
+    const calculatedRate = total > 0 ? (wins / total) * 100 : 0;
+    const winRate = Math.min(
+      100,
+      Math.max(0, Number.isFinite(Number(stats.winRate))
+        ? Number(stats.winRate)
+        : calculatedRate),
     );
+    const winWidth = total > 0 ? `${(wins / total) * 100}%` : '0%';
+    const lossWidth = total > 0 ? `${(losses / total) * 100}%` : '0%';
+    const drawWidth = total > 0 ? `${(draws / total) * 100}%` : '0%';
+
+    const recentMatches = Array.isArray(stats.recentMatches)
+      ? stats.recentMatches as Array<{
+          id: string;
+          mode: string;
+          result: 'win' | 'loss' | 'draw';
+          myScore: number;
+          finishedAt: string | null;
+        }>
+      : [];
+
+    const resultMeta = {
+      win: {
+        label: 'G‘alaba',
+        icon: 'trophy' as const,
+        color: colors.success,
+        surface: dark ? 'rgba(54, 214, 160, 0.13)' : 'rgba(21, 155, 112, 0.09)',
+      },
+      loss: {
+        label: 'Mag‘lubiyat',
+        icon: 'close-circle' as const,
+        color: colors.danger,
+        surface: dark ? 'rgba(255, 100, 124, 0.13)' : 'rgba(217, 67, 91, 0.09)',
+      },
+      draw: {
+        label: 'Durang',
+        icon: 'remove-circle' as const,
+        color: colors.muted,
+        surface: dark ? 'rgba(161, 171, 192, 0.13)' : 'rgba(116, 128, 150, 0.09)',
+      },
+    };
 
     return (
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Battle statistikasi</Text>
-        {entries.map(([key, value]) => (
-          <Text key={key} style={styles.scoreLine}>
-            {key}: {String(value)}
+      <View style={styles.statsContent}>
+        <View style={styles.statsHero}>
+          <View style={styles.statsHeroTop}>
+            <View>
+              <Text style={styles.statsEyebrow}>SIZNING NATIJALARINGIZ</Text>
+              <Text style={styles.statsHeroTitle}>Battle statistikasi</Text>
+            </View>
+            <View style={styles.statsHeroIcon}>
+              <Ionicons name="analytics" size={23} color="#FFFFFF" />
+            </View>
+          </View>
+
+          <View style={styles.statsRateRow}>
+            <View style={styles.statsRateCircle}>
+              <Text style={styles.statsRateValue}>{Math.round(winRate)}%</Text>
+              <Text style={styles.statsRateCaption}>g‘alaba</Text>
+            </View>
+            <View style={styles.statsHeroCopy}>
+              <Text style={styles.statsHeroNumber}>{total}</Text>
+              <Text style={styles.statsHeroLabel}>ta yakunlangan o‘yin</Text>
+              <View style={styles.statsHeroPill}>
+                <Ionicons name="trending-up" size={13} color="#D9D0FF" />
+                <Text style={styles.statsHeroPillText}>
+                  {wins} ta g‘alaba
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.statsHeroFooter}>
+            <Text style={styles.statsHeroFooterText}>Har bir o‘yin — yangi imkoniyat</Text>
+            <Ionicons name="sparkles" size={16} color="#D9D0FF" />
+          </View>
+        </View>
+
+        <View style={styles.statsSectionHeading}>
+          <Text style={styles.statsSectionTitle}>Asosiy ko‘rsatkichlar</Text>
+          <Text style={styles.statsSectionHint}>Umumiy natija</Text>
+        </View>
+
+        <View style={styles.statsGrid}>
+          <View style={styles.statTile}>
+            <View style={[styles.statTileIcon, { backgroundColor: dark ? 'rgba(54,214,160,0.14)' : '#E7F7F0' }]}>
+              <Ionicons name="trophy-outline" size={19} color={colors.success} />
+            </View>
+            <Text style={styles.statTileValue}>{wins}</Text>
+            <Text style={styles.statTileLabel}>G‘alabalar</Text>
+          </View>
+          <View style={styles.statTile}>
+            <View style={[styles.statTileIcon, { backgroundColor: dark ? 'rgba(255,100,124,0.14)' : '#FCECEF' }]}>
+              <Ionicons name="close-circle-outline" size={19} color={colors.danger} />
+            </View>
+            <Text style={styles.statTileValue}>{losses}</Text>
+            <Text style={styles.statTileLabel}>Mag‘lubiyatlar</Text>
+          </View>
+          <View style={styles.statTile}>
+            <View style={[styles.statTileIcon, { backgroundColor: dark ? 'rgba(85,184,255,0.14)' : '#EAF4FF' }]}>
+              <Ionicons name="star-outline" size={19} color={dark ? '#55B8FF' : '#247CC5'} />
+            </View>
+            <Text style={styles.statTileValue}>{points}</Text>
+            <Text style={styles.statTileLabel}>Jami ball</Text>
+          </View>
+          <View style={styles.statTile}>
+            <View style={[styles.statTileIcon, { backgroundColor: dark ? 'rgba(255,196,107,0.14)' : '#FFF4E2' }]}>
+              <Ionicons name="speedometer-outline" size={19} color={dark ? '#FFC46B' : '#B7791F'} />
+            </View>
+            <Text style={styles.statTileValue}>{average.toFixed(1)}</Text>
+            <Text style={styles.statTileLabel}>O‘rtacha ball</Text>
+          </View>
+        </View>
+
+        <View style={styles.statsPanel}>
+          <View style={styles.statsPanelHeading}>
+            <View>
+              <Text style={styles.statsSectionTitle}>O‘yinlar taqsimoti</Text>
+              <Text style={styles.statsSectionHint}>Natijalaringiz nisbati</Text>
+            </View>
+            <Ionicons name="pie-chart-outline" size={20} color={colors.primary} />
+          </View>
+
+          <View style={styles.outcomeTrack}>
+            <View style={[styles.outcomeWin, { width: winWidth }]} />
+            <View style={[styles.outcomeLoss, { width: lossWidth }]} />
+            <View style={[styles.outcomeDraw, { width: drawWidth }]} />
+          </View>
+
+          <View style={styles.outcomeLegend}>
+            <View style={styles.outcomeLegendItem}>
+              <View style={[styles.outcomeDot, { backgroundColor: colors.success }]} />
+              <Text style={styles.outcomeLegendLabel}>G‘alaba</Text>
+              <Text style={styles.outcomeLegendValue}>{wins}</Text>
+            </View>
+            <View style={styles.outcomeLegendItem}>
+              <View style={[styles.outcomeDot, { backgroundColor: colors.danger }]} />
+              <Text style={styles.outcomeLegendLabel}>Mag‘lubiyat</Text>
+              <Text style={styles.outcomeLegendValue}>{losses}</Text>
+            </View>
+            <View style={styles.outcomeLegendItem}>
+              <View style={[styles.outcomeDot, { backgroundColor: colors.muted }]} />
+              <Text style={styles.outcomeLegendLabel}>Durang</Text>
+              <Text style={styles.outcomeLegendValue}>{draws}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.statsPanel}>
+          <View style={styles.statsPanelHeading}>
+            <View>
+              <Text style={styles.statsSectionTitle}>So‘nggi o‘yinlar</Text>
+              <Text style={styles.statsSectionHint}>Oxirgi 5 ta natija</Text>
+            </View>
+            <Ionicons name="time-outline" size={20} color={colors.primary} />
+          </View>
+
+          {recentMatches.length ? recentMatches.map((item) => {
+            const meta = resultMeta[item.result] || resultMeta.draw;
+            const dateLabel = item.finishedAt
+              ? new Date(item.finishedAt).toLocaleDateString('uz-UZ', {
+                  day: '2-digit',
+                  month: 'short',
+                })
+              : 'Sana yo‘q';
+
+            return (
+              <View key={item.id} style={styles.recentMatchRow}>
+                <View style={[styles.recentMatchIcon, { backgroundColor: meta.surface }]}>
+                  <Ionicons name={meta.icon} size={17} color={meta.color} />
+                </View>
+                <View style={styles.recentMatchCopy}>
+                  <Text style={styles.recentMatchTitle}>{meta.label}</Text>
+                  <Text style={styles.recentMatchMeta}>
+                    {item.mode === 'ranked' ? 'Ranked' : 'Casual'} · {dateLabel}
+                  </Text>
+                </View>
+                <Text style={styles.recentMatchScore}>{Number(item.myScore) || 0} ball</Text>
+              </View>
+            );
+          }) : (
+            <Text style={styles.muted}>Hozircha yakunlangan o‘yinlar mavjud emas.</Text>
+          )}
+        </View>
+
+        <Pressable
+          onPress={() => loadSectionData('stats')}
+          disabled={loadingData}
+          style={styles.statsRefresh}
+        >
+          <Ionicons name="refresh-outline" size={16} color={colors.primary} />
+          <Text style={styles.statsRefreshText}>
+            {loadingData ? 'Yangilanmoqda...' : 'Statistikani yangilash'}
           </Text>
-        ))}
+        </Pressable>
       </View>
     );
   }
@@ -968,6 +1174,295 @@ function makeStyles(colors: typeof COLORS, dark: boolean) {
       borderWidth: 1,
       borderColor: colors.border,
       marginBottom: 10,
+    },
+    statsContent: {
+      gap: 14,
+    },
+    statsLoading: {
+      minHeight: 220,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+    },
+    emptyStats: {
+      backgroundColor: colors.card,
+      borderRadius: 24,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 24,
+      alignItems: 'center',
+    },
+    emptyStatsIcon: {
+      width: 64,
+      height: 64,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: dark ? 'rgba(117,104,245,0.18)' : '#EEEAFE',
+      marginBottom: 16,
+    },
+    statsHero: {
+      borderRadius: 26,
+      padding: 20,
+      overflow: 'hidden',
+      backgroundColor: dark ? '#30285F' : '#6554D9',
+      borderWidth: 1,
+      borderColor: dark ? 'rgba(190,178,255,0.28)' : 'rgba(255,255,255,0.24)',
+    },
+    statsHeroTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    statsEyebrow: {
+      color: '#D8D0FF',
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 1.5,
+    },
+    statsHeroTitle: {
+      color: '#FFFFFF',
+      fontSize: 19,
+      fontWeight: '800',
+      marginTop: 5,
+    },
+    statsHeroIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: 15,
+      backgroundColor: 'rgba(255,255,255,0.16)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    statsRateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 18,
+      marginTop: 20,
+    },
+    statsRateCircle: {
+      width: 104,
+      height: 104,
+      borderRadius: 52,
+      borderWidth: 7,
+      borderColor: 'rgba(255,255,255,0.32)',
+      backgroundColor: 'rgba(255,255,255,0.10)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    statsRateValue: {
+      color: '#FFFFFF',
+      fontSize: 25,
+      fontWeight: '900',
+      letterSpacing: -0.7,
+    },
+    statsRateCaption: {
+      color: '#E2DCFF',
+      fontSize: 11,
+      fontWeight: '600',
+      marginTop: 1,
+    },
+    statsHeroCopy: {
+      flex: 1,
+    },
+    statsHeroNumber: {
+      color: '#FFFFFF',
+      fontSize: 36,
+      lineHeight: 42,
+      fontWeight: '900',
+    },
+    statsHeroLabel: {
+      color: '#E2DCFF',
+      fontSize: 12,
+      marginTop: 1,
+    },
+    statsHeroPill: {
+      alignSelf: 'flex-start',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      marginTop: 11,
+      borderRadius: 20,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+    },
+    statsHeroPillText: {
+      color: '#FFFFFF',
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    statsHeroFooter: {
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(255,255,255,0.16)',
+      marginTop: 18,
+      paddingTop: 12,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    statsHeroFooterText: {
+      color: '#D8D0FF',
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    statsSectionHeading: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      paddingHorizontal: 2,
+      marginTop: 4,
+    },
+    statsSectionTitle: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    statsSectionHint: {
+      color: colors.muted,
+      fontSize: 11,
+      marginTop: 4,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    statTile: {
+      width: '48%',
+      minHeight: 126,
+      flexGrow: 1,
+      flexBasis: '44%',
+      padding: 14,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: dark ? 'rgba(29,36,53,0.82)' : 'rgba(255,255,255,0.88)',
+    },
+    statTileIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 10,
+    },
+    statTileValue: {
+      color: colors.text,
+      fontSize: 23,
+      fontWeight: '900',
+      letterSpacing: -0.4,
+    },
+    statTileLabel: {
+      color: colors.muted,
+      fontSize: 11,
+      fontWeight: '600',
+      marginTop: 3,
+    },
+    statsPanel: {
+      padding: 17,
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: dark ? 'rgba(29,36,53,0.82)' : 'rgba(255,255,255,0.88)',
+    },
+    statsPanelHeading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 17,
+    },
+    outcomeTrack: {
+      height: 10,
+      width: '100%',
+      flexDirection: 'row',
+      borderRadius: 99,
+      overflow: 'hidden',
+      backgroundColor: colors.border,
+    },
+    outcomeWin: {
+      height: '100%',
+      backgroundColor: colors.success,
+    },
+    outcomeLoss: {
+      height: '100%',
+      backgroundColor: colors.danger,
+    },
+    outcomeDraw: {
+      height: '100%',
+      backgroundColor: colors.muted,
+    },
+    outcomeLegend: {
+      gap: 12,
+      marginTop: 17,
+    },
+    outcomeLegendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    outcomeDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    outcomeLegendLabel: {
+      color: colors.muted,
+      fontSize: 12,
+      flex: 1,
+    },
+    outcomeLegendValue: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    recentMatchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 11,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      gap: 11,
+    },
+    recentMatchIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    recentMatchCopy: {
+      flex: 1,
+    },
+    recentMatchTitle: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    recentMatchMeta: {
+      color: colors.muted,
+      fontSize: 10,
+      marginTop: 4,
+    },
+    recentMatchScore: {
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    statsRefresh: {
+      alignSelf: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 16,
+      backgroundColor: dark ? 'rgba(117,104,245,0.12)' : 'rgba(101,88,232,0.08)',
+    },
+    statsRefreshText: {
+      color: colors.primary,
+      fontSize: 12,
+      fontWeight: '700',
     },
     rankResultCard: {
       marginTop: 14,
