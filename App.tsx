@@ -78,6 +78,7 @@ function AppContent() {
     requestEmailPasswordReset,
     resetEmailPassword,
     startGoogleLogin,
+    startTelegramLogin,
   } = useAuth();
   const { theme, ready } = useAppSettings();
   const insets = useSafeAreaInsets();
@@ -423,6 +424,7 @@ function AppContent() {
             onLogin={login}
             onRegisterPress={() => setAuthScreen('register')}
             onGoogleLogin={startGoogleLogin}
+            onTelegramLogin={startTelegramLogin}
             onPasswordResetRequest={requestEmailPasswordReset}
             onPasswordReset={resetEmailPassword}
           />
