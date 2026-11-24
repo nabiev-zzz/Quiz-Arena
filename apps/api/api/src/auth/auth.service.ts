@@ -334,11 +334,11 @@ export class AuthService {
       throw new UnauthorizedException('Telegram hisobini tasdiqlash amalga oshmadi');
     }
 
-    const user = await this.loginWithTelegram(tokenPayload.id_token, statePayload.nonce);
+    const result = await this.loginWithTelegram(tokenPayload.id_token, statePayload.nonce);
     const rawCode = randomBytes(32).toString('base64url');
     const codeHash = createHash('sha256').update(rawCode).digest('hex');
     await this.oauthCodeRepository.save(this.oauthCodeRepository.create({
-      userId: user.id,
+      userId: result.user.id,
       codeHash,
       expiresAt: new Date(Date.now() + 90_000),
       consumedAt: null,
