@@ -294,7 +294,7 @@ export default function ProfileScreen({
               </View>
               {user.avatarDecoration ? (
                 <View style={styles.decoration}>
-                  <Ionicons name="star" size={13} color="#F8D477" />
+                  <Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={13} color="#F8D477" />
                 </View>
               ) : null}
               <Pressable
