@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, type ComponentRef, type RefObject } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -32,6 +32,7 @@ type Props = {
   onSelect: (key: string) => void;
   bottomInset: number;
   scrollStretch: SharedValue<number>;
+  blurTarget: RefObject<ComponentRef<typeof View> | null>;
 };
 
 const SPRING = { damping: 11, stiffness: 160, mass: 0.7 };
@@ -109,6 +110,7 @@ export default function LiquidDock({
   onSelect,
   bottomInset,
   scrollStretch,
+  blurTarget,
 }: Props) {
   const { isDark, tokens } = useTheme();
   const [dockWidth, setDockWidth] = useState(0);
@@ -147,6 +149,7 @@ export default function LiquidDock({
         ]}
       >
         <BlurView
+          blurTarget={blurTarget}
           intensity={tokens.blur.strong}
           tint={isDark ? 'dark' : 'light'}
           style={StyleSheet.absoluteFill}
