@@ -35,7 +35,7 @@ interface AuthContextValue {
     username: string;
     email: string;
     password: string;
-  }) => Promise<{ email: string; emailSent: boolean }>;
+  }) => Promise<void>;
   requestEmailVerification: (email: string) => Promise<void>;
   verifyEmail: (email: string, code: string) => Promise<void>;
   requestEmailPasswordReset: (email: string) => Promise<void>;
@@ -117,7 +117,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     username: string;
     email: string;
     password: string;
-  }) => registerUser(input);
+  }) => {
+    const result = await registerUser(input);
+    setUser(result.user);
+  };
 
   const requestEmailVerificationCode = async (email: string) => {
     await requestEmailVerification(email);
