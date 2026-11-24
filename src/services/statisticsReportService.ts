@@ -3,6 +3,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import type { LearningStats } from './learningService';
 import type { BattleStats } from './battleService';
+import type { SubscriptionTier } from './subscriptionService';
 
 export interface StatisticsReportUser {
   displayName?: string | null;
@@ -34,8 +35,10 @@ function buildReportHtml(input: {
   user: StatisticsReportUser;
   learning: LearningStats | null;
   battle: BattleStats | null;
+  tier: SubscriptionTier;
 }): string {
-  const { user, learning, battle } = input;
+  const { user, learning, battle, tier } = input;
+  const includeDetails = tier !== 'free';
   const name = escapeHtml(user.displayName || (user.username ? '@' + user.username : 'QUIZ ARENA foydalanuvchisi'));
   const subjects = (learning?.subjectBreakdown ?? []).map((item) => `
     <tr><td>${escapeHtml(item.subjectName)}</td><td>${formatNumber(item.attempts)}</td><td>${formatNumber(item.correctAnswers)}/${formatNumber(item.totalQuestions)}</td><td>${number(item.accuracy).toFixed(1)}%</td></tr>
@@ -103,9 +106,9 @@ th, td { padding: 8px 7px; border-bottom: 1px solid #E9E3F5; vertical-align: top
       <div class="metric"><strong>${formatNumber(learning?.correctAnswers)}</strong><span>To‘g‘ri javoblar</span></div>
       <div class="metric"><strong>${number(learning?.accuracy).toFixed(1)}%</strong><span>Aniqlik</span></div>
     </div>
-    <table><thead><tr><th>Fan</th><th>Testlar</th><th>To‘g‘ri</th><th>Aniqlik</th></tr></thead><tbody>${subjects || '<tr><td colspan="4">Fan statistikasi hozircha yo‘q.</td></tr>'}</tbody></table>
+    <table><thead><tr><th>Fan</th><th>Testlar</th><th>To‘g‘ri</th><th>Aniqlik</th></tr></thead><tbody>${includeDetails ? (subjects || '<tr><td colspan="4">Fan statistikasi hozircha yo‘q.</td></tr>') : '<tr><td colspan="4">Batafsil fan tahlili PREMIUM tarifida mavjud.</td></tr>'}</tbody></table>
     <h2>So‘nggi testlar</h2>
-    <table><thead><tr><th>Fan</th><th>Mavzu</th><th>Natija</th><th>Aniqlik</th><th>Sana</th></tr></thead><tbody>${attempts || '<tr><td colspan="5">Test tarixi hozircha yo‘q.</td></tr>'}</tbody></table>
+    <table><thead><tr><th>Fan</th><th>Mavzu</th><th>Natija</th><th>Aniqlik</th><th>Sana</th></tr></thead><tbody>${includeDetails ? (attempts || '<tr><td colspan="5">Test tarixi hozircha yo‘q.</td></tr>') : '<tr><td colspan="5">So‘nggi testlar tafsiloti PREMIUM tarifida mavjud.</td></tr>'}</tbody></table>
   ` : '<div class="empty">Ta’lim statistikasi hali mavjud emas.</div>'}
 
   <h2>Battle statistikasi</h2>
@@ -116,7 +119,7 @@ th, td { padding: 8px 7px; border-bottom: 1px solid #E9E3F5; vertical-align: top
       <div class="metric"><strong>${formatNumber(battle?.losses)}</strong><span>Mag‘lubiyatlar</span></div>
       <div class="metric"><strong>${number(battle?.winRate).toFixed(1)}%</strong><span>G‘alaba foizi</span></div>
     </div>
-    <table><thead><tr><th>Rejim</th><th>Natija</th><th>Ball</th><th>Sana</th></tr></thead><tbody>${matches || '<tr><td colspan="4">Battle tarixi hozircha yo‘q.</td></tr>'}</tbody></table>
+    <table><thead><tr><th>Rejim</th><th>Natija</th><th>Ball</th><th>Sana</th></tr></thead><tbody>${includeDetails ? (matches || '<tr><td colspan="4">Battle tarixi hozircha yo‘q.</td></tr>') : '<tr><td colspan="4">Battle tarixi tafsiloti PREMIUM tarifida mavjud.</td></tr>'}</tbody></table>
   ` : '<div class="empty">Battle statistikasi hali mavjud emas.</div>'}
 
   <div class="footer">Ushbu hisobot QUIZ ARENA hisobingizdagi shaxsiy natijalardan yaratildi. Hisobot faqat sizga tegishli ma’lumotlarni o‘z ichiga oladi.</div>
@@ -128,6 +131,7 @@ export async function shareStatisticsPdf(input: {
   user: StatisticsReportUser;
   learning: LearningStats | null;
   battle: BattleStats | null;
+  tier: SubscriptionTier;
 }): Promise<void> {
   const html = buildReportHtml(input);
 
