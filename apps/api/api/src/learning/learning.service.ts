@@ -4,7 +4,7 @@ import { AiService } from '../ai/ai.service';
 import { LearningQuestion } from './entities/learning-question.entity';
 import { LearningTopic } from './entities/learning-topic.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { LearningAttempt } from './entities/learning-attempt.entity';
 import { learningCatalog } from './learning-catalog';
 
@@ -104,6 +104,90 @@ export class LearningService {
         difficulty: question.difficulty,
       })), source: 'database', cachedQuestionCount: cached.length };
     });
+  }
+
+  async getWebTopicQuestions(input: {
+    subjectId: string;
+    topicId: string;
+    count: number;
+    difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+    language: 'uz' | 'ru' | 'en';
+  }) {
+    const result = await this.getTopicQuestions(input);
+    return {
+      source: result.source,
+      cachedQuestionCount: result.cachedQuestionCount,
+      questions: result.questions.map(({ id, subjectId, topicId, question, options, difficulty }) => ({
+        id, subjectId, topicId, question, options, difficulty,
+      })),
+    };
+  }
+
+  async submitWebAttempt(userId: string, input: {
+    subjectId: string;
+    topicId: string;
+    language: 'uz' | 'ru' | 'en';
+    difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+    answers: Array<{ questionId: string; selectedAnswer: number }>;
+  }) {
+    const ids = input.answers.map((answer) => answer.questionId);
+    if (new Set(ids).size !== ids.length) {
+      throw new BadRequestException('Bir savolga ikki marta javob yuborildi.');
+    }
+
+    const topic = await this.topics.findOne({
+      where: { subjectId: input.subjectId, topicId: input.topicId, isActive: true },
+    });
+    if (!topic) throw new NotFoundException('Bu mavzu topilmadi.');
+
+    const questions = await this.dataSource.getRepository(LearningQuestion).find({
+      where: {
+        id: In(ids),
+        subjectId: input.subjectId,
+        topicId: input.topicId,
+        language: input.language,
+        difficulty: input.difficulty,
+        isActive: true,
+      },
+    });
+    if (questions.length !== ids.length) {
+      throw new BadRequestException('Test savollari mos kelmadi. Testni qayta boshlang.');
+    }
+
+    const byId = new Map(questions.map((question) => [question.id, question]));
+    const review = input.answers.map((answer) => {
+      const question = byId.get(answer.questionId)!;
+      return {
+        id: question.id,
+        question: question.question,
+        options: question.options,
+        selectedAnswer: answer.selectedAnswer,
+        correctAnswer: question.correctAnswer,
+        isCorrect: answer.selectedAnswer === question.correctAnswer,
+        explanation: question.explanation,
+      };
+    });
+    const correctAnswers = review.filter((item) => item.isCorrect).length;
+    const totalQuestions = review.length;
+    const attempt = this.attempts.create({
+      userId,
+      subjectId: topic.subjectId,
+      subjectName: topic.subjectName,
+      topicId: topic.topicId,
+      topicName: topic.topicName,
+      totalQuestions,
+      correctAnswers,
+      accuracy: Math.round((correctAnswers / totalQuestions) * 10000) / 100,
+    });
+    await this.attempts.save(attempt);
+
+    return {
+      attemptId: attempt.id,
+      totalQuestions,
+      correctAnswers,
+      accuracy: attempt.accuracy,
+      review,
+    };
   }
 
   async createAttempt(userId: string, input: CreateLearningAttemptInput) {
