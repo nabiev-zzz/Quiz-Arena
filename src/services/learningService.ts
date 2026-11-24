@@ -197,3 +197,17 @@ export async function createDocumentQuiz(
   }
   return data as DocumentQuizResult;
 }
+
+export interface SmartPracticeResult {
+  title: string;
+  topicId: string;
+  personalized: boolean;
+  questionCount: number;
+  questions: DocumentQuizQuestion[];
+}
+
+export const createSmartPractice = (count: number, language: 'uz' | 'ru' | 'en') =>
+  learningRequest<SmartPracticeResult>('/api/learning/smart-practice', {
+    method: 'POST',
+    body: JSON.stringify({ count, language }),
+  });
