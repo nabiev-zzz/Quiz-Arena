@@ -1,9 +1,8 @@
 import { LocalizedText, LocalizedTextInput } from '../i18n/LocalizedText';
 import { useMemo, useState } from 'react';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
-import { StyleSheet, Text as NativeText, View, Pressable, TextInput as NativeTextInput } from 'react-native';
+import { StyleSheet, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
 import { subjects } from '../data/subjects';
 import type { Subject, Topic } from '../types';
 import { useTheme } from '../theme/ThemeContext';
@@ -23,6 +22,7 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
   const lastDockScrollY = useSharedValue(0);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(initialSubject ?? null);
   const [searchQuery, setSearchQuery] = useState('');
+
   const dockScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       if (!dockStretch) return;
@@ -39,6 +39,7 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
     const query = normalize(searchQuery);
     return query ? subjects.filter((subject) => normalize(subject.name + ' ' + subject.description).includes(query)) : subjects;
   }, [searchQuery]);
+
   const filteredTopics = useMemo(() => {
     if (!selectedSubject) return [];
     const query = normalize(searchQuery);
@@ -46,14 +47,7 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
   }, [selectedSubject, searchQuery]);
 
   return (
-    <Animated.ScrollView
-      onScroll={dockScrollHandler}
-      scrollEventThrottle={16}
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
+    <Animated.ScrollView onScroll={dockScrollHandler} scrollEventThrottle={16} style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
       {selectedSubject ? (
         <>
           <Pressable style={styles.backButton} onPress={() => { setSelectedSubject(null); setSearchQuery(''); }}>
@@ -61,11 +55,14 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
             <LocalizedText style={styles.backText}>Barcha fanlar</LocalizedText>
           </Pressable>
           <View style={styles.detailHeader}>
-            <View style={[styles.largeIconBox, { backgroundColor: selectedSubject.color + '20', borderColor: selectedSubject.color + '55' }]}>
+            <View style={[styles.largeIconBox, { backgroundColor: selectedSubject.color + '20' }]}>
               <LocalizedText style={[styles.largeIcon, { color: selectedSubject.color }]}>{selectedSubject.icon}</LocalizedText>
             </View>
-            <LocalizedText style={styles.title}>{selectedSubject.name}</LocalizedText>
-            <LocalizedText style={styles.subtitle}>{selectedSubject.description}</LocalizedText>
+            <View style={styles.detailCopy}>
+              <LocalizedText style={styles.eyebrow}>QUIZ ARENA  /  FANLAR</LocalizedText>
+              <LocalizedText style={styles.title}>{selectedSubject.name}</LocalizedText>
+              <LocalizedText style={styles.subtitle}>{selectedSubject.description}</LocalizedText>
+            </View>
           </View>
           <View style={styles.searchBox}>
             <Ionicons name="search-outline" size={19} color={colors.textMuted} />
@@ -73,23 +70,25 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
             {searchQuery.length > 0 && <Pressable onPress={() => setSearchQuery('')} hitSlop={10}><Ionicons name="close-circle" size={18} color={colors.textMuted} /></Pressable>}
           </View>
           <View style={styles.sectionHeader}>
-            <LocalizedText style={styles.sectionTitle}>Mavzular</LocalizedText>
+            <LocalizedText style={styles.sectionTitle}>BARCHA MAVZULAR</LocalizedText>
             <LocalizedText style={styles.sectionCount}>{filteredTopics.length} ta</LocalizedText>
           </View>
-          {filteredTopics.map((topic) => {
-            const index = selectedSubject.topics.findIndex((item) => item.id === topic.id);
-            return (
-              <Pressable key={topic.id} style={({ pressed }) => [styles.topicCard, pressed && styles.pressed]} onPress={() => onTopicSelect?.(selectedSubject, topic)}>
-                <View style={styles.topicNumber}><LocalizedText style={styles.numberText}>{String(index + 1).padStart(2, '0')}</LocalizedText></View>
-                <View style={styles.topicInfo}>
-                  <LocalizedText style={styles.topicName}>{topic.name}</LocalizedText>
-                  <LocalizedText style={styles.topicDescription}>{topic.description}</LocalizedText>
-                  <LocalizedText style={styles.questionCount}>{topic.questionCount} ta savol · Bazada saqlanadi</LocalizedText>
-                </View>
-                <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
-              </Pressable>
-            );
-          })}
+          <View style={styles.topicList}>
+            {filteredTopics.map((topic) => {
+              const index = selectedSubject.topics.findIndex((item) => item.id === topic.id);
+              return (
+                <Pressable key={topic.id} style={({ pressed }) => [styles.topicCard, pressed && styles.pressed]} onPress={() => onTopicSelect?.(selectedSubject, topic)}>
+                  <View style={styles.topicNumber}><LocalizedText style={styles.numberText}>{String(index + 1).padStart(2, '0')}</LocalizedText></View>
+                  <View style={styles.topicInfo}>
+                    <LocalizedText style={styles.topicName}>{topic.name}</LocalizedText>
+                    <LocalizedText style={styles.topicDescription}>{topic.description}</LocalizedText>
+                    <LocalizedText style={styles.questionCount}>{topic.questionCount} ta savol</LocalizedText>
+                  </View>
+                  <Ionicons name="arrow-forward" size={16} color={colors.textMuted} />
+                </Pressable>
+              );
+            })}
+          </View>
           {filteredTopics.length === 0 && <LocalizedText style={styles.emptyText}>Bu qidiruv bo‘yicha mavzu topilmadi.</LocalizedText>}
         </>
       ) : (
@@ -104,25 +103,27 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
             <LocalizedTextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Fanlarni qidiring..." placeholderTextColor={colors.textMuted} style={styles.searchInput} returnKeyType="search" autoCorrect={false} />
             {searchQuery.length > 0 && <Pressable onPress={() => setSearchQuery('')} hitSlop={10}><Ionicons name="close-circle" size={18} color={colors.textMuted} /></Pressable>}
           </View>
-          <View style={styles.moonPanel}>
-            <View pointerEvents="none" style={styles.moonGlow} />
-            <View pointerEvents="none" style={styles.moonDisc}><LocalizedText style={styles.moonGlyph}>☾</LocalizedText></View>
-            <View style={styles.moonCaption}><LocalizedText style={styles.moonCaptionTitle}>Bilim olamiga xush kelibsiz</LocalizedText><LocalizedText style={styles.moonCaptionText}>Fanni tanlang — mavzularni kashf eting</LocalizedText></View>
-            <View style={styles.moonGrid}>
-              {filteredSubjects.map((subject, index) => {
-                const column = index % 3;
-                return (
-                  <Pressable key={subject.id} style={({ pressed }) => [styles.moonSubjectCard, { marginTop: column === 1 ? 0 : 34, borderColor: subject.color + '66' }, pressed && styles.pressed]} onPress={() => { setSelectedSubject(subject); setSearchQuery(''); }}>
-                    <View style={[styles.moonSubjectIcon, { backgroundColor: subject.color + '22' }]}><LocalizedText style={[styles.moonSubjectGlyph, { color: subject.color }]}>{subject.icon}</LocalizedText></View>
-                    <LocalizedText style={styles.moonSubjectName} numberOfLines={2}>{subject.name}</LocalizedText>
-                    <LocalizedText style={styles.moonSubjectCount}>{subject.topics.length} mavzu</LocalizedText>
-                  </Pressable>
-                );
-              })}
-            </View>
-            {filteredSubjects.length === 0 && <LocalizedText style={styles.emptyText}>Bu qidiruv bo‘yicha fan topilmadi.</LocalizedText>}
+          <View style={styles.sectionHeader}>
+            <LocalizedText style={styles.sectionTitle}>BARCHA FANLAR</LocalizedText>
+            <LocalizedText style={styles.sectionCount}>{filteredSubjects.length} ta</LocalizedText>
           </View>
-          <LocalizedText style={styles.footerHint}>Har bir fan ichida mavzular alohida ochiladi.</LocalizedText>
+          <View style={styles.subjectGrid}>
+            {filteredSubjects.map((subject) => (
+              <Pressable key={subject.id} style={({ pressed }) => [styles.subjectCard, pressed && styles.pressed]} onPress={() => { setSelectedSubject(subject); setSearchQuery(''); }}>
+                <View style={styles.cardTopRow}>
+                  <View style={[styles.subjectIcon, { backgroundColor: subject.color + '20' }]}>
+                    <LocalizedText style={[styles.subjectGlyph, { color: subject.color }]}>{subject.icon}</LocalizedText>
+                  </View>
+                  <Ionicons name="arrow-forward" size={15} color={colors.textMuted} />
+                </View>
+                <LocalizedText style={styles.subjectName} numberOfLines={2}>{subject.name}</LocalizedText>
+                <LocalizedText style={styles.subjectDescription} numberOfLines={2}>{subject.description}</LocalizedText>
+                <LocalizedText style={styles.subjectCount}>{subject.topics.length} ta mavzu</LocalizedText>
+              </Pressable>
+            ))}
+          </View>
+          {filteredSubjects.length === 0 && <LocalizedText style={styles.emptyText}>Bu qidiruv bo‘yicha fan topilmadi.</LocalizedText>}
+          <LocalizedText style={styles.footerHint}>Fanni tanlang va o‘rganishni boshlang.</LocalizedText>
         </>
       )}
     </Animated.ScrollView>
@@ -133,42 +134,39 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 132 },
-    header: { marginTop: 8, marginBottom: 18 },
-    eyebrow: { color: colors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 2, marginBottom: 10 },
-    title: { color: colors.text, fontSize: 26, lineHeight: 33, fontWeight: '900', letterSpacing: -0.7 },
+    header: { marginTop: 8, marginBottom: 19 },
+    eyebrow: { color: colors.primary, fontSize: 10, fontWeight: '900', letterSpacing: 1.8, marginBottom: 10 },
+    title: { color: colors.text, fontSize: 27, lineHeight: 34, fontWeight: '900', letterSpacing: -0.7 },
     subtitle: { color: colors.textMuted, fontSize: 13, lineHeight: 20, marginTop: 7 },
-    searchBox: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, borderRadius: 17, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.surfaceGlass, marginBottom: 20 },
-    searchInput: { flex: 1, minWidth: 0, color: colors.text, fontSize: 14, paddingVertical: 11 },
-    moonPanel: { minHeight: 500, borderRadius: 28, padding: 14, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceGlass },
-    moonGlow: { position: 'absolute', width: 250, height: 250, borderRadius: 125, top: 82, alignSelf: 'center', backgroundColor: colors.primary + '16' },
-    moonDisc: { position: 'absolute', top: 105, alignSelf: 'center', width: 170, height: 170, borderRadius: 85, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary + '12', borderWidth: 1, borderColor: colors.primary + '35' },
-    moonGlyph: { fontSize: 112, lineHeight: 130, color: colors.primary, opacity: 0.28 },
-    moonCaption: { alignItems: 'center', marginTop: 16, marginBottom: 15 },
-    moonCaptionTitle: { color: colors.text, fontSize: 14, fontWeight: '800', textAlign: 'center' },
-    moonCaptionText: { color: colors.textMuted, fontSize: 11, marginTop: 4, textAlign: 'center' },
-    moonGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: 8 },
-    moonSubjectCard: { width: '31.5%', minHeight: 106, paddingVertical: 10, paddingHorizontal: 5, marginBottom: 8, borderRadius: 18, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.surfaceGlass, alignItems: 'center', justifyContent: 'center' },
-    moonSubjectIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginBottom: 7 },
-    moonSubjectGlyph: { fontSize: 23, fontWeight: '800' },
-    moonSubjectName: { color: colors.text, fontSize: 11, fontWeight: '800', textAlign: 'center', minHeight: 28 },
-    moonSubjectCount: { color: colors.textMuted, fontSize: 9, marginTop: 3 },
-    footerHint: { color: colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 14 },
-    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-    sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
-    sectionCount: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
-    backButton: { minHeight: 42, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 14, paddingRight: 18 },
-    backText: { color: colors.primary, fontSize: 14, fontWeight: '700' },
-    detailHeader: { alignItems: 'center', marginBottom: 22 },
-    largeIconBox: { width: 76, height: 76, borderRadius: 25, alignItems: 'center', justifyContent: 'center', marginBottom: 14, borderWidth: 1 },
-    largeIcon: { fontSize: 41, fontWeight: '800' },
-    topicCard: { minHeight: 82, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceGlass, borderRadius: 18, padding: 14, marginBottom: 9, borderWidth: 1, borderColor: colors.border, gap: 10 },
-    topicNumber: { width: 42, height: 42, borderRadius: 13, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center' },
-    numberText: { color: colors.primary, fontSize: 12, fontWeight: '800' },
+    searchBox: { minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 13, borderRadius: 12, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.surface, marginBottom: 21 },
+    searchInput: { flex: 1, minWidth: 0, color: colors.text, fontSize: 13, paddingVertical: 10 },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 11 },
+    sectionTitle: { color: colors.textMuted, fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
+    sectionCount: { color: colors.textMuted, fontSize: 10, fontWeight: '700' },
+    subjectGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
+    subjectCard: { width: '48.5%', minHeight: 137, borderRadius: 13, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.surface, padding: 12 },
+    cardTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+    subjectIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+    subjectGlyph: { fontSize: 22, fontWeight: '800' },
+    subjectName: { color: colors.text, fontSize: 13, fontWeight: '800', marginBottom: 4 },
+    subjectDescription: { color: colors.textMuted, fontSize: 10, lineHeight: 14, minHeight: 28 },
+    subjectCount: { color: colors.primary, fontSize: 10, fontWeight: '800', marginTop: 9 },
+    footerHint: { color: colors.textMuted, fontSize: 10, textAlign: 'center', marginTop: 18, marginBottom: 10 },
+    backButton: { minHeight: 38, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 13, paddingRight: 18 },
+    backText: { color: colors.primary, fontSize: 13, fontWeight: '800' },
+    detailHeader: { flexDirection: 'row', alignItems: 'center', gap: 13, marginBottom: 19 },
+    largeIconBox: { width: 58, height: 58, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+    largeIcon: { fontSize: 31, fontWeight: '800' },
+    detailCopy: { flex: 1, minWidth: 0 },
+    topicList: { gap: 8 },
+    topicCard: { minHeight: 68, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 12, padding: 11, borderWidth: 1, borderColor: colors.glassBorder, gap: 10 },
+    topicNumber: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center' },
+    numberText: { color: colors.primary, fontSize: 11, fontWeight: '900' },
     topicInfo: { flex: 1, minWidth: 0 },
-    topicName: { color: colors.text, fontSize: 14, fontWeight: '700' },
-    topicDescription: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
-    questionCount: { color: colors.primary, fontSize: 10, fontWeight: '600', marginTop: 6 },
-    emptyText: { color: colors.textMuted, fontSize: 13, textAlign: 'center', paddingVertical: 20 },
-    pressed: { opacity: 0.72, transform: [{ scale: 0.98 }] },
+    topicName: { color: colors.text, fontSize: 12, fontWeight: '800' },
+    topicDescription: { color: colors.textMuted, fontSize: 10, marginTop: 3 },
+    questionCount: { color: colors.primary, fontSize: 10, fontWeight: '700', marginTop: 5 },
+    emptyText: { color: colors.textMuted, fontSize: 12, textAlign: 'center', paddingVertical: 20 },
+    pressed: { opacity: 0.72, transform: [{ scale: 0.985 }] },
   });
 }
