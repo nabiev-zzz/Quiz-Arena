@@ -12,6 +12,7 @@ import Groq from 'groq-sdk';
 import { Repository } from 'typeorm';
 
 import { BattleMatch } from '../battle/entities/battle-match.entity';
+import { LearningAttempt } from '../learning/entities/learning-attempt.entity';
 import { FeatureUsageService } from '../subscriptions/feature-usage.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { User } from '../users/entities/user.entity';
@@ -34,6 +35,9 @@ export class AiTutorService {
 
     @InjectRepository(BattleMatch)
     private readonly battleRepository: Repository<BattleMatch>,
+
+    @InjectRepository(LearningAttempt)
+    private readonly learningAttemptRepository: Repository<LearningAttempt>,
     private readonly featureUsageService: FeatureUsageService,
     private readonly subscriptionsService: SubscriptionsService,
   ) {}
@@ -187,7 +191,9 @@ Answer the student's new message in the requested language.
   }
 
   async getStudentProgress(userId: string) {
-    const [user, matches] = await Promise.all([
+    const current = await this.subscriptionsService.current(userId);
+    const errorAnalysisEnabled = current.entitlements.aiTutor.errorAnalysis;
+    const [user, matches, attempts] = await Promise.all([
       this.userRepository.findOne({ where: { id: userId } }),
       this.battleRepository.find({
         where: [
@@ -197,11 +203,48 @@ Answer the student's new message in the requested language.
         order: { finishedAt: 'DESC' },
         take: 100,
       }),
+      this.learningAttemptRepository.find({
+        where: { userId },
+        order: { completedAt: 'DESC' },
+        take: 30,
+      }),
     ]);
 
     const wins = matches.filter((match) => match.winnerId === userId).length;
     const draws = matches.filter((match) => !match.winnerId).length;
     const losses = matches.length - wins - draws;
+    const totalQuestions = attempts.reduce((total, attempt) => total + attempt.totalQuestions, 0);
+    const correctAnswers = attempts.reduce((total, attempt) => total + attempt.correctAnswers, 0);
+
+    const weakTopicCounts = new Map<string, { subjectName: string; topicName: string; mistakes: number }>();
+    const recentMistakes: Array<{ subjectName: string; topicName: string; question: string; explanation: string }> = [];
+    if (errorAnalysisEnabled) {
+      for (const attempt of attempts) {
+        for (const item of attempt.review || []) {
+          if (item.isCorrect !== false || typeof item.question !== 'string') continue;
+          const key = attempt.subjectName + '::' + attempt.topicName;
+          const currentTopic = weakTopicCounts.get(key) || {
+            subjectName: attempt.subjectName,
+            topicName: attempt.topicName,
+            mistakes: 0,
+          };
+          currentTopic.mistakes += 1;
+          weakTopicCounts.set(key, currentTopic);
+          if (recentMistakes.length < 8) {
+            recentMistakes.push({
+              subjectName: attempt.subjectName,
+              topicName: attempt.topicName,
+              question: item.question.slice(0, 400),
+              explanation: typeof item.explanation === 'string' ? item.explanation.slice(0, 500) : '',
+            });
+          }
+        }
+      }
+    }
+
+    const weakTopics = [...weakTopicCounts.values()]
+      .sort((left, right) => right.mistakes - left.mistakes)
+      .slice(0, 8);
 
     return {
       level: user?.level ?? null,
@@ -216,7 +259,18 @@ Answer the student's new message in the requested language.
         (total, match) => total + (Number(match.scores?.[userId]) || 0),
         0,
       ),
-      dataNote: 'Test va fan statistikasi hozircha ushbu API manbasida saqlanmaydi.',
+      learningStats: {
+        analyzedAttempts: attempts.length,
+        totalQuestions,
+        correctAnswers,
+        accuracy: totalQuestions ? Math.round((correctAnswers / totalQuestions) * 100) : 0,
+        ...(errorAnalysisEnabled ? { weakTopics, recentMistakes } : {}),
+      },
+      entitlements: {
+        detailedErrorAnalysis: errorAnalysisEnabled,
+        fullHistory: current.entitlements.aiTutor.fullHistory,
+      },
+      dataNote: 'Test natijalari oxirgi 30 ta saqlangan urinish asosida hisoblangan.',
     };
   }
   async sendMessage(
