@@ -235,7 +235,7 @@ export class BattleGateway
       client.emit('battle:error', { message: 'Avval joriy Battle ni yakunlang.' });
       return;
     }
-    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId)) {
+    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId && room.roomCode !== roomCode)) {
       client.emit('battle:error', { message: 'Sizda allaqachon faol taklif xonasi bor.' });
       return;
     }
@@ -263,7 +263,7 @@ export class BattleGateway
       });
     } catch (error) {
       if (quotaConsumed) {
-        await this.featureUsageService.refund(userId, 'privateBattle').catch(() => undefined);
+        try { await this.featureUsageService.refund(userId, 'privateBattle'); } catch { /* Preserve the original room error. */ }
       }
       client.emit('battle:error', {
         message: error instanceof Error ? error.message : 'Xususiy Battle xonasi yaratilmadi.',
@@ -365,7 +365,7 @@ export class BattleGateway
         'general',
       );
     } catch (error) {
-      await this.featureUsageService.refund(privateRoom.hostUserId, 'privateBattle').catch(() => undefined);
+      try { await this.featureUsageService.refund(privateRoom.hostUserId, 'privateBattle'); } catch { /* Preserve the original match error. */ }
       const message = error instanceof Error ? error.message : 'Xususiy Battle boshlanmadi.';
       hostSocket.emit('battle:error', { message });
       client.emit('battle:error', { message });
@@ -386,7 +386,7 @@ export class BattleGateway
     }
     clearTimeout(room.timer);
     this.privateRooms.delete(roomCode);
-    await this.featureUsageService.refund(userId, 'privateBattle').catch(() => undefined);
+    try { await this.featureUsageService.refund(userId, 'privateBattle'); } catch { /* Preserve the original room error. */ }
     client.emit('battle:private:cancelled', { roomCode });
   }
 
@@ -396,7 +396,7 @@ export class BattleGateway
     clearTimeout(room.timer);
     this.privateRooms.delete(roomCode);
     this.server.sockets.get(room.hostSocketId)?.emit('battle:private:expired', { roomCode });
-    await this.featureUsageService.refund(room.hostUserId, 'privateBattle').catch(() => undefined);
+    try { await this.featureUsageService.refund(room.hostUserId, 'privateBattle'); } catch { /* Preserve room cleanup even if quota refund fails. */ }
   }
 
   private async cleanupPrivateRoomsForSocket(socketId: string): Promise<void> {
@@ -404,7 +404,7 @@ export class BattleGateway
     for (const room of ownedRooms) {
       clearTimeout(room.timer);
       this.privateRooms.delete(room.roomCode);
-      await this.featureUsageService.refund(room.hostUserId, 'privateBattle').catch(() => undefined);
+      try { await this.featureUsageService.refund(room.hostUserId, 'privateBattle'); } catch { /* Preserve room cleanup even if quota refund fails. */ }
     }
   }
 
