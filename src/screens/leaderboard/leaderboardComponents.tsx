@@ -43,7 +43,7 @@ export function Podium({ users }: { users: LeaderboardUser[] }) {
     if (!u) return <View key={i} style={s.podiumSlot} />;
     const place = [2,1,3][i]; const first = place === 1;
     return <Animated.View key={u.id} entering={ZoomIn.delay(i*100).springify().damping(12)} style={s.podiumSlot}>
-      {first && <Ionicons name="crown" size={23} color={t.gold} style={{marginBottom:4}} />}
+      {first && <Ionicons name="trophy" size={23} color={t.gold} style={{marginBottom:4}} />}
       <Avatar user={u} place={place} size={first?76:60} />
       <Text numberOfLines={1} style={[s.podiumName,first&&{fontSize:15}]}>{u.name}</Text>
       <Text style={s.podiumXp}>{u.xp.toLocaleString('uz-UZ')} XP</Text>
