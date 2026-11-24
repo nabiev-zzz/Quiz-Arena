@@ -306,6 +306,9 @@ export class AuthService {
       throw new UnauthorizedException('Telegram kirish so‘rovi noto‘g‘ri');
     }
 
+    if (!code || code.length > 2048 || !state) {
+      throw new UnauthorizedException('Telegram kirish javobi noto‘g‘ri');
+    }
     const { clientId, clientSecret, redirectUri } = this.getTelegramConfig();
     const body = new URLSearchParams({
       grant_type: 'authorization_code',
@@ -406,7 +409,7 @@ export class AuthService {
         .trim().slice(0, 100) || 'Telegram user';
       const base = (claims.preferred_username || `tg_${claims.sub}`)
         .toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 24) || `tg_${claims.sub.slice(-12)}`;
-      let username = base;
+      let username = base.length >= 3 ? base : `tg_${claims.sub.slice(-12)}`;
       let suffix = 1;
       while (await this.userRepository.findOne({ where: { username } })) {
         const tail = `_${suffix++}`;
