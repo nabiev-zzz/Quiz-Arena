@@ -1,0 +1,41 @@
+name: Website validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "website/**"
+      - ".github/workflows/website-validation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - ".github/workflows/website-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-landing-page:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate HTML structure and local assets
+        run: python website/validate.py
+
+      - name: Check JavaScript syntax
+        run: node --check website/script.js
+
+      - name: Verify deployment files
+        run: |
+          test -s website/Dockerfile
+          test -s website/nginx.conf
+          test -s website/robots.txt
+          test -s website/sitemap.xml
