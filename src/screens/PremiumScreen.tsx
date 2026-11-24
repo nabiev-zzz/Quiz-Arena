@@ -20,7 +20,8 @@ const GOOGLE_PLAY_SKUS: Record<string, string | undefined> = {
 
 export default function PremiumScreen({ onBack }: Props) {
   const { tokens, isDark } = useTheme();
-  const isExpoGo = Constants.appOwnership === 'expo';
+  // SDK 58 may report appOwnership as null in the store client; use the runtime environment too.
+  const isExpoGo = Constants.appOwnership === 'expo' || Constants.executionEnvironment === 'storeClient';
   const [plans, setPlans] = useState<PremiumPlan[]>([]);
   const [status, setStatus] = useState<PremiumStatus | null>(null);
   const [loading, setLoading] = useState(true);

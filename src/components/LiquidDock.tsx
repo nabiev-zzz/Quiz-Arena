@@ -124,7 +124,7 @@ export default function LiquidDock({
   const indicatorStyle = useAnimatedStyle(() => ({
     width: Math.max(0, itemWidth - 8),
     transform: [{ translateX: indicatorX.value }],
-  }), [itemWidth]);
+  }));
 
   const handleLayout = (event: LayoutChangeEvent) => {
     setDockWidth(event.nativeEvent.layout.width);
