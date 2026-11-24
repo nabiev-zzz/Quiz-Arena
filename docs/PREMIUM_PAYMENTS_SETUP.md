@@ -39,6 +39,7 @@ Payme Merchant API sends amounts in tiyin (UZS × 100) and uses JSON-RPC 2.0 wit
 - `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` — complete service-account JSON, stored only as a Railway secret variable.
 - `GOOGLE_PLAY_MONTHLY_PRODUCT_ID`
 - `GOOGLE_PLAY_YEARLY_PRODUCT_ID`
+- `GOOGLE_PLAY_ACCOUNT_ID_SECRET` — long random secret used to generate a non-reversible per-user Play account binding.
 - `GOOGLE_PUBSUB_AUDIENCE` — exact HTTPS audience configured on the Pub/Sub push subscription.
 - `GOOGLE_PUBSUB_SERVICE_ACCOUNT_EMAIL` — email of the service account used by authenticated Pub/Sub push.
 
@@ -50,12 +51,13 @@ The public product IDs must exactly match the IDs in Play Console and the corres
 
 Configure Google Play Real-time Developer Notifications (RTDN) to publish subscription events to a Pub/Sub topic, then create an authenticated push subscription targeting `https://humorous-imagination-production.up.railway.app/api/subscriptions/google-play/notifications`. Set the same audience and push service-account email in the two Railway variables above. The endpoint verifies the OIDC identity token with Google before applying lifecycle changes.
 
-The app uses `expo-iap`; Google Play Billing is not available in Expo Go. Build a native Android app and test purchases through a Play Console internal-testing track. A purchase token is sent to the backend, checked with `purchases.subscriptionsv2.get`, and acknowledged only after successful verification.
+The app uses `expo-iap`; Google Play Billing is not available in Expo Go. Build a native Android app and test purchases through a Play Console internal-testing track. The app requests a server-generated obfuscated account ID and attaches it to the Play purchase. The purchase token is sent to the backend, checked with `purchases.subscriptionsv2.get`, matched to that account binding, and acknowledged only after the entitlement is persisted.
 
 ## API routes
 
 - `GET /api/subscriptions/plans` — public plan list.
 - `GET /api/subscriptions/me` — JWT-protected current entitlement.
+- `GET /api/subscriptions/google-play/account-id` — JWT-protected obfuscated account identifier for the Play Billing purchase request.
 - `POST /api/subscriptions/checkout` — JWT-protected Click/Payme order creation. Body: `{ "provider": "click" | "payme", "planKey": "premium_monthly" | "premium_yearly" }`.
 - `POST /api/subscriptions/google-play/verify` — JWT-protected server verification. Body: `{ "purchaseToken": "..." }`.
 - `POST /api/subscriptions/google-play/notifications` — authenticated Google Pub/Sub RTDN push endpoint.
