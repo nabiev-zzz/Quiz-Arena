@@ -11,6 +11,9 @@ import Groq from 'groq-sdk';
 type QuestionData = {
   subjectId: string;
   topicId: string;
+  subjectName?: string;
+  topicName?: string;
+  topicDescription?: string;
   count: number;
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
   language: 'uz' | 'ru' | 'en';
@@ -32,8 +35,9 @@ You are a professional educational quiz generator.
 
 Generate EXACTLY ${data.count} different multiple-choice questions.
 
-Subject ID: ${data.subjectId}
-Topic ID: ${data.topicId}
+Subject: ${data.subjectName || data.subjectId} (ID: ${data.subjectId})
+Topic: ${data.topicName || data.topicId} (ID: ${data.topicId})
+Topic description: ${data.topicDescription || 'Use the exact topic name as the scope.'}
 Difficulty: ${data.difficulty}
 Language: ${languages[data.language]}
 
@@ -43,10 +47,12 @@ STRICT RULES:
 3. Only one answer must be correct.
 4. correctAnswer must be an integer from 0 to 3.
 5. Every question must have a non-empty explanation.
-6. Do not repeat questions.
-7. Do not add comments or Markdown.
-8. Return one valid JSON object only.
-9. Do not return fewer or more than ${data.count} questions.
+6. Every question must directly test the named subject and topic; do not drift into neighboring topics.
+7. Use the topic description as the learning boundary and make questions educationally accurate and unambiguous.
+8. Do not repeat questions.
+9. Do not add comments or Markdown.
+10. Return one valid JSON object only.
+11. Do not return fewer or more than ${data.count} questions.
 
 Required JSON structure:
 {
