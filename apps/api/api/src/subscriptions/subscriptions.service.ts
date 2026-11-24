@@ -11,12 +11,19 @@ export class SubscriptionsService {
   ) {}
 
   plans() {
-    const monthly = this.readPrice('PREMIUM_MONTHLY_PRICE_UZS');
-    const yearly = this.readPrice('PREMIUM_YEARLY_PRICE_UZS');
-    return [
-      { key: 'premium_monthly', name: 'Premium', durationDays: 30, price: monthly, currency: 'UZS', available: monthly !== null },
-      { key: 'premium_yearly', name: 'Premium', durationDays: 365, price: yearly, currency: 'UZS', available: yearly !== null },
+    const tiers = [
+      { key: 'premium', name: 'PREMIUM', monthlyEnv: 'PREMIUM_MONTHLY_PRICE_UZS', yearlyEnv: 'PREMIUM_YEARLY_PRICE_UZS' },
+      { key: 'premium_pro', name: 'PREMIUM PRO', monthlyEnv: 'PREMIUM_PRO_MONTHLY_PRICE_UZS', yearlyEnv: 'PREMIUM_PRO_YEARLY_PRICE_UZS' },
+      { key: 'legenda_plus', name: 'LEGENDA+', monthlyEnv: 'LEGENDA_PLUS_MONTHLY_PRICE_UZS', yearlyEnv: 'LEGENDA_PLUS_YEARLY_PRICE_UZS' },
     ];
+    return tiers.flatMap((tier) => {
+      const monthly = this.readPrice(tier.monthlyEnv);
+      const yearly = this.readPrice(tier.yearlyEnv);
+      return [
+        { key: `${tier.key}_monthly`, name: tier.name, durationDays: 30, price: monthly, currency: 'UZS', available: monthly !== null },
+        { key: `${tier.key}_yearly`, name: tier.name, durationDays: 365, price: yearly, currency: 'UZS', available: yearly !== null },
+      ];
+    });
   }
 
   async current(userId: string) {
