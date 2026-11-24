@@ -786,10 +786,6 @@ export default function BattleScreen({
     );
   }
 
-  function renderLeaderboard() {
-    return <LeaderboardScreen />;
-  }
-
   if (section === 'leaderboard') {
     return <LeaderboardScreen />;
   }
@@ -843,19 +839,17 @@ export default function BattleScreen({
         </View>
       )}
 
-      {section === 'leaderboard' ? renderLeaderboard() : (
-        <Animated.ScrollView
-          onScroll={dockScrollHandler}
-          scrollEventThrottle={16}
-          style={styles.content}
-          contentContainerStyle={styles.contentInner}
-          showsVerticalScrollIndicator={false}
-        >
-          {section === 'battle' && renderBattle()}
-          {section === 'history' && renderHistory()}
-          {section === 'stats' && renderStats()}
-        </Animated.ScrollView>
-      )}
+      <Animated.ScrollView
+        onScroll={dockScrollHandler}
+        scrollEventThrottle={16}
+        style={styles.content}
+        contentContainerStyle={styles.contentInner}
+        showsVerticalScrollIndicator={false}
+      >
+        {section === 'battle' && renderBattle()}
+        {section === 'history' && renderHistory()}
+        {section === 'stats' && renderStats()}
+      </Animated.ScrollView>
     </View>
   );
 }
