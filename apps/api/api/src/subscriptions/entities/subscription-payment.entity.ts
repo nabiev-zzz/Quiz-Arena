@@ -28,7 +28,7 @@ export class SubscriptionPayment {
   @Column({ type: 'varchar', length: 30, default: 'pending' })
   status: PaymentStatus;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 2048, nullable: true })
   providerTransactionId: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
