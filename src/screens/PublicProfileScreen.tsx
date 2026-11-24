@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
 import { followUser, getPublicUserProfile, unfollowUser, type PublicUser } from '../services/userService';
+import { getProfileAchievements } from '../utils/profileAchievements';
 
 interface Props {
   username: string;
@@ -77,6 +78,17 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
         <GlassSurface intensity={isDark ? 30 : 38} style={styles.stat}><Text style={styles.statValue}>{profile.level}</Text><Text style={styles.statLabel}>Daraja</Text></GlassSurface>
         <GlassSurface intensity={isDark ? 30 : 38} style={styles.stat}><Text style={styles.statValue}>{profile.rankPoints ?? 0}</Text><Text style={styles.statLabel}>RP</Text></GlassSurface>
       </View>
+      <Text style={styles.sectionTitle}>Erishgan yutuqlari</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 9 }}>
+        {getProfileAchievements(profile.xp ?? 0, profile.level ?? 1, profile.rankPoints ?? 0).filter((item) => item.unlocked).map((achievement) => (
+          <GlassSurface key={achievement.id} intensity={isDark ? 30 : 38} style={styles.achievementCard}>
+            <Ionicons name={achievement.icon} size={20} color="#EFCB78" />
+            <Text style={styles.rankName}>{achievement.title}</Text>
+            <Text style={styles.rankHint}>{achievement.description}</Text>
+          </GlassSurface>
+        ))}
+        {getProfileAchievements(profile.xp ?? 0, profile.level ?? 1, profile.rankPoints ?? 0).every((item) => !item.unlocked) ? <Text style={styles.rankHint}>Hozircha yutuqlar yo‘q</Text> : null}
+      </ScrollView>
       <GlassSurface intensity={isDark ? 30 : 38} style={styles.rankCard}>
         <Ionicons name="medal-outline" size={22} color="#EFCB78" />
         <View style={styles.rankText}><Text style={styles.rankName}>{profile.rankTier || 'Bronze'} ligasi</Text><Text style={styles.rankHint}>QUIZ ARENA rank</Text></View>
@@ -126,6 +138,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     stat: { flex: 1, alignItems: 'center', paddingVertical: 17, borderRadius: 18, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: isDark ? 'rgba(35,31,57,0.4)' : 'rgba(255,255,255,0.52)' },
     statValue: { color: colors.text, fontSize: 21, fontWeight: '800' },
     statLabel: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
+    achievementCard: { width: 142, minHeight: 94, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: isDark ? 'rgba(35,31,57,0.4)' : 'rgba(255,255,255,0.52)' },
     rankCard: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: colors.glassBorder, marginTop: 12, backgroundColor: isDark ? 'rgba(35,31,57,0.4)' : 'rgba(255,255,255,0.52)' },
     rankText: { flex: 1 },
     rankName: { color: colors.text, fontSize: 14, fontWeight: '700' },
