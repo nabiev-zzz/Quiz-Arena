@@ -36,6 +36,9 @@ export class LearningAttempt {
   @Column({ type: 'numeric', precision: 5, scale: 2 })
   accuracy: number;
 
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  review: Array<Record<string, unknown>>;
+
   @CreateDateColumn({ type: 'timestamptz' })
   completedAt: Date;
 }
