@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { setAppLanguage } from '../i18n/LocalizedText';
 
 export type AppLanguage = 'uz' | 'ru' | 'en';
 export type AppTheme = 'dark' | 'light';
@@ -99,10 +100,18 @@ export function AppSettingsProvider({
           const parsed = JSON.parse(stored) as Partial<AppSettings>;
 
           if (active) {
-            setSettings({
+            const restored: AppSettings = {
               ...defaultSettings,
               ...parsed,
-            });
+              language: parsed.language === 'ru' || parsed.language === 'en' || parsed.language === 'uz'
+                ? parsed.language
+                : defaultSettings.language,
+              theme: parsed.theme === 'light' || parsed.theme === 'dark'
+                ? parsed.theme
+                : defaultSettings.theme,
+            };
+            setAppLanguage(restored.language);
+            setSettings(restored);
           }
         }
       } catch {
@@ -124,6 +133,10 @@ export function AppSettingsProvider({
   const updateSettings = useCallback(
     async (changes: Partial<AppSettings>) => {
       const updated = { ...settings, ...changes };
+
+      if (changes.language) {
+        setAppLanguage(changes.language);
+      }
 
       setSettings(updated);
 

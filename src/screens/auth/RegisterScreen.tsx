@@ -1,7 +1,8 @@
+import { LocalizedText, LocalizedTextInput, showLocalizedAlert } from '../../i18n/LocalizedText';
 import { useState } from 'react';
 import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable,
-  ScrollView, StyleSheet, Text, TextInput, View,
+  ScrollView, StyleSheet, Text as NativeText, TextInput as NativeTextInput, View,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 
@@ -30,11 +31,11 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
     const cleanName = displayName.trim();
     const cleanUsername = username.trim().toLowerCase();
     const cleanEmail = email.trim().toLowerCase();
-    if (cleanName.length < 2) return Alert.alert('Ism xatosi', 'Ism kamida 2 ta belgidan iborat bo‘lsin.');
-    if (!/^[a-zA-Z0-9_]{3,30}$/.test(cleanUsername)) return Alert.alert('Username xatosi', 'Username 3–30 ta belgi bo‘lsin. Lotin harflari, raqamlar va _ ishlating.');
-    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return Alert.alert('Email xatosi', 'Email manzilini to‘g‘ri kiriting.');
-    if (password.length < 8) return Alert.alert('Parol xatosi', 'Parol kamida 8 ta belgidan iborat bo‘lsin.');
-    if (password !== confirmPassword) return Alert.alert('Parol xatosi', 'Kiritilgan parollar bir xil emas.');
+    if (cleanName.length < 2) return showLocalizedAlert('Ism xatosi', 'Ism kamida 2 ta belgidan iborat bo‘lsin.');
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(cleanUsername)) return showLocalizedAlert('Username xatosi', 'Username 3–30 ta belgi bo‘lsin. Lotin harflari, raqamlar va _ ishlating.');
+    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return showLocalizedAlert('Email xatosi', 'Email manzilini to‘g‘ri kiriting.');
+    if (password.length < 8) return showLocalizedAlert('Parol xatosi', 'Parol kamida 8 ta belgidan iborat bo‘lsin.');
+    if (password !== confirmPassword) return showLocalizedAlert('Parol xatosi', 'Kiritilgan parollar bir xil emas.');
     try {
       setLoading(true);
       await onRegister({
@@ -44,7 +45,7 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
         password,
       });
     } catch (error) {
-      Alert.alert('Ro‘yxatdan o‘tish amalga oshmadi', error instanceof Error ? error.message : 'Xatolik yuz berdi');
+      showLocalizedAlert('Ro‘yxatdan o‘tish amalga oshmadi', error instanceof Error ? error.message : 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -54,38 +55,38 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         <View style={styles.brandRow}>
-          <View style={styles.brandMark}><Text style={styles.brandMarkText}>Q</Text></View>
-          <View><Text style={styles.logo}>QUIZ ARENA</Text><Text style={styles.brandCaption}>BILIM · RAQOBAT · NATIJA</Text></View>
+          <View style={styles.brandMark}><LocalizedText style={styles.brandMarkText}>Q</LocalizedText></View>
+          <View><LocalizedText style={styles.logo}>QUIZ ARENA</LocalizedText><LocalizedText style={styles.brandCaption}>BILIM · RAQOBAT · NATIJA</LocalizedText></View>
         </View>
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>YANGI IMKONIYATLAR SARI</Text>
-          <Text style={styles.title}>Hisob yaratish</Text>
-          <Text style={styles.subtitle}>O‘z hisobingizni yarating va bilimlar maydoniga qo‘shiling.</Text>
+          <LocalizedText style={styles.eyebrow}>YANGI IMKONIYATLAR SARI</LocalizedText>
+          <LocalizedText style={styles.title}>Hisob yaratish</LocalizedText>
+          <LocalizedText style={styles.subtitle}>O‘z hisobingizni yarating va bilimlar maydoniga qo‘shiling.</LocalizedText>
         </View>
         <View style={styles.formCard}>
-        <Text style={styles.label}>Ism va familiya *</Text>
-        <TextInput style={styles.input} placeholder="Masalan: Ali Valiyev" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={displayName} onChangeText={setDisplayName} maxLength={100} autoCapitalize="words" returnKeyType="next" />
+        <LocalizedText style={styles.label}>Ism va familiya *</LocalizedText>
+        <LocalizedTextInput style={styles.input} placeholder="Masalan: Ali Valiyev" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={displayName} onChangeText={setDisplayName} maxLength={100} autoCapitalize="words" returnKeyType="next" />
 
-        <Text style={styles.label}>Username *</Text>
-        <TextInput style={styles.input} placeholder="Masalan: ali_2026" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" maxLength={30} returnKeyType="next" />
+        <LocalizedText style={styles.label}>Username *</LocalizedText>
+        <LocalizedTextInput style={styles.input} placeholder="Masalan: ali_2026" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" maxLength={30} returnKeyType="next" />
 
-        <Text style={styles.label}>Email (ixtiyoriy)</Text>
-        <TextInput style={styles.input} placeholder="example@gmail.com" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" returnKeyType="next" />
+        <LocalizedText style={styles.label}>Email (ixtiyoriy)</LocalizedText>
+        <LocalizedTextInput style={styles.input} placeholder="example@gmail.com" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" returnKeyType="next" />
 
-        <Text style={styles.label}>Parol *</Text>
-        <TextInput style={styles.input} placeholder="Kamida 8 ta belgi" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoComplete="new-password" returnKeyType="next" />
+        <LocalizedText style={styles.label}>Parol *</LocalizedText>
+        <LocalizedTextInput style={styles.input} placeholder="Kamida 8 ta belgi" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoComplete="new-password" returnKeyType="next" />
 
-        <Text style={styles.label}>Parolni tasdiqlang *</Text>
-        <TextInput style={styles.input} placeholder="Parolni qayta kiriting" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry autoCapitalize="none" returnKeyType="done" onSubmitEditing={() => void handleRegister()} />
+        <LocalizedText style={styles.label}>Parolni tasdiqlang *</LocalizedText>
+        <LocalizedTextInput style={styles.input} placeholder="Parolni qayta kiriting" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry autoCapitalize="none" returnKeyType="done" onSubmitEditing={() => void handleRegister()} />
 
         <Pressable style={[styles.button, loading && styles.disabled]} onPress={() => void handleRegister()} disabled={loading}>
-          {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Hisob yaratish</Text>}
+          {loading ? <ActivityIndicator color="#FFFFFF" /> : <LocalizedText style={styles.buttonText}>Hisob yaratish</LocalizedText>}
         </Pressable>
 
         </View>
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Hisobingiz bormi? </Text>
-          <Pressable onPress={onLoginPress}><Text style={styles.link}>Kirish</Text></Pressable>
+          <LocalizedText style={styles.footerText}>Hisobingiz bormi? </LocalizedText>
+          <Pressable onPress={onLoginPress}><LocalizedText style={styles.link}>Kirish</LocalizedText></Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

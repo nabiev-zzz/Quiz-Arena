@@ -1,10 +1,11 @@
+import { LocalizedText } from '../../i18n/LocalizedText';
 ﻿import React from 'react';
 import {
   ActivityIndicator,
   Pressable,
   StyleProp,
   StyleSheet,
-  Text,
+  Text as NativeText,
   ViewStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -67,17 +68,17 @@ export default function GlassButton({
           {loading ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={[styles.label, { color: contentColor }]}>
+            <LocalizedText style={[styles.label, { color: contentColor }]}>
               {title}
-            </Text>
+            </LocalizedText>
           )}
         </LinearGradient>
       ) : loading ? (
         <ActivityIndicator color={tokens.colors.primary} />
       ) : (
-        <Text style={[styles.label, { color: contentColor }]}>
+        <LocalizedText style={[styles.label, { color: contentColor }]}>
           {title}
-        </Text>
+        </LocalizedText>
       )}
     </Pressable>
   );

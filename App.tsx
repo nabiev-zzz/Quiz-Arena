@@ -1,3 +1,4 @@
+import { LocalizedText, LocalizedTextInput, translateText } from './src/i18n/LocalizedText';
 
 import { useRef, useState } from 'react';
 import Animated, {
@@ -10,10 +11,10 @@ import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
   StyleSheet,
-  Text,
+  Text as NativeText,
   View,
   Pressable,
-  TextInput,
+  TextInput as NativeTextInput,
 } from 'react-native';
 import {
   SafeAreaProvider,
@@ -73,7 +74,7 @@ function AppContent() {
     startGoogleLogin,
     startTelegramLogin,
   } = useAuth();
-  const { theme, ready } = useAppSettings();
+  const { theme, language, ready } = useAppSettings();
   const insets = useSafeAreaInsets();
   const { tokens } = useTheme();
 
@@ -125,20 +126,20 @@ function AppContent() {
   const renderHome = () => {
     const normalizedQuery = searchQuery.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
     const features = [
-      { key: 'learn', title: 'Fanlar va testlar', detail: 'Fanlarni tanlang, mavzularni yeching', icon: 'book-outline' as const },
-      { key: 'battle', title: 'Battle', detail: 'Raqiblar bilan bilim bellashuvi', icon: 'flash-outline' as const },
-      { key: 'ranking', title: 'Reyting', detail: 'Liderlar va natijalarni ko‘ring', icon: 'trophy-outline' as const },
-      { key: 'tutor', title: 'AI Ustoz', detail: 'Savol bering, mavzuni tushuning', icon: 'sparkles-outline' as const },
-      { key: 'friends', title: 'Hamjamiyat', detail: 'Bilimdonlarni toping va kuzating', icon: 'people-outline' as const },
-      { key: 'profile', title: 'Profil', detail: 'Hisob, avatar va yutuqlaringiz', icon: 'person-outline' as const },
-      { key: 'premium', title: 'Premium', detail: 'Qo‘shimcha tarif va imkoniyatlar', icon: 'diamond-outline' as const },
-      { key: 'settings', title: 'Sozlamalar', detail: 'Til, mavzu va bildirishnomalar', icon: 'settings-outline' as const },
+      { key: 'learn', title: translateText('Fanlar va testlar', language), detail: translateText('Fanlarni tanlang, mavzularni yeching', language), icon: 'book-outline' as const },
+      { key: 'battle', title: 'Battle', detail: translateText('Raqiblar bilan bilim bellashuvi', language), icon: 'flash-outline' as const },
+      { key: 'ranking', title: translateText('Reyting', language), detail: translateText('Liderlar va natijalarni ko‘ring', language), icon: 'trophy-outline' as const },
+      { key: 'tutor', title: translateText('AI Ustoz', language), detail: translateText('Savol bering, mavzuni tushuning', language), icon: 'sparkles-outline' as const },
+      { key: 'friends', title: translateText('Hamjamiyat', language), detail: translateText('Bilimdonlarni toping va kuzating', language), icon: 'people-outline' as const },
+      { key: 'profile', title: translateText('Profil', language), detail: translateText('Hisob, avatar va yutuqlaringiz', language), icon: 'person-outline' as const },
+      { key: 'premium', title: 'Premium', detail: translateText('Qo‘shimcha tarif va imkoniyatlar', language), icon: 'diamond-outline' as const },
+      { key: 'settings', title: translateText('Sozlamalar', language), detail: translateText('Til, mavzu va bildirishnomalar', language), icon: 'settings-outline' as const },
     ];
     const featureMatches = normalizedQuery
       ? features.filter((item) => `${item.title} ${item.detail}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery))
       : [];
     const subjectMatches = normalizedQuery
-      ? learningSubjects.filter((subject) => `${subject.name} ${subject.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8)
+      ? learningSubjects.filter((subject) => `${subject.name} ${translateText(subject.name, language)} ${subject.description} ${translateText(subject.description, language)}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).slice(0, 8)
       : [];
     const topicMatches = normalizedQuery
       ? learningSubjects.flatMap((subject) => subject.topics.filter((topic) => `${subject.name} ${topic.name} ${topic.description}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().includes(normalizedQuery)).map((topic) => ({ subject, topic }))).slice(0, 20)
@@ -175,10 +176,10 @@ function AppContent() {
       <>
         <View style={styles.homeHeader}>
           <View style={styles.homeBrand}>
-            <View style={styles.homeBrandIcon}><Text style={styles.homeBrandLetter}>Q</Text></View>
+            <View style={styles.homeBrandIcon}><LocalizedText style={styles.homeBrandLetter}>Q</LocalizedText></View>
             <View style={styles.homeBrandText}>
-              <Text style={[styles.homeEyebrow, { color: mutedColor }]}>QUIZ ARENA</Text>
-              <Text style={[styles.homeGreeting, { color: textColor }]}>Salom, {user?.displayName || 'Bilimdon'}!</Text>
+              <LocalizedText style={[styles.homeEyebrow, { color: mutedColor }]}>QUIZ ARENA</LocalizedText>
+              <LocalizedText style={[styles.homeGreeting, { color: textColor }]}>Salom, {user?.displayName || 'Bilimdon'}!</LocalizedText>
             </View>
           </View>
           <Pressable style={[styles.homeProfileButton, { backgroundColor: tokens.colors.surfaceElevated, borderColor }]} onPress={() => openTab('profile')} accessibilityRole="button" accessibilityLabel="Profil">
@@ -188,45 +189,45 @@ function AppContent() {
 
         <View style={[styles.homeSearch, { borderColor, backgroundColor: tokens.colors.surface }]}>
           <Ionicons name="search-outline" size={19} color={mutedColor} />
-          <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Funksiya, fan yoki mavzuni qidiring" placeholderTextColor={mutedColor} style={[styles.homeSearchInput, { color: textColor }]} returnKeyType="search" autoCorrect={false} accessibilityLabel="Ilova bo‘ylab qidirish" />
+          <LocalizedTextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Funksiya, fan yoki mavzuni qidiring" placeholderTextColor={mutedColor} style={[styles.homeSearchInput, { color: textColor }]} returnKeyType="search" autoCorrect={false} accessibilityLabel="Ilova bo‘ylab qidirish" />
           {searchQuery.length > 0 && <Pressable onPress={() => setSearchQuery('')} hitSlop={10}><Ionicons name="close-circle" size={18} color={mutedColor} /></Pressable>}
         </View>
 
         {normalizedQuery.length > 0 ? (
           <View style={styles.homeSearchResults}>
-            {featureMatches.length > 0 && <Text style={[styles.homeSectionTitle, { color: mutedColor }]}>FUNKSIYALAR</Text>}
+            {featureMatches.length > 0 && <LocalizedText style={[styles.homeSectionTitle, { color: mutedColor }]}>FUNKSIYALAR</LocalizedText>}
             {featureMatches.map((item) => (
               <Pressable key={item.key} style={[styles.homeSearchRow, { backgroundColor: tokens.colors.surface, borderColor }]} onPress={() => openFeature(item.key)}>
                 <View style={[styles.homeSearchIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}><Ionicons name={item.icon} size={19} color={tokens.colors.primaryLight} /></View>
-                <View style={styles.homeFeatureCopy}><Text style={[styles.homeFeatureTitle, { color: textColor }]}>{item.title}</Text><Text style={[styles.homeFeatureDescription, { color: mutedColor }]}>{item.detail}</Text></View>
+                <View style={styles.homeFeatureCopy}><LocalizedText style={[styles.homeFeatureTitle, { color: textColor }]}>{item.title}</LocalizedText><LocalizedText style={[styles.homeFeatureDescription, { color: mutedColor }]}>{item.detail}</LocalizedText></View>
                 <Ionicons name="chevron-forward" size={17} color={mutedColor} />
               </Pressable>
             ))}
-            {subjectMatches.length > 0 && <Text style={[styles.homeSectionTitle, { color: mutedColor }]}>FANLAR</Text>}
+            {subjectMatches.length > 0 && <LocalizedText style={[styles.homeSectionTitle, { color: mutedColor }]}>FANLAR</LocalizedText>}
             {subjectMatches.map((subject) => (
               <Pressable key={subject.id} style={[styles.homeSearchRow, { backgroundColor: tokens.colors.surface, borderColor }]} onPress={() => { openTab('learn'); setSelectedSubject(subject); }}>
-                <View style={[styles.homeSearchIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}><Text style={styles.homeSearchGlyph}>{subject.icon}</Text></View>
-                <View style={styles.homeFeatureCopy}><Text style={[styles.homeFeatureTitle, { color: textColor }]}>{subject.name}</Text><Text style={[styles.homeFeatureDescription, { color: mutedColor }]}>{subject.description}</Text></View>
+                <View style={[styles.homeSearchIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}><LocalizedText style={styles.homeSearchGlyph}>{subject.icon}</LocalizedText></View>
+                <View style={styles.homeFeatureCopy}><LocalizedText style={[styles.homeFeatureTitle, { color: textColor }]}>{subject.name}</LocalizedText><LocalizedText style={[styles.homeFeatureDescription, { color: mutedColor }]}>{subject.description}</LocalizedText></View>
                 <Ionicons name="chevron-forward" size={17} color={mutedColor} />
               </Pressable>
             ))}
-            {topicMatches.length > 0 && <Text style={[styles.homeSectionTitle, { color: mutedColor }]}>MAVZULAR</Text>}
+            {topicMatches.length > 0 && <LocalizedText style={[styles.homeSectionTitle, { color: mutedColor }]}>MAVZULAR</LocalizedText>}
             {topicMatches.map(({ subject, topic }) => (
               <Pressable key={subject.id + ':' + topic.id} style={[styles.homeSearchRow, { backgroundColor: tokens.colors.surface, borderColor }]} onPress={() => { setSelectedSubject(subject); setSelectedTopic(topic); setTab('learn'); }}>
                 <View style={[styles.homeSearchIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}><Ionicons name="book-outline" size={18} color={tokens.colors.primaryLight} /></View>
-                <View style={styles.homeFeatureCopy}><Text style={[styles.homeFeatureTitle, { color: textColor }]}>{topic.name}</Text><Text style={[styles.homeFeatureDescription, { color: mutedColor }]}>{subject.name} · {topic.description}</Text></View>
+                <View style={styles.homeFeatureCopy}><LocalizedText style={[styles.homeFeatureTitle, { color: textColor }]}>{topic.name}</LocalizedText><LocalizedText style={[styles.homeFeatureDescription, { color: mutedColor }]}>{subject.name} · {topic.description}</LocalizedText></View>
                 <Ionicons name="chevron-forward" size={17} color={mutedColor} />
               </Pressable>
             ))}
-            {featureMatches.length + subjectMatches.length + topicMatches.length === 0 && <Text style={[styles.homeEmpty, { color: mutedColor }]}>“{searchQuery}” bo‘yicha natija topilmadi.</Text>}
+            {featureMatches.length + subjectMatches.length + topicMatches.length === 0 && <LocalizedText style={[styles.homeEmpty, { color: mutedColor }]}>“{searchQuery}” bo‘yicha natija topilmadi.</LocalizedText>}
           </View>
         ) : (
           <>
             <View style={styles.homeSectionHeader}>
-              <Text style={[styles.homeSectionTitle, { color: mutedColor }]}>BARCHA IMKONIYATLAR</Text>
+              <LocalizedText style={[styles.homeSectionTitle, { color: mutedColor }]}>BARCHA IMKONIYATLAR</LocalizedText>
               <View style={styles.homeXpChip}>
                 <Ionicons name="star" size={13} color="#F5C451" />
-                <Text style={styles.homeXpText}>{user?.xp ?? 0} XP</Text>
+                <LocalizedText style={styles.homeXpText}>{user?.xp ?? 0} XP</LocalizedText>
               </View>
             </View>
             <View style={styles.homeFeatureGrid}>
@@ -235,13 +236,13 @@ function AppContent() {
                   <View style={[styles.homeFeatureIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}>
                     <Ionicons name={item.icon} size={21} color={tokens.colors.primaryLight} />
                   </View>
-                  <Text style={[styles.homeFeatureTitle, { color: textColor }]}>{item.title}</Text>
-                  <Text style={[styles.homeFeatureDescription, { color: mutedColor }]} numberOfLines={2}>{item.detail}</Text>
+                  <LocalizedText style={[styles.homeFeatureTitle, { color: textColor }]}>{item.title}</LocalizedText>
+                  <LocalizedText style={[styles.homeFeatureDescription, { color: mutedColor }]} numberOfLines={2}>{item.detail}</LocalizedText>
                   <View style={styles.homeFeatureArrow}><Ionicons name="arrow-forward" size={15} color={mutedColor} /></View>
                 </Pressable>
               ))}
             </View>
-            <Text style={[styles.homeFooterText, { color: mutedColor }]}>Bilimingni oshir. Bellash. Natijangni ko‘rsat.</Text>
+            <LocalizedText style={[styles.homeFooterText, { color: mutedColor }]}>Bilimingni oshir. Bellash. Natijangni ko‘rsat.</LocalizedText>
           </>
         )}
       </>
@@ -327,15 +328,15 @@ function AppContent() {
     return (
       <View style={styles.emptyPage}>
         <Ionicons name={page.icon} size={65} color={tokens.colors.primary} />
-        <Text style={[styles.pageTitle, { color: textColor }]}>
+        <LocalizedText style={[styles.pageTitle, { color: textColor }]}>
           {page.title}
-        </Text>
-        <Text style={[styles.pageDescription, { color: mutedColor }]}>
+        </LocalizedText>
+        <LocalizedText style={[styles.pageDescription, { color: mutedColor }]}>
           {page.description}
-        </Text>
-        <Text style={styles.comingSoon}>
+        </LocalizedText>
+        <LocalizedText style={styles.comingSoon}>
           Bu bo'lim keyingi bosqichda ishlab chiqiladi.
-        </Text>
+        </LocalizedText>
       </View>
     );
   };
@@ -348,9 +349,9 @@ function AppContent() {
       >
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <ActivityIndicator size="large" color="#A88FFF" />
-        <Text style={[styles.loadingText, { color: mutedColor }]}>
+        <LocalizedText style={[styles.loadingText, { color: mutedColor }]}>
           QUIZ ARENA yuklanmoqda...
-        </Text>
+        </LocalizedText>
       </SafeAreaView>
     );
   }

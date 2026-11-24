@@ -1,7 +1,8 @@
+import { LocalizedText, LocalizedTextInput, showLocalizedAlert } from '../../i18n/LocalizedText';
 import { useState } from 'react';
 import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable,
-  ScrollView, StyleSheet, Text, TextInput, View,
+  ScrollView, StyleSheet, Text as NativeText, TextInput as NativeTextInput, View,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 
@@ -33,9 +34,9 @@ export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, o
     try {
       setLoading(true);
       await action();
-      if (success) Alert.alert('QUIZ ARENA', success);
+      if (success) showLocalizedAlert('QUIZ ARENA', success);
     } catch (error) {
-      Alert.alert('Xatolik', error instanceof Error ? error.message : 'Xatolik yuz berdi');
+      showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -63,66 +64,66 @@ export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, o
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.brandRow}>
-          <View style={styles.brandMark}><Text style={styles.brandMarkText}>Q</Text></View>
-          <View><Text style={styles.logo}>QUIZ ARENA</Text><Text style={styles.brandCaption}>BILIM · RAQOBAT · NATIJA</Text></View>
+          <View style={styles.brandMark}><LocalizedText style={styles.brandMarkText}>Q</LocalizedText></View>
+          <View><LocalizedText style={styles.logo}>QUIZ ARENA</LocalizedText><LocalizedText style={styles.brandCaption}>BILIM · RAQOBAT · NATIJA</LocalizedText></View>
         </View>
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>SIZNI QAYTA KO‘RGANIMIZDAN XURSANDMIZ</Text>
-          <Text style={styles.title}>{mode === 'forgot' ? 'Parolni tiklash' : 'Xush kelibsiz!'}</Text>
-          <Text style={styles.subtitle}>{mode === 'forgot' ? 'Email manzilingiz orqali parolingizni tiklang.' : 'Bilimlar maydoniga qayting.'}</Text>
+          <LocalizedText style={styles.eyebrow}>SIZNI QAYTA KO‘RGANIMIZDAN XURSANDMIZ</LocalizedText>
+          <LocalizedText style={styles.title}>{mode === 'forgot' ? 'Parolni tiklash' : 'Xush kelibsiz!'}</LocalizedText>
+          <LocalizedText style={styles.subtitle}>{mode === 'forgot' ? 'Email manzilingiz orqali parolingizni tiklang.' : 'Bilimlar maydoniga qayting.'}</LocalizedText>
         </View>
         <View style={styles.formCard}>
         {mode === 'password' ? (
           <>
-            <Text style={styles.label}>Username</Text>
-            <TextInput style={styles.input} placeholder="Username kiriting" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" returnKeyType="next" />
-            <Text style={styles.label}>Parol</Text>
-            <TextInput style={styles.input} placeholder="Parolingizni kiriting" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoComplete="current-password" returnKeyType="done" onSubmitEditing={() => void run(() => onLogin(username.trim(), password))} />
+            <LocalizedText style={styles.label}>Username</LocalizedText>
+            <LocalizedTextInput style={styles.input} placeholder="Username kiriting" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" returnKeyType="next" />
+            <LocalizedText style={styles.label}>Parol</LocalizedText>
+            <LocalizedTextInput style={styles.input} placeholder="Parolingizni kiriting" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoComplete="current-password" returnKeyType="done" onSubmitEditing={() => void run(() => onLogin(username.trim(), password))} />
             <Pressable style={[styles.button, loading && styles.disabled]} disabled={loading} onPress={() => void run(() => onLogin(username.trim(), password))}>
-              {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Kirish</Text>}
+              {loading ? <ActivityIndicator color="#FFFFFF" /> : <LocalizedText style={styles.buttonText}>Kirish</LocalizedText>}
             </Pressable>
             <Pressable style={styles.textButton} onPress={() => { setMode('forgot'); setCodeSent(false); setCode(''); }}>
-              <Text style={styles.link}>Parolni unutdingizmi?</Text>
+              <LocalizedText style={styles.link}>Parolni unutdingizmi?</LocalizedText>
             </Pressable>
             <Pressable style={[styles.googleButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onGoogleLogin)}>
-              <Text style={styles.googleButtonText}>G  Google orqali kirish</Text>
+              <LocalizedText style={styles.googleButtonText}>G  Google orqali kirish</LocalizedText>
             </Pressable>
             <Pressable style={[styles.telegramButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onTelegramLogin)}>
-              <Text style={styles.telegramButtonText}>✈  Telegram orqali kirish</Text>
+              <LocalizedText style={styles.telegramButtonText}>✈  Telegram orqali kirish</LocalizedText>
             </Pressable>
           </>
         ) : (
           <>
-            <Text style={styles.label}>Email manzili</Text>
-            <TextInput style={styles.input} placeholder="example@gmail.com" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={email} onChangeText={value => { setEmail(value); setCodeSent(false); setCode(''); }} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
+            <LocalizedText style={styles.label}>Email manzili</LocalizedText>
+            <LocalizedTextInput style={styles.input} placeholder="example@gmail.com" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={email} onChangeText={value => { setEmail(value); setCodeSent(false); setCode(''); }} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
             {!codeSent ? (
               <Pressable style={[styles.button, loading && styles.disabled]} disabled={loading} onPress={() => void sendResetCode()}>
-                {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Tiklash kodini yuborish</Text>}
+                {loading ? <ActivityIndicator color="#FFFFFF" /> : <LocalizedText style={styles.buttonText}>Tiklash kodini yuborish</LocalizedText>}
               </Pressable>
             ) : (
               <>
-                <Text style={styles.label}>Emailga kelgan 6 xonali kod</Text>
-                <TextInput style={styles.input} placeholder="000000" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={code} onChangeText={setCode} keyboardType="number-pad" maxLength={6} />
-                <Text style={styles.label}>Yangi parol</Text>
-                <TextInput style={styles.input} placeholder="Kamida 8 ta belgi" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={newPassword} onChangeText={setNewPassword} secureTextEntry autoCapitalize="none" autoComplete="new-password" />
+                <LocalizedText style={styles.label}>Emailga kelgan 6 xonali kod</LocalizedText>
+                <LocalizedTextInput style={styles.input} placeholder="000000" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={code} onChangeText={setCode} keyboardType="number-pad" maxLength={6} />
+                <LocalizedText style={styles.label}>Yangi parol</LocalizedText>
+                <LocalizedTextInput style={styles.input} placeholder="Kamida 8 ta belgi" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={newPassword} onChangeText={setNewPassword} secureTextEntry autoCapitalize="none" autoComplete="new-password" />
                 <Pressable style={[styles.button, loading && styles.disabled]} disabled={loading} onPress={() => void submitReset()}>
-                  {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Parolni yangilash</Text>}
+                  {loading ? <ActivityIndicator color="#FFFFFF" /> : <LocalizedText style={styles.buttonText}>Parolni yangilash</LocalizedText>}
                 </Pressable>
                 <Pressable style={styles.textButton} onPress={() => void sendResetCode()}>
-                  <Text style={styles.link}>Kodni qayta yuborish</Text>
+                  <LocalizedText style={styles.link}>Kodni qayta yuborish</LocalizedText>
                 </Pressable>
               </>
             )}
             <Pressable style={styles.textButton} onPress={() => { setMode('password'); setCodeSent(false); setCode(''); }}>
-              <Text style={styles.link}>Orqaga</Text>
+              <LocalizedText style={styles.link}>Orqaga</LocalizedText>
             </Pressable>
           </>
         )}
 
         </View>
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Hisobingiz yo‘qmi? </Text>
-          <Pressable onPress={onRegisterPress}><Text style={styles.link}>Ro‘yxatdan o‘tish</Text></Pressable>
+          <LocalizedText style={styles.footerText}>Hisobingiz yo‘qmi? </LocalizedText>
+          <Pressable onPress={onRegisterPress}><LocalizedText style={styles.link}>Ro‘yxatdan o‘tish</LocalizedText></Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

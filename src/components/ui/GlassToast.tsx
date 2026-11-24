@@ -1,7 +1,8 @@
+import { LocalizedText } from '../../i18n/LocalizedText';
 ﻿import React from 'react';
 import {
   StyleSheet,
-  Text,
+  Text as NativeText,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,9 +53,9 @@ export default function GlassToast({
     >
       <GlassSurface intensity={30} style={styles.container}>
         <Ionicons name={config.icon} size={22} color={config.color} />
-        <Text style={[styles.message, { color: tokens.colors.text }]}>
+        <LocalizedText style={[styles.message, { color: tokens.colors.text }]}>
           {message}
-        </Text>
+        </LocalizedText>
       </GlassSurface>
     </View>
   );

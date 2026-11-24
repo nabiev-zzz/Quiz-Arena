@@ -8,6 +8,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
+import { LocalizedTextInput } from '../../i18n/LocalizedText';
 
 type Props = TextInputProps & {
   containerStyle?: StyleProp<ViewStyle>;
@@ -35,7 +36,7 @@ export default function GlassInput({
         containerStyle,
       ]}
     >
-      <TextInput
+      <LocalizedTextInput
         {...inputProps}
         editable={editable}
         placeholderTextColor={tokens.colors.textMuted}

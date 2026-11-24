@@ -1,5 +1,6 @@
+import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text as NativeText, View } from 'react-native';
 import type { Purchase } from 'expo-iap';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
@@ -45,7 +46,7 @@ export default function PremiumScreen({ onBack }: Props) {
       if (!checkout.checkoutUrl) throw new Error('To‘lov sahifasi hali sozlanmagan');
       await Linking.openURL(checkout.checkoutUrl);
     } catch (e) {
-      Alert.alert('To‘lovni boshlash imkoni bo‘lmadi', e instanceof Error ? e.message : 'Keyinroq qayta urinib ko‘ring');
+      showLocalizedAlert('To‘lovni boshlash imkoni bo‘lmadi', e instanceof Error ? e.message : 'Keyinroq qayta urinib ko‘ring');
     } finally { setBusy(null); }
   };
 
@@ -54,45 +55,45 @@ export default function PremiumScreen({ onBack }: Props) {
     <ScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={s.content}>
       <View style={s.header}>
         <Pressable onPress={onBack} style={[s.back, { backgroundColor: c.surfaceGlass }]}><Ionicons name="arrow-back" size={21} color={c.text} /></Pressable>
-        <Text style={[s.heading, { color: c.text }]}>QUIZ ARENA Premium</Text>
+        <LocalizedText style={[s.heading, { color: c.text }]}>QUIZ ARENA Premium</LocalizedText>
       </View>
       <GlassSurface intensity={isDark ? 42 : 50} style={s.hero}>
         <Ionicons name="diamond" size={34} color="#F3CE75" />
-        <Text style={s.heroTitle}>Bilimingga ko‘proq imkoniyat</Text>
-        <Text style={s.heroText}>Premium bilan o‘qish, musobaqa va profilingni yangi darajaga olib chiq.</Text>
-        {status?.isPremium ? <Text style={s.active}>PREMIUM FAOL · {status.subscription?.expiresAt ? new Date(status.subscription.expiresAt).toLocaleDateString('uz-UZ') + ' gacha' : ''}</Text> : <Text style={s.inactive}>Hozirgi tarif: FREE</Text>}
-        <Pressable onPress={() => void load()} style={s.refresh}><Ionicons name="refresh" size={15} color="#E8E0FF" /><Text style={s.refreshText}>Obuna holatini yangilash</Text></Pressable>
+        <LocalizedText style={s.heroTitle}>Bilimingga ko‘proq imkoniyat</LocalizedText>
+        <LocalizedText style={s.heroText}>Premium bilan o‘qish, musobaqa va profilingni yangi darajaga olib chiq.</LocalizedText>
+        {status?.isPremium ? <LocalizedText style={s.active}>PREMIUM FAOL · {status.subscription?.expiresAt ? new Date(status.subscription.expiresAt).toLocaleDateString('uz-UZ') + ' gacha' : ''}</LocalizedText> : <LocalizedText style={s.inactive}>Hozirgi tarif: FREE</LocalizedText>}
+        <Pressable onPress={() => void load()} style={s.refresh}><Ionicons name="refresh" size={15} color="#E8E0FF" /><LocalizedText style={s.refreshText}>Obuna holatini yangilash</LocalizedText></Pressable>
       </GlassSurface>
-      <Text style={[s.section, { color: c.text }]}>Obuna tariflari</Text>
-      {loading ? <ActivityIndicator color={c.primary} style={{ marginTop: 24 }} /> : error ? <GlassSurface intensity={30} style={s.notice}><Text style={[s.noticeText, { color: c.text }]}>{error}</Text><Pressable onPress={() => void load()}><Text style={s.retry}>Qayta urinish</Text></Pressable></GlassSurface> : plans.map((plan, index) => (
+      <LocalizedText style={[s.section, { color: c.text }]}>Obuna tariflari</LocalizedText>
+      {loading ? <ActivityIndicator color={c.primary} style={{ marginTop: 24 }} /> : error ? <GlassSurface intensity={30} style={s.notice}><LocalizedText style={[s.noticeText, { color: c.text }]}>{error}</LocalizedText><Pressable onPress={() => void load()}><LocalizedText style={s.retry}>Qayta urinish</LocalizedText></Pressable></GlassSurface> : plans.map((plan, index) => (
         <GlassSurface key={plan.key} intensity={isDark ? 34 : 42} style={[s.plan, index === 1 && s.featured]}>
-          <View style={s.planTop}><View><Text style={[s.planName, { color: c.text }]}>{plan.name} {plan.durationDays === 365 ? 'Yillik' : 'Oylik'}</Text><Text style={[s.planDuration, { color: c.textMuted }]}>{plan.durationDays} kunlik obuna</Text>{plan.durationDays === 365 && plan.price !== null ? (() => { const monthlyPlan = plans.find((item) => item.key === plan.key.replace(/_yearly$/, '_monthly')); if (!monthlyPlan?.price) return null; const saving = Math.round((1 - plan.price / (monthlyPlan.price * 12)) * 100); return <Text style={[s.planDuration, { color: '#70D7B4' }]}>Oyiga taxminan {money(Math.round(plan.price / 12))} · {saving}% chegirma</Text>; })() : null}</View><Text style={s.price}>{money(plan.price)}</Text></View>
-          <View style={s.benefit}><Ionicons name="checkmark-circle" size={17} color="#70D7B4" /><Text style={[s.benefitText, { color: c.text }]}>Eksklyuziv profil bezaklari va Premium nishoni</Text></View>
-          <View style={s.benefit}><Ionicons name="checkmark-circle" size={17} color="#70D7B4" /><Text style={[s.benefitText, { color: c.text }]}>Kengaytirilgan statistika va maxsus imkoniyatlar</Text></View>
-          <View style={s.benefit}><Ionicons name="checkmark-circle" size={17} color="#70D7B4" /><Text style={[s.benefitText, { color: c.text }]}>Yangi Premium funksiyalari qo‘shilganda foydalanish</Text></View>
+          <View style={s.planTop}><View><LocalizedText style={[s.planName, { color: c.text }]}>{plan.name} {plan.durationDays === 365 ? 'Yillik' : 'Oylik'}</LocalizedText><LocalizedText style={[s.planDuration, { color: c.textMuted }]}>{plan.durationDays} kunlik obuna</LocalizedText>{plan.durationDays === 365 && plan.price !== null ? (() => { const monthlyPlan = plans.find((item) => item.key === plan.key.replace(/_yearly$/, '_monthly')); if (!monthlyPlan?.price) return null; const saving = Math.round((1 - plan.price / (monthlyPlan.price * 12)) * 100); return <LocalizedText style={[s.planDuration, { color: '#70D7B4' }]}>Oyiga taxminan {money(Math.round(plan.price / 12))} · {saving}% chegirma</LocalizedText>; })() : null}</View><LocalizedText style={s.price}>{money(plan.price)}</LocalizedText></View>
+          <View style={s.benefit}><Ionicons name="checkmark-circle" size={17} color="#70D7B4" /><LocalizedText style={[s.benefitText, { color: c.text }]}>Eksklyuziv profil bezaklari va Premium nishoni</LocalizedText></View>
+          <View style={s.benefit}><Ionicons name="checkmark-circle" size={17} color="#70D7B4" /><LocalizedText style={[s.benefitText, { color: c.text }]}>Kengaytirilgan statistika va maxsus imkoniyatlar</LocalizedText></View>
+          <View style={s.benefit}><Ionicons name="checkmark-circle" size={17} color="#70D7B4" /><LocalizedText style={[s.benefitText, { color: c.text }]}>Yangi Premium funksiyalari qo‘shilganda foydalanish</LocalizedText></View>
           <View style={s.checkoutRow}>
             <Pressable disabled={!plan.available || busy !== null} onPress={() => void startCheckout('click', plan.key)} style={[s.checkoutButton, s.clickButton, (!plan.available || busy !== null) && s.dim]}>
-              {busy === 'click:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="card" size={17} color="#FFFFFF" /><Text style={s.checkoutText}>Click</Text></>}
+              {busy === 'click:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="card" size={17} color="#FFFFFF" /><LocalizedText style={s.checkoutText}>Click</LocalizedText></>}
             </Pressable>
             <Pressable disabled={!plan.available || busy !== null} onPress={() => void startCheckout('payme', plan.key)} style={[s.checkoutButton, s.paymeButton, (!plan.available || busy !== null) && s.dim]}>
-              {busy === 'payme:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="wallet" size={17} color="#FFFFFF" /><Text style={s.checkoutText}>Payme</Text></>}
+              {busy === 'payme:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="wallet" size={17} color="#FFFFFF" /><LocalizedText style={s.checkoutText}>Payme</LocalizedText></>}
             </Pressable>
           </View>
-          {!plan.available && <Text style={[s.planDuration, { color: c.textMuted }]}>Tarif narxi serverda sozlanmagan.</Text>}
+          {!plan.available && <LocalizedText style={[s.planDuration, { color: c.textMuted }]}>Tarif narxi serverda sozlanmagan.</LocalizedText>}
         </GlassSurface>
       ))}
       {Platform.OS === 'android' && !isExpoGo ? (
         <GooglePlayPurchaseControls plans={plans} busy={busy} setBusy={setBusy} load={load} />
       ) : null}
-      <Text style={[s.section, { color: c.text }]}>Google Play</Text>
+      <LocalizedText style={[s.section, { color: c.text }]}>Google Play</LocalizedText>
       <GlassSurface intensity={isDark ? 30 : 38} style={s.googleNotice}>
         <Ionicons name="logo-google-playstore" size={23} color={c.text} />
         <View style={{ flex: 1 }}>
-          <Text style={{ color: c.text, fontWeight: '800' }}>Google Play obunasi</Text>
-          <Text style={{ color: c.textMuted, fontSize: 12, lineHeight: 17, marginTop: 4 }}>{isExpoGo ? 'Expo Go Google Play Billing native modulini qo‘llab-quvvatlamaydi. Ilovani Android development build orqali ochganda xaridlar ishlaydi.' : 'Google Play Billing va Play Console mahsulot ID’lari sozlangan Android build orqali obuna xarid qilishingiz mumkin.'}</Text>
+          <LocalizedText style={{ color: c.text, fontWeight: '800' }}>Google Play obunasi</LocalizedText>
+          <LocalizedText style={{ color: c.textMuted, fontSize: 12, lineHeight: 17, marginTop: 4 }}>{isExpoGo ? 'Expo Go Google Play Billing native modulini qo‘llab-quvvatlamaydi. Ilovani Android development build orqali ochganda xaridlar ishlaydi.' : 'Google Play Billing va Play Console mahsulot ID’lari sozlangan Android build orqali obuna xarid qilishingiz mumkin.'}</LocalizedText>
         </View>
       </GlassSurface>
-      <Text style={[s.footnote,{color:c.textMuted}]}>Premium faqat Click, Payme yoki Google Play serveri to‘lovni tasdiqlagandan keyin faollashadi. To‘lov oynasidan qaytgach, obuna holatini yangilang.</Text>
+      <LocalizedText style={[s.footnote,{color:c.textMuted}]}>Premium faqat Click, Payme yoki Google Play serveri to‘lovni tasdiqlagandan keyin faollashadi. To‘lov oynasidan qaytgach, obuna holatini yangilang.</LocalizedText>
     </ScrollView>
   );
 }
@@ -112,12 +113,12 @@ function GooglePlayPurchaseControls({ plans, busy, setBusy, load }: GooglePlayPu
       const task = purchaseHandlerRef.current?.(purchase);
       if (task) void task.catch((e) => {
         setBusy(null);
-        Alert.alert('Xaridni tasdiqlashda xatolik', e instanceof Error ? e.message : 'Keyinroq qayta urinib ko‘ring');
+        showLocalizedAlert('Xaridni tasdiqlashda xatolik', e instanceof Error ? e.message : 'Keyinroq qayta urinib ko‘ring');
       });
     },
     onPurchaseError: (purchaseError) => {
       setBusy(null);
-      Alert.alert('Google Play xaridi', purchaseError.message || 'Xarid amalga oshmadi');
+      showLocalizedAlert('Google Play xaridi', purchaseError.message || 'Xarid amalga oshmadi');
     },
   });
 
@@ -127,7 +128,7 @@ function GooglePlayPurchaseControls({ plans, busy, setBusy, load }: GooglePlayPu
     try { await finishTransaction({ purchase, isConsumable: false }); } catch { /* Backend has already verified and acknowledged the subscription. */ }
     setBusy(null);
     await load();
-    Alert.alert('Premium faollashtirildi', 'Google Play obunangiz serverda tasdiqlandi.');
+    showLocalizedAlert('Premium faollashtirildi', 'Google Play obunangiz serverda tasdiqlandi.');
   };
 
   useEffect(() => {
@@ -141,13 +142,13 @@ function GooglePlayPurchaseControls({ plans, busy, setBusy, load }: GooglePlayPu
   const startGooglePlayPurchase = async (planKey: string) => {
     const sku = GOOGLE_PLAY_SKUS[planKey];
     if (!sku || !connected) {
-      Alert.alert('Google Play tayyor emas', 'Play Console mahsulot ID’lari va Android development build sozlanishi kerak.');
+      showLocalizedAlert('Google Play tayyor emas', 'Play Console mahsulot ID’lari va Android development build sozlanishi kerak.');
       return;
     }
     const product = subscriptions.find((item) => item.id === sku);
     const offerToken = product?.subscriptionOffers?.find((offer) => Boolean(offer.offerTokenAndroid))?.offerTokenAndroid;
     if (!offerToken) {
-      Alert.alert('Obuna topilmadi', 'Google Play Console’da ushbu tarif uchun faol base plan va offer yarating.');
+      showLocalizedAlert('Obuna topilmadi', 'Google Play Console’da ushbu tarif uchun faol base plan va offer yarating.');
       return;
     }
     setBusy('google:' + planKey);
@@ -159,7 +160,7 @@ function GooglePlayPurchaseControls({ plans, busy, setBusy, load }: GooglePlayPu
       });
     } catch (e) {
       setBusy(null);
-      Alert.alert('Google Play xaridi', e instanceof Error ? e.message : 'Xaridni boshlash imkoni bo‘lmadi');
+      showLocalizedAlert('Google Play xaridi', e instanceof Error ? e.message : 'Xaridni boshlash imkoni bo‘lmadi');
     }
   };
 
@@ -167,7 +168,7 @@ function GooglePlayPurchaseControls({ plans, busy, setBusy, load }: GooglePlayPu
     <>
       {plans.filter((plan) => Boolean(GOOGLE_PLAY_SKUS[plan.key])).map((plan) => (
         <Pressable key={plan.key} disabled={!connected || busy !== null} onPress={() => void startGooglePlayPurchase(plan.key)} style={[s.googleButton, (!connected || busy !== null) && s.dim]}>
-          {busy === 'google:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="logo-google-playstore" size={17} color="#FFFFFF" /><Text style={s.checkoutText}>Google Play · {plan.name}</Text></>}
+          {busy === 'google:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="logo-google-playstore" size={17} color="#FFFFFF" /><LocalizedText style={s.checkoutText}>Google Play · {plan.name}</LocalizedText></>}
         </Pressable>
       ))}
     </>
