@@ -200,10 +200,6 @@ export class AuthService {
     return { message: 'Agar raqam QUIZ ARENA hisobiga bog‘langan bo‘lsa, kod yuboriladi' };
   }
 
-  private notNullDate(): Date {
-    // TypeORM's IsNull operator is used in the query below; this method is never called.
-    return new Date(0);
-  }
 
   async resetPassword(dto: PasswordResetDto) {
     const phone = await this.otpService.verify(dto.phoneNumber, 'password_reset', dto.code);
@@ -246,8 +242,9 @@ export class AuthService {
   async getGoogleAuthorizationUrl(): Promise<string> {
     const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
     if (!clientId) throw new ServiceUnavailableException('Google orqali kirish hali sozlanmagan');
+    const nonce = randomBytes(18).toString('hex');
     const state = await this.jwtService.signAsync(
-      { purpose: 'google_oauth', nonce: randomBytes(18).toString('hex') },
+      { purpose: 'google_oauth', nonce },
       { expiresIn: 600 },
     );
     const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
@@ -256,18 +253,19 @@ export class AuthService {
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('scope', 'openid email profile');
     url.searchParams.set('state', state);
+    url.searchParams.set('nonce', nonce);
     url.searchParams.set('prompt', 'select_account');
     return url.toString();
   }
 
   async handleGoogleCallback(code: string, state: string): Promise<string> {
-    let statePayload: { purpose?: string };
+    let statePayload: { purpose?: string; nonce?: string };
     try {
       statePayload = await this.jwtService.verifyAsync(state);
     } catch {
       throw new UnauthorizedException('Google kirish so‘rovi muddati tugagan yoki noto‘g‘ri');
     }
-    if (statePayload.purpose !== 'google_oauth') {
+    if (statePayload.purpose !== 'google_oauth' || !statePayload.nonce) {
       throw new UnauthorizedException('Google kirish so‘rovi noto‘g‘ri');
     }
 
@@ -296,7 +294,7 @@ export class AuthService {
       throw new UnauthorizedException('Google hisobini tasdiqlash amalga oshmadi');
     }
 
-    const result = await this.loginWithGoogle(tokenPayload.id_token);
+    const result = await this.loginWithGoogle(tokenPayload.id_token, statePayload.nonce);
     const rawCode = randomBytes(32).toString('base64url');
     const codeHash = createHash('sha256').update(rawCode).digest('hex');
     await this.oauthCodeRepository.save(this.oauthCodeRepository.create({
@@ -322,14 +320,23 @@ export class AuthService {
       .getOne();
     if (!challenge) throw new UnauthorizedException('Google kirish kodi noto‘g‘ri yoki muddati tugagan');
 
-    challenge.consumedAt = new Date();
-    await this.oauthCodeRepository.save(challenge);
+    const consumed = await this.oauthCodeRepository
+      .createQueryBuilder()
+      .update(AuthOAuthCode)
+      .set({ consumedAt: new Date() })
+      .where('id = :id', { id: challenge.id })
+      .andWhere('"consumedAt" IS NULL')
+      .andWhere('"expiresAt" > :now', { now: new Date() })
+      .execute();
+    if (consumed.affected !== 1) {
+      throw new UnauthorizedException('Google kirish kodi noto‘g‘ri yoki muddati tugagan');
+    }
     const user = await this.userRepository.findOne({ where: { id: challenge.userId } });
     if (!user || user.status !== 'active') throw new UnauthorizedException('Hisob topilmadi yoki bloklangan');
     return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
   }
 
-  async loginWithGoogle(idToken: string) {
+  async loginWithGoogle(idToken: string, expectedNonce?: string) {
     const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
     if (!clientId) throw new ServiceUnavailableException('Google orqali kirish hali sozlanmagan');
 
@@ -337,13 +344,14 @@ export class AuthService {
       `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
     );
     const claims = await response.json().catch(() => null) as
-      | { aud?: string; iss?: string; sub?: string; email?: string; email_verified?: string; name?: string }
+      | { aud?: string; iss?: string; sub?: string; email?: string; email_verified?: string; name?: string; nonce?: string }
       | null;
 
     if (
       !response.ok || !claims?.sub || claims.aud !== clientId ||
       !['accounts.google.com', 'https://accounts.google.com'].includes(claims.iss ?? '') ||
-      claims.email_verified !== 'true' || !claims.email
+      claims.email_verified !== 'true' || !claims.email ||
+      (expectedNonce !== undefined && claims.nonce !== expectedNonce)
     ) {
       throw new UnauthorizedException('Google hisobini tasdiqlash amalga oshmadi');
     }
