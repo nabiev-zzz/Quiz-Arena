@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - feature/liquid-glass-dock
+      - feat/education-statistics-dashboard
 
 permissions:
   contents: read
