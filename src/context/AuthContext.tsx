@@ -12,6 +12,7 @@ import {
   UpdateProfileInput,
   API_BASE_URL,
   exchangeGoogleCode,
+  exchangeTelegramCode,
   getCurrentUser,
   getToken,
   loginUser,
@@ -91,7 +92,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       const code = parsed.searchParams.get('code');
       if (!code) return;
-      const result = await exchangeGoogleCode(code);
+      const provider = parsed.searchParams.get('provider');
+      const result = provider === 'telegram'
+        ? await exchangeTelegramCode(code)
+        : await exchangeGoogleCode(code);
       setUser(result.user);
     } catch {
       Alert.alert('Google orqali kirish', 'Kirishni yakunlab bo‘lmadi. Qayta urinib ko‘ring.');
