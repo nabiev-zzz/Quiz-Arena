@@ -150,9 +150,35 @@ export class LearningService {
     };
 
     try {
-      const questions = extension === 'pdf'
-        ? await this.aiService.generateQuestionsFromPdf(file.buffer, generationInput)
-        : await this.aiService.generateQuestions(generationInput);
+      const generated: Array<{
+        id: string; subjectId: string; topicId: string; question: string;
+        options: string[]; correctAnswer: number; explanation: string;
+        difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+      }> = [];
+      const batchSize = 25;
+      for (let offset = 0; offset < count; offset += batchSize) {
+        const batchNumber = Math.floor(offset / batchSize) + 1;
+        const batchCount = Math.min(batchSize, count - offset);
+        const previousQuestions = generated.length
+          ? '\nAvoid repeating these already generated questions:\n' + generated.map((item) => item.question).join('\n')
+          : '';
+        const batchInput = {
+          ...generationInput,
+          topicId: topicId + '-batch-' + batchNumber,
+          count: batchCount,
+          topicDescription: generationInput.topicDescription + previousQuestions,
+        };
+        const batch = extension === 'pdf'
+          ? await this.aiService.generateQuestionsFromPdf(file.buffer, batchInput)
+          : await this.aiService.generateQuestions(batchInput);
+        generated.push(...batch);
+      }
+      const questions = generated.slice(0, count).map((question, index) => ({
+        ...question,
+        id: topicId + '-' + (index + 1),
+        subjectId: 'document',
+        topicId,
+      }));
       return { title: generationInput.topicName, topicId, sourceFileName: fileName, questionCount: questions.length, questions, quota };
     } catch (error) {
       try { await this.featureUsageService.refund(userId, 'documentQuiz'); } catch { /* Keep the original AI error; quota refund can be retried by support if needed. */ }
