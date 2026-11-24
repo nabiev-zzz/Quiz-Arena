@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "QUIZ-ARENA",
-    "slug": "QUIZ-ARENA",\n    "scheme": "quizarena",
+    "slug": "QUIZ-ARENA",
+    "scheme": "quizarena",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
