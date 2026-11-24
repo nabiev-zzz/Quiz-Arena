@@ -210,7 +210,7 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
               <View style={s.uploadIcon}><Ionicons name="cloud-upload-outline" size={27} color={colors.primary} /></View>
               <View style={s.uploadCopy}>
                 <LocalizedText style={s.uploadTitle}>{file ? 'Hujjat tanlandi' : 'Hujjat tanlash'}</LocalizedText>
-                <LocalizedText style={s.muted}>{file ? file.name : '${'PDF, DOCX, TXT, MD yoki CSV · ' + maxFileSizeMb + ' MB gacha'}'}</LocalizedText>
+                <LocalizedText style={s.muted}>{file ? file.name : `PDF, DOCX, TXT, MD yoki CSV · ${maxFileSizeMb} MB gacha`}</LocalizedText>
               </View>
               <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
             </Pressable>
