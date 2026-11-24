@@ -1,3 +1,4 @@
+import { LocalizedText } from '../i18n/LocalizedText';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Animated, {
@@ -10,7 +11,7 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  Text,
+  NativeText,
   View,
 } from 'react-native';
 
@@ -177,10 +178,10 @@ export default function QuizScreen({
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>
+        <LocalizedText style={styles.loadingText}>
           Mavzuning testlari yuklanmoqda...
-        </Text>
-        <Text style={styles.muted}>Savollar umumiy testlar bazasidan olinadi</Text>
+        </LocalizedText>
+        <LocalizedText style={styles.muted}>Savollar umumiy testlar bazasidan olinadi</LocalizedText>
       </View>
     );
   }
@@ -188,18 +189,18 @@ export default function QuizScreen({
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorTitle}>Xatolik yuz berdi</Text>
-        <Text style={styles.muted}>{error}</Text>
+        <LocalizedText style={styles.errorTitle}>Xatolik yuz berdi</LocalizedText>
+        <LocalizedText style={styles.muted}>{error}</LocalizedText>
 
         <Pressable
           style={styles.primaryButton}
           onPress={() => void loadQuestions()}
         >
-          <Text style={styles.buttonText}>Qayta urinish</Text>
+          <LocalizedText style={styles.buttonText}>Qayta urinish</LocalizedText>
         </Pressable>
 
         <Pressable onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>Orqaga</Text>
+          <LocalizedText style={styles.backText}>Orqaga</LocalizedText>
         </Pressable>
       </View>
     );
@@ -208,20 +209,20 @@ export default function QuizScreen({
   if (finished) {
     return (
       <View style={styles.center}>
-        <Text style={styles.resultEmoji}>🏆</Text>
-        <Text style={styles.title}>Test yakunlandi!</Text>
-        <Text style={styles.score}>
+        <LocalizedText style={styles.resultEmoji}>🏆</LocalizedText>
+        <LocalizedText style={styles.title}>Test yakunlandi!</LocalizedText>
+        <LocalizedText style={styles.score}>
           {score} / {questions.length}
-        </Text>
-        <Text style={styles.muted}>To‘g‘ri javoblar soni · {Math.round((score / questions.length) * 100)}% aniqlik</Text>
+        </LocalizedText>
+        <LocalizedText style={styles.muted}>To‘g‘ri javoblar soni · {Math.round((score / questions.length) * 100)}% aniqlik</LocalizedText>
 
         {savingAttempt ? (
-          <Text style={styles.muted}>Natija statistika uchun saqlanmoqda...</Text>
+          <LocalizedText style={styles.muted}>Natija statistika uchun saqlanmoqda...</LocalizedText>
         ) : attemptSaved ? (
-          <Text style={styles.savedAttemptText}>✓ Natija statistikaga qo‘shildi</Text>
+          <LocalizedText style={styles.savedAttemptText}>✓ Natija statistikaga qo‘shildi</LocalizedText>
         ) : attemptSaveError ? (
           <Pressable onPress={() => void saveFinishedAttempt()}>
-            <Text style={styles.retryAttemptText}>Natija saqlanmadi. Qayta urinish</Text>
+            <LocalizedText style={styles.retryAttemptText}>Natija saqlanmadi. Qayta urinish</LocalizedText>
           </Pressable>
         ) : null}
 
@@ -229,11 +230,11 @@ export default function QuizScreen({
           style={styles.primaryButton}
           onPress={() => void loadQuestions()}
         >
-          <Text style={styles.buttonText}>Yangi test ishlash</Text>
+          <LocalizedText style={styles.buttonText}>Yangi test ishlash</LocalizedText>
         </Pressable>
 
         <Pressable onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>Mavzularga qaytish</Text>
+          <LocalizedText style={styles.backText}>Mavzularga qaytish</LocalizedText>
         </Pressable>
       </View>
     );
@@ -242,20 +243,20 @@ export default function QuizScreen({
   if (questions.length === 0) {
     return (
       <Animated.ScrollView onScroll={dockScrollHandler} scrollEventThrottle={16} style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Pressable onPress={onBack} style={styles.backButton}><Text style={styles.backText}>‹ Mavzularga qaytish</Text></Pressable>
-        <Text style={styles.eyebrow}>{subject.name.toUpperCase()}</Text>
-        <Text style={styles.title}>{topic.name}</Text>
-        <Text style={styles.setupDescription}>Test sozlamalarini tanlang. Savollar bazadan olinadi va birinchi tayyorlangandan keyin qayta ishlatiladi.</Text>
+        <Pressable onPress={onBack} style={styles.backButton}><LocalizedText style={styles.backText}>‹ Mavzularga qaytish</LocalizedText></Pressable>
+        <LocalizedText style={styles.eyebrow}>{subject.name.toUpperCase()}</LocalizedText>
+        <LocalizedText style={styles.title}>{topic.name}</LocalizedText>
+        <LocalizedText style={styles.setupDescription}>Test sozlamalarini tanlang. Savollar bazadan olinadi va birinchi tayyorlangandan keyin qayta ishlatiladi.</LocalizedText>
         <View style={styles.setupCard}>
-          <Text style={styles.setupLabel}>SAVOLLAR SONI</Text>
-          <View style={styles.choiceRow}>{countOptions.map((count) => <Pressable key={count} onPress={() => setSelectedCount(count)} style={[styles.choiceChip, selectedCount === count && styles.selectedChoiceChip]}><Text style={[styles.choiceText, selectedCount === count && styles.selectedChoiceText]}>{count === topic.questionCount ? `${count} · Barchasi` : String(count)}</Text></Pressable>)}</View>
-          <Text style={styles.setupLabel}>QIYINLIK DARAJASI</Text>
-          <View style={styles.choiceRow}>{([{ value: 'easy', label: 'Oson' }, { value: 'medium', label: 'O‘rta' }, { value: 'hard', label: 'Qiyin' }, { value: 'expert', label: 'Ekspert' }] as const).map((item) => <Pressable key={item.value} onPress={() => setSelectedDifficulty(item.value)} style={[styles.choiceChip, selectedDifficulty === item.value && styles.selectedChoiceChip]}><Text style={[styles.choiceText, selectedDifficulty === item.value && styles.selectedChoiceText]}>{item.label}</Text></Pressable>)}</View>
-          <Text style={styles.setupLabel}>TEST TILI</Text>
-          <View style={styles.choiceRow}>{([{ value: 'uz', label: 'O‘zbekcha' }, { value: 'ru', label: 'Русский' }, { value: 'en', label: 'English' }] as const).map((item) => <Pressable key={item.value} onPress={() => setSelectedLanguage(item.value)} style={[styles.choiceChip, selectedLanguage === item.value && styles.selectedChoiceChip]}><Text style={[styles.choiceText, selectedLanguage === item.value && styles.selectedChoiceText]}>{item.label}</Text></Pressable>)}</View>
+          <LocalizedText style={styles.setupLabel}>SAVOLLAR SONI</LocalizedText>
+          <View style={styles.choiceRow}>{countOptions.map((count) => <Pressable key={count} onPress={() => setSelectedCount(count)} style={[styles.choiceChip, selectedCount === count && styles.selectedChoiceChip]}><LocalizedText style={[styles.choiceText, selectedCount === count && styles.selectedChoiceText]}>{count === topic.questionCount ? `${count} · Barchasi` : String(count)}</LocalizedText></Pressable>)}</View>
+          <LocalizedText style={styles.setupLabel}>QIYINLIK DARAJASI</LocalizedText>
+          <View style={styles.choiceRow}>{([{ value: 'easy', label: 'Oson' }, { value: 'medium', label: 'O‘rta' }, { value: 'hard', label: 'Qiyin' }, { value: 'expert', label: 'Ekspert' }] as const).map((item) => <Pressable key={item.value} onPress={() => setSelectedDifficulty(item.value)} style={[styles.choiceChip, selectedDifficulty === item.value && styles.selectedChoiceChip]}><LocalizedText style={[styles.choiceText, selectedDifficulty === item.value && styles.selectedChoiceText]}>{item.label}</LocalizedText></Pressable>)}</View>
+          <LocalizedText style={styles.setupLabel}>TEST TILI</LocalizedText>
+          <View style={styles.choiceRow}>{([{ value: 'uz', label: 'O‘zbekcha' }, { value: 'ru', label: 'Русский' }, { value: 'en', label: 'English' }] as const).map((item) => <Pressable key={item.value} onPress={() => setSelectedLanguage(item.value)} style={[styles.choiceChip, selectedLanguage === item.value && styles.selectedChoiceChip]}><LocalizedText style={[styles.choiceText, selectedLanguage === item.value && styles.selectedChoiceText]}>{item.label}</LocalizedText></Pressable>)}</View>
         </View>
-        <View style={styles.setupNote}><Text style={styles.setupNoteTitle}>Testlar bazasi qanday ishlaydi?</Text><Text style={styles.setupNoteText}>Har bir mavzu uchun savollar server bazasida saqlanadi. Birinchi tayyorlashdan keyin keyingi foydalanuvchilar ham shu savollarni AI chaqirmasdan oladi. Natijangiz profilingizga saqlanadi.</Text></View>
-        <Pressable style={styles.primaryButton} onPress={() => void loadQuestions()}><Text style={styles.buttonText}>Testni boshlash</Text></Pressable>
+        <View style={styles.setupNote}><LocalizedText style={styles.setupNoteTitle}>Testlar bazasi qanday ishlaydi?</LocalizedText><LocalizedText style={styles.setupNoteText}>Har bir mavzu uchun savollar server bazasida saqlanadi. Birinchi tayyorlashdan keyin keyingi foydalanuvchilar ham shu savollarni AI chaqirmasdan oladi. Natijangiz profilingizga saqlanadi.</LocalizedText></View>
+        <Pressable style={styles.primaryButton} onPress={() => void loadQuestions()}><LocalizedText style={styles.buttonText}>Testni boshlash</LocalizedText></Pressable>
       </Animated.ScrollView>
     );
   }
@@ -270,16 +271,16 @@ export default function QuizScreen({
       contentContainerStyle={styles.content}
     >
       <Pressable onPress={onBack} style={styles.backButton}>
-        <Text style={styles.backText}>‹ Orqaga</Text>
+        <LocalizedText style={styles.backText}>‹ Orqaga</LocalizedText>
       </Pressable>
 
-      <Text style={styles.eyebrow}>{subject.name.toUpperCase()}</Text>
-      <Text style={styles.title}>{topic.name}</Text>
+      <LocalizedText style={styles.eyebrow}>{subject.name.toUpperCase()}</LocalizedText>
+      <LocalizedText style={styles.title}>{topic.name}</LocalizedText>
 
       <View style={styles.progressCard}>
-        <Text style={styles.muted}>
+        <LocalizedText style={styles.muted}>
           Savol {currentIndex + 1} / {questions.length}
-        </Text>
+        </LocalizedText>
         <View style={styles.progressBackground}>
           <View
             style={[
@@ -291,13 +292,13 @@ export default function QuizScreen({
       </View>
 
       <View style={styles.questionCard}>
-        <Text style={styles.questionLabel}>SAVOL</Text>
-        <Text style={styles.questionText}>
+        <LocalizedText style={styles.questionLabel}>SAVOL</LocalizedText>
+        <LocalizedText style={styles.questionText}>
           {currentQuestion.question}
-        </Text>
+        </LocalizedText>
       </View>
 
-      <Text style={styles.sectionTitle}>Javobni tanlang</Text>
+      <LocalizedText style={styles.sectionTitle}>Javobni tanlang</LocalizedText>
 
       {currentQuestion.options.map((option, index) => {
         const isCorrect = index === currentQuestion.correctAnswer;
@@ -314,37 +315,37 @@ export default function QuizScreen({
             onPress={() => chooseAnswer(index)}
             disabled={selectedAnswer !== null}
           >
-            <Text style={styles.optionLetter}>
+            <LocalizedText style={styles.optionLetter}>
               {String.fromCharCode(65 + index)}
-            </Text>
-            <Text style={styles.optionText}>{option}</Text>
+            </LocalizedText>
+            <LocalizedText style={styles.optionText}>{option}</LocalizedText>
           </Pressable>
         );
       })}
 
       {selectedAnswer !== null && (
         <View style={styles.explanationCard}>
-          <Text style={styles.explanationTitle}>
+          <LocalizedText style={styles.explanationTitle}>
             {selectedAnswer === currentQuestion.correctAnswer
               ? 'To‘g‘ri javob!'
               : 'Noto‘g‘ri javob'}
-          </Text>
+          </LocalizedText>
 
-          <Text style={styles.explanationText}>
+          <LocalizedText style={styles.explanationText}>
             {currentQuestion.explanation}
-          </Text>
+          </LocalizedText>
 
           <Pressable style={styles.primaryButton} onPress={nextQuestion}>
-            <Text style={styles.buttonText}>
+            <LocalizedText style={styles.buttonText}>
               {currentIndex === questions.length - 1
                 ? 'Natijani ko‘rish'
                 : 'Keyingi savol'}
-            </Text>
+            </LocalizedText>
           </Pressable>
         </View>
       )}
 
-      <Text style={styles.scoreText}>Joriy ball: {score}</Text>
+      <LocalizedText style={styles.scoreText}>Joriy ball: {score}</LocalizedText>
     </Animated.ScrollView>
   );
 }
