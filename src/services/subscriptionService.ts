@@ -19,10 +19,23 @@ export interface PremiumStatus {
     autoRenew: boolean;
   };
 }
-async function request<T>(path: string): Promise<T> {
+export interface CheckoutResult {
+  paymentId: string;
+  provider: 'click' | 'payme';
+  planKey: string;
+  amount: number;
+  currency: 'UZS';
+  checkoutUrl: string | null;
+}
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getToken();
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(typeof data.message === 'string' ? data.message : 'Server bilan aloqa xatosi');
@@ -30,3 +43,13 @@ async function request<T>(path: string): Promise<T> {
 }
 export const getPremiumPlans = () => request<PremiumPlan[]>('/api/subscriptions/plans');
 export const getPremiumStatus = () => request<PremiumStatus>('/api/subscriptions/me');
+export const createPremiumCheckout = (provider: 'click' | 'payme', planKey: string) =>
+  request<CheckoutResult>('/api/subscriptions/checkout', {
+    method: 'POST',
+    body: JSON.stringify({ provider, planKey }),
+  });
+export const verifyGooglePlayPurchase = (purchaseToken: string) =>
+  request<{ isPremium: boolean; expiresAt: string; provider: 'google_play' }>('/api/subscriptions/google-play/verify', {
+    method: 'POST',
+    body: JSON.stringify({ purchaseToken }),
+  });
