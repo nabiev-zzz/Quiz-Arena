@@ -1,4 +1,11 @@
-import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class PhoneOtpRequestDto {
   @IsString()
@@ -27,7 +34,8 @@ export class PhoneRegisterDto extends PhoneOtpVerifyDto {
   @MaxLength(72)
   password: string;
 
-  @IsString()
+  @IsOptional()
+  @IsEmail()
   @MaxLength(255)
   email?: string;
 }
