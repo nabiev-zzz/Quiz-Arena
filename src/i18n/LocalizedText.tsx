@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React from 'react';
 import {
   Alert as NativeAlert,
   Text as NativeText,
@@ -331,39 +331,42 @@ export function translateText(value: string, language: AppLanguage = activeLangu
   return value;
 }
 
-export const LocalizedText = forwardRef<NativeText, TextProps>(
-  function LocalizedText({ children, accessibilityLabel, accessibilityHint, ...props }, ref) {
-    const localizedChildren = React.Children.map(children, child =>
-      typeof child === 'string' ? translateText(child) : child,
-    );
-    return (
-      <NativeText
-        ref={ref}
-        {...props}
-        accessibilityLabel={accessibilityLabel ? translateText(accessibilityLabel) : accessibilityLabel}
-        accessibilityHint={accessibilityHint ? translateText(accessibilityHint) : accessibilityHint}
-      >
-        {localizedChildren}
-      </NativeText>
-    );
-  },
-);
-LocalizedText.displayName = 'LocalizedText';
+export function LocalizedText({
+  children,
+  accessibilityLabel,
+  accessibilityHint,
+  ...props
+}: TextProps) {
+  const localizedChildren = React.Children.map(children, child =>
+    typeof child === 'string' ? translateText(child) : child,
+  );
 
-export const LocalizedTextInput = forwardRef<NativeTextInput, TextInputProps>(
-  function LocalizedTextInput({ placeholder, accessibilityLabel, accessibilityHint, ...props }, ref) {
-    return (
-      <NativeTextInput
-        ref={ref}
-        {...props}
-        placeholder={typeof placeholder === 'string' ? translateText(placeholder) : placeholder}
-        accessibilityLabel={accessibilityLabel ? translateText(accessibilityLabel) : accessibilityLabel}
-        accessibilityHint={accessibilityHint ? translateText(accessibilityHint) : accessibilityHint}
-      />
-    );
-  },
-);
-LocalizedTextInput.displayName = 'LocalizedTextInput';
+  return (
+    <NativeText
+      {...props}
+      accessibilityLabel={accessibilityLabel ? translateText(accessibilityLabel) : accessibilityLabel}
+      accessibilityHint={accessibilityHint ? translateText(accessibilityHint) : accessibilityHint}
+    >
+      {localizedChildren}
+    </NativeText>
+  );
+}
+
+export function LocalizedTextInput({
+  placeholder,
+  accessibilityLabel,
+  accessibilityHint,
+  ...props
+}: TextInputProps) {
+  return (
+    <NativeTextInput
+      {...props}
+      placeholder={typeof placeholder === 'string' ? translateText(placeholder) : placeholder}
+      accessibilityLabel={accessibilityLabel ? translateText(accessibilityLabel) : accessibilityLabel}
+      accessibilityHint={accessibilityHint ? translateText(accessibilityHint) : accessibilityHint}
+    />
+  );
+}
 
 export function showLocalizedAlert(
   title: string,
