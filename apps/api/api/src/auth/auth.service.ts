@@ -35,6 +35,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly otpService: AuthOtpService,
     private readonly config: ConfigService,
+    @InjectRepository(AuthOAuthCode)
+    private readonly oauthCodeRepository: Repository<AuthOAuthCode>,
   ) {}
 
   private getRankTier(points: number): string {
