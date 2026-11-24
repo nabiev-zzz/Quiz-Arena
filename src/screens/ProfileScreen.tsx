@@ -493,7 +493,7 @@ export default function ProfileScreen({
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color={colors.textOnPrimary} />
+                <ActivityIndicator color={colors.textInverse} />
               ) : (
                 <Text style={styles.saveButtonText}>O‘zgarishlarni saqlash</Text>
               )}
@@ -1067,7 +1067,7 @@ function makeStyles(
       opacity: 0.65,
     },
     saveButtonText: {
-      color: colors.textOnPrimary,
+      color: colors.textInverse,
       fontSize: 14,
       fontWeight: '800',
     },
