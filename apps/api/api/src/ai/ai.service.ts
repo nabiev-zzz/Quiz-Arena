@@ -1,6 +1,7 @@
 
 import {
   Injectable,
+  Logger,
   InternalServerErrorException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -21,6 +22,8 @@ type QuestionData = {
 
 @Injectable()
 export class AiService {
+  private readonly logger = new Logger(AiService.name);
+
   constructor(private readonly configService: ConfigService) {}
 
   private createPrompt(data: QuestionData): string {
@@ -161,7 +164,7 @@ Before returning, verify that the questions array contains exactly ${data.count}
       throw new Error('GROQ_API_KEY sozlanmagan');
     }
 
-    const groq = new Groq({ apiKey });
+    const groq = new Groq({ apiKey, timeout: 90_000, maxRetries: 1 });
     const model =
       this.configService.get<string>('GROQ_MODEL') ||
       'openai/gpt-oss-120b';
@@ -180,6 +183,7 @@ Before returning, verify that the questions array contains exactly ${data.count}
         },
       ],
       temperature: 0.2,
+      max_completion_tokens: 12_000,
       response_format: { type: 'json_object' },
     });
 
@@ -210,6 +214,7 @@ Before returning, verify that the questions array contains exactly ${data.count}
       config: {
         responseMimeType: 'application/json',
         temperature: 0.2,
+        maxOutputTokens: 12_000,
       },
     });
 
@@ -220,92 +225,78 @@ Before returning, verify that the questions array contains exactly ${data.count}
     return response.text;
   }
 
+  private isInvalidGeneratedResponse(error: unknown): boolean {
+    if (error instanceof SyntaxError) return true;
+    if (!(error instanceof Error)) return false;
+    return /Savollar soni|savol formati|Takroriy savollar|JSON/i.test(error.message);
+  }
+
   async generateQuestions(data: QuestionData) {
     const basePrompt = this.createPrompt(data);
-
     const providers = [
-      {
-        name: 'Groq',
-        generate: (prompt: string) => this.generateWithGroq(prompt),
-      },
-      {
-        name: 'Gemini',
-        generate: (prompt: string) => this.generateWithGemini(prompt),
-      },
+      ...(this.configService.get<string>('GROQ_API_KEY')
+        ? [{ name: 'Groq', generate: (prompt: string) => this.generateWithGroq(prompt) }]
+        : []),
+      ...(this.configService.get<string>('GEMINI_API_KEY')
+        ? [{ name: 'Gemini', generate: (prompt: string) => this.generateWithGemini(prompt) }]
+        : []),
     ];
+
+    if (providers.length === 0) {
+      this.logger.error('AI savol yaratish to‘xtatildi: hech bir AI provayderi sozlanmagan.');
+      throw new ServiceUnavailableException(
+        'AI xizmati hozircha sozlanmagan. Keyinroq urinib ko‘ring.',
+      );
+    }
 
     let hadInvalidResponse = false;
     let lastError: unknown;
 
     for (const provider of providers) {
-      console.log(`AI provayder tekshirilmoqda: ${provider.name}`);
-
+      // Provider API xatosi bo‘lsa, keraksiz takroriy so‘rov yubormasdan keyingisiga o‘tamiz.
       for (let attempt = 1; attempt <= 2; attempt++) {
         try {
-          console.log(`${provider.name}: urinish ${attempt}/2`);
-
-          let prompt = basePrompt;
-
-          if (attempt === 2) {
-            prompt += `
+          const prompt = attempt === 1
+            ? basePrompt
+            : `${basePrompt}
 
 IMPORTANT CORRECTION:
-Your previous response did not pass validation.
-Return a completely new JSON response.
-The questions array MUST contain exactly ${data.count} questions.
-Every question must have exactly 4 options.
-Do not repeat questions.
+The previous response was incomplete or invalid.
+Return exactly ${data.count} complete, unique questions.
+Keep explanations concise, but meaningful.
 Return valid JSON only.
 `;
-          }
 
           const content = await provider.generate(prompt);
           const questions = this.validateQuestions(content, data);
-
-          console.log(
-            `${provider.name}: ${questions.length} ta savol yaratildi.`,
-          );
-
-          // MUHIM TUZATISH:
-          // Savollar tekshiruvdan o'tgach, darhol natijani qaytaramiz.
+          this.logger.log(`${provider.name}: ${questions.length} ta savol muvaffaqiyatli yaratildi.`);
           return questions;
-
         } catch (error) {
           lastError = error;
-
-          if (
-            error instanceof SyntaxError ||
-            (error instanceof Error &&
-              (
-                error.message.includes('Savollar soni') ||
-                error.message.includes('savol formati') ||
-                error.message.includes('Takroriy savollar') ||
-                error.message.includes('JSON')
-              ))
-          ) {
+          const invalidResponse = this.isInvalidGeneratedResponse(error);
+          if (invalidResponse) {
             hadInvalidResponse = true;
+            this.logger.warn(`${provider.name}: AI javobi tekshiruvdan o‘tmadi (urinish ${attempt}/2).`);
+            if (attempt === 1) continue;
+          } else {
+            this.logger.warn(`${provider.name}: provayder so‘rovi bajarilmadi; keyingi provayder tekshiriladi.`);
           }
-
-          console.error(
-            `${provider.name}: ${attempt}-urinish muvaffaqiyatsiz.`,
-            error instanceof Error ? error.message : error,
-          );
+          break;
         }
       }
-
-      console.log(
-        `${provider.name} ishlamadi. Keyingi AI provayderga o'tilmoqda.`,
-      );
     }
 
-    console.error('Barcha AI provayderlarida xatolik:', lastError);
-
     if (hadInvalidResponse) {
+      this.logger.error('AI provayderlari to‘liq va to‘g‘ri savollar to‘plamini qaytara olmadi.');
       throw new InternalServerErrorException(
         "AI savollarni kerakli formatda yarata olmadi. Qayta urinib ko'ring.",
       );
     }
 
+    this.logger.error(
+      'Barcha sozlangan AI provayderlari vaqtincha mavjud emas.',
+      lastError instanceof Error ? lastError.message : undefined,
+    );
     throw new ServiceUnavailableException(
       'AI xizmatlari vaqtincha ishlamayapti. Keyinroq urinib ko\'ring.',
     );
