@@ -28,6 +28,7 @@ import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, 
 import { getProfileAchievements } from '../utils/profileAchievements';
 
 interface ProfileScreenProps {
+  onClosePress?: () => void;
   onSettingsPress?: () => void;
   onPremiumPress?: () => void;
   onUserPress?: (username: string) => void;
@@ -35,6 +36,7 @@ interface ProfileScreenProps {
 }
 
 export default function ProfileScreen({
+  onClosePress,
   onSettingsPress,
   onPremiumPress,
   onUserPress,
@@ -76,6 +78,7 @@ export default function ProfileScreen({
   });
 
   const { user, updateProfile, logout } = useAuth();
+  const [activeProfileTab, setActiveProfileTab] = useState<'main' | 'board' | 'activity' | 'wishlist'>('main');
   const [editVisible, setEditVisible] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
@@ -253,16 +256,11 @@ export default function ProfileScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View>
-            <Text style={styles.eyebrow}>QUIZ ARENA</Text>
-            <Text style={styles.headerTitle}>Profil</Text>
-          </View>
-          <Pressable
-            style={styles.headerButton}
-            onPress={onSettingsPress}
-            accessibilityRole="button"
-            accessibilityLabel="Sozlamalarni ochish"
-          >
+          <Pressable style={styles.headerButton} onPress={onClosePress} accessibilityRole="button" accessibilityLabel="Profilni yopish">
+            <Ionicons name="close" size={22} color={colors.text} />
+          </Pressable>
+          <Text style={styles.profileHeaderLabel}>PROFILE</Text>
+          <Pressable style={styles.headerButton} onPress={onSettingsPress} accessibilityRole="button" accessibilityLabel="Sozlamalarni ochish">
             <Ionicons name="settings-outline" size={21} color={colors.text} />
           </Pressable>
         </View>
@@ -316,7 +314,11 @@ export default function ProfileScreen({
                   <Ionicons name="copy-outline" size={15} color={colors.textMuted} />
                 </Pressable>
               </View>
-              <Text style={styles.bio} numberOfLines={3}>{user.bio || 'Tarjimai hol hali kiritilmagan'}</Text>
+              <View style={styles.profileBadges}>
+                <Ionicons name="trophy" size={19} color="#A78BFA" />
+                <Ionicons name="star" size={19} color="#A78BFA" />
+                <Ionicons name="shield-checkmark" size={19} color="#8D79F6" />
+              </View>
             </View>
           </View>
 
@@ -358,6 +360,42 @@ export default function ProfileScreen({
           </GlassSurface>
         </Pressable>
 
+        <View style={styles.profileTabs}>
+          {([
+            ['main', 'Main'],
+            ['board', 'Board'],
+            ['activity', 'Activity'],
+            ['wishlist', 'Wishlist'],
+          ] as const).map(([key, label]) => (
+            <Pressable key={key} style={styles.profileTab} onPress={() => setActiveProfileTab(key)}>
+              <Text style={[styles.profileTabText, activeProfileTab === key && styles.profileTabTextActive]}>{label}</Text>
+              {activeProfileTab === key ? <View style={styles.profileTabUnderline} /> : null}
+            </Pressable>
+          ))}
+        </View>
+
+        {activeProfileTab === 'main' ? (
+          <>
+            <Pressable onPress={onPremiumPress} style={styles.profileShopCard}>
+              <View style={styles.profileShopIcon}><Ionicons name="storefront-outline" size={22} color="#A78BFA" /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.profileShopTitle}>Shop</Text>
+                <Text style={styles.profileShopSubtitle}>Premium tariflari va maxsus imkoniyatlar</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={19} color="#A78BFA" />
+            </Pressable>
+            <GlassSurface intensity={glassIntensity} style={styles.profileBioCard}>
+              <View style={styles.profileBioAccent} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.profileBioTitle}>Bio</Text>
+                <Text style={styles.profileBioText}>{user.bio?.trim() || 'Tarjimai hol hali kiritilmagan'}</Text>
+              </View>
+            </GlassSurface>
+          </>
+        ) : null}
+
+        {activeProfileTab === 'main' ? (
+          <>
         <View style={styles.socialHeading}>
           <View>
             <Text style={styles.sectionEyebrow}>COMMUNITY</Text>
@@ -401,7 +439,11 @@ export default function ProfileScreen({
           })}
           {suggestions.length === 0 ? <Text style={styles.noSuggestions}>Hozircha yangi tavsiyalar yo‘q</Text> : null}
         </ScrollView>
+          </>
+        ) : null}
 
+        {activeProfileTab === 'board' ? (
+          <>
         <View style={styles.sectionHeading}>
           <View>
             <Text style={styles.sectionEyebrow}>YOUR PROGRESS</Text>
@@ -433,7 +475,11 @@ export default function ProfileScreen({
             <Text style={styles.statLabel}>Reyting RP</Text>
           </GlassSurface>
         </View>
+          </>
+        ) : null}
 
+        {activeProfileTab === 'activity' ? (
+          <>
         <View style={styles.sectionHeading}>
           <View>
             <Text style={styles.sectionEyebrow}>ACHIEVEMENTS</Text>
@@ -450,7 +496,11 @@ export default function ProfileScreen({
           ))}
           {getProfileAchievements(user.xp ?? 0, user.level ?? 1, rankPoints).every((item) => !item.unlocked) ? <Text style={styles.noSuggestions}>Yutuqlar hali qo‘lga kiritilmagan</Text> : null}
         </ScrollView>
+          </>
+        ) : null}
 
+        {activeProfileTab === 'board' ? (
+          <>
         <View style={styles.sectionHeading}>
           <View>
             <Text style={styles.sectionEyebrow}>COMPETITIVE STATUS</Text>
@@ -493,7 +543,11 @@ export default function ProfileScreen({
             </Text>
           </View>
         </GlassSurface>
+          </>
+        ) : null}
 
+        {activeProfileTab === 'wishlist' ? (
+          <>
         <View style={styles.sectionHeading}>
           <View>
             <Text style={styles.sectionEyebrow}>COLLECTION</Text>
@@ -543,6 +597,8 @@ export default function ProfileScreen({
             <Text style={styles.cosmeticAction}>Sozlash</Text>
           </GlassSurface>
         </Pressable>
+          </>
+        ) : null}
 
         <Pressable
           style={styles.logoutButton}
@@ -685,7 +741,7 @@ function makeStyles(
     },
     content: {
       paddingHorizontal: 18,
-      paddingTop: 12,
+      paddingTop: 8,
       paddingBottom: 132,
     },
     ambientGlowTop: {
@@ -716,8 +772,23 @@ function makeStyles(
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 19,
+      marginBottom: 16,
     },
+    profileHeaderLabel: { color: '#A79BCB', fontSize: 11, fontWeight: '800', letterSpacing: 2.2 },
+    profileTabs: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: 'rgba(155,126,220,0.18)', marginTop: 8, marginBottom: 18 },
+    profileTab: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 48, gap: 10 },
+    profileTabText: { color: '#80759F', fontSize: 13, fontWeight: '700' },
+    profileTabTextActive: { color: '#F4F0FF' },
+    profileTabUnderline: { height: 3, width: '72%', borderRadius: 3, backgroundColor: '#6B3FD4' },
+    profileShopCard: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, borderRadius: 19, borderWidth: 1, borderColor: glassBorder, backgroundColor: glassFill, marginBottom: 12 },
+    profileShopIcon: { width: 43, height: 43, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(107,63,212,0.16)' },
+    profileShopTitle: { color: '#F4F0FF', fontSize: 15, fontWeight: '800' },
+    profileShopSubtitle: { color: '#9489B2', fontSize: 11, marginTop: 4 },
+    profileBioCard: { flexDirection: 'row', alignItems: 'stretch', gap: 12, padding: 16, borderRadius: 19, borderWidth: 1, borderColor: glassBorder, backgroundColor: glassFill, marginBottom: 4 },
+    profileBioAccent: { width: 4, borderRadius: 4, backgroundColor: '#6B3FD4' },
+    profileBioTitle: { color: '#F4F0FF', fontSize: 15, fontWeight: '800' },
+    profileBioText: { color: '#9489B2', fontSize: 12, lineHeight: 18, marginTop: 5 },
+    profileBadges: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 13, marginTop: 9 },
     eyebrow: {
       color: colors.textMuted,
       fontSize: 9,
@@ -811,8 +882,8 @@ function makeStyles(
       alignItems: 'center',
     },
     avatarStage: {
-      width: 124,
-      height: 124,
+      width: 154,
+      height: 154,
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: 0,
@@ -820,9 +891,9 @@ function makeStyles(
     },
     avatarHalo: {
       position: 'absolute',
-      width: 116,
-      height: 116,
-      borderRadius: 58,
+      width: 146,
+      height: 146,
+      borderRadius: 73,
       borderWidth: 1,
       borderColor: isDark
         ? 'rgba(198, 179, 255, 0.40)'
@@ -832,9 +903,9 @@ function makeStyles(
         : 'rgba(255, 255, 255, 0.38)',
     },
     avatarBorder: {
-      width: 104,
-      height: 104,
-      borderRadius: 52,
+      width: 132,
+      height: 132,
+      borderRadius: 66,
       padding: 3,
       backgroundColor: isDark
         ? 'rgba(208, 194, 255, 0.54)'
@@ -894,7 +965,7 @@ function makeStyles(
     },
     displayName: {
       color: '#FFFFFF',
-      fontSize: 24,
+      fontSize: 30,
       fontWeight: '800',
       letterSpacing: -0.45,
       maxWidth: '100%',
@@ -921,7 +992,7 @@ function makeStyles(
       color: '#A78BFA',
       fontSize: 13,
       fontWeight: '600',
-      marginTop: 4,
+      marginTop: 5,
     },
     bio: {
       color: '#A49BB8',

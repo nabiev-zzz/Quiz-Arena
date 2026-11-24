@@ -296,6 +296,7 @@ function AppContent() {
 
       return (
         <ProfileScreen
+          onClosePress={() => openTab('home')}
           onSettingsPress={() => setShowSettings(true)}
           onPremiumPress={() => setShowPremium(true)}
           onUserPress={(username) => setSelectedPublicUsername(username === 'discover' ? '__discover__' : username)}
