@@ -602,7 +602,7 @@ const definitions = [
       "Reading, writing and communication"
     ]
   }
-];
+] as const;
 
 export const subjects: Subject[] = definitions.map((subject) => {
   const topics = subject.legacy.map(([id, name, description, difficulty]) => ({ id, name, description, questionCount: 20, difficulty }));
@@ -613,7 +613,7 @@ export const subjects: Subject[] = definitions.map((subject) => {
       const name = `${moduleName} — ${facets[facetIndex]}`;
       if (used.has(name.toLocaleLowerCase())) continue;
       used.add(name.toLocaleLowerCase());
-      const id = `${moduleName.normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 46)}-${facetIndex + 1}`;
+      const id = `${moduleName.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 46)}-${facetIndex + 1}`;
       topics.push({ id, name, description: `${moduleName} mavzusining ${facets[facetIndex].toLowerCase()} bo‘yicha testlari`, questionCount: 20, difficulty: facetIndex === 4 ? 'hard' : facetIndex === 0 ? 'easy' : 'medium' });
     }
   }
