@@ -108,7 +108,6 @@ export default function LiquidDock({
   onSelect,
   bottomInset,
   scrollStretch,
-  blurTarget,
 }: Props) {
   const { isDark, tokens } = useTheme();
   const [dockWidth, setDockWidth] = useState(0);
