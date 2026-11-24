@@ -63,7 +63,7 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
             <Text style={styles.username}>@{profile.username}</Text>
             {!!profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
           </View>
-        </View>}
+        </View>
         <View style={styles.counts}>
           <View style={styles.count}><Text style={styles.countNumber}>{profile.followersCount}</Text><Text style={styles.countLabel}>Kuzatuvchilar</Text></View>
           <View style={styles.separator} />
