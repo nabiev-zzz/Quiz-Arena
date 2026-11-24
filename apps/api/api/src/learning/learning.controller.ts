@@ -7,10 +7,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import {
-  CreateLearningAttemptInput,
-  LearningService,
-} from './learning.service';
+import { LearningService } from './learning.service';
+import type { CreateLearningAttemptInput } from './learning.service';
 
 interface AuthenticatedRequest {
   user: { id: string };
