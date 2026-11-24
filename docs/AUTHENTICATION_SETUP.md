@@ -10,7 +10,8 @@ Set these variables on the Railway API service. Do not commit credentials or put
 | --- | --- |
 | `ESKIZ_EMAIL` | Eskiz account email used by the server to request an SMS API token |
 | `ESKIZ_PASSWORD` | Eskiz API password |
-| `ESKIZ_FROM` | Optional approved sender name/ID |
+| `ESKIZ_FROM` | Approved sender name/ID (defaults to `4546`) |
+| `ESKIZ_OTP_TEMPLATE` | Eskiz-approved SMS text containing the `{code}` placeholder |
 | `GOOGLE_CLIENT_ID` | Google OAuth 2.0 Web application client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 Web application client secret |
 | `GOOGLE_REDIRECT_URI` | Exact public callback URL: `https://humorous-imagination-production.up.railway.app/api/auth/google/callback` |
@@ -21,8 +22,9 @@ Keep the existing `JWT_SECRET` configured. It is used to sign the existing appli
 
 1. Create or sign in to an Eskiz business account and enable the SMS API.
 2. Confirm that the account has SMS balance and an approved sender name if one is required.
-3. Add `ESKIZ_EMAIL`, `ESKIZ_PASSWORD`, and optionally `ESKIZ_FROM` to Railway Variables.
-4. The backend requests and caches the Eskiz bearer token server-side. The token and OTP values are never returned to the app or written to logs.
+3. Register and get Eskiz to approve a sender name and an OTP SMS template. The template must contain the literal `{code}` placeholder.
+4. Add `ESKIZ_EMAIL`, `ESKIZ_PASSWORD`, `ESKIZ_OTP_TEMPLATE`, and optionally `ESKIZ_FROM` to Railway Variables.
+5. The backend requests and caches the Eskiz bearer token server-side. The token and OTP values are never returned to the app or written to logs.
 
 SMS codes expire after five minutes. Each code allows up to five verification attempts. A phone/purpose pair is limited to one new code per 60 seconds and three codes per hour.
 
