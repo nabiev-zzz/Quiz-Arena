@@ -79,6 +79,7 @@ export default function QuizScreen({
   const [explainingQuestionIds, setExplainingQuestionIds] = useState<Record<string, boolean>>({});
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
   const savedAttemptKey = useRef<string | null>(null);
+  const reviewSyncQueue = useRef<Promise<void>>(Promise.resolve());
 
   const loadQuestions = useCallback(async () => {
     savedAttemptKey.current = null;
@@ -192,7 +193,10 @@ export default function QuizScreen({
       explanation: question.explanation || '',
       aiExplanation: aiExplanations[question.id] || '',
     }));
-    void updateLearningAttemptReview(attemptId, review).catch(() => undefined);
+    reviewSyncQueue.current = reviewSyncQueue.current
+      .catch(() => undefined)
+      .then(async () => { await updateLearningAttemptReview(attemptId, review); })
+      .catch(() => undefined);
   }, [attemptId, questions, answers, aiExplanations]);
 
   const chooseAnswer = (index: number) => {
