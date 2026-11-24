@@ -31,7 +31,7 @@ describe('subscription plan entitlements', () => {
     expect(free.documentQuiz.monthlyLimit).toBeLessThan(premium.documentQuiz.monthlyLimit);
     expect(premium.documentQuiz.monthlyLimit).toBeLessThan(pro.documentQuiz.monthlyLimit);
     expect(pro.documentQuiz.monthlyLimit).toBeLessThan(legend.documentQuiz.monthlyLimit);
-    expect(free.privateBattle.maxPlayers).toBeLessThan(legend.privateBattle.maxPlayers);
+    expect(free.privateBattle.dailyLimit).toBeLessThan(legend.privateBattle.dailyLimit);
   });
 
   it('reserves Legend status and elite tournaments for LEGENDA+', () => {
