@@ -762,12 +762,15 @@ function makeStyles(
     },
     heroHighlight: {
       position: 'absolute',
-      top: -95,
-      right: -80,
-      width: 170,
-      height: 170,
-      borderRadius: 85,
-      backgroundColor: isDark ? 'rgba(142, 116, 220, 0.07)' : 'rgba(255,255,255,0.2)',
+      top: -65,
+      right: -35,
+      width: 175,
+      height: 130,
+      borderRadius: 90,
+      backgroundColor: isDark
+        ? 'rgba(180, 157, 255, 0.10)'
+        : 'rgba(255, 255, 255, 0.52)',
+      transform: [{ rotate: '-18deg' }],
     },
     heroTopLine: {
       flexDirection: 'row',
