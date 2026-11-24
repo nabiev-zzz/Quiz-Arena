@@ -1,6 +1,6 @@
 import { LocalizedText } from '../../i18n/LocalizedText';
 import React, { useMemo, useState } from 'react';
-import { RefreshControl, StyleSheet, NativeText, View, useWindowDimensions } from 'react-native';
+import { RefreshControl, StyleSheet, Text as NativeText, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
