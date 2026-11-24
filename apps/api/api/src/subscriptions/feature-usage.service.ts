@@ -27,21 +27,23 @@ export class FeatureUsageService {
   }
 
   async consume(userId: string, featureKey: string) {
-    if (!['statsPdf', 'documentQuiz', 'privateBattle', 'smartPractice'].includes(featureKey)) {
+    if (!['statsPdf', 'documentQuiz', 'privateBattle', 'smartPractice', 'aiTutor'].includes(featureKey)) {
       throw new BadRequestException('Funksiya nomi noto‘g‘ri.');
     }
 
     const feature = featureKey as MeteredFeature;
     const current = await this.subscriptions.current(userId);
     const entitlement = current.entitlements;
-    const isDaily = feature === 'privateBattle' || feature === 'smartPractice';
+    const isDaily = feature === 'privateBattle' || feature === 'smartPractice' || feature === 'aiTutor';
     const limit = feature === 'statsPdf'
       ? entitlement.statsPdf.monthlyLimit
       : feature === 'documentQuiz'
         ? entitlement.documentQuiz.monthlyLimit
         : feature === 'privateBattle'
           ? entitlement.privateBattle.dailyLimit
-          : entitlement.smartPractice.dailyLimit;
+          : feature === 'smartPractice'
+            ? entitlement.smartPractice.dailyLimit
+            : entitlement.aiTutor.available ? entitlement.aiTutor.dailyMessages : 0;
 
     if (limit === null) {
       return { allowed: true, featureKey: feature, tier: current.tier, period: 'unlimited', limit: null, used: null, remaining: null };
