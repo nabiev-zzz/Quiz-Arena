@@ -35,6 +35,7 @@ export interface UpdateProfileInput {
   displayName?: string;
   username?: string;
   bio?: string | null;
+  avatarUrl?: string | null;
   avatarDecoration?: string | null;
   profileFrame?: string | null;
 }
