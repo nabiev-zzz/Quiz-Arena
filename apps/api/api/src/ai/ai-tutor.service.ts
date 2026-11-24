@@ -10,6 +10,7 @@ import Groq from 'groq-sdk';
 import { Repository } from 'typeorm';
 
 import { BattleMatch } from '../battle/entities/battle-match.entity';
+import { FeatureUsageService } from '../subscriptions/feature-usage.service';
 import { User } from '../users/entities/user.entity';
 
 import {
@@ -30,6 +31,7 @@ export class AiTutorService {
 
     @InjectRepository(BattleMatch)
     private readonly battleRepository: Repository<BattleMatch>,
+    private readonly featureUsageService: FeatureUsageService,
   ) {}
 
   private async getPreviousMessages(userId: string) {
@@ -218,21 +220,27 @@ Answer the student's new message in the requested language.
     message: string,
     language: 'uz' | 'ru' | 'en' = 'uz',
   ) {
-    const [history, progress] = await Promise.all([
-      this.getPreviousMessages(userId),
-      this.getStudentProgress(userId),
-    ]);
+    const quota = await this.featureUsageService.consume(userId, 'aiTutor');
+    if (!quota.allowed) {
+      throw new ServiceUnavailableException('AI Ustoz uchun kunlik xabar limiti tugagan. Tarifingizni yangilang yoki ertaga qayta urinib ko‘ring.');
+    }
 
-    const prompt = this.createPrompt(
-      message.trim(),
-      language,
-      history,
-      progress,
-    );
+    try {
+      const [history, progress] = await Promise.all([
+        this.getPreviousMessages(userId),
+        this.getStudentProgress(userId),
+      ]);
 
-    const answer = await this.generateAnswer(prompt);
+      const prompt = this.createPrompt(
+        message.trim(),
+        language,
+        history,
+        progress,
+      );
 
-    const userMessage = this.messageRepository.create({
+      const answer = await this.generateAnswer(prompt);
+
+      const userMessage = this.messageRepository.create({
       userId,
       role: 'user' as AiTutorMessageRole,
       content: message.trim(),
@@ -244,15 +252,20 @@ Answer the student's new message in the requested language.
       content: answer,
     });
 
-    const savedMessages = await this.messageRepository.save([
-      userMessage,
-      assistantMessage,
-    ]);
+      const savedMessages = await this.messageRepository.save([
+        userMessage,
+        assistantMessage,
+      ]);
 
-    return {
-      userMessage: savedMessages[0],
-      assistantMessage: savedMessages[1],
-    };
+      return {
+        userMessage: savedMessages[0],
+        assistantMessage: savedMessages[1],
+        usage: quota,
+      };
+    } catch (error) {
+      try { await this.featureUsageService.refund(userId, 'aiTutor'); } catch { /* Preserve the original AI error. */ }
+      throw error;
+    }
   }
 
   async getHistory(userId: string) {
