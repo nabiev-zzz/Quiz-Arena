@@ -1,5 +1,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
+import Animated, {
+  useAnimatedScrollHandler,
+  useSharedValue,
+  withSpring,
+  type SharedValue,
+} from 'react-native-reanimated';
 import {
   ActivityIndicator,
   Pressable,
@@ -21,16 +27,41 @@ interface QuizScreenProps {
   subject: Subject;
   topic: Topic;
   onBack: () => void;
+  dockStretch?: SharedValue<number>;
 }
 
 export default function QuizScreen({
   subject,
   topic,
   onBack,
+  dockStretch,
 }: QuizScreenProps) {
   const { tokens } = useTheme();
   const colors = tokens.colors;
   const styles = makeStyles(colors);
+  const lastDockScrollY = useSharedValue(0);
+  const dockScrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      if (!dockStretch) return;
+      const nextY = event.contentOffset.y;
+      const delta = nextY - lastDockScrollY.value;
+      lastDockScrollY.value = nextY;
+      dockStretch.value = withSpring(
+        Math.max(-1, Math.min(1, delta / 30)),
+        { damping: 11, stiffness: 160, mass: 0.7 },
+      );
+    },
+    onEndDrag: () => {
+      if (dockStretch) {
+        dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 });
+      }
+    },
+    onMomentumEnd: () => {
+      if (dockStretch) {
+        dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 });
+      }
+    },
+  });
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -174,7 +205,9 @@ export default function QuizScreen({
   if (!currentQuestion) return null;
 
   return (
-    <ScrollView
+    <Animated.ScrollView
+      onScroll={dockScrollHandler}
+      scrollEventThrottle={16}
       style={styles.container}
       contentContainerStyle={styles.content}
     >
@@ -254,7 +287,7 @@ export default function QuizScreen({
       )}
 
       <Text style={styles.scoreText}>Joriy ball: {score}</Text>
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 
@@ -267,7 +300,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   content: {
     paddingHorizontal: 18,
     paddingTop: 8,
-    paddingBottom: 44,
+    paddingBottom: 128,
   },
   center: {
     flex: 1,
