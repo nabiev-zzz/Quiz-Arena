@@ -40,7 +40,7 @@ export class AuthController {
 
   @Post('register')
   register(@Body() dto: RegisterDto) {
-    return this.emailAuthService.register(dto);
+    return this.authService.register(dto);
   }
 
   @Post('email/verification/request')
