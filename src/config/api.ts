@@ -7,4 +7,4 @@ const PRODUCTION_API_URL =
 // try to reach the developer's laptop. Set EXPO_PUBLIC_API_URL to override it.
 export const API_BASE_URL = (
   configuredApiUrl || PRODUCTION_API_URL
-).replace(/\\/+$/, '');
+).replace(/\/+$/, '');
