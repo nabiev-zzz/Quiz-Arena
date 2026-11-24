@@ -2,7 +2,7 @@
   "use strict";
   const API = "https://humorous-imagination-production.up.railway.app";
   const $ = (id) => document.getElementById(id);
-  const state = { token: localStorage.getItem("qa_access_token") || "", user: null, subjects: [], subject: null, topic: null, questions: [], index: 0, score: 0, selected: null, count: 10, difficulty: "medium", language: "uz", saved: false, saveError: false };
+  const state = { token: localStorage.getItem("qa_access_token") || "", user: null, subjects: [], subject: null, topic: null, questions: [], answers: [], result: null, index: 0, score: 0, selected: null, count: 10, difficulty: "medium", language: "uz", saved: false, saveError: false };
   const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[char]));
   const show = (el, visible = true) => el.classList.toggle("hidden", !visible);
   const notice = (message, error = false) => { const el=$("globalNotice"); el.textContent=message; el.className="notice"+(error?" error":""); show(el,true); window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"}); };
@@ -97,40 +97,49 @@
     state.count=Number($("questionCount").value); state.difficulty=$("difficulty").value; state.language=$("testLanguage").value;
     $("quizPanel").innerHTML='<div class="loading"><div class="spinner"></div>Test savollari yuklanmoqda...</div>';
     try {
-      const result=await request("/api/learning/questions",{method:"POST",body:JSON.stringify({subjectId:state.subject.id,topicId:state.topic.id,count:state.count,difficulty:state.difficulty,language:state.language})});
+      const result=await request("/api/learning/web/questions",{method:"POST",body:JSON.stringify({subjectId:state.subject.id,topicId:state.topic.id,count:state.count,difficulty:state.difficulty,language:state.language})});
       if(!Array.isArray(result.questions)||result.questions.length!==state.count) throw new Error("Savollar soni mos kelmadi. Qayta urinib ko‘ring.");
-      state.questions=result.questions; state.index=0; state.score=0; state.selected=null; state.saved=false; state.saveError=false;
+      state.questions=result.questions; state.answers=[]; state.result=null; state.index=0; state.score=0; state.selected=null; state.saved=false; state.saveError=false;
       renderQuestion();
     } catch(error) { $("quizPanel").innerHTML=`<p class="notice error">${escapeHtml(error.message)}</p><button id="retryLoad" class="primary" type="button">Qayta urinish</button>`; $("retryLoad").addEventListener("click",startQuiz); }
   }
   function renderQuestion() {
     const q=state.questions[state.index]; if(!q)return finishQuiz();
     const letters=["A","B","C","D"];
-    $("quizPanel").innerHTML=`<div class="quiz-top"><span>${escapeHtml(state.subject.name)} · ${escapeHtml(state.topic.name)}</span><span>${state.index+1} / ${state.questions.length}</span></div><div class="progress"><span style="width:${((state.index+1)/state.questions.length)*100}%"></span></div><h2 class="question-title">${escapeHtml(q.question)}</h2><div class="answer-list">${q.options.map((option,index)=>{let cls="";if(state.selected!==null&&index===q.correctAnswer)cls=" correct";else if(state.selected===index&&index!==q.correctAnswer)cls=" wrong";return `<button class="answer-option${cls}" data-answer="${index}" type="button" ${state.selected!==null?"disabled":""}><span class="letter">${letters[index]}</span><span>${escapeHtml(option)}</span></button>`;}).join("")}</div>${state.selected===null?"":`<div class="explanation"><b>${state.selected===q.correctAnswer?"To‘g‘ri javob!":"To‘g‘ri javob: "+letters[q.correctAnswer]}</b><br>${escapeHtml(q.explanation)}</div>`}<div class="quiz-footer"><span class="muted">To‘g‘ri javoblar: ${state.score}</span>${state.selected===null?'<span class="muted">Javobni tanlang</span>':`<button id="nextQuestion" class="primary" type="button">${state.index===state.questions.length-1?"Natijani ko‘rish":"Keyingi savol"} <span>→</span></button>`}</div>`;
+    $("quizPanel").innerHTML=`<div class="quiz-top"><span>${escapeHtml(state.subject.name)} · ${escapeHtml(state.topic.name)}</span><span>${state.index+1} / ${state.questions.length}</span></div><div class="progress"><span style="width:${((state.index+1)/state.questions.length)*100}%"></span></div><h2 class="question-title">${escapeHtml(q.question)}</h2><div class="answer-list">${q.options.map((option,index)=>{let cls="";if(state.selected!==null&&index===state.selected)cls="";return `<button class="answer-option${cls}" data-answer="${index}" type="button" ${state.selected!==null?"disabled":""}><span class="letter">${letters[index]}</span><span>${escapeHtml(option)}</span></button>`;}).join("")}</div>${state.selected===null?"":'<div class="explanation">Javobingiz qabul qilindi. To‘g‘ri javob va tushuntirish test yakunida ko‘rsatiladi.</div>'}<div class="quiz-footer"><span class="muted">To‘g‘ri javoblar: ${state.score}</span>${state.selected===null?'<span class="muted">Javobni tanlang</span>':`<button id="nextQuestion" class="primary" type="button">${state.index===state.questions.length-1?"Natijani ko‘rish":"Keyingi savol"} <span>→</span></button>`}</div>`;
     $("quizPanel").querySelectorAll("[data-answer]").forEach((button)=>button.addEventListener("click",()=>chooseAnswer(Number(button.dataset.answer))));
     $("nextQuestion")?.addEventListener("click",()=>{state.index++;state.selected=null;renderQuestion();});
   }
   function chooseAnswer(index) {
     if(state.selected!==null)return;
-    state.selected=index; if(index===state.questions[state.index].correctAnswer)state.score++;
+    state.selected=index;
+    state.answers[state.index]={questionId:state.questions[state.index].id,selectedAnswer:index};
     renderQuestion();
   }
   async function finishQuiz() {
-    $("quizPanel").innerHTML='<div class="loading"><div class="spinner"></div>Natijangiz saqlanmoqda...</div>';
+    $("quizPanel").innerHTML='<div class="loading"><div class="spinner"></div>Javoblar serverda tekshirilmoqda va natijangiz saqlanmoqda...</div>';
     try {
-      await request("/api/learning/attempts",{method:"POST",body:JSON.stringify({subjectId:state.subject.id,subjectName:state.subject.name,topicId:state.topic.id,topicName:state.topic.name,totalQuestions:state.questions.length,correctAnswers:state.score})});
-      state.saved=true;
+      state.result=await request("/api/learning/web/attempts",{method:"POST",body:JSON.stringify({subjectId:state.subject.id,topicId:state.topic.id,language:state.language,difficulty:state.difficulty,answers:state.answers})});
+      state.score=state.result.correctAnswers; state.saved=true;
     } catch(error) { state.saveError=true; state.saveMessage=error.message; }
     renderResult();
     try { const stats=await request("/api/learning/stats"); renderStats(stats); renderRecent(stats.recentAttempts||[]); } catch {}
   }
   function renderResult() {
-    const percent=Math.round(state.score/state.questions.length*100);
-    show($("quizPanel"),false); show($("resultPanel"),true);
-    $("resultPanel").innerHTML=`<div class="result-icon">${percent>=80?"🏆":percent>=50?"✨":"📘"}</div><h2>Test yakunlandi!</h2><div class="result-score">${state.score} / ${state.questions.length}</div><p>${percent}% aniqlik · ${state.saved?"Natija akkauntingizga saqlandi.": "Natijani saqlashda muammo yuz berdi."}</p>${state.saveError?`<p class="notice error">${escapeHtml(state.saveMessage||"Natijani saqlab bo‘lmadi.")}</p>`:''}<div class="result-actions"><button id="retryQuiz" class="primary" type="button">Yana test ishlash ↻</button><button id="backToTopics" class="ghost" type="button">Mavzularga qaytish</button></div>`;
+    const result=state.result;
+    if(!result) {
+      show($("quizPanel"),false); show($("resultPanel"),true);
+      $("resultPanel").innerHTML=`<div class="result-icon">⚠️</div><h2>Natijani saqlab bo‘lmadi</h2><p>${escapeHtml(state.saveMessage||"Server bilan aloqa uzildi. Internetni tekshirib qayta urinib ko‘ring.")}</p><div class="result-actions"><button id="retryQuiz" class="primary" type="button">Testni qayta boshlash ↻</button><button id="backToTopics" class="ghost" type="button">Mavzularga qaytish</button></div>`;
+    } else {
+      const percent=Math.round(result.accuracy);
+      const letters=["A","B","C","D"];
+      const review=result.review.map((item,index)=>`<article class="review-item"><div class="review-heading"><b>${index+1}. ${escapeHtml(item.question)}</b><span class="${item.isCorrect?"good":"bad"}">${item.isCorrect?"To‘g‘ri":"Noto‘g‘ri"}</span></div><p class="muted">Sizning javobingiz: ${letters[item.selectedAnswer]}. ${escapeHtml(item.options[item.selectedAnswer])}</p><p class="muted">To‘g‘ri javob: ${letters[item.correctAnswer]}. ${escapeHtml(item.options[item.correctAnswer])}</p><div class="explanation">${escapeHtml(item.explanation)}</div></article>`).join("");
+      show($("quizPanel"),false); show($("resultPanel"),true);
+      $("resultPanel").innerHTML=`<div class="result-icon">${percent>=80?"🏆":percent>=50?"✨":"📘"}</div><h2>Test yakunlandi!</h2><div class="result-score">${result.correctAnswers} / ${result.totalQuestions}</div><p>${percent}% aniqlik · Natija serverda tekshirildi va akkauntingizga saqlandi.</p><div class="review-list"><h3>Javoblar tahlili</h3>${review}</div><div class="result-actions"><button id="retryQuiz" class="primary" type="button">Yana test ishlash ↻</button><button id="backToTopics" class="ghost" type="button">Mavzularga qaytish</button></div>`;
+    }
     $("retryQuiz").addEventListener("click",startQuiz);
     $("backToTopics").addEventListener("click",()=>{show($("resultPanel"),false);show($("quizPanel"),false);$("topicsPanel").scrollIntoView({behavior:"smooth"});});
-    $("resultPanel").scrollIntoView({behavior:"smooth",block:"center"});
+    $("resultPanel").scrollIntoView({behavior:"smooth",block:"start"});
   }
   document.querySelectorAll("[data-auth]").forEach((button)=>button.addEventListener("click",()=>setAuthMode(button.dataset.auth)));
   $("loginForm").addEventListener("submit",(event)=>{event.preventDefault();void authenticate(event.currentTarget,"login");});
