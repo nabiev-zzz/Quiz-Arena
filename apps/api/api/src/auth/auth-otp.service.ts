@@ -67,22 +67,40 @@ export class AuthOtpService {
   }
 
   private async sendSms(phone: string, code: string): Promise<void> {
-    const token = await this.getEskizToken();
-    const body = new FormData();
-    body.set('mobile_phone', phone);
-    body.set('message', `QUIZ ARENA tasdiqlash kodi: ${code}. Kod 5 daqiqa amal qiladi. Uni hech kimga bermang.`);
-    const sender = this.config.get<string>('ESKIZ_FROM');
-    if (sender) body.set('from', sender);
-
-    const response = await fetch('https://notify.eskiz.uz/api/message/sms/send', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body,
-    });
-    if (!response.ok) {
-      this.eskizToken = null;
-      throw new ServiceUnavailableException('SMS yuborilmadi. Birozdan keyin qayta urinib ko‘ring');
+    const template = this.config.get<string>('ESKIZ_OTP_TEMPLATE')
+      ?? 'QUIZ ARENA tasdiqlash kodi: {code}. Kod 5 daqiqa amal qiladi. Uni hech kimga bermang.';
+    if (!template.includes('{code}')) {
+      throw new ServiceUnavailableException('Eskiz SMS shablonida {code} belgisi bo‘lishi kerak');
     }
+    const message = template.replaceAll('{code}', code);
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const token = await this.getEskizToken();
+      const body = new FormData();
+      body.set('mobile_phone', phone);
+      body.set('message', message);
+      body.set('from', this.config.get<string>('ESKIZ_FROM') || '4546');
+
+      const response = await fetch('https://notify.eskiz.uz/api/message/sms/send', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body,
+      });
+      const payload = await response.json().catch(() => null) as
+        | { success?: boolean; status?: string; message?: string }
+        | null;
+
+      if (response.status === 401 && attempt === 0) {
+        this.eskizToken = null;
+        this.eskizTokenExpiresAt = 0;
+        continue;
+      }
+      if (!response.ok || payload?.success === false || payload?.status === 'error') {
+        throw new ServiceUnavailableException('SMS yuborilmadi. Eskiz hisobingiz, shablon va balansni tekshiring.');
+      }
+      return;
+    }
+    throw new ServiceUnavailableException('SMS yuborilmadi. Birozdan keyin qayta urinib ko‘ring');
   }
 
   async issue(phoneInput: string, purpose: AuthOtpPurpose): Promise<void> {
