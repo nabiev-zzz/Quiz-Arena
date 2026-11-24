@@ -50,7 +50,7 @@ interface BattleScreenProps {
 }
 
 const COLORS = {
-  background: '#F4F6FB',
+  background: '#F3F5FC',
   card: '#FFFFFF',
   text: '#172033',
   muted: '#748096',
@@ -129,12 +129,12 @@ export default function BattleScreen({
   const dark = isDark;
 
   const colors = {
-    background: dark ? '#111522' : COLORS.background,
-    card: dark ? '#1D2435' : COLORS.card,
+    background: dark ? '#0B1020' : '#F1F2FA',
+    card: dark ? '#171E31' : 'rgba(255,255,255,0.86)',
     text: dark ? '#F3F5FC' : COLORS.text,
     muted: dark ? '#A1ABC0' : COLORS.muted,
     primary: '#7568F5',
-    border: dark ? '#30394E' : COLORS.border,
+    border: dark ? 'rgba(164,176,215,0.18)' : 'rgba(117,104,245,0.14)',
     success: COLORS.success,
     danger: COLORS.danger,
   };
@@ -721,6 +721,10 @@ export default function BattleScreen({
 
     return (
       <View style={styles.card}>
+        <View style={styles.arenaBadge}>
+          <Ionicons name="flash" size={13} color={colors.primary} />
+          <Text style={styles.arenaBadgeText}>REAL-TIME ARENA</Text>
+        </View>
         <Text style={styles.resultEmoji}>вљ”пёЏ</Text>
         <Text style={styles.cardTitle}>1 ga 1 Battle</Text>
         <Text style={styles.bodyText}>
@@ -1325,6 +1329,8 @@ export default function BattleScreen({
 
   return (
     <View style={styles.screen}>
+      <View pointerEvents="none" style={styles.ambientGlowOne} />
+      <View pointerEvents="none" style={styles.ambientGlowTwo} />
       <View style={styles.header}>
         {onBack ? (
           <Pressable onPress={onBack} style={styles.backButton}>
@@ -1420,14 +1426,53 @@ function makeStyles(colors: typeof COLORS, dark: boolean) {
     screen: {
       flex: 1,
       backgroundColor: colors.background,
+      overflow: 'hidden',
+    },
+    ambientGlowOne: {
+      position: 'absolute',
+      top: -105,
+      right: -95,
+      width: 270,
+      height: 270,
+      borderRadius: 135,
+      backgroundColor: dark ? 'rgba(117,104,245,0.16)' : 'rgba(117,104,245,0.10)',
+    },
+    ambientGlowTwo: {
+      position: 'absolute',
+      bottom: 90,
+      left: -135,
+      width: 260,
+      height: 260,
+      borderRadius: 130,
+      backgroundColor: dark ? 'rgba(63,190,190,0.09)' : 'rgba(76,190,178,0.10)',
+    },
+    arenaBadge: {
+      alignSelf: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      marginBottom: 13,
+      borderRadius: 30,
+      backgroundColor: dark ? 'rgba(117,104,245,0.16)' : 'rgba(101,88,232,0.09)',
+      borderWidth: 1,
+      borderColor: dark ? 'rgba(171,161,255,0.22)' : 'rgba(101,88,232,0.13)',
+    },
+    arenaBadgeText: {
+      color: colors.primary,
+      fontSize: 9,
+      fontWeight: '900',
+      letterSpacing: 1.4,
     },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: 18,
-      paddingTop: 12,
-      paddingBottom: 14,
+      paddingTop: 14,
+      paddingBottom: 16,
       gap: 12,
+      zIndex: 1,
     },
     backButton: {
       width: 38,
@@ -1456,9 +1501,11 @@ function makeStyles(colors: typeof COLORS, dark: boolean) {
       flexDirection: 'row',
       marginHorizontal: 12,
       marginBottom: 12,
-      backgroundColor: colors.card,
-      borderRadius: 14,
-      padding: 4,
+      backgroundColor: dark ? 'rgba(27,34,55,0.78)' : 'rgba(255,255,255,0.72)',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 18,
+      padding: 5,
     },
     tab: {
       flex: 1,
@@ -1468,7 +1515,11 @@ function makeStyles(colors: typeof COLORS, dark: boolean) {
       borderRadius: 10,
     },
     activeTab: {
-      backgroundColor: colors.primary,
+      backgroundColor: dark ? '#7568F5' : '#6554D9',
+      shadowColor: '#7568F5',
+      shadowOpacity: 0.22,
+      shadowRadius: 10,
+      elevation: 3,
     },
     tabText: {
       color: colors.muted,
@@ -1480,6 +1531,7 @@ function makeStyles(colors: typeof COLORS, dark: boolean) {
     },
     content: {
       flex: 1,
+      zIndex: 1,
     },
     contentInner: {
       padding: 14,
@@ -1487,20 +1539,30 @@ function makeStyles(colors: typeof COLORS, dark: boolean) {
       gap: 12,
     },
     card: {
-      backgroundColor: colors.card,
-      borderRadius: 20,
-      padding: 20,
+      backgroundColor: dark ? 'rgba(24,31,51,0.84)' : 'rgba(255,255,255,0.82)',
+      borderRadius: 28,
+      padding: 21,
       alignItems: 'stretch',
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: dark ? 'rgba(177,188,225,0.20)' : 'rgba(255,255,255,0.92)',
+      shadowColor: dark ? '#000000' : '#6B68A8',
+      shadowOpacity: dark ? 0.22 : 0.09,
+      shadowRadius: 24,
+      shadowOffset: { width: 0, height: 12 },
+      elevation: 5,
     },
     listCard: {
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      padding: 16,
+      backgroundColor: dark ? 'rgba(24,31,51,0.82)' : 'rgba(255,255,255,0.80)',
+      borderRadius: 22,
+      padding: 17,
       borderWidth: 1,
       borderColor: colors.border,
-      marginBottom: 10,
+      marginBottom: 11,
+      shadowColor: dark ? '#000000' : '#6B68A8',
+      shadowOpacity: dark ? 0.14 : 0.06,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 7 },
+      elevation: 3,
     },
     statsIntro: {
       paddingHorizontal: 2,
@@ -2192,11 +2254,17 @@ function makeStyles(colors: typeof COLORS, dark: boolean) {
       paddingVertical: 6,
     },
     timer: {
+      alignSelf: 'center',
+      overflow: 'hidden',
       color: colors.primary,
-      fontSize: 27,
+      fontSize: 25,
       fontWeight: '900',
       textAlign: 'center',
-      marginVertical: 12,
+      marginVertical: 13,
+      paddingHorizontal: 22,
+      paddingVertical: 10,
+      borderRadius: 22,
+      backgroundColor: dark ? 'rgba(117,104,245,0.16)' : 'rgba(101,88,232,0.09)',
     },
     questionText: {
       color: colors.text,
@@ -2208,17 +2276,17 @@ function makeStyles(colors: typeof COLORS, dark: boolean) {
     option: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.background,
+      backgroundColor: dark ? 'rgba(39,48,73,0.62)' : 'rgba(246,247,253,0.92)',
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 13,
-      padding: 14,
-      marginTop: 9,
-      gap: 10,
+      borderRadius: 18,
+      padding: 16,
+      marginTop: 10,
+      gap: 11,
     },
     selectedOption: {
       borderColor: colors.primary,
-      backgroundColor: colors.primary + '20',
+      backgroundColor: dark ? 'rgba(117,104,245,0.22)' : 'rgba(101,88,232,0.10)',
     },
     disabledOption: {
       opacity: 0.75,
@@ -2235,11 +2303,16 @@ function makeStyles(colors: typeof COLORS, dark: boolean) {
     },
     actionButton: {
       backgroundColor: colors.primary,
-      paddingVertical: 15,
-      paddingHorizontal: 14,
-      borderRadius: 13,
+      paddingVertical: 16,
+      paddingHorizontal: 16,
+      borderRadius: 18,
       alignItems: 'center',
-      marginTop: 12,
+      marginTop: 14,
+      shadowColor: colors.primary,
+      shadowOpacity: 0.24,
+      shadowRadius: 13,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 4,
     },
     dangerButton: {
       backgroundColor: colors.danger,
