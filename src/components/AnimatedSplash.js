@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import Animated, {
   Easing,
   Extrapolation,
@@ -138,6 +139,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
 
   return (
     <View style={styles.container}>
+      <StatusBar style="light" />
       <Animated.View style={[styles.content, exitStyle]}>
         <View style={styles.logoStage}>
           <Animated.View style={[styles.glow, glowStyle]} />
