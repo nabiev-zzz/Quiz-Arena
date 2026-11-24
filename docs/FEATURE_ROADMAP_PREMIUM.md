@@ -17,7 +17,7 @@ Prices remain configured through the existing Railway environment variables; nev
 
 | Feature | FREE | PREMIUM | PREMIUM PRO | LEGENDA+ |
 |---|---|---|---|---|
-| Statistics PDF export | 1 basic/month | 10 expanded/month | Unlimited + AI insights | Unlimited + detailed AI insights |
+| Statistics PDF export | 1 basic/month | 10 expanded/month | Unlimited detailed reports | Unlimited advanced reports |
 | Document-to-quiz | 1/month, 10 questions, 5 MB | 5/month, 25 questions, 8 MB | 30/month, 50 questions, 12 MB | 100/month, 100 questions, 15 MB |
 | Private Friends Battle | 3/day, 1v1 | 10/day, 1v1 | 20/day, 1v1 | 30/day, 1v1 |
 | Smart Practice | 1/day, basic | 3/day, basic | Unlimited, AI-personalized | Unlimited, AI-personalized + detailed roadmap |
