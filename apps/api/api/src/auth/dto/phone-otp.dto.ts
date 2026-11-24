@@ -52,3 +52,9 @@ export class GoogleAuthDto {
   @MinLength(20)
   idToken: string;
 }
+
+export class GoogleCodeExchangeDto {
+  @IsString()
+  @Matches(/^[A-Za-z0-9_-]{40,60}$/)
+  code: string;
+}
