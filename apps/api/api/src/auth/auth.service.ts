@@ -608,8 +608,33 @@ export class AuthService {
     return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
   }
 
+  private async ensureOwnerAccount(username: string) {
+    const configuredUsername = this.config.get<string>('OWNER_ACCOUNT_USERNAME')?.trim().toLowerCase();
+    const configuredPassword = this.config.get<string>('OWNER_ACCOUNT_PASSWORD');
+
+    if (!configuredUsername || !configuredPassword || username !== configuredUsername) return;
+    if (!/^[a-z0-9_]{3,30}$/.test(configuredUsername) || configuredPassword.length < 20) {
+      throw new ServiceUnavailableException('Owner account configuration is invalid');
+    }
+
+    const existing = await this.userRepository.findOne({ where: { username: configuredUsername } });
+    if (existing) return;
+
+    const passwordHash = await bcrypt.hash(configuredPassword, 12);
+    const owner = this.userRepository.create({
+      displayName: 'QUIZ ARENA Owner',
+      username: configuredUsername,
+      email: null,
+      passwordHash,
+      role: 'admin',
+      status: 'active',
+    });
+    await this.userRepository.save(owner);
+  }
+
   async login(dto: LoginDto) {
     const username = dto.username.trim().toLowerCase();
+    await this.ensureOwnerAccount(username);
     const user = await this.userRepository
       .createQueryBuilder('user')
       .addSelect('user.passwordHash')
