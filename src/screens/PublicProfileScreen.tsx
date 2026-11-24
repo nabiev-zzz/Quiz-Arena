@@ -51,31 +51,43 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><Text style={styles.backText}>Orqaga</Text></Pressable>
-      <GlassSurface intensity={isDark ? 34 : 42} style={styles.hero}>
-        <View style={styles.identityRow}>
-          <View style={[styles.avatarRing, profile.profileFrame === 'aurora' ? styles.frameAurora : profile.profileFrame === 'royal' ? styles.frameRoyal : profile.profileFrame === 'ocean' ? styles.frameOcean : null]}>
-            {profile.avatarUrl ? <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} /> : <View style={styles.avatarFallback}><Text style={styles.initials}>{initials || '?'}</Text></View>}
-            {profile.avatarDecoration ? <View style={styles.decoration}><Ionicons name={profile.avatarDecoration === 'crown' ? 'ribbon' : profile.avatarDecoration === 'laurel' ? 'leaf' : 'sparkles'} size={17} color="#F3C96A" /></View> : null}
+      <View style={styles.topBar}>
+        <Pressable onPress={onBack} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Orqaga">
+          <Ionicons name="arrow-back" size={21} color={colors.text} />
+        </Pressable>
+        <Text style={styles.topUsername}>@{profile.username}</Text>
+      </View>
+      <GlassSurface intensity={isDark ? 42 : 48} style={styles.hero}>
+        <View style={styles.compactIdentityRow}>
+          <View style={[styles.compactAvatarRing, profile.profileFrame === 'aurora' ? styles.frameAurora : profile.profileFrame === 'royal' ? styles.frameRoyal : profile.profileFrame === 'ocean' ? styles.frameOcean : null]}>
+            {profile.avatarUrl ? <Image source={{ uri: profile.avatarUrl }} style={styles.compactAvatar} /> : <View style={styles.compactAvatarFallback}><Text style={styles.compactInitials}>{initials || '?'}</Text></View>}
           </View>
-          <View style={styles.identityText}>
-            <Text style={styles.name}>{profile.displayName}</Text>
-            <Text style={styles.username}>@{profile.username}</Text>
-            {!!profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
+          <View style={styles.compactIdentityText}>
+            <Text style={styles.compactName} numberOfLines={1}>{profile.displayName}</Text>
+            <View style={styles.compactMeta}>
+              <Text style={styles.username}>@{profile.username}</Text>
+              <Text style={[styles.rankBadge, { color: profile.rankTier === 'Gold' ? '#F5C542' : profile.rankTier === 'Silver' ? '#A8B0BD' : '#CD7F32' }]}>{(profile.rankTier || 'Bronze').toUpperCase()}</Text>
+            </View>
           </View>
         </View>
         <View style={styles.counts}>
           <View style={styles.count}><Text style={styles.countNumber}>{profile.followersCount}</Text><Text style={styles.countLabel}>Kuzatuvchilar</Text></View>
           <View style={styles.separator} />
-          <View style={styles.count}><Text style={styles.countNumber}>{profile.followingCount ?? 0}</Text><Text style={styles.countLabel}>Kuzatilayotganlar</Text></View>
+          <View style={styles.count}><Text style={styles.countNumber}>{profile.followingCount ?? 0}</Text><Text style={styles.countLabel}>Kuzatilganlar</Text></View>
         </View>
-        {!profile.isSelf && (
+      </GlassSurface>
+      {!profile.isSelf && (
+        <View style={styles.actionRow}>
           <Pressable disabled={busy} onPress={toggleFollow} style={[styles.followButton, profile.isFollowing && styles.followingButton]}>
-            <Ionicons name={profile.isFollowing ? 'checkmark' : 'person-add-outline'} size={17} color={profile.isFollowing ? colors.text : '#FFFFFF'} />
+            <Ionicons name={profile.isFollowing ? 'checkmark' : 'person-add-outline'} size={16} color={profile.isFollowing ? colors.text : '#FFFFFF'} />
             <Text style={[styles.followButtonText, profile.isFollowing && styles.followingText]}>{busy ? '...' : profile.isFollowing ? 'Kuzatilmoqda' : 'Kuzatish'}</Text>
           </Pressable>
-        )}
-      </GlassSurface>
+          <Pressable onPress={() => Alert.alert('Battle taklifi', 'Battle takliflarini yuborish imkoniyati hozircha ulanmagan.')} style={styles.battleButton}>
+            <Ionicons name="flash-outline" size={16} color={colors.text} />
+            <Text style={styles.battleButtonText}>Battle taklifi</Text>
+          </Pressable>
+        </View>
+      )}
       <Text style={styles.sectionTitle}>Natijalar</Text>
       <View style={styles.stats}>
         <GlassSurface intensity={isDark ? 30 : 38} style={styles.stat}><Text style={styles.statValue}>{profile.xp}</Text><Text style={styles.statLabel}>XP</Text></GlassSurface>
@@ -112,16 +124,23 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
 
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isDark: boolean) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: colors.background },
-    content: { padding: 18, paddingBottom: 130 },
+    screen: { flex: 1, backgroundColor: isDark ? '#0A0C1C' : colors.background },
+    content: { paddingHorizontal: 6, paddingTop: 10, paddingBottom: 130 },
     loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
-    back: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, marginBottom: 12 },
-    backText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+    topBar: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 42, marginBottom: 10 },
+    backButton: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+    topUsername: { color: colors.text, fontSize: 16, fontWeight: '600' },
     empty: { color: colors.textMuted, textAlign: 'center', marginTop: 40 },
-    hero: { alignItems: 'center', padding: 22, borderRadius: 27, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: isDark ? 'rgba(35,31,57,0.46)' : 'rgba(255,255,255,0.54)' },
-    identityRow: { flexDirection: 'row', alignItems: 'center', gap: 15, width: '100%' },
-    identityText: { flex: 1, minWidth: 0, alignItems: 'flex-start' },
-    avatarRing: { width: 92, height: 92, borderRadius: 46, padding: 4, borderWidth: 2, borderColor: 'rgba(157,133,232,0.65)', flexShrink: 0 },
+    hero: { paddingHorizontal: 10, paddingVertical: 10, borderRadius: 16, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.18)', backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.58)' },
+    compactIdentityRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    compactIdentityText: { flex: 1, minWidth: 0, gap: 4 },
+    compactAvatarRing: { width: 48, height: 48, borderRadius: 24, padding: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', flexShrink: 0 },
+    compactAvatar: { width: '100%', height: '100%', borderRadius: 24 },
+    compactAvatarFallback: { flex: 1, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(137,116,220,0.24)' },
+    compactInitials: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+    compactName: { color: colors.text, fontSize: 14, fontWeight: '600' },
+    compactMeta: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+    rankBadge: { fontSize: 9, fontWeight: '800', letterSpacing: 0.8 },
     frameAurora: { borderColor: '#A78BFA', borderWidth: 4 },
     frameRoyal: { borderColor: '#EFCB78', borderWidth: 4 },
     frameOcean: { borderColor: '#60A5FA', borderWidth: 4 },
@@ -132,15 +151,18 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     name: { color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'left' },
     username: { color: colors.primary, fontSize: 12, marginTop: 4, fontWeight: '700' },
     bio: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'left', marginTop: 8 },
-    counts: { flexDirection: 'row', alignItems: 'center', width: '100%', marginTop: 21, marginBottom: 16 },
+    counts: { flexDirection: 'row', alignItems: 'center', width: '100%', marginTop: 10, paddingTop: 9, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.12)' },
     count: { flex: 1, alignItems: 'center' },
     countNumber: { color: colors.text, fontSize: 19, fontWeight: '800' },
     countLabel: { color: colors.textMuted, fontSize: 11, marginTop: 3 },
     separator: { width: 1, height: 30, backgroundColor: colors.border },
-    followButton: { minWidth: 160, height: 44, borderRadius: 14, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-    followingButton: { backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border },
-    followButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+    actionRow: { flexDirection: 'row', gap: 9, marginTop: 10, marginBottom: 4 },
+    followButton: { flex: 1, minWidth: 0, height: 44, borderRadius: 14, backgroundColor: '#7657E8', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    followingButton: { backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.18)' },
+    followButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
     followingText: { color: colors.text },
+    battleButton: { flex: 1, minWidth: 0, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.18)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    battleButtonText: { color: colors.text, fontSize: 13, fontWeight: '600' },
     sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '800', marginTop: 24, marginBottom: 11 },
     stats: { flexDirection: 'row', gap: 9 },
     stat: { flex: 1, alignItems: 'center', paddingVertical: 17, borderRadius: 18, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: isDark ? 'rgba(35,31,57,0.4)' : 'rgba(255,255,255,0.52)' },
