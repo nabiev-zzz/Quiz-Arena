@@ -18,6 +18,8 @@ export interface UpdateProfileInput {
   displayName?: string;
   username?: string;
   bio?: string | null;
+  avatarDecoration?: string | null;
+  profileFrame?: string | null;
 }
 
 @Injectable()
@@ -112,6 +114,14 @@ export class AuthService {
 
     if (input.bio !== undefined) {
       user.bio = input.bio?.trim() || null;
+    }
+
+    if (input.avatarDecoration !== undefined) {
+      user.avatarDecoration = input.avatarDecoration;
+    }
+
+    if (input.profileFrame !== undefined) {
+      user.profileFrame = input.profileFrame;
     }
 
     try {
