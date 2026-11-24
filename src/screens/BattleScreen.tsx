@@ -1262,7 +1262,7 @@ export default function BattleScreen({
                 <View style={styles.recentMatchCopy}>
                   <LocalizedText style={styles.recentMatchTitle}>{meta.label}</LocalizedText>
                   <LocalizedText style={styles.recentMatchMeta}>
-                    {item.mode === 'ranked' ? 'Ranked' : 'Casual'} · {dateLabel}
+                    {item.mode === 'private' ? 'Do‘stlar Battle' : item.mode === 'ranked' ? 'Ranked' : 'Casual'} · {dateLabel}
                   </LocalizedText>
                 </View>
                 <LocalizedText style={styles.recentMatchScore}>{Number(item.myScore) || 0} ball</LocalizedText>
