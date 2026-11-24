@@ -73,11 +73,10 @@ function AppContent() {
     loading,
     login,
     register,
-    requestRegistrationOtp,
-    requestPhoneLogin,
-    loginWithPhone,
-    requestPasswordReset,
-    resetPassword,
+    requestEmailVerification,
+    verifyEmail,
+    requestEmailPasswordReset,
+    resetEmailPassword,
     startGoogleLogin,
   } = useAuth();
   const { theme, ready } = useAppSettings();
@@ -424,15 +423,14 @@ function AppContent() {
             onLogin={login}
             onRegisterPress={() => setAuthScreen('register')}
             onGoogleLogin={startGoogleLogin}
-            onPhoneOtpRequest={requestPhoneLogin}
-            onPhoneLogin={loginWithPhone}
-            onPasswordResetRequest={requestPasswordReset}
-            onPasswordReset={resetPassword}
+            onPasswordResetRequest={requestEmailPasswordReset}
+            onPasswordReset={resetEmailPassword}
           />
         ) : (
           <RegisterScreen
             onRegister={register}
-            onRequestOtp={requestRegistrationOtp}
+            onVerifyEmail={verifyEmail}
+            onRequestVerification={requestEmailVerification}
             onLoginPress={() => setAuthScreen('login')}
           />
         )}
