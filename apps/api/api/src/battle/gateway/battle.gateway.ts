@@ -235,7 +235,7 @@ export class BattleGateway
       client.emit('battle:error', { message: 'Avval joriy Battle ni yakunlang.' });
       return;
     }
-    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId && room.roomCode !== roomCode)) {
+    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId)) {
       client.emit('battle:error', { message: 'Sizda allaqachon faol taklif xonasi bor.' });
       return;
     }
@@ -303,7 +303,7 @@ export class BattleGateway
       client.emit('battle:error', { message: 'Avval raqib qidirish navbatidan chiqing.' });
       return;
     }
-    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId)) {
+    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId && room.roomCode !== roomCode)) {
       client.emit('battle:error', { message: 'Avval o‘zingiz yaratgan taklif xonasini bekor qiling.' });
       return;
     }
