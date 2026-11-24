@@ -74,7 +74,7 @@ export const verifyGooglePlayPurchase = (purchaseToken: string) =>
     body: JSON.stringify({ purchaseToken }),
   });
 
-export type MeteredFeature = 'statsPdf' | 'documentQuiz' | 'privateBattle' | 'smartPractice';
+export type MeteredFeature = 'statsPdf' | 'documentQuiz' | 'privateBattle' | 'smartPractice' | 'aiTutor';
 
 export interface FeatureUsageResult {
   allowed: boolean;
