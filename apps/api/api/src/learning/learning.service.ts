@@ -6,6 +6,7 @@ import { LearningTopic } from './entities/learning-topic.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LearningAttempt } from './entities/learning-attempt.entity';
+import { learningCatalog } from './learning-catalog';
 
 export interface CreateLearningAttemptInput {
   subjectId: string;
@@ -26,6 +27,10 @@ export class LearningService {
     private readonly dataSource: DataSource,
     private readonly aiService: AiService,
   ) {}
+
+  getCatalog() {
+    return learningCatalog;
+  }
 
   async getTopicQuestions(input: {
     subjectId: string;
