@@ -8,8 +8,14 @@ import { createPremiumCheckout, getGooglePlayAccountId, getPremiumPlans, getPrem
 
 interface Props { onBack?: () => void }
 const money = (value: number | null) => value === null ? 'Narx sozlanmagan' : new Intl.NumberFormat('uz-UZ').format(value) + ' so‘m';
-const GOOGLE_MONTHLY_SKU = process.env.EXPO_PUBLIC_GOOGLE_PLAY_MONTHLY_PRODUCT_ID?.trim();
-const GOOGLE_YEARLY_SKU = process.env.EXPO_PUBLIC_GOOGLE_PLAY_YEARLY_PRODUCT_ID?.trim();
+const GOOGLE_PLAY_SKUS: Record<string, string | undefined> = {
+  premium_monthly: process.env.EXPO_PUBLIC_GOOGLE_PLAY_MONTHLY_PRODUCT_ID?.trim(),
+  premium_yearly: process.env.EXPO_PUBLIC_GOOGLE_PLAY_YEARLY_PRODUCT_ID?.trim(),
+  premium_pro_monthly: process.env.EXPO_PUBLIC_GOOGLE_PLAY_PREMIUM_PRO_MONTHLY_PRODUCT_ID?.trim(),
+  premium_pro_yearly: process.env.EXPO_PUBLIC_GOOGLE_PLAY_PREMIUM_PRO_YEARLY_PRODUCT_ID?.trim(),
+  legenda_plus_monthly: process.env.EXPO_PUBLIC_GOOGLE_PLAY_LEGENDA_PLUS_MONTHLY_PRODUCT_ID?.trim(),
+  legenda_plus_yearly: process.env.EXPO_PUBLIC_GOOGLE_PLAY_LEGENDA_PLUS_YEARLY_PRODUCT_ID?.trim(),
+};
 
 export default function PremiumScreen({ onBack }: Props) {
   const { tokens, isDark } = useTheme();
@@ -54,14 +60,14 @@ export default function PremiumScreen({ onBack }: Props) {
 
   useEffect(() => {
     if (!connected) return;
-    const skus = [GOOGLE_MONTHLY_SKU, GOOGLE_YEARLY_SKU].filter((sku): sku is string => Boolean(sku));
+    const skus = Object.values(GOOGLE_PLAY_SKUS).filter((sku): sku is string => Boolean(sku));
     if (skus.length) void fetchProducts({ skus, type: 'subs' }).catch(() => {
       // Store products may be unavailable until the Play Console products are activated.
     });
   }, [connected, fetchProducts]);
 
   const startGooglePlayPurchase = async (planKey: string) => {
-    const sku = planKey === 'premium_monthly' ? GOOGLE_MONTHLY_SKU : GOOGLE_YEARLY_SKU;
+    const sku = GOOGLE_PLAY_SKUS[planKey];
     if (!sku || !connected) {
       Alert.alert('Google Play tayyor emas', 'Play Console mahsulot ID’lari va Android development build sozlanishi kerak.');
       return;
@@ -126,7 +132,7 @@ export default function PremiumScreen({ onBack }: Props) {
               {busy === 'payme:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="wallet" size={17} color="#FFFFFF" /><Text style={s.checkoutText}>Payme</Text></>}
             </Pressable>
           </View>
-          {Platform.OS === 'android' && (plan.key === 'premium_monthly' ? GOOGLE_MONTHLY_SKU : GOOGLE_YEARLY_SKU) ? (
+          {Platform.OS === 'android' && GOOGLE_PLAY_SKUS[plan.key] ? (
             <Pressable disabled={!connected || busy !== null} onPress={() => void startGooglePlayPurchase(plan.key)} style={[s.googleButton, (!connected || busy !== null) && s.dim]}>
               {busy === 'google:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="logo-google-playstore" size={17} color="#FFFFFF" /><Text style={s.checkoutText}>Google Play orqali obuna</Text></>}
             </Pressable>
