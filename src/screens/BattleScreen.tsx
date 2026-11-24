@@ -20,6 +20,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { subjects } from '../data/subjects';
 import { getLearningStats, type LearningStats } from '../services/learningService';
+import { consumePremiumFeature } from '../services/subscriptionService';
+import { shareStatisticsPdf } from '../services/statisticsReportService';
 import LeaderboardScreen from './leaderboard/LeaderboardScreen';
 
 import {
@@ -98,6 +100,7 @@ export default function BattleScreen({
   const [statsView, setStatsView] = useState<StatsView>('overview');
   const [leaderboard, setLeaderboard] = useState<BattleLeaderboardEntry[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const socketRef = useRef<BattleSocket | null>(null);
   const matchIdRef = useRef<string | null>(null);
@@ -157,6 +160,44 @@ export default function BattleScreen({
     setScores({});
     setRemaining(20);
   }, []);
+
+  const exportStatisticsPdf = async () => {
+    if (!stats && !learningStats) {
+      showLocalizedAlert('Statistika mavjud emas', 'Avval statistika ma’lumotlarini yuklang.');
+      return;
+    }
+
+    setExportingPdf(true);
+    try {
+      const usage = await consumePremiumFeature('statsPdf');
+      if (!usage.allowed) {
+        showLocalizedAlert(
+          'PDF limiti tugadi',
+          `Sizning ${usage.tier.toUpperCase().replace('_', ' ')} tarifingizda bu davr uchun PDF hisobot limiti tugagan. Ko‘proq hisobot uchun tarifni yangilang.`,
+        );
+        return;
+      }
+
+      await shareStatisticsPdf({
+        user: {
+          displayName: user?.displayName,
+          username: user?.username,
+          level: user?.level,
+          xp: user?.xp,
+          rankPoints: user?.rankPoints,
+        },
+        learning: learningStats,
+        battle: stats,
+      });
+    } catch (err) {
+      showLocalizedAlert(
+        'PDF yaratilmadi',
+        err instanceof Error ? err.message : 'Hisobotni yaratish yoki ulashishda xatolik yuz berdi.',
+      );
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
   const loadSectionData = useCallback(async (target: Section) => {
     if (target === 'battle') return;
@@ -1402,6 +1443,16 @@ export default function BattleScreen({
           <LocalizedText style={styles.statsIntroTitle}>Statistika markazi</LocalizedText>
           <LocalizedText style={styles.statsIntroSubtitle}>Ta’limdagi o‘sish va Battle natijalaringiz</LocalizedText>
         </View>
+        <Pressable
+          onPress={() => void exportStatisticsPdf()}
+          disabled={exportingPdf || loadingData || (!stats && !learningStats)}
+          style={[styles.statsRefresh, (exportingPdf || loadingData || (!stats && !learningStats)) && { opacity: 0.55 }]}
+        >
+          {exportingPdf ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="document-text-outline" size={16} color={colors.primary} />}
+          <LocalizedText style={styles.statsRefreshText}>
+            {exportingPdf ? 'PDF tayyorlanmoqda...' : 'PDF hisobotni ulashish'}
+          </LocalizedText>
+        </Pressable>
         <View style={styles.statsViewSwitch}>
           {([
             ['overview', 'Umumiy'],
