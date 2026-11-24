@@ -14,9 +14,10 @@ export class UsersController {
     return this.usersService.suggestions(request.user.id, Number(limit) || 12);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('profile/:username')
-  publicProfile(@Param('username') username: string, @Request() request?: AuthRequest) {
-    return this.usersService.publicProfile(username, request?.user?.id);
+  publicProfile(@Param('username') username: string, @Request() request: AuthRequest) {
+    return this.usersService.publicProfile(username, request.user.id);
   }
 
   @Get(':id/followers')
