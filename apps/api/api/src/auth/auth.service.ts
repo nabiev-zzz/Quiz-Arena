@@ -409,11 +409,12 @@ export class AuthService {
         .trim().slice(0, 100) || 'Telegram user';
       const base = (claims.preferred_username || `tg_${claims.sub}`)
         .toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 24) || `tg_${claims.sub.slice(-12)}`;
-      let username = base.length >= 3 ? base : `tg_${claims.sub.slice(-12)}`;
+      const usernameBase = base.length >= 3 ? base : `tg_${claims.sub.slice(-12)}`;
+      let username = usernameBase;
       let suffix = 1;
       while (await this.userRepository.findOne({ where: { username } })) {
         const tail = `_${suffix++}`;
-        username = `${base.slice(0, 30 - tail.length)}${tail}`;
+        username = `${usernameBase.slice(0, 30 - tail.length)}${tail}`;
       }
       user = this.userRepository.create({
         displayName,
