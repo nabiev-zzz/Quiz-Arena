@@ -20,6 +20,7 @@ import { AddBattleMatchRankChanges20261124040000 } from './database/migrations/A
 import { CreateUserFollows20261124070000 } from './database/migrations/CreateUserFollows';
 import { CreateLearningAttempts20261124090000 } from './database/migrations/CreateLearningAttempts';
 import { CreateLearningQuestionBank20261124200000 } from './database/migrations/CreateLearningQuestionBank';
+import { CreateLearningWebSessions20261124210000 } from './database/migrations/CreateLearningWebSessions';
 import { CreateUserSubscriptions20261124120000 } from './database/migrations/CreateUserSubscriptions';
 import { CreateSubscriptionPayments20261124130000 } from './database/migrations/CreateSubscriptionPayments';
 import { AddSubscriptionProviderLifecycle20261124140000 } from './database/migrations/AddSubscriptionProviderLifecycle';
@@ -55,6 +56,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         CreateUserFollows20261124070000,
         CreateLearningAttempts20261124090000,
         CreateLearningQuestionBank20261124200000,
+        CreateLearningWebSessions20261124210000,
         CreateUserSubscriptions20261124120000,
         CreateSubscriptionPayments20261124130000,
         AddSubscriptionProviderLifecycle20261124140000,
