@@ -63,12 +63,12 @@ for asset in parser.local_assets:
 
 script = SCRIPT.read_text(encoding="utf-8")
 for key in sorted(parser.i18n_keys):
-    count = len(re.findall(r"\\b" + re.escape(key) + r":", script))
+    count = len(re.findall(r"\b" + re.escape(key) + r":", script))
     if count < 3:
         errors.append(f"Translation key '{key}' is missing from one or more languages")
 
 if errors:
-    print("\\n".join(errors))
+    print("\n".join(errors))
     sys.exit(1)
 print(
     "Landing page validation passed: title, description, one h1, "
