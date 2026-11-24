@@ -6,7 +6,6 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
 
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../theme/ThemeContext';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
 
@@ -34,7 +33,6 @@ const C = {
 
 export default function ProfileScreen({ onClosePress, onSettingsPress, onPremiumPress, onUserPress, dockStretch }: ProfileScreenProps) {
   const { user, updateProfile, logout } = useAuth();
-  const { tokens } = useTheme();
   const styles = makeStyles();
   const lastDockScrollY = useSharedValue(0);
   const dockScrollHandler = useAnimatedScrollHandler({
@@ -114,8 +112,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
       if (!result.canceled && result.assets.length > 0) {
         const uri = result.assets[0].uri;
         setAvatarUri(uri);
-        try { await updateProfile({ avatarUrl: uri }); }
-        catch (error) { Alert.alert('Xatolik', error instanceof Error ? error.message : 'Avatarni saqlab bo‘lmadi'); }
       }
     } catch {
       Alert.alert('Xatolik', 'Rasm tanlashda xatolik yuz berdi.');
@@ -459,7 +455,7 @@ function makeStyles() {
     row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 46 },
     iconTile: { width: 42, height: 42, borderRadius: 13, backgroundColor: C.purpleSoft, alignItems: 'center', justifyContent: 'center' },
     rowBody: { flex: 1, minWidth: 0 },
-    cardTitle: { color: C.text, fontSize: 14, fontWeight: '750' },
+    cardTitle: { color: C.text, fontSize: 14, fontWeight: '700' },
     cardSubtitle: { color: C.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
     bioRow: { flexDirection: 'row', gap: 12, minHeight: 49 },
     bioAccent: { width: 3, borderRadius: 3, backgroundColor: C.purple },
