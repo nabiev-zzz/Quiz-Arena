@@ -3,6 +3,8 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Param,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -45,6 +47,20 @@ export class LearningController {
   @Post('questions')
   getTopicQuestions(@Body() body: GetTopicQuestionsDto) {
     return this.learningService.getTopicQuestions(body);
+  }
+
+  @Get('attempts')
+  getHistory(@Request() request: AuthenticatedRequest) {
+    return this.learningService.getHistory(request.user.id);
+  }
+
+  @Patch('attempts/:attemptId/review')
+  updateAttemptReview(
+    @Request() request: AuthenticatedRequest,
+    @Param('attemptId') attemptId: string,
+    @Body() body: { review: unknown[] },
+  ) {
+    return this.learningService.updateAttemptReview(request.user.id, attemptId, body.review);
   }
 
   @Post('attempts')
