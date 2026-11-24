@@ -283,7 +283,7 @@ export default function ProfileScreen({
           <View style={styles.identityBlock}>
             <View style={styles.avatarStage}>
               <View style={styles.avatarHalo} />
-              <View style={styles.avatarBorder}>
+              <View style={[styles.avatarBorder, user.profileFrame === 'aurora' ? styles.frameAurora : user.profileFrame === 'royal' ? styles.frameRoyal : user.profileFrame === 'ocean' ? styles.frameOcean : null]}>
                 {avatarUri ? (
                   <Image source={{ uri: avatarUri }} style={styles.avatar} />
                 ) : (
@@ -825,6 +825,9 @@ function makeStyles(
       borderWidth: 1,
       borderColor: 'rgba(255,255,255,0.62)',
     },
+    frameAurora: { backgroundColor: '#8B72E8' },
+    frameRoyal: { backgroundColor: '#D7A93F' },
+    frameOcean: { backgroundColor: '#4D9FC8' },
     avatar: {
       width: '100%',
       height: '100%',
