@@ -1,5 +1,11 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import Animated, {
+  useAnimatedScrollHandler,
+  useSharedValue,
+  withSpring,
+  type SharedValue,
+} from 'react-native-reanimated';
 import {
   ActivityIndicator,
   FlatList,
@@ -23,6 +29,7 @@ import { useTheme } from '../theme/ThemeContext';
 interface AiTutorScreenProps {
   onBack: () => void;
   bottomDockSpace?: number;
+  dockStretch?: SharedValue<number>;
 }
 
 const CONNECTION_ERROR =
@@ -31,10 +38,34 @@ const CONNECTION_ERROR =
 export default function AiTutorScreen({
   onBack,
   bottomDockSpace = 0,
+  dockStretch,
 }: AiTutorScreenProps) {
   const { tokens } = useTheme();
   const colors = tokens.colors;
   const styles = makeStyles(colors);
+  const lastDockScrollY = useSharedValue(0);
+  const dockScrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      if (!dockStretch) return;
+      const nextY = event.contentOffset.y;
+      const delta = nextY - lastDockScrollY.value;
+      lastDockScrollY.value = nextY;
+      dockStretch.value = withSpring(
+        Math.max(-1, Math.min(1, delta / 30)),
+        { damping: 11, stiffness: 160, mass: 0.7 },
+      );
+    },
+    onEndDrag: () => {
+      if (dockStretch) {
+        dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 });
+      }
+    },
+    onMomentumEnd: () => {
+      if (dockStretch) {
+        dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 });
+      }
+    },
+  });
 
   const [messages, setMessages] = useState<AiTutorMessage[]>([]);
   const [input, setInput] = useState('');
@@ -226,6 +257,8 @@ export default function AiTutorScreen({
           <FlatList
             ref={listRef}
             style={styles.messageScroll}
+            onScroll={dockScrollHandler}
+            scrollEventThrottle={16}
             data={messages}
             keyExtractor={(item) => item.id}
             renderItem={renderMessage}
