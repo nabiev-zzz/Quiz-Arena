@@ -1,3 +1,4 @@
+import { LocalizedText, LocalizedTextInput } from './src/i18n/LocalizedText';
 
 import { useRef, useState } from 'react';
 import Animated, {
@@ -10,10 +11,10 @@ import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
   StyleSheet,
-  Text,
+  NativeText,
   View,
   Pressable,
-  TextInput,
+  NativeTextInput,
 } from 'react-native';
 import {
   SafeAreaProvider,
@@ -175,10 +176,10 @@ function AppContent() {
       <>
         <View style={styles.homeHeader}>
           <View style={styles.homeBrand}>
-            <View style={styles.homeBrandIcon}><Text style={styles.homeBrandLetter}>Q</Text></View>
+            <View style={styles.homeBrandIcon}><LocalizedText style={styles.homeBrandLetter}>Q</LocalizedText></View>
             <View style={styles.homeBrandText}>
-              <Text style={[styles.homeEyebrow, { color: mutedColor }]}>QUIZ ARENA</Text>
-              <Text style={[styles.homeGreeting, { color: textColor }]}>Salom, {user?.displayName || 'Bilimdon'}!</Text>
+              <LocalizedText style={[styles.homeEyebrow, { color: mutedColor }]}>QUIZ ARENA</LocalizedText>
+              <LocalizedText style={[styles.homeGreeting, { color: textColor }]}>Salom, {user?.displayName || 'Bilimdon'}!</LocalizedText>
             </View>
           </View>
           <Pressable style={[styles.homeProfileButton, { backgroundColor: tokens.colors.surfaceElevated, borderColor }]} onPress={() => openTab('profile')} accessibilityRole="button" accessibilityLabel="Profil">
@@ -188,45 +189,45 @@ function AppContent() {
 
         <View style={[styles.homeSearch, { borderColor, backgroundColor: tokens.colors.surface }]}>
           <Ionicons name="search-outline" size={19} color={mutedColor} />
-          <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Funksiya, fan yoki mavzuni qidiring" placeholderTextColor={mutedColor} style={[styles.homeSearchInput, { color: textColor }]} returnKeyType="search" autoCorrect={false} accessibilityLabel="Ilova bo‘ylab qidirish" />
+          <LocalizedTextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Funksiya, fan yoki mavzuni qidiring" placeholderTextColor={mutedColor} style={[styles.homeSearchInput, { color: textColor }]} returnKeyType="search" autoCorrect={false} accessibilityLabel="Ilova bo‘ylab qidirish" />
           {searchQuery.length > 0 && <Pressable onPress={() => setSearchQuery('')} hitSlop={10}><Ionicons name="close-circle" size={18} color={mutedColor} /></Pressable>}
         </View>
 
         {normalizedQuery.length > 0 ? (
           <View style={styles.homeSearchResults}>
-            {featureMatches.length > 0 && <Text style={[styles.homeSectionTitle, { color: mutedColor }]}>FUNKSIYALAR</Text>}
+            {featureMatches.length > 0 && <LocalizedText style={[styles.homeSectionTitle, { color: mutedColor }]}>FUNKSIYALAR</LocalizedText>}
             {featureMatches.map((item) => (
               <Pressable key={item.key} style={[styles.homeSearchRow, { backgroundColor: tokens.colors.surface, borderColor }]} onPress={() => openFeature(item.key)}>
                 <View style={[styles.homeSearchIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}><Ionicons name={item.icon} size={19} color={tokens.colors.primaryLight} /></View>
-                <View style={styles.homeFeatureCopy}><Text style={[styles.homeFeatureTitle, { color: textColor }]}>{item.title}</Text><Text style={[styles.homeFeatureDescription, { color: mutedColor }]}>{item.detail}</Text></View>
+                <View style={styles.homeFeatureCopy}><LocalizedText style={[styles.homeFeatureTitle, { color: textColor }]}>{item.title}</LocalizedText><LocalizedText style={[styles.homeFeatureDescription, { color: mutedColor }]}>{item.detail}</LocalizedText></View>
                 <Ionicons name="chevron-forward" size={17} color={mutedColor} />
               </Pressable>
             ))}
-            {subjectMatches.length > 0 && <Text style={[styles.homeSectionTitle, { color: mutedColor }]}>FANLAR</Text>}
+            {subjectMatches.length > 0 && <LocalizedText style={[styles.homeSectionTitle, { color: mutedColor }]}>FANLAR</LocalizedText>}
             {subjectMatches.map((subject) => (
               <Pressable key={subject.id} style={[styles.homeSearchRow, { backgroundColor: tokens.colors.surface, borderColor }]} onPress={() => { openTab('learn'); setSelectedSubject(subject); }}>
-                <View style={[styles.homeSearchIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}><Text style={styles.homeSearchGlyph}>{subject.icon}</Text></View>
-                <View style={styles.homeFeatureCopy}><Text style={[styles.homeFeatureTitle, { color: textColor }]}>{subject.name}</Text><Text style={[styles.homeFeatureDescription, { color: mutedColor }]}>{subject.description}</Text></View>
+                <View style={[styles.homeSearchIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}><LocalizedText style={styles.homeSearchGlyph}>{subject.icon}</LocalizedText></View>
+                <View style={styles.homeFeatureCopy}><LocalizedText style={[styles.homeFeatureTitle, { color: textColor }]}>{subject.name}</LocalizedText><LocalizedText style={[styles.homeFeatureDescription, { color: mutedColor }]}>{subject.description}</LocalizedText></View>
                 <Ionicons name="chevron-forward" size={17} color={mutedColor} />
               </Pressable>
             ))}
-            {topicMatches.length > 0 && <Text style={[styles.homeSectionTitle, { color: mutedColor }]}>MAVZULAR</Text>}
+            {topicMatches.length > 0 && <LocalizedText style={[styles.homeSectionTitle, { color: mutedColor }]}>MAVZULAR</LocalizedText>}
             {topicMatches.map(({ subject, topic }) => (
               <Pressable key={subject.id + ':' + topic.id} style={[styles.homeSearchRow, { backgroundColor: tokens.colors.surface, borderColor }]} onPress={() => { setSelectedSubject(subject); setSelectedTopic(topic); setTab('learn'); }}>
                 <View style={[styles.homeSearchIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}><Ionicons name="book-outline" size={18} color={tokens.colors.primaryLight} /></View>
-                <View style={styles.homeFeatureCopy}><Text style={[styles.homeFeatureTitle, { color: textColor }]}>{topic.name}</Text><Text style={[styles.homeFeatureDescription, { color: mutedColor }]}>{subject.name} · {topic.description}</Text></View>
+                <View style={styles.homeFeatureCopy}><LocalizedText style={[styles.homeFeatureTitle, { color: textColor }]}>{topic.name}</LocalizedText><LocalizedText style={[styles.homeFeatureDescription, { color: mutedColor }]}>{subject.name} · {topic.description}</LocalizedText></View>
                 <Ionicons name="chevron-forward" size={17} color={mutedColor} />
               </Pressable>
             ))}
-            {featureMatches.length + subjectMatches.length + topicMatches.length === 0 && <Text style={[styles.homeEmpty, { color: mutedColor }]}>“{searchQuery}” bo‘yicha natija topilmadi.</Text>}
+            {featureMatches.length + subjectMatches.length + topicMatches.length === 0 && <LocalizedText style={[styles.homeEmpty, { color: mutedColor }]}>“{searchQuery}” bo‘yicha natija topilmadi.</LocalizedText>}
           </View>
         ) : (
           <>
             <View style={styles.homeSectionHeader}>
-              <Text style={[styles.homeSectionTitle, { color: mutedColor }]}>BARCHA IMKONIYATLAR</Text>
+              <LocalizedText style={[styles.homeSectionTitle, { color: mutedColor }]}>BARCHA IMKONIYATLAR</LocalizedText>
               <View style={styles.homeXpChip}>
                 <Ionicons name="star" size={13} color="#F5C451" />
-                <Text style={styles.homeXpText}>{user?.xp ?? 0} XP</Text>
+                <LocalizedText style={styles.homeXpText}>{user?.xp ?? 0} XP</LocalizedText>
               </View>
             </View>
             <View style={styles.homeFeatureGrid}>
@@ -235,13 +236,13 @@ function AppContent() {
                   <View style={[styles.homeFeatureIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}>
                     <Ionicons name={item.icon} size={21} color={tokens.colors.primaryLight} />
                   </View>
-                  <Text style={[styles.homeFeatureTitle, { color: textColor }]}>{item.title}</Text>
-                  <Text style={[styles.homeFeatureDescription, { color: mutedColor }]} numberOfLines={2}>{item.detail}</Text>
+                  <LocalizedText style={[styles.homeFeatureTitle, { color: textColor }]}>{item.title}</LocalizedText>
+                  <LocalizedText style={[styles.homeFeatureDescription, { color: mutedColor }]} numberOfLines={2}>{item.detail}</LocalizedText>
                   <View style={styles.homeFeatureArrow}><Ionicons name="arrow-forward" size={15} color={mutedColor} /></View>
                 </Pressable>
               ))}
             </View>
-            <Text style={[styles.homeFooterText, { color: mutedColor }]}>Bilimingni oshir. Bellash. Natijangni ko‘rsat.</Text>
+            <LocalizedText style={[styles.homeFooterText, { color: mutedColor }]}>Bilimingni oshir. Bellash. Natijangni ko‘rsat.</LocalizedText>
           </>
         )}
       </>
@@ -327,15 +328,15 @@ function AppContent() {
     return (
       <View style={styles.emptyPage}>
         <Ionicons name={page.icon} size={65} color={tokens.colors.primary} />
-        <Text style={[styles.pageTitle, { color: textColor }]}>
+        <LocalizedText style={[styles.pageTitle, { color: textColor }]}>
           {page.title}
-        </Text>
-        <Text style={[styles.pageDescription, { color: mutedColor }]}>
+        </LocalizedText>
+        <LocalizedText style={[styles.pageDescription, { color: mutedColor }]}>
           {page.description}
-        </Text>
-        <Text style={styles.comingSoon}>
+        </LocalizedText>
+        <LocalizedText style={styles.comingSoon}>
           Bu bo'lim keyingi bosqichda ishlab chiqiladi.
-        </Text>
+        </LocalizedText>
       </View>
     );
   };
@@ -348,9 +349,9 @@ function AppContent() {
       >
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <ActivityIndicator size="large" color="#A88FFF" />
-        <Text style={[styles.loadingText, { color: mutedColor }]}>
+        <LocalizedText style={[styles.loadingText, { color: mutedColor }]}>
           QUIZ ARENA yuklanmoqda...
-        </Text>
+        </LocalizedText>
       </SafeAreaView>
     );
   }
