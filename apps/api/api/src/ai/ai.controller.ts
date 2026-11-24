@@ -35,6 +35,12 @@ export class AiController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('tutor/progress')
+  async getTutorProgress(@Request() request: AuthenticatedRequest) {
+    return this.aiTutorService.getStudentProgress(request.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('tutor/chat')
   async sendTutorMessage(
     @Request() request: AuthenticatedRequest,
