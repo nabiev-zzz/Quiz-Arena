@@ -13,6 +13,9 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Namespace, Socket } from 'socket.io';
+import { randomUUID } from 'node:crypto';
+import { FeatureUsageService } from '../../subscriptions/feature-usage.service';
+import { SubscriptionsService } from '../../subscriptions/subscriptions.service';
 
 import { User } from '../../users/entities/user.entity';
 import {
@@ -39,6 +42,14 @@ interface ReconnectPayload {
 interface NextReadyPayload {
   matchId?: string;
   questionIndex?: number;
+}
+
+interface PrivateBattleRoom {
+  roomCode: string;
+  hostUserId: string;
+  hostSocketId: string;
+  expiresAt: number;
+  timer: ReturnType<typeof setTimeout>;
 }
 
 interface ActiveBattle {
@@ -78,6 +89,7 @@ export class BattleGateway
   private readonly logger = new Logger(BattleGateway.name);
   private readonly activeBattles = new Map<string, ActiveBattle>();
   private readonly queuedSockets = new Map<string, string>();
+  private readonly privateRooms = new Map<string, PrivateBattleRoom>();
   private readonly questionDuration = 20_000;
   private readonly reconnectGracePeriod = 30_000;
 
@@ -89,6 +101,8 @@ export class BattleGateway
     private readonly battleService: BattleService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly featureUsageService: FeatureUsageService,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -166,6 +180,8 @@ export class BattleGateway
       return;
     }
 
+    await this.cleanupPrivateRoomsForSocket(client.id);
+
     const queueKey = this.queuedSockets.get(client.id);
 
     if (queueKey) {
@@ -202,6 +218,165 @@ export class BattleGateway
       }, this.reconnectGracePeriod);
 
       battle.disconnectTimers.set(userId, timer);
+    }
+  }
+
+  @SubscribeMessage('battle:private:create')
+  async createPrivateRoom(@ConnectedSocket() client: Socket): Promise<void> {
+    const userId = client.data.userId as string | undefined;
+    if (!userId) {
+      client.emit('battle:error', { message: 'Avval tizimga kiring.' });
+      return;
+    }
+    if ([...this.activeBattles.values()].some((battle) => battle.playerIds.includes(userId))) {
+      client.emit('battle:error', { message: 'Avval joriy Battle ni yakunlang.' });
+      return;
+    }
+    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId)) {
+      client.emit('battle:error', { message: 'Sizda allaqachon faol taklif xonasi bor.' });
+      return;
+    }
+
+    let quotaConsumed = false;
+    try {
+      const quota = await this.featureUsageService.consume(userId, 'privateBattle');
+      if (!quota.allowed) {
+        throw new BadRequestException('Do‘stlar Battle uchun kunlik tarif limiti tugagan.');
+      }
+      quotaConsumed = true;
+
+      const roomCode = randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+      const expiresAt = Date.now() + 10 * 60 * 1000;
+      const timer = setTimeout(() => { void this.expirePrivateRoom(roomCode); }, 10 * 60 * 1000);
+      this.privateRooms.set(roomCode, { roomCode, hostUserId: userId, hostSocketId: client.id, expiresAt, timer });
+
+      client.emit('battle:private:created', {
+        roomCode,
+        status: 'waiting',
+        maxPlayers: 2,
+        expiresInSeconds: 600,
+        quota,
+        message: 'Xona yaratildi. Kodni do‘stingizga yuboring.',
+      });
+    } catch (error) {
+      if (quotaConsumed) {
+        await this.featureUsageService.refund(userId, 'privateBattle').catch(() => undefined);
+      }
+      client.emit('battle:error', {
+        message: error instanceof Error ? error.message : 'Xususiy Battle xonasi yaratilmadi.',
+      });
+    }
+  }
+
+  @SubscribeMessage('battle:private:join')
+  async joinPrivateRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload?: { roomCode?: string; code?: string },
+  ): Promise<void> {
+    const userId = client.data.userId as string | undefined;
+    const roomCode = String(payload?.roomCode || payload?.code || '').trim().toUpperCase();
+    if (!userId || !/^[A-F0-9]{8}$/.test(roomCode)) {
+      client.emit('battle:error', { message: 'Xona kodi noto‘g‘ri.' });
+      return;
+    }
+    if ([...this.activeBattles.values()].some((battle) => battle.playerIds.includes(userId))) {
+      client.emit('battle:error', { message: 'Avval joriy Battle ni yakunlang.' });
+      return;
+    }
+
+    const privateRoom = this.privateRooms.get(roomCode);
+    if (!privateRoom || privateRoom.expiresAt <= Date.now()) {
+      if (privateRoom) await this.expirePrivateRoom(roomCode);
+      client.emit('battle:error', { message: 'Xona topilmadi yoki uning muddati tugagan.' });
+      return;
+    }
+    if (privateRoom.hostUserId === userId) {
+      client.emit('battle:error', { message: 'O‘z xonangizga raqib sifatida qo‘shila olmaysiz.' });
+      return;
+    }
+
+    const hostSocket = this.server.sockets.get(privateRoom.hostSocketId);
+    if (!hostSocket || hostSocket.data.userId !== privateRoom.hostUserId) {
+      await this.expirePrivateRoom(roomCode);
+      client.emit('battle:error', { message: 'Xona egasi serverga ulanmagan.' });
+      return;
+    }
+
+    clearTimeout(privateRoom.timer);
+    this.privateRooms.delete(roomCode);
+
+    try {
+      const match = await this.battleService.createMatch(privateRoom.hostUserId, userId, 'private');
+      const room = `battle:${match.roomCode}`;
+      await Promise.all([hostSocket.join(room), client.join(room)]);
+
+      const matchInfo = {
+        matchId: match.id,
+        roomCode: match.roomCode,
+        mode: 'private',
+        status: 'matched',
+        players: [
+          { id: privateRoom.hostUserId, username: hostSocket.data.username },
+          { id: userId, username: client.data.username },
+        ],
+        message: 'Do‘stingiz qo‘shildi. Battle boshlanmoqda.',
+      };
+
+      hostSocket.emit('battle:matched', matchInfo);
+      client.emit('battle:matched', matchInfo);
+      this.logger.log(`Xususiy Battle boshlandi: ${match.roomCode}`);
+
+      await this.startBattle(
+        match.id,
+        match.roomCode,
+        'private',
+        privateRoom.hostUserId,
+        userId,
+        hostSocket,
+        client,
+        'general',
+      );
+    } catch (error) {
+      await this.featureUsageService.refund(privateRoom.hostUserId, 'privateBattle').catch(() => undefined);
+      const message = error instanceof Error ? error.message : 'Xususiy Battle boshlanmadi.';
+      hostSocket.emit('battle:error', { message });
+      client.emit('battle:error', { message });
+    }
+  }
+
+  @SubscribeMessage('battle:private:cancel')
+  async cancelPrivateRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload?: { roomCode?: string },
+  ): Promise<void> {
+    const userId = client.data.userId as string | undefined;
+    const roomCode = String(payload?.roomCode || '').trim().toUpperCase();
+    const room = this.privateRooms.get(roomCode);
+    if (!userId || !room || room.hostUserId !== userId || room.hostSocketId !== client.id) {
+      client.emit('battle:error', { message: 'Xonani bekor qilish huquqi topilmadi.' });
+      return;
+    }
+    clearTimeout(room.timer);
+    this.privateRooms.delete(roomCode);
+    await this.featureUsageService.refund(userId, 'privateBattle').catch(() => undefined);
+    client.emit('battle:private:cancelled', { roomCode });
+  }
+
+  private async expirePrivateRoom(roomCode: string): Promise<void> {
+    const room = this.privateRooms.get(roomCode);
+    if (!room) return;
+    clearTimeout(room.timer);
+    this.privateRooms.delete(roomCode);
+    this.server.sockets.get(room.hostSocketId)?.emit('battle:private:expired', { roomCode });
+    await this.featureUsageService.refund(room.hostUserId, 'privateBattle').catch(() => undefined);
+  }
+
+  private async cleanupPrivateRoomsForSocket(socketId: string): Promise<void> {
+    const ownedRooms = [...this.privateRooms.values()].filter((room) => room.hostSocketId === socketId);
+    for (const room of ownedRooms) {
+      clearTimeout(room.timer);
+      this.privateRooms.delete(room.roomCode);
+      await this.featureUsageService.refund(room.hostUserId, 'privateBattle').catch(() => undefined);
     }
   }
 
