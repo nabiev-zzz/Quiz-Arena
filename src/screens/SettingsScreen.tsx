@@ -108,8 +108,8 @@ export default function SettingsScreen({
 
 
   const handlePhoneOtp = async () => {
-    const phone = phoneNumber.replace(/[\\s()-]/g, '');
-    if (!/^\\+?998\\d{9}$/.test(phone)) {
+    const phone = phoneNumber.replace(/[\s()-]/g, '');
+    if (!/^\+?998\d{9}$/.test(phone)) {
       Alert.alert('Telefon raqami', 'Telefon raqamni +998XXXXXXXXX formatida kiriting.');
       return;
     }
@@ -128,7 +128,7 @@ export default function SettingsScreen({
   const handlePhoneLink = async () => {
     try {
       setPhoneBusy(true);
-      await linkPhone(phoneNumber.replace(/[\\s()-]/g, ''), phoneCode.trim());
+      await linkPhone(phoneNumber.replace(/[\s()-]/g, ''), phoneCode.trim());
       setPhoneOtpSent(false);
       setPhoneCode('');
       setShowPhoneLink(false);
@@ -642,7 +642,22 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginTop: 4,
   },
-  securityInput: {\n    minHeight: 48,\n    borderRadius: 12,\n    borderWidth: 1,\n    paddingHorizontal: 13,\n    fontSize: 14,\n  },\n  securityButton: {\n    minHeight: 46,\n    borderRadius: 12,\n    alignItems: 'center',\n    justifyContent: 'center',\n    marginTop: 10,\n  },\n  securityButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },\n  version: {
+  securityInput: {
+    minHeight: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 13,
+    fontSize: 14,
+  },
+  securityButton: {
+    minHeight: 46,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  securityButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
+  version: {
     fontSize: 11,
     textAlign: 'center',
     marginTop: 30,
