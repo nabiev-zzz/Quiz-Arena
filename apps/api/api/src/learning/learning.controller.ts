@@ -27,8 +27,11 @@ export class LearningController {
   }
 
   @Post('web/questions')
-  getWebTopicQuestions(@Body() body: GetTopicQuestionsDto) {
-    return this.learningService.getWebTopicQuestions(body);
+  getWebTopicQuestions(
+    @Request() request: AuthenticatedRequest,
+    @Body() body: GetTopicQuestionsDto,
+  ) {
+    return this.learningService.getWebTopicQuestions(request.user.id, body);
   }
 
   @Post('web/attempts')
