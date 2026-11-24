@@ -1,5 +1,11 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import Animated, {
+  useAnimatedScrollHandler,
+  useSharedValue,
+  withSpring,
+  type SharedValue,
+} from 'react-native-reanimated';
 import {
   ActivityIndicator,
   Alert,
@@ -36,6 +42,7 @@ interface BattleScreenProps {
   isDark?: boolean;
   onBack?: () => void;
   initialSection?: Section;
+  dockStretch?: SharedValue<number>;
 }
 
 const COLORS = {
@@ -53,6 +60,7 @@ export default function BattleScreen({
   isDark = false,
   onBack,
   initialSection = 'battle',
+  dockStretch,
 }: BattleScreenProps) {
   const { user, refreshUser } = useAuth();
 
@@ -88,6 +96,29 @@ export default function BattleScreen({
   const matchIdRef = useRef<string | null>(null);
   const modeRef = useRef<BattleMode>('casual');
   const questionIndexRef = useRef<number | null>(null);
+  const lastDockScrollY = useSharedValue(0);
+  const dockScrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      if (!dockStretch) return;
+      const nextY = event.contentOffset.y;
+      const delta = nextY - lastDockScrollY.value;
+      lastDockScrollY.value = nextY;
+      dockStretch.value = withSpring(
+        Math.max(-1, Math.min(1, delta / 30)),
+        { damping: 11, stiffness: 160, mass: 0.7 },
+      );
+    },
+    onEndDrag: () => {
+      if (dockStretch) {
+        dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 });
+      }
+    },
+    onMomentumEnd: () => {
+      if (dockStretch) {
+        dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 });
+      }
+    },
+  });
 
   const dark = isDark;
 
@@ -842,7 +873,9 @@ export default function BattleScreen({
         </View>
       )}
 
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={dockScrollHandler}
+        scrollEventThrottle={16}
         style={styles.content}
         contentContainerStyle={styles.contentInner}
         showsVerticalScrollIndicator={false}
@@ -851,7 +884,7 @@ export default function BattleScreen({
         {section === 'history' && renderHistory()}
         {section === 'stats' && renderStats()}
         {section === 'leaderboard' && renderLeaderboard()}
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -952,7 +985,7 @@ function makeStyles(colors: typeof COLORS, dark: boolean) {
     },
     contentInner: {
       padding: 14,
-      paddingBottom: 30,
+      paddingBottom: 124,
       gap: 12,
     },
     card: {
