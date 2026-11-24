@@ -7,7 +7,7 @@ export class CreateSubscriptionPayments20261124130000 implements MigrationInterf
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS subscription_payments (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        "userId" UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
         "planKey" VARCHAR(40) NOT NULL,
         provider VARCHAR(20) NOT NULL CHECK (provider IN ('google_play', 'click', 'payme')),
         amount INTEGER NOT NULL CHECK (amount > 0),
