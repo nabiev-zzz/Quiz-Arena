@@ -48,6 +48,8 @@ export const createPremiumCheckout = (provider: 'click' | 'payme', planKey: stri
     method: 'POST',
     body: JSON.stringify({ provider, planKey }),
   });
+export const getGooglePlayAccountId = async () =>
+  (await request<{ obfuscatedAccountId: string }>('/api/subscriptions/google-play/account-id')).obfuscatedAccountId;
 export const verifyGooglePlayPurchase = (purchaseToken: string) =>
   request<{ isPremium: boolean; expiresAt: string; provider: 'google_play' }>('/api/subscriptions/google-play/verify', {
     method: 'POST',
