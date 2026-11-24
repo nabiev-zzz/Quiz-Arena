@@ -237,7 +237,7 @@ function AppContent() {
                   </View>
                   <Text style={[styles.homeFeatureTitle, { color: textColor }]}>{item.title}</Text>
                   <Text style={[styles.homeFeatureDescription, { color: mutedColor }]} numberOfLines={2}>{item.detail}</Text>
-                  <View style={styles.homeFeatureArrow}><Ionicons name="arrow-up-right" size={15} color={mutedColor} /></View>
+                  <View style={styles.homeFeatureArrow}><Ionicons name="arrow-forward" size={15} color={mutedColor} /></View>
                 </Pressable>
               ))}
             </View>
