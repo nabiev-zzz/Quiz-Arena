@@ -1,8 +1,9 @@
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   ServiceUnavailableException,
-  TooManyRequestsException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -98,10 +99,10 @@ export class AuthOtpService {
     });
 
     if (recent.length >= 3) {
-      throw new TooManyRequestsException('Juda ko‘p kod so‘raldi. Bir soatdan keyin urinib ko‘ring.');
+      throw new HttpException('Juda ko‘p kod so‘raldi. Bir soatdan keyin urinib ko‘ring.', HttpStatus.TOO_MANY_REQUESTS);
     }
     if (recent[0] && now.getTime() - recent[0].createdAt.getTime() < 60_000) {
-      throw new TooManyRequestsException('Yangi kodni 60 soniyadan keyin so‘rashingiz mumkin.');
+      throw new HttpException('Yangi kodni 60 soniyadan keyin so‘rashingiz mumkin.', HttpStatus.TOO_MANY_REQUESTS);
     }
 
     const code = String(randomInt(100000, 1_000_000));
