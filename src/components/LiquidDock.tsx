@@ -1,13 +1,12 @@
-import React, { useEffect, useState, type ComponentRef, type RefObject } from 'react';
+import { LocalizedText } from '../i18n/LocalizedText';
+import React, { useEffect, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
-  Text,
+  Text as NativeText,
   View,
 } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   type SharedValue,
@@ -32,7 +31,6 @@ type Props = {
   onSelect: (key: string) => void;
   bottomInset: number;
   scrollStretch: SharedValue<number>;
-  blurTarget: RefObject<ComponentRef<typeof View> | null>;
 };
 
 const SPRING = { damping: 11, stiffness: 160, mass: 0.7 };
@@ -87,9 +85,9 @@ function DockItem({
         <Ionicons
           name={active ? item.activeIcon : item.icon}
           size={23}
-          color={active ? colors.text : colors.textMuted}
+          color={active ? colors.primary : colors.textMuted}
         />
-        <Text
+        <LocalizedText
           numberOfLines={1}
           style={[
             styles.label,
@@ -98,7 +96,7 @@ function DockItem({
           ]}
         >
           {item.label}
-        </Text>
+        </LocalizedText>
       </Animated.View>
     </Pressable>
   );
@@ -110,7 +108,6 @@ export default function LiquidDock({
   onSelect,
   bottomInset,
   scrollStretch,
-  blurTarget,
 }: Props) {
   const { isDark, tokens } = useTheme();
   const [dockWidth, setDockWidth] = useState(0);
@@ -127,7 +124,7 @@ export default function LiquidDock({
   const indicatorStyle = useAnimatedStyle(() => ({
     width: Math.max(0, itemWidth - 8),
     transform: [{ translateX: indicatorX.value }],
-  }), [itemWidth]);
+  }));
 
   const handleLayout = (event: LayoutChangeEvent) => {
     setDockWidth(event.nativeEvent.layout.width);
@@ -143,28 +140,11 @@ export default function LiquidDock({
         style={[
           styles.dock,
           {
-            borderColor: tokens.colors.glassBorder,
-            backgroundColor: tokens.colors.surfaceGlass,
+            borderColor: tokens.colors.borderStrong,
+            backgroundColor: tokens.colors.surfaceElevated,
           },
         ]}
       >
-        <BlurView
-          blurTarget={blurTarget}
-          intensity={tokens.blur.strong}
-          tint={isDark ? 'dark' : 'light'}
-          style={StyleSheet.absoluteFill}
-        />
-        <LinearGradient
-          pointerEvents="none"
-          colors={
-            isDark
-              ? ['rgba(255,255,255,0.13)', 'rgba(125,103,190,0.10)', 'rgba(20,25,43,0.38)']
-              : ['rgba(255,255,255,0.78)', 'rgba(240,235,255,0.56)', 'rgba(218,230,255,0.38)']
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
         {itemWidth > 0 && (
           <Animated.View
             pointerEvents="none"
@@ -172,10 +152,10 @@ export default function LiquidDock({
               styles.liquidPill,
               {
                 backgroundColor: isDark
-                  ? 'rgba(168,143,255,0.22)'
-                  : 'rgba(126,101,232,0.13)',
+                  ? 'rgba(88,101,242,0.24)'
+                  : 'rgba(126,101,232,0.12)',
                 borderColor: isDark
-                  ? 'rgba(205,190,255,0.34)'
+                  ? 'rgba(142,161,255,0.42)'
                   : 'rgba(126,101,232,0.22)',
               },
               indicatorStyle,
@@ -203,13 +183,13 @@ export default function LiquidDock({
 const styles = StyleSheet.create({
   position: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    left: 18,
+    right: 18,
     zIndex: 100,
   },
   dock: {
-    height: 78,
-    borderRadius: 28,
+    height: 64,
+    borderRadius: 17,
     borderWidth: 1,
     overflow: 'hidden',
     flexDirection: 'row',
@@ -228,10 +208,10 @@ const styles = StyleSheet.create({
   },
   liquidPill: {
     position: 'absolute',
-    top: 6,
-    bottom: 6,
+    top: 5,
+    bottom: 5,
     left: 4,
-    borderRadius: 23,
+    borderRadius: 19,
     borderWidth: 1,
     zIndex: 1,
   },

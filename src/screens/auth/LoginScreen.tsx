@@ -1,7 +1,8 @@
+import { LocalizedText, LocalizedTextInput, showLocalizedAlert } from '../../i18n/LocalizedText';
 import { useState } from 'react';
 import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable,
-  ScrollView, StyleSheet, Text, TextInput, View,
+  ScrollView, StyleSheet, Text as NativeText, TextInput as NativeTextInput, View,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 
@@ -33,9 +34,9 @@ export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, o
     try {
       setLoading(true);
       await action();
-      if (success) Alert.alert('QUIZ ARENA', success);
+      if (success) showLocalizedAlert('QUIZ ARENA', success);
     } catch (error) {
-      Alert.alert('Xatolik', error instanceof Error ? error.message : 'Xatolik yuz berdi');
+      showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -62,60 +63,71 @@ export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, o
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <Text style={styles.logo}>QUIZ ARENA</Text>
-        <Text style={styles.title}>{mode === 'forgot' ? 'Parolni tiklash' : 'Xush kelibsiz!'}</Text>
-        <Text style={styles.subtitle}>{mode === 'forgot' ? 'Email manzilingiz orqali parolingizni tiklang.' : 'Bilimlar maydoniga qayting.'}</Text>
-
+        <View style={styles.brandRow}>
+          <View style={styles.brandMark}><LocalizedText style={styles.brandMarkText}>Q</LocalizedText></View>
+          <View><LocalizedText style={styles.logo}>QUIZ ARENA</LocalizedText><LocalizedText style={styles.brandCaption}>BILIM · RAQOBAT · NATIJA</LocalizedText></View>
+        </View>
+        <View style={styles.hero}>
+          <LocalizedText style={styles.eyebrow}>SIZNI QAYTA KO‘RGANIMIZDAN XURSANDMIZ</LocalizedText>
+          <LocalizedText style={styles.title}>{mode === 'forgot' ? 'Parolni tiklash' : 'Xush kelibsiz!'}</LocalizedText>
+          <LocalizedText style={styles.subtitle}>{mode === 'forgot' ? 'Email manzilingiz orqali parolingizni tiklang.' : 'Bilimlar maydoniga qayting.'}</LocalizedText>
+        </View>
+        <View style={styles.formCard}>
         {mode === 'password' ? (
           <>
-            <Text style={styles.label}>Username</Text>
-            <TextInput style={styles.input} placeholder="Username kiriting" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" returnKeyType="next" />
-            <Text style={styles.label}>Parol</Text>
-            <TextInput style={styles.input} placeholder="Parolingizni kiriting" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoComplete="current-password" returnKeyType="done" onSubmitEditing={() => void run(() => onLogin(username.trim(), password))} />
+            <LocalizedText style={styles.label}>Username</LocalizedText>
+            <LocalizedTextInput style={styles.input} placeholder="Username kiriting" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" returnKeyType="next" />
+            <LocalizedText style={styles.label}>Parol</LocalizedText>
+            <LocalizedTextInput style={styles.input} placeholder="Parolingizni kiriting" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoComplete="current-password" returnKeyType="done" onSubmitEditing={() => void run(() => onLogin(username.trim(), password))} />
             <Pressable style={[styles.button, loading && styles.disabled]} disabled={loading} onPress={() => void run(() => onLogin(username.trim(), password))}>
-              {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Kirish</Text>}
+              {loading ? <ActivityIndicator color="#FFFFFF" /> : <LocalizedText style={styles.buttonText}>Kirish</LocalizedText>}
             </Pressable>
             <Pressable style={styles.textButton} onPress={() => { setMode('forgot'); setCodeSent(false); setCode(''); }}>
-              <Text style={styles.link}>Parolni unutdingizmi?</Text>
+              <LocalizedText style={styles.link}>Parolni unutdingizmi?</LocalizedText>
             </Pressable>
-            <Pressable style={[styles.googleButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onGoogleLogin)}>
-              <Text style={styles.googleButtonText}>G  Google orqali kirish</Text>
-            </Pressable>
-            <Pressable style={[styles.telegramButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onTelegramLogin)}>
-              <Text style={styles.telegramButtonText}>✈  Telegram orqali kirish</Text>
-            </Pressable>
+            {Platform.OS !== 'web' && (
+              <>
+                <Pressable style={[styles.googleButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onGoogleLogin)}>
+                  <LocalizedText style={styles.googleButtonText}>G  Google orqali kirish</LocalizedText>
+                </Pressable>
+                <Pressable style={[styles.telegramButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onTelegramLogin)}>
+                  <LocalizedText style={styles.telegramButtonText}>✈  Telegram orqali kirish</LocalizedText>
+                </Pressable>
+              </>
+            )}
           </>
         ) : (
           <>
-            <Text style={styles.label}>Email manzili</Text>
-            <TextInput style={styles.input} placeholder="example@gmail.com" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={email} onChangeText={value => { setEmail(value); setCodeSent(false); setCode(''); }} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
+            <LocalizedText style={styles.label}>Email manzili</LocalizedText>
+            <LocalizedTextInput style={styles.input} placeholder="example@gmail.com" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={email} onChangeText={value => { setEmail(value); setCodeSent(false); setCode(''); }} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
             {!codeSent ? (
               <Pressable style={[styles.button, loading && styles.disabled]} disabled={loading} onPress={() => void sendResetCode()}>
-                {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Tiklash kodini yuborish</Text>}
+                {loading ? <ActivityIndicator color="#FFFFFF" /> : <LocalizedText style={styles.buttonText}>Tiklash kodini yuborish</LocalizedText>}
               </Pressable>
             ) : (
               <>
-                <Text style={styles.label}>Emailga kelgan 6 xonali kod</Text>
-                <TextInput style={styles.input} placeholder="000000" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={code} onChangeText={setCode} keyboardType="number-pad" maxLength={6} />
-                <Text style={styles.label}>Yangi parol</Text>
-                <TextInput style={styles.input} placeholder="Kamida 8 ta belgi" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={newPassword} onChangeText={setNewPassword} secureTextEntry autoCapitalize="none" autoComplete="new-password" />
+                <LocalizedText style={styles.label}>Emailga kelgan 6 xonali kod</LocalizedText>
+                <LocalizedTextInput style={styles.input} placeholder="000000" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={code} onChangeText={setCode} keyboardType="number-pad" maxLength={6} />
+                <LocalizedText style={styles.label}>Yangi parol</LocalizedText>
+                <LocalizedTextInput style={styles.input} placeholder="Kamida 8 ta belgi" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={newPassword} onChangeText={setNewPassword} secureTextEntry autoCapitalize="none" autoComplete="new-password" />
                 <Pressable style={[styles.button, loading && styles.disabled]} disabled={loading} onPress={() => void submitReset()}>
-                  {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Parolni yangilash</Text>}
+                  {loading ? <ActivityIndicator color="#FFFFFF" /> : <LocalizedText style={styles.buttonText}>Parolni yangilash</LocalizedText>}
                 </Pressable>
                 <Pressable style={styles.textButton} onPress={() => void sendResetCode()}>
-                  <Text style={styles.link}>Kodni qayta yuborish</Text>
+                  <LocalizedText style={styles.link}>Kodni qayta yuborish</LocalizedText>
                 </Pressable>
               </>
             )}
             <Pressable style={styles.textButton} onPress={() => { setMode('password'); setCodeSent(false); setCode(''); }}>
-              <Text style={styles.link}>Orqaga</Text>
+              <LocalizedText style={styles.link}>Orqaga</LocalizedText>
             </Pressable>
           </>
         )}
 
+        </View>
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Hisobingiz yo‘qmi? </Text>
-          <Pressable onPress={onRegisterPress}><Text style={styles.link}>Ro‘yxatdan o‘tish</Text></Pressable>
+          <LocalizedText style={styles.footerText}>Hisobingiz yo‘qmi? </LocalizedText>
+          <Pressable onPress={onRegisterPress}><LocalizedText style={styles.link}>Ro‘yxatdan o‘tish</LocalizedText></Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -125,22 +137,29 @@ export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, o
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 25, paddingVertical: 35 },
-    logo: { color: colors.primary, fontSize: 13, fontWeight: 'bold', letterSpacing: 4, marginBottom: 35 },
-    title: { color: colors.text, fontSize: 30, fontWeight: 'bold' },
-    subtitle: { color: colors.textMuted, fontSize: 14, marginTop: 9, marginBottom: 25, lineHeight: 21 },
-    label: { color: colors.textSecondary, fontSize: 13, marginBottom: 9, marginTop: 15 },
-    input: { height: 54, borderRadius: 14, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, color: colors.text, fontSize: 15 },
-    button: { height: 54, backgroundColor: '#7657E8', borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 24 },
-    disabled: { opacity: 0.6 },
-    buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
-    googleButton: { height: 52, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceGlass, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-    googleButtonText: { color: colors.text, fontSize: 15, fontWeight: '600' },
-    telegramButton: { height: 52, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(40, 160, 220, 0.45)', backgroundColor: 'rgba(35, 150, 210, 0.12)', alignItems: 'center', justifyContent: 'center', marginTop: 10 },
-    telegramButtonText: { color: colors.text, fontSize: 15, fontWeight: '600' },
-    textButton: { alignSelf: 'center', paddingVertical: 11 },
-    footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 22 },
+    content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 22, paddingVertical: 28 },
+    brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 30 },
+    brandMark: { width: 42, height: 42, borderRadius: 15, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+    brandMarkText: { color: '#FFFFFF', fontSize: 23, fontWeight: '800' },
+    logo: { color: colors.text, fontSize: 13, fontWeight: '800', letterSpacing: 3 },
+    brandCaption: { color: colors.textMuted, fontSize: 9, letterSpacing: 1.4, marginTop: 3 },
+    hero: { marginBottom: 22 },
+    eyebrow: { color: colors.primary, fontSize: 9, fontWeight: '800', letterSpacing: 1.5, marginBottom: 10 },
+    title: { color: colors.text, fontSize: 29, fontWeight: '800', letterSpacing: -0.7 },
+    subtitle: { color: colors.textMuted, fontSize: 14, marginTop: 8, lineHeight: 21 },
+    formCard: { backgroundColor: colors.surfaceGlass, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: 26, padding: 18 },
+    label: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', marginBottom: 8, marginTop: 13 },
+    input: { height: 52, borderRadius: 15, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 15, color: colors.text, fontSize: 15 },
+    button: { height: 52, backgroundColor: colors.primary, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 22 },
+    disabled: { opacity: 0.55 },
+    buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+    googleButton: { height: 50, borderRadius: 15, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center', marginTop: 11 },
+    googleButtonText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+    telegramButton: { height: 50, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(40, 160, 220, 0.35)', backgroundColor: 'rgba(35, 150, 210, 0.10)', alignItems: 'center', justifyContent: 'center', marginTop: 9 },
+    telegramButtonText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+    textButton: { alignSelf: 'center', paddingVertical: 10 },
+    footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
     footerText: { color: colors.textMuted, fontSize: 13 },
-    link: { color: colors.primary, fontSize: 13, fontWeight: 'bold' },
+    link: { color: colors.primary, fontSize: 13, fontWeight: '800' },
   });
 }

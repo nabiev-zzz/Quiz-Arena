@@ -18,6 +18,7 @@ import { AddUserRankPoints20261124002500 } from './database/migrations/AddUserRa
 import { AddBattleMatchRankChanges20261124040000 } from './database/migrations/AddBattleMatchRankChanges';
 import { CreateUserFollows20261124070000 } from './database/migrations/CreateUserFollows';
 import { CreateLearningAttempts20261124090000 } from './database/migrations/CreateLearningAttempts';
+import { AddLearningAttemptReview20261124235000 } from './database/migrations/AddLearningAttemptReview';
 import { CreateLearningQuestionBank20261124200000 } from './database/migrations/CreateLearningQuestionBank';
 import { CreateLearningWebSessions20261124210000 } from './database/migrations/CreateLearningWebSessions';
 import { CreateUserSubscriptions20261124120000 } from './database/migrations/CreateUserSubscriptions';
@@ -27,6 +28,7 @@ import { CreateAuthOtps20261124150000 } from './database/migrations/CreateAuthOt
 import { CreateAuthOAuthCodes20261124151000 } from './database/migrations/CreateAuthOAuthCodes';
 import { CreateAuthEmailCodes20261124170000 } from './database/migrations/CreateAuthEmailCodes';
 import { AddTelegramIdentity20261124190000 } from './database/migrations/AddTelegramIdentity';
+import { AddAvatarImageSupport20261124230000 } from './database/migrations/AddAvatarImageSupport';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
 
@@ -52,6 +54,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         AddBattleMatchRankChanges20261124040000,
         CreateUserFollows20261124070000,
         CreateLearningAttempts20261124090000,
+        AddLearningAttemptReview20261124235000,
         CreateLearningQuestionBank20261124200000,
         CreateLearningWebSessions20261124210000,
         CreateUserSubscriptions20261124120000,
@@ -61,6 +64,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         CreateAuthOAuthCodes20261124151000,
         CreateAuthEmailCodes20261124170000,
         AddTelegramIdentity20261124190000,
+        AddAvatarImageSupport20261124230000,
       ],
       migrationsRun: true,
       migrationsTableName: 'typeorm_migrations',

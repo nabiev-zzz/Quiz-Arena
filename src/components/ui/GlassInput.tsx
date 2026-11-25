@@ -8,6 +8,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
+import { LocalizedTextInput } from '../../i18n/LocalizedText';
 
 type Props = TextInputProps & {
   containerStyle?: StyleProp<ViewStyle>;
@@ -29,13 +30,13 @@ export default function GlassInput({
           minHeight: tokens.component.inputHeight,
           borderRadius: tokens.radius.md,
           backgroundColor: tokens.colors.inputBackground,
-          borderColor: tokens.colors.border,
+          borderColor: tokens.colors.glassBorder,
           opacity: editable ? 1 : tokens.opacity.disabled,
         },
         containerStyle,
       ]}
     >
-      <TextInput
+      <LocalizedTextInput
         {...inputProps}
         editable={editable}
         placeholderTextColor={tokens.colors.textMuted}
@@ -57,10 +58,11 @@ const styles = StyleSheet.create({
   container: {
     borderWidth: 1,
     justifyContent: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 15,
   },
   input: {
-    minHeight: 48,
-    paddingVertical: 10,
+    minHeight: 50,
+    paddingVertical: 11,
+    fontWeight: '500',
   },
 });

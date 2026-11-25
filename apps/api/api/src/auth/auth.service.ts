@@ -23,6 +23,7 @@ export interface UpdateProfileInput {
   displayName?: string;
   username?: string;
   bio?: string | null;
+  avatarUrl?: string | null;
   avatarDecoration?: string | null;
   profileFrame?: string | null;
 }
@@ -109,6 +110,7 @@ export class AuthService {
     }
 
     if (input.bio !== undefined) user.bio = input.bio?.trim() || null;
+    if (input.avatarUrl !== undefined) user.avatarUrl = input.avatarUrl;
     if (input.avatarDecoration !== undefined) user.avatarDecoration = input.avatarDecoration;
     if (input.profileFrame !== undefined) user.profileFrame = input.profileFrame;
 
@@ -138,14 +140,19 @@ export class AuthService {
     if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) {
       throw new BadRequestException('Username formati noto‘g‘ri');
     }
-    if (await this.userRepository.findOne({ where: { username } })) {
+    // Run independent database checks and password hashing concurrently.
+    // Cost 10 keeps a strong adaptive hash while reducing CPU time on the free tier.
+    const [existingUsername, existingEmail, passwordHash] = await Promise.all([
+      this.userRepository.findOne({ where: { username } }),
+      email ? this.userRepository.findOne({ where: { email } }) : Promise.resolve(null),
+      bcrypt.hash(dto.password, 10),
+    ]);
+    if (existingUsername) {
       throw new ConflictException('Bu username allaqachon band');
     }
-    if (email && await this.userRepository.findOne({ where: { email } })) {
+    if (existingEmail) {
       throw new ConflictException('Bu email allaqachon ro‘yxatdan o‘tgan');
     }
-
-    const passwordHash = await bcrypt.hash(dto.password, 12);
     const user = this.userRepository.create({
       displayName, username, email, passwordHash, role: 'user', status: 'active',
     });
@@ -520,9 +527,13 @@ export class AuthService {
     return `quizarena://auth?code=${encodeURIComponent(rawCode)}`;
   }
 
-  private async exchangeOAuthCode(rawCode: string, provider: 'Google' | 'Telegram') {
+  async exchangeTelegramCode(rawCode: string) {
+    return this.exchangeGoogleCode(rawCode);
+  }
+
+  async exchangeGoogleCode(rawCode: string) {
     if (!/^[A-Za-z0-9_-]{40,60}$/.test(rawCode)) {
-      throw new UnauthorizedException(`${provider} kirish kodi noto‘g‘ri yoki muddati tugagan`);
+      throw new UnauthorizedException('Google kirish kodi noto‘g‘ri yoki muddati tugagan');
     }
     const codeHash = createHash('sha256').update(rawCode).digest('hex');
     const challenge = await this.oauthCodeRepository
@@ -532,9 +543,7 @@ export class AuthService {
       .andWhere('oauth.consumedAt IS NULL')
       .andWhere('oauth.expiresAt > :now', { now: new Date() })
       .getOne();
-    if (!challenge) {
-      throw new UnauthorizedException(`${provider} kirish kodi noto‘g‘ri yoki muddati tugagan`);
-    }
+    if (!challenge) throw new UnauthorizedException('Google kirish kodi noto‘g‘ri yoki muddati tugagan');
 
     const consumed = await this.oauthCodeRepository
       .createQueryBuilder()
@@ -545,21 +554,11 @@ export class AuthService {
       .andWhere('"expiresAt" > :now', { now: new Date() })
       .execute();
     if (consumed.affected !== 1) {
-      throw new UnauthorizedException(`${provider} kirish kodi noto‘g‘ri yoki muddati tugagan`);
+      throw new UnauthorizedException('Google kirish kodi noto‘g‘ri yoki muddati tugagan');
     }
     const user = await this.userRepository.findOne({ where: { id: challenge.userId } });
-    if (!user || user.status !== 'active') {
-      throw new UnauthorizedException('Hisob topilmadi yoki bloklangan');
-    }
+    if (!user || user.status !== 'active') throw new UnauthorizedException('Hisob topilmadi yoki bloklangan');
     return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
-  }
-
-  async exchangeTelegramCode(rawCode: string) {
-    return this.exchangeOAuthCode(rawCode, 'Telegram');
-  }
-
-  async exchangeGoogleCode(rawCode: string) {
-    return this.exchangeOAuthCode(rawCode, 'Google');
   }
 
   async loginWithGoogle(idToken: string, expectedNonce?: string) {
@@ -620,8 +619,33 @@ export class AuthService {
     return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
   }
 
+  private async ensureOwnerAccount(username: string) {
+    const configuredUsername = this.config.get<string>('OWNER_ACCOUNT_USERNAME')?.trim().toLowerCase();
+    const configuredPassword = this.config.get<string>('OWNER_ACCOUNT_PASSWORD');
+
+    if (!configuredUsername || !configuredPassword || username !== configuredUsername) return;
+    if (!/^[a-z0-9_]{3,30}$/.test(configuredUsername) || configuredPassword.length < 20) {
+      throw new ServiceUnavailableException('Owner account configuration is invalid');
+    }
+
+    const existing = await this.userRepository.findOne({ where: { username: configuredUsername } });
+    if (existing) return;
+
+    const passwordHash = await bcrypt.hash(configuredPassword, 12);
+    const owner = this.userRepository.create({
+      displayName: 'QUIZ ARENA Owner',
+      username: configuredUsername,
+      email: null,
+      passwordHash,
+      role: 'admin',
+      status: 'active',
+    });
+    await this.userRepository.save(owner);
+  }
+
   async login(dto: LoginDto) {
     const username = dto.username.trim().toLowerCase();
+    await this.ensureOwnerAccount(username);
     const user = await this.userRepository
       .createQueryBuilder('user')
       .addSelect('user.passwordHash')

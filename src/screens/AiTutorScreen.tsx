@@ -1,6 +1,7 @@
+import { LocalizedText, LocalizedTextInput } from '../i18n/LocalizedText';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
+import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
   withSpring,
@@ -12,10 +13,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   StyleSheet,
-  Text,
-  TextInput,
+  Text as NativeText,
+  TextInput as NativeTextInput,
   View,
 } from 'react-native';
 
@@ -178,18 +178,18 @@ export default function AiTutorScreen({
       >
         {!isUser && (
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>AI</Text>
+            <LocalizedText style={styles.avatarText}>AI</LocalizedText>
           </View>
         )}
 
-        <View>
+        <View style={styles.messageContent}>
           <View
             style={[
               styles.messageBubble,
               isUser ? styles.userBubble : styles.assistantBubble,
             ]}
           >
-            <Text
+            <LocalizedText
               style={[
                 styles.messageText,
                 isUser
@@ -198,7 +198,7 @@ export default function AiTutorScreen({
               ]}
             >
               {item.content}
-            </Text>
+            </LocalizedText>
           </View>
 
           {canRetry && (
@@ -207,9 +207,9 @@ export default function AiTutorScreen({
               disabled={sending}
               style={styles.messageRetryButton}
             >
-              <Text style={styles.messageRetryText}>
+              <LocalizedText style={styles.messageRetryText}>
                 {sending ? 'Yuborilmoqda...' : '↻ Qayta yuborish'}
-              </Text>
+              </LocalizedText>
             </Pressable>
           )}
         </View>
@@ -218,7 +218,7 @@ export default function AiTutorScreen({
   };
 
   return (
-    <SafeAreaView
+    <View
       style={[
         styles.container,
         bottomDockSpace > 0 && { paddingBottom: bottomDockSpace },
@@ -230,31 +230,31 @@ export default function AiTutorScreen({
       >
         <View style={styles.header}>
           <Pressable onPress={onBack} style={styles.backButton}>
-            <Text style={styles.backText}>‹</Text>
+            <LocalizedText style={styles.backText}>‹</LocalizedText>
           </Pressable>
 
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>Shaxsiy AI Ustoz</Text>
+            <LocalizedText style={styles.headerTitle}>Shaxsiy AI Ustoz</LocalizedText>
             <View style={styles.onlineRow}>
               <View style={styles.onlineDot} />
-              <Text style={styles.onlineText}>O‘qishga tayyor</Text>
+              <LocalizedText style={styles.onlineText}>O‘qishga tayyor</LocalizedText>
             </View>
           </View>
 
           <View style={styles.headerAvatar}>
-            <Text style={styles.headerAvatarText}>AI</Text>
+            <LocalizedText style={styles.headerAvatarText}>AI</LocalizedText>
           </View>
         </View>
 
         {loadingHistory ? (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>
+            <LocalizedText style={styles.loadingText}>
               Suhbat tarixi yuklanmoqda...
-            </Text>
+            </LocalizedText>
           </View>
         ) : (
-          <FlatList
+          <Animated.FlatList
             ref={listRef}
             style={styles.messageScroll}
             onScroll={dockScrollHandler}
@@ -271,29 +271,29 @@ export default function AiTutorScreen({
             ListEmptyComponent={
               <View style={styles.welcomeContainer}>
                 <View style={styles.welcomeIcon}>
-                  <Text style={styles.welcomeIconText}>✦</Text>
+                  <LocalizedText style={styles.welcomeIconText}>✦</LocalizedText>
                 </View>
 
-                <Text style={styles.welcomeTitle}>
+                <LocalizedText style={styles.welcomeTitle}>
                   Salom! Men sizning AI Ustozingizman.
-                </Text>
+                </LocalizedText>
 
-                <Text style={styles.welcomeDescription}>
+                <LocalizedText style={styles.welcomeDescription}>
                   Istalgan fan yoki mavzu bo‘yicha savol bering.
                   Men tushuntiraman, misollar keltiraman va
                   bilimlaringizni mustahkamlashga yordam beraman.
-                </Text>
+                </LocalizedText>
 
                 <View style={styles.suggestion}>
-                  <Text style={styles.suggestionText}>
+                  <LocalizedText style={styles.suggestionText}>
                     Matematikada kasrlarni tushuntirib ber
-                  </Text>
+                  </LocalizedText>
                 </View>
 
                 <View style={styles.suggestion}>
-                  <Text style={styles.suggestionText}>
+                  <LocalizedText style={styles.suggestionText}>
                     Ingliz tilini qanday o‘rgansam bo‘ladi?
-                  </Text>
+                  </LocalizedText>
                 </View>
               </View>
             }
@@ -301,9 +301,9 @@ export default function AiTutorScreen({
               sending ? (
                 <View style={styles.typingRow}>
                   <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={styles.typingText}>
+                  <LocalizedText style={styles.typingText}>
                     AI Ustoz javob tayyorlamoqda...
-                  </Text>
+                  </LocalizedText>
                 </View>
               ) : undefined
             }
@@ -312,17 +312,17 @@ export default function AiTutorScreen({
 
         {!!error && (
           <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
+            <LocalizedText style={styles.errorText}>{error}</LocalizedText>
             {historyFailed && (
               <Pressable onPress={() => void loadHistory()}>
-                <Text style={styles.retryText}>Qayta urinish</Text>
+                <LocalizedText style={styles.retryText}>Qayta urinish</LocalizedText>
               </Pressable>
             )}
           </View>
         )}
 
         <View style={styles.inputContainer}>
-          <TextInput
+          <LocalizedTextInput
             style={styles.input}
             placeholder="Savolingizni yozing..."
             placeholderTextColor={colors.textMuted}
@@ -348,16 +348,16 @@ export default function AiTutorScreen({
             {sending ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.sendButtonText}>↑</Text>
+              <LocalizedText style={styles.sendButtonText}>↑</LocalizedText>
             )}
           </Pressable>
         </View>
 
-        <Text style={styles.footerText}>
+        <LocalizedText style={styles.footerText}>
           AI javoblarini muhim ma’lumotlar bilan solishtirib tekshiring.
-        </Text>
+        </LocalizedText>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -445,8 +445,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     flexGrow: 1,
   },
   messageRow: {
+    width: '100%',
     flexDirection: 'row',
-    marginBottom: 14,
+    marginBottom: 10,
     alignItems: 'flex-end',
   },
   userRow: { justifyContent: 'flex-end' },
@@ -465,11 +466,18 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     fontSize: 10,
     fontWeight: '900',
   },
-  messageBubble: {
+  messageContent: {
     maxWidth: '84%',
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderRadius: 19,
+    minWidth: 0,
+    flexShrink: 1,
+  },
+  messageBubble: {
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    borderRadius: 17,
   },
   userBubble: {
     backgroundColor: '#6759E8',
@@ -482,8 +490,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     borderColor: colors.border,
   },
   messageText: {
+    flexShrink: 1,
     fontSize: 14,
-    lineHeight: 22,
+    lineHeight: 21,
   },
   userMessageText: { color: '#FFFFFF' },
   assistantMessageText: { color: colors.text },

@@ -2,12 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
 import { UserSubscription } from './entities/subscription.entity';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class SubscriptionsService {
   constructor(
     @InjectRepository(UserSubscription)
     private readonly subscriptions: Repository<UserSubscription>,
+    @InjectRepository(User)
+    private readonly users: Repository<User>,
   ) {}
 
   plans() {
@@ -27,6 +30,22 @@ export class SubscriptionsService {
   }
 
   async current(userId: string) {
+    const user = await this.users.findOne({ where: { id: userId, status: 'active' } });
+    if (user?.role === 'admin') {
+      return {
+        isPremium: true,
+        isOwner: true,
+        subscription: {
+          planKey: 'legenda_plus_yearly',
+          provider: 'owner',
+          status: 'active',
+          startsAt: user.createdAt,
+          expiresAt: null,
+          autoRenew: false,
+        },
+      };
+    }
+
     const subscription = await this.subscriptions.findOne({
       where: { userId, status: 'active', expiresAt: MoreThan(new Date()) },
       order: { expiresAt: 'DESC' },

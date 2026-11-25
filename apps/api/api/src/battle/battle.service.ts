@@ -33,6 +33,8 @@ export interface BattleQuestionResult {
   answers: Record<string, number | null>;
   points: Record<string, number>;
   explanation: string;
+  question?: string;
+  options?: string[];
 }
 
 export interface BattleRankChange {
@@ -736,6 +738,91 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
           finishedAt: match.finishedAt,
         };
       }),
+    };
+  }
+
+  // Faqat jang ishtirokchisiga o'zining yakunlangan jangi tafsilotlarini ko'rsatadi.
+  async getHistoryDetail(userId: string, matchId: string) {
+    const match = await this.matchRepository.findOne({
+      where: { id: matchId },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Battle tarixi topilmadi.');
+    }
+
+    if (match.playerOneId !== userId && match.playerTwoId !== userId) {
+      throw new NotFoundException('Battle tarixi topilmadi.');
+    }
+
+    if (match.status !== 'finished') {
+      throw new BadRequestException(
+        'Savollar tahlili faqat yakunlangan janglar uchun mavjud.',
+      );
+    }
+
+    const questionResults = Array.isArray(match.questionResults)
+      ? (match.questionResults as unknown as BattleQuestionResult[])
+      : [];
+    const questionIds = [
+      ...new Set(questionResults.map((item) => item.questionId).filter(Boolean)),
+    ];
+    const questions = questionIds.length
+      ? await this.questionRepository.find({
+          where: { id: In(questionIds) },
+          select: {
+            id: true,
+            question: true,
+            options: true,
+            correctAnswer: true,
+            explanation: true,
+          },
+        })
+      : [];
+    const questionMap = new Map(questions.map((question) => [question.id, question]));
+    const rankChanges = (match.rankChanges || {}) as Record<
+      string,
+      BattleRankChange
+    >;
+    const myRankChange = rankChanges[userId] || null;
+    const opponentId =
+      match.playerOneId === userId ? match.playerTwoId : match.playerOneId;
+
+    return {
+      id: match.id,
+      roomCode: match.roomCode,
+      mode: match.mode,
+      status: match.status,
+      result: !match.winnerId
+        ? 'draw'
+        : match.winnerId === userId
+          ? 'win'
+          : 'loss',
+      myScore: match.scores?.[userId] || 0,
+      opponentScore: opponentId ? match.scores?.[opponentId] || 0 : 0,
+      winnerId: match.winnerId,
+      startedAt: match.startedAt,
+      finishedAt: match.finishedAt,
+      rankChange: myRankChange,
+      questions: questionResults
+        .slice()
+        .sort((a, b) => a.questionIndex - b.questionIndex)
+        .map((item) => {
+          const question = questionMap.get(item.questionId);
+          const selectedAnswer = item.answers?.[userId] ?? null;
+          return {
+            index: item.questionIndex + 1,
+            question: item.question || question?.question || 'Savol matni mavjud emas',
+            options: item.options || question?.options || [],
+            selectedAnswer,
+            correctAnswer: item.correctAnswer ?? question?.correctAnswer ?? 0,
+            isCorrect:
+              selectedAnswer !== null &&
+              selectedAnswer === (question?.correctAnswer ?? item.correctAnswer),
+            points: item.points?.[userId] || 0,
+            explanation: item.explanation || question?.explanation || '',
+          };
+        }),
     };
   }
 

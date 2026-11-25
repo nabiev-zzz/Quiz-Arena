@@ -8,6 +8,7 @@ on:
     branches:
       - feature/liquid-glass-dock
       - feat/education-statistics-dashboard
+      - feat/free-web-app-launch
 
 permissions:
   contents: read
@@ -30,6 +31,28 @@ jobs:
 
       - name: TypeScript validation
         run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Export browser-ready web app
+        run: npx expo export --platform web --output-dir "$RUNNER_TEMP/expo-web-export"
+
+      - name: Build the combined public website image
+        run: docker build --build-arg APP_SOURCE_BRANCH=main -t quiz-arena-website:ci -f website/Dockerfile website
+
+      - name: Smoke-test landing page and browser app routes
+        run: |
+          docker run -d --name quiz-arena-web-smoke -p 8080:8080 quiz-arena-website:ci
+          trap 'docker rm -f quiz-arena-web-smoke >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --dump-header "$RUNNER_TEMP/landing.headers" http://127.0.0.1:8080/ > "$RUNNER_TEMP/landing.html"; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent --dump-header "$RUNNER_TEMP/app.headers" http://127.0.0.1:8080/app/ > "$RUNNER_TEMP/app.html"
+          grep -qi "content-type: text/html; charset=utf-8" "$RUNNER_TEMP/landing.headers"
+          grep -qi "content-type: text/html; charset=utf-8" "$RUNNER_TEMP/app.headers"
+          grep -q "QUIZ ARENA" "$RUNNER_TEMP/landing.html"
+          grep -q "/app/_expo/" "$RUNNER_TEMP/app.html"
 
       - name: Expo dependency validation
         run: npx expo install --check
@@ -56,5 +79,5 @@ jobs:
       - name: Build NestJS API
         run: npm run build
 
-      - name: Test payment security and validation
-        run: npm test -- --runInBand src/subscriptions/subscription-payments.service.spec.ts
+      - name: Test payment security, Battle rank and history
+        run: npm test -- --runInBand src/subscriptions/subscription-payments.service.spec.ts src/battle/battle.service.spec.ts

@@ -1,3 +1,4 @@
+import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 
 import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 import {
@@ -5,11 +6,12 @@ import {
   Pressable,
   StyleSheet,
   Switch,
-  Text,
+  Text as NativeText,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../theme/ThemeContext';
 
 import {
   useAppSettings,
@@ -28,6 +30,7 @@ export default function SettingsScreen({
   dockStretch,
 }: SettingsScreenProps) {
   const { user } = useAuth();
+  const { tokens } = useTheme();
 
   const {
     language,
@@ -59,12 +62,12 @@ export default function SettingsScreen({
   });
 
   const colors = {
-    background: isDark ? '#0B1020' : '#F3F5FA',
-    card: isDark ? '#151D33' : '#FFFFFF',
-    text: isDark ? '#FFFFFF' : '#172033',
-    muted: isDark ? '#929BB0' : '#667085',
-    border: isDark ? '#293553' : '#E1E5ED',
-    accent: '#8B5CF6',
+    background: tokens.colors.background,
+    card: tokens.colors.surface,
+    text: tokens.colors.text,
+    muted: tokens.colors.textMuted,
+    border: tokens.colors.border,
+    accent: tokens.colors.primary,
   };
 
   const languages: {
@@ -92,7 +95,7 @@ export default function SettingsScreen({
     try {
       await action();
     } catch {
-      Alert.alert(
+      showLocalizedAlert(
         'Xatolik',
         'Sozlamani saqlab bo‘lmadi. Qayta urinib ko‘ring.',
       );
@@ -101,21 +104,21 @@ export default function SettingsScreen({
 
 
   const showPasswordInfo = () => {
-    Alert.alert(
+    showLocalizedAlert(
       'Parolni o‘zgartirish',
       'Bu imkoniyat uchun serverda parolni yangilash API funksiyasini qo‘shamiz.',
     );
   };
 
   const showPrivacy = () => {
-    Alert.alert(
+    showLocalizedAlert(
       'Maxfiylik va xavfsizlik',
       'Hisobingiz xavfsizligi va shaxsiy ma’lumotlaringizni himoya qilish bo‘limi.',
     );
   };
 
   const showHelp = () => {
-    Alert.alert(
+    showLocalizedAlert(
       'Yordam',
       'Yordam xizmati bilan bog‘lanish imkoniyatini keyingi bosqichda qo‘shamiz.',
     );
@@ -150,14 +153,14 @@ export default function SettingsScreen({
       </View>
 
       <View style={styles.rowContent}>
-        <Text style={[styles.rowTitle, { color: colors.text }]}>
+        <LocalizedText style={[styles.rowTitle, { color: colors.text }]}>
           {title}
-        </Text>
+        </LocalizedText>
 
         {description ? (
-          <Text style={[styles.rowDescription, { color: colors.muted }]}>
+          <LocalizedText style={[styles.rowDescription, { color: colors.muted }]}>
             {description}
-          </Text>
+          </LocalizedText>
         ) : null}
       </View>
 
@@ -184,14 +187,14 @@ export default function SettingsScreen({
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </Pressable>
 
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
+        <LocalizedText style={[styles.headerTitle, { color: colors.text }]}>
           Sozlamalar
-        </Text>
+        </LocalizedText>
       </View>
 
-      <Text style={[styles.sectionTitle, { color: colors.muted }]}>
+      <LocalizedText style={[styles.sectionTitle, { color: colors.muted }]}>
         KO‘RINISH
-      </Text>
+      </LocalizedText>
 
       <View
         style={[
@@ -206,9 +209,9 @@ export default function SettingsScreen({
             color={colors.accent}
           />
 
-          <Text style={[styles.optionTitle, { color: colors.text }]}>
-            {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
-          </Text>
+          <LocalizedText style={[styles.optionTitle, { color: colors.text }]}>
+            {theme === 'dark' ? 'Qorong‘i rejim' : 'Yorug‘ rejim'}
+          </LocalizedText>
 
           <Switch
             value={theme === 'dark'}
@@ -222,14 +225,14 @@ export default function SettingsScreen({
           />
         </View>
 
-        <Text style={[styles.helperText, { color: colors.muted }]}>
+        <LocalizedText style={[styles.helperText, { color: colors.muted }]}>
           Qorong‘i yoki yorug‘ ko‘rinishni tanlang.
-        </Text>
+        </LocalizedText>
       </View>
 
-      <Text style={[styles.sectionTitle, { color: colors.muted }]}>
+      <LocalizedText style={[styles.sectionTitle, { color: colors.muted }]}>
         TIL
-      </Text>
+      </LocalizedText>
 
       <View
         style={[
@@ -245,11 +248,11 @@ export default function SettingsScreen({
               void handleChange(() => setLanguage(item.code))
             }
           >
-            <Text style={styles.flag}>{item.flag}</Text>
+            <LocalizedText style={styles.flag}>{item.flag}</LocalizedText>
 
-            <Text style={[styles.optionTitle, { color: colors.text }]}>
+            <LocalizedText style={[styles.optionTitle, { color: colors.text }]}>
               {item.label}
-            </Text>
+            </LocalizedText>
 
             <View style={{ flex: 1 }} />
 
@@ -271,9 +274,9 @@ export default function SettingsScreen({
         ))}
       </View>
 
-      <Text style={[styles.sectionTitle, { color: colors.muted }]}>
+      <LocalizedText style={[styles.sectionTitle, { color: colors.muted }]}>
         SHRIFT O‘LCHAMI
-      </Text>
+      </LocalizedText>
 
       <View
         style={[
@@ -298,7 +301,7 @@ export default function SettingsScreen({
                 },
               ]}
             >
-              <Text
+              <LocalizedText
                 style={[
                   styles.fontButtonText,
                   {
@@ -308,15 +311,15 @@ export default function SettingsScreen({
                 ]}
               >
                 {item.label}
-              </Text>
+              </LocalizedText>
             </Pressable>
           ))}
         </View>
       </View>
 
-      <Text style={[styles.sectionTitle, { color: colors.muted }]}>
+      <LocalizedText style={[styles.sectionTitle, { color: colors.muted }]}>
         BILDIRISHNOMALAR
-      </Text>
+      </LocalizedText>
 
       <SettingRow
         icon="notifications-outline"
@@ -366,9 +369,9 @@ export default function SettingsScreen({
         }
       />
 
-      <Text style={[styles.sectionTitle, { color: colors.muted }]}>
+      <LocalizedText style={[styles.sectionTitle, { color: colors.muted }]}>
         HISOB VA XAVFSIZLIK
-      </Text>
+      </LocalizedText>
 
       <SettingRow
         icon="mail-outline"
@@ -422,16 +425,16 @@ export default function SettingsScreen({
           />
         }
         onPress={() =>
-          Alert.alert(
+          showLocalizedAlert(
             'Maxfiylik siyosati',
             'Rasmiy maxfiylik siyosati sahifasini keyingi bosqichda qo‘shamiz.',
           )
         }
       />
 
-      <Text style={[styles.sectionTitle, { color: colors.muted }]}>
+      <LocalizedText style={[styles.sectionTitle, { color: colors.muted }]}>
         YORDAM
-      </Text>
+      </LocalizedText>
 
       <SettingRow
         icon="help-circle-outline"
@@ -447,17 +450,17 @@ export default function SettingsScreen({
         onPress={showHelp}
       />
 
-      <Text style={[styles.version, { color: colors.muted }]}>
+      <LocalizedText style={[styles.version, { color: colors.muted }]}>
         QUIZ ARENA • Sozlamalar
-      </Text>
+      </LocalizedText>
     </Animated.ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: 18,
-    paddingTop: 10,
+    paddingHorizontal: 20,
+    paddingTop: 14,
     paddingBottom: 128,
   },
   header: {
@@ -475,7 +478,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 23,
     fontWeight: '800',
   },
   sectionTitle: {
@@ -486,9 +489,9 @@ const styles = StyleSheet.create({
     marginBottom: 11,
   },
   groupCard: {
-    borderRadius: 18,
+    borderRadius: 21,
     borderWidth: 1,
-    padding: 15,
+    padding: 16,
     marginBottom: 5,
   },
   optionHeader: {
@@ -541,7 +544,7 @@ const styles = StyleSheet.create({
     minHeight: 70,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 17,
+    borderRadius: 18,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 13,
@@ -551,7 +554,7 @@ const styles = StyleSheet.create({
   rowIcon: {
     width: 42,
     height: 42,
-    borderRadius: 13,
+    borderRadius: 14,
     backgroundColor: 'rgba(139,92,246,0.13)',
     alignItems: 'center',
     justifyContent: 'center',

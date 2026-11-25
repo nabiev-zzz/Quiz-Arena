@@ -1,10 +1,11 @@
+import { LocalizedText } from '../../i18n/LocalizedText';
 ﻿import React from 'react';
 import {
   ActivityIndicator,
   Pressable,
   StyleProp,
   StyleSheet,
-  Text,
+  Text as NativeText,
   ViewStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -44,8 +45,8 @@ export default function GlassButton({
       style={({ pressed }) => [
         styles.wrapper,
         {
-          height: tokens.component.buttonHeight,
-          borderRadius: tokens.radius.md,
+          minHeight: tokens.component.buttonHeight,
+          borderRadius: tokens.radius.lg,
           opacity: inactive ? tokens.opacity.disabled : pressed ? tokens.opacity.pressed : 1,
           borderWidth: variant === 'outline' ? 1 : 0,
           borderColor: tokens.colors.borderStrong,
@@ -67,17 +68,17 @@ export default function GlassButton({
           {loading ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={[styles.label, { color: contentColor }]}>
+            <LocalizedText style={[styles.label, { color: contentColor }]}>
               {title}
-            </Text>
+            </LocalizedText>
           )}
         </LinearGradient>
       ) : loading ? (
         <ActivityIndicator color={tokens.colors.primary} />
       ) : (
-        <Text style={[styles.label, { color: contentColor }]}>
+        <LocalizedText style={[styles.label, { color: contentColor }]}>
           {title}
-        </Text>
+        </LocalizedText>
       )}
     </Pressable>
   );
@@ -96,7 +97,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    letterSpacing: 0.1,
+    fontWeight: '800',
   },
 });

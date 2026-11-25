@@ -1,22 +1,26 @@
+import { LocalizedText } from '../../i18n/LocalizedText';
 import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text as NativeText, View, type StyleProp, type ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp, ZoomIn, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { leaderboardTheme as t, type LeaderboardPeriod, type LeaderboardUser } from './leaderboardTheme';
+import { useTheme } from '../../theme/ThemeContext';
 
 export function GlassCard({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  const { tokens, isDark } = useTheme();
   return (
-    <View style={[s.glass, style]}>
-      <BlurView intensity={Platform.OS === 'android' ? 24 : 40} tint="light" style={StyleSheet.absoluteFill} />
-      <LinearGradient pointerEvents="none" colors={['rgba(255,255,255,0.23)', 'rgba(255,255,255,0.10)', 'rgba(255,255,255,0.06)']} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill} />
+    <View style={[s.glass, { backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border }, style]}>
+      <BlurView intensity={Platform.OS === 'android' ? 18 : 28} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+      <LinearGradient pointerEvents="none" colors={isDark ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.04)'] : ['rgba(255,255,255,0.36)', 'rgba(255,255,255,0.08)']} start={{x:0,y:0}} end={{x:1,y:1}} style={StyleSheet.absoluteFill} />
       {children}
     </View>
   );
 }
 
 export function SegmentedControl({ value, onChange }: { value: LeaderboardPeriod; onChange: (v: LeaderboardPeriod) => void }) {
+  const { tokens, isDark } = useTheme();
   const [width, setWidth] = useState(0);
   const x = useSharedValue(0);
   const opts: LeaderboardPeriod[] = ['Haftalik', 'Oylik', 'Hammasi'];
@@ -24,9 +28,9 @@ export function SegmentedControl({ value, onChange }: { value: LeaderboardPeriod
   useEffect(() => { if (width) x.value = withSpring(index * width / 3, t.spring); }, [index, width, x]);
   const pill = useAnimatedStyle(() => ({ width: width / 3, transform: [{ translateX: x.value }] }));
   return (
-    <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={s.segment}>
+    <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={[s.segment, { backgroundColor: tokens.colors.surface, borderColor: tokens.colors.border }]}>
       {width > 0 && <Animated.View style={[s.segmentPill, pill]}><LinearGradient colors={['rgba(255,255,255,0.34)','rgba(255,255,255,0.16)']} style={StyleSheet.absoluteFill} /></Animated.View>}
-      {opts.map((o) => <Pressable key={o} onPress={() => onChange(o)} style={s.segmentItem}><Text style={[s.segmentText, value === o && s.segmentActive]}>{o}</Text></Pressable>)}
+      {opts.map((o) => <Pressable key={o} onPress={() => onChange(o)} style={s.segmentItem}><LocalizedText style={[s.segmentText, { color: tokens.colors.textMuted }, value === o && { color: tokens.colors.text }]}>{o}</LocalizedText></Pressable>)}
     </View>
   );
 }
@@ -34,10 +38,11 @@ export function SegmentedControl({ value, onChange }: { value: LeaderboardPeriod
 function Avatar({ user, place, size }: { user: LeaderboardUser; place: number; size: number }) {
   const ring = place === 1 ? t.gold : place === 2 ? t.silver : t.bronze;
   const colors = place === 1 ? ['#F7D77B','#C58A2B'] as const : place === 2 ? ['#DDEBFA','#7896B8'] as const : ['#E6A77E','#9C5B3E'] as const;
-  return <View style={{width:size+10,height:size+10,borderRadius:99,borderWidth:2.5,borderColor:ring,alignItems:'center',justifyContent:'center'}}><LinearGradient colors={colors} style={{width:size,height:size,borderRadius:99,alignItems:'center',justifyContent:'center'}}><Text style={{color:'#10243D',fontSize:size*.38,fontWeight:'900'}}>{user.name[0]}</Text></LinearGradient></View>;
+  return <View style={{width:size+10,height:size+10,borderRadius:99,borderWidth:2.5,borderColor:ring,alignItems:'center',justifyContent:'center'}}><LinearGradient colors={colors} style={{width:size,height:size,borderRadius:99,alignItems:'center',justifyContent:'center'}}><LocalizedText style={{color:'#10243D',fontSize:size*.38,fontWeight:'900'}}>{user.name[0]}</LocalizedText></LinearGradient></View>;
 }
 
 export function Podium({ users }: { users: LeaderboardUser[] }) {
+  const { tokens } = useTheme();
   const order = [users[1], users[0], users[2]];
   return <View style={s.podium}>{order.map((u,i) => {
     if (!u) return <View key={i} style={s.podiumSlot} />;
@@ -45,23 +50,24 @@ export function Podium({ users }: { users: LeaderboardUser[] }) {
     return <Animated.View key={u.id} entering={ZoomIn.delay(i*100).springify().damping(12)} style={s.podiumSlot}>
       {first && <Ionicons name="trophy" size={23} color={t.gold} style={{marginBottom:4}} />}
       <Avatar user={u} place={place} size={first?76:60} />
-      <Text numberOfLines={1} style={[s.podiumName,first&&{fontSize:15}]}>{u.name}</Text>
-      <Text style={s.podiumXp}>{u.xp.toLocaleString('uz-UZ')} XP</Text>
-      <View style={[s.podiumBlock,first?s.first:place===2?s.second:s.third]}><Text style={s.placeBig}>{place}</Text><Text style={s.placeSmall}>{place}-O‘RIN</Text></View>
+      <LocalizedText numberOfLines={1} style={[s.podiumName, { color: tokens.colors.text },first&&{fontSize:15}]}>{u.name}</LocalizedText>
+      <LocalizedText style={[s.podiumXp, { color: tokens.colors.textMuted }]}>{u.xp.toLocaleString('uz-UZ')} XP</LocalizedText>
+      <View style={[s.podiumBlock,first?s.first:place===2?s.second:s.third]}><LocalizedText style={[s.placeBig, { color: tokens.colors.text }]}>{place}</LocalizedText><LocalizedText style={[s.placeSmall, { color: tokens.colors.textMuted }]}>{place}-O‘RIN</LocalizedText></View>
     </Animated.View>;
   })}</View>;
 }
 
 export function LeaderRow({ user, index }: { user: LeaderboardUser; index: number }) {
+  const { tokens } = useTheme();
   const mine = user.id === 'u4';
   const content = <View style={s.rowContent}>
-    <Text style={s.placeNo}>{index+4}</Text>
-    <LinearGradient colors={mine?['#8B5CF6','#22D3EE']:['rgba(34,211,238,.8)','rgba(99,102,241,.8)']} style={s.rowAvatar}><Text style={s.rowInitial}>{mine?'S':user.name[0]}</Text></LinearGradient>
+    <LocalizedText style={[s.placeNo, { color: tokens.colors.textMuted }]}>{index+4}</LocalizedText>
+    <LinearGradient colors={mine?['#8B5CF6','#22D3EE']:['rgba(34,211,238,.8)','rgba(99,102,241,.8)']} style={s.rowAvatar}><LocalizedText style={s.rowInitial}>{mine?'S':user.name[0]}</LocalizedText></LinearGradient>
     <View style={s.identity}>
-      <View style={s.nameLine}><Text numberOfLines={1} style={s.rowName}>{mine?'Siz':user.name}</Text>{mine&&<Ionicons name="trending-up" size={15} color={t.success}/>}</View>
-      <View style={s.rankLine}><Ionicons name="shield-checkmark" size={13} color="#A5D9FF"/><Text numberOfLines={1} style={s.rank}>{user.rank}</Text>{user.change>0&&<Text style={s.up}>↑ {user.change}</Text>}{user.change<0&&<Text style={s.down}>↓ {Math.abs(user.change)}</Text>}</View>
+      <View style={s.nameLine}><LocalizedText numberOfLines={1} style={[s.rowName, { color: tokens.colors.text }]}>{mine?'Siz':user.name}</LocalizedText>{mine&&<Ionicons name="trending-up" size={15} color={t.success}/>}</View>
+      <View style={s.rankLine}><Ionicons name="shield-checkmark" size={13} color="#A5D9FF"/><LocalizedText numberOfLines={1} style={[s.rank, { color: tokens.colors.textSecondary }]}>{user.rank}</LocalizedText>{user.change>0&&<LocalizedText style={s.up}>↑ {user.change}</LocalizedText>}{user.change<0&&<LocalizedText style={s.down}>↓ {Math.abs(user.change)}</LocalizedText>}</View>
     </View>
-    <View style={s.xp}><Text style={s.xpValue}>{user.xp.toLocaleString('uz-UZ')}</Text><Text style={s.xpLabel}>XP</Text></View>
+    <View style={s.xp}><LocalizedText style={[s.xpValue, { color: tokens.colors.text }]}>{user.xp.toLocaleString('uz-UZ')}</LocalizedText><LocalizedText style={[s.xpLabel, { color: tokens.colors.textMuted }]}>XP</LocalizedText></View>
   </View>;
   return <Animated.View entering={FadeInUp.delay(index*60).springify().damping(16)}>{mine?<LinearGradient colors={['rgba(139,92,246,.46)','rgba(34,211,238,.34)']} style={s.mine}>{content}</LinearGradient>:<GlassCard style={s.row}>{content}</GlassCard>}</Animated.View>;
 }

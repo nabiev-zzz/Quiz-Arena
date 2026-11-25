@@ -1,7 +1,8 @@
+import { LocalizedText, LocalizedTextInput, showLocalizedAlert } from '../../i18n/LocalizedText';
 import { useState } from 'react';
 import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable,
-  ScrollView, StyleSheet, Text, TextInput, View,
+  ScrollView, StyleSheet, Text as NativeText, TextInput as NativeTextInput, View,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 
@@ -30,11 +31,11 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
     const cleanName = displayName.trim();
     const cleanUsername = username.trim().toLowerCase();
     const cleanEmail = email.trim().toLowerCase();
-    if (cleanName.length < 2) return Alert.alert('Ism xatosi', 'Ism kamida 2 ta belgidan iborat bo‘lsin.');
-    if (!/^[a-zA-Z0-9_]{3,30}$/.test(cleanUsername)) return Alert.alert('Username xatosi', 'Username 3–30 ta belgi bo‘lsin. Lotin harflari, raqamlar va _ ishlating.');
-    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return Alert.alert('Email xatosi', 'Email manzilini to‘g‘ri kiriting.');
-    if (password.length < 8) return Alert.alert('Parol xatosi', 'Parol kamida 8 ta belgidan iborat bo‘lsin.');
-    if (password !== confirmPassword) return Alert.alert('Parol xatosi', 'Kiritilgan parollar bir xil emas.');
+    if (cleanName.length < 2) return showLocalizedAlert('Ism xatosi', 'Ism kamida 2 ta belgidan iborat bo‘lsin.');
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(cleanUsername)) return showLocalizedAlert('Username xatosi', 'Username 3–30 ta belgi bo‘lsin. Lotin harflari, raqamlar va _ ishlating.');
+    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return showLocalizedAlert('Email xatosi', 'Email manzilini to‘g‘ri kiriting.');
+    if (password.length < 8) return showLocalizedAlert('Parol xatosi', 'Parol kamida 8 ta belgidan iborat bo‘lsin.');
+    if (password !== confirmPassword) return showLocalizedAlert('Parol xatosi', 'Kiritilgan parollar bir xil emas.');
     try {
       setLoading(true);
       await onRegister({
@@ -44,7 +45,7 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
         password,
       });
     } catch (error) {
-      Alert.alert('Ro‘yxatdan o‘tish amalga oshmadi', error instanceof Error ? error.message : 'Xatolik yuz berdi');
+      showLocalizedAlert('Ro‘yxatdan o‘tish amalga oshmadi', error instanceof Error ? error.message : 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -53,32 +54,39 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
-        <Text style={styles.logo}>QUIZ ARENA</Text>
-        <Text style={styles.title}>Hisob yaratish</Text>
-        <Text style={styles.subtitle}>Hisobingizni yarating — email kodi shart emas.</Text>
+        <View style={styles.brandRow}>
+          <View style={styles.brandMark}><LocalizedText style={styles.brandMarkText}>Q</LocalizedText></View>
+          <View><LocalizedText style={styles.logo}>QUIZ ARENA</LocalizedText><LocalizedText style={styles.brandCaption}>BILIM · RAQOBAT · NATIJA</LocalizedText></View>
+        </View>
+        <View style={styles.hero}>
+          <LocalizedText style={styles.eyebrow}>YANGI IMKONIYATLAR SARI</LocalizedText>
+          <LocalizedText style={styles.title}>Hisob yaratish</LocalizedText>
+          <LocalizedText style={styles.subtitle}>O‘z hisobingizni yarating va bilimlar maydoniga qo‘shiling.</LocalizedText>
+        </View>
+        <View style={styles.formCard}>
+        <LocalizedText style={styles.label}>Ism va familiya *</LocalizedText>
+        <LocalizedTextInput style={styles.input} placeholder="Masalan: Ali Valiyev" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={displayName} onChangeText={setDisplayName} maxLength={100} autoCapitalize="words" returnKeyType="next" />
 
-        <Text style={styles.label}>Ism va familiya *</Text>
-        <TextInput style={styles.input} placeholder="Masalan: Ali Valiyev" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={displayName} onChangeText={setDisplayName} maxLength={100} autoCapitalize="words" returnKeyType="next" />
+        <LocalizedText style={styles.label}>Username *</LocalizedText>
+        <LocalizedTextInput style={styles.input} placeholder="Masalan: ali_2026" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" maxLength={30} returnKeyType="next" />
 
-        <Text style={styles.label}>Username *</Text>
-        <TextInput style={styles.input} placeholder="Masalan: ali_2026" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" maxLength={30} returnKeyType="next" />
+        <LocalizedText style={styles.label}>Email (ixtiyoriy)</LocalizedText>
+        <LocalizedTextInput style={styles.input} placeholder="example@gmail.com" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" returnKeyType="next" />
 
-        <Text style={styles.label}>Email (ixtiyoriy)</Text>
-        <TextInput style={styles.input} placeholder="example@gmail.com" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" returnKeyType="next" />
+        <LocalizedText style={styles.label}>Parol *</LocalizedText>
+        <LocalizedTextInput style={styles.input} placeholder="Kamida 8 ta belgi" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoComplete="new-password" returnKeyType="next" />
 
-        <Text style={styles.label}>Parol *</Text>
-        <TextInput style={styles.input} placeholder="Kamida 8 ta belgi" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoComplete="new-password" returnKeyType="next" />
-
-        <Text style={styles.label}>Parolni tasdiqlang *</Text>
-        <TextInput style={styles.input} placeholder="Parolni qayta kiriting" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry autoCapitalize="none" returnKeyType="done" onSubmitEditing={() => void handleRegister()} />
+        <LocalizedText style={styles.label}>Parolni tasdiqlang *</LocalizedText>
+        <LocalizedTextInput style={styles.input} placeholder="Parolni qayta kiriting" placeholderTextColor={colors.textMuted} selectionColor={colors.primary} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry autoCapitalize="none" returnKeyType="done" onSubmitEditing={() => void handleRegister()} />
 
         <Pressable style={[styles.button, loading && styles.disabled]} onPress={() => void handleRegister()} disabled={loading}>
-          {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Hisob yaratish</Text>}
+          {loading ? <ActivityIndicator color="#FFFFFF" /> : <LocalizedText style={styles.buttonText}>Hisob yaratish</LocalizedText>}
         </Pressable>
 
+        </View>
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Hisobingiz bormi? </Text>
-          <Pressable onPress={onLoginPress}><Text style={styles.link}>Kirish</Text></Pressable>
+          <LocalizedText style={styles.footerText}>Hisobingiz bormi? </LocalizedText>
+          <Pressable onPress={onLoginPress}><LocalizedText style={styles.link}>Kirish</LocalizedText></Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -88,17 +96,24 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 25, paddingVertical: 35 },
-    logo: { color: colors.primary, fontSize: 13, fontWeight: 'bold', letterSpacing: 4, marginBottom: 25 },
-    title: { color: colors.text, fontSize: 29, fontWeight: 'bold' },
-    subtitle: { color: colors.textMuted, fontSize: 14, marginTop: 9, marginBottom: 20 },
-    label: { color: colors.textSecondary, fontSize: 13, marginBottom: 8, marginTop: 13 },
-    input: { height: 52, borderRadius: 13, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 15, color: colors.text, fontSize: 14 },
-    button: { height: 54, backgroundColor: '#7657E8', borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 25 },
-    buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: 'bold' },
-    disabled: { opacity: 0.6 },
-    footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+    content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 22, paddingVertical: 26 },
+    brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 26 },
+    brandMark: { width: 42, height: 42, borderRadius: 15, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+    brandMarkText: { color: '#FFFFFF', fontSize: 23, fontWeight: '800' },
+    logo: { color: colors.text, fontSize: 13, fontWeight: '800', letterSpacing: 3 },
+    brandCaption: { color: colors.textMuted, fontSize: 9, letterSpacing: 1.4, marginTop: 3 },
+    hero: { marginBottom: 18 },
+    eyebrow: { color: colors.primary, fontSize: 9, fontWeight: '800', letterSpacing: 1.5, marginBottom: 9 },
+    title: { color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.6 },
+    subtitle: { color: colors.textMuted, fontSize: 13, marginTop: 8, lineHeight: 19 },
+    formCard: { backgroundColor: colors.surfaceGlass, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: 26, padding: 18 },
+    label: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', marginBottom: 7, marginTop: 11 },
+    input: { height: 50, borderRadius: 15, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, color: colors.text, fontSize: 14 },
+    button: { height: 52, backgroundColor: colors.primary, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 21 },
+    buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+    disabled: { opacity: 0.55 },
+    footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
     footerText: { color: colors.textMuted, fontSize: 13 },
-    link: { color: colors.primary, fontSize: 13, fontWeight: 'bold' },
+    link: { color: colors.primary, fontSize: 13, fontWeight: '800' },
   });
 }

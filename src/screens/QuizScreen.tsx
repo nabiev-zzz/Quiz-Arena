@@ -1,3 +1,4 @@
+import { LocalizedText } from '../i18n/LocalizedText';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Animated, {
@@ -6,18 +7,20 @@ import Animated, {
   withSpring,
   type SharedValue,
 } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  Text,
+  Text as NativeText,
   View,
 } from 'react-native';
 
 import type { Question } from '../data/questions';
 import type { Difficulty, Subject, Topic } from '../types';
 import { useTheme } from '../theme/ThemeContext';
-import { getTopicQuestions, saveLearningAttempt } from '../services/learningService';
+import { getTopicQuestions, saveLearningAttempt, updateLearningAttemptReview } from '../services/learningService';
+import { sendTutorMessage } from '../services/aiTutorService';
 
 interface QuizScreenProps {
   subject: Subject;
@@ -71,10 +74,18 @@ export default function QuizScreen({
   const [savingAttempt, setSavingAttempt] = useState(false);
   const [attemptSaved, setAttemptSaved] = useState(false);
   const [attemptSaveError, setAttemptSaveError] = useState(false);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [showQuestionReview, setShowQuestionReview] = useState(false);
+  const [answers, setAnswers] = useState<Array<number | null>>([]);
+  const [explainingQuestionIds, setExplainingQuestionIds] = useState<Record<string, boolean>>({});
+  const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
   const savedAttemptKey = useRef<string | null>(null);
+  const reviewSyncQueue = useRef<Promise<void>>(Promise.resolve());
 
   const loadQuestions = useCallback(async () => {
     savedAttemptKey.current = null;
+    setAttemptId(null);
+    setShowQuestionReview(false);
     setAttemptSaved(false);
     setAttemptSaveError(false);
     setLoading(true);
@@ -95,6 +106,8 @@ export default function QuizScreen({
       }
 
       setQuestions(allQuestions);
+      setAnswers(Array(allQuestions.length).fill(null));
+      setAiExplanations({});
       setCurrentIndex(0);
       setSelectedAnswer(null);
       setScore(0);
@@ -137,14 +150,25 @@ export default function QuizScreen({
     setAttemptSaveError(false);
 
     try {
-      await saveLearningAttempt({
+      const saved = await saveLearningAttempt({
         subjectId: subject.id,
         subjectName: subject.name,
         topicId: topic.id,
         topicName: topic.name,
         totalQuestions: questions.length,
         correctAnswers: score,
+        review: questions.map((question, index) => ({
+          id: question.id,
+          question: question.question,
+          options: question.options,
+          selectedAnswer: answers[index] ?? question.correctAnswer,
+          correctAnswer: question.correctAnswer,
+          isCorrect: answers[index] === question.correctAnswer,
+          explanation: question.explanation || '',
+          aiExplanation: aiExplanations[question.id] || '',
+        })),
       });
+      setAttemptId(saved.id);
       setAttemptSaved(true);
     } catch {
       savedAttemptKey.current = null;
@@ -152,19 +176,66 @@ export default function QuizScreen({
     } finally {
       setSavingAttempt(false);
     }
-  }, [finished, questions, score, subject.id, subject.name, topic.id, topic.name]);
+  }, [finished, questions, answers, aiExplanations, score, subject.id, subject.name, topic.id, topic.name]);
 
   useEffect(() => {
     if (finished) void saveFinishedAttempt();
   }, [finished, saveFinishedAttempt]);
 
+  useEffect(() => {
+    if (!attemptId || questions.length === 0) return;
+    const review = questions.map((question, index) => ({
+      id: question.id,
+      question: question.question,
+      options: question.options,
+      selectedAnswer: answers[index] ?? question.correctAnswer,
+      correctAnswer: question.correctAnswer,
+      isCorrect: answers[index] === question.correctAnswer,
+      explanation: question.explanation || '',
+      aiExplanation: aiExplanations[question.id] || '',
+    }));
+    reviewSyncQueue.current = reviewSyncQueue.current
+      .catch(() => undefined)
+      .then(async () => { await updateLearningAttemptReview(attemptId, review); })
+      .catch(() => undefined);
+  }, [attemptId, questions, answers, aiExplanations]);
+
   const chooseAnswer = (index: number) => {
     if (selectedAnswer !== null || !currentQuestion) return;
 
     setSelectedAnswer(index);
+    setAnswers((previous) => {
+      const next = [...previous];
+      next[currentIndex] = index;
+      return next;
+    });
 
     if (index === currentQuestion.correctAnswer) {
       setScore((previous) => previous + 1);
+    }
+  };
+
+  const explainQuestionWithAi = async (question: Question, questionIndex: number) => {
+    if (explainingQuestionIds[question.id]) return;
+    const selected = answers[questionIndex];
+    if (selected === null || selected === undefined) return;
+    setExplainingQuestionIds((previous) => ({ ...previous, [question.id]: true }));
+    try {
+      const prompt = [
+        `Men ${subject.name} fanining ${topic.name} mavzusidagi testni tugatdim.`,
+        `Savol: ${question.question}`,
+        `Variantlar: ${question.options.map((option, index) => `${String.fromCharCode(65 + index)}. ${option}`).join(' | ')}`,
+        `Mening javobim: ${question.options[selected]}`,
+        `To‘g‘ri javob: ${question.options[question.correctAnswer]}`,
+        `Test bazasidagi izoh: ${question.explanation || 'Berilmagan'}`,
+        'Iltimos, aynan shu savolni sodda o‘zbek tilida bosqichma-bosqich tushuntir. Nima uchun mening javobim xato bo‘lganini ayt, to‘g‘ri javobni asosla va bitta yangi o‘xshash misol yechib ko‘rsat. Boshqa savollarni taxmin qilma.',
+      ].join('\n');
+      const result = await sendTutorMessage(prompt);
+      setAiExplanations((previous) => ({ ...previous, [question.id]: result.assistantMessage.content }));
+    } catch (err) {
+      setAiExplanations((previous) => ({ ...previous, [question.id]: err instanceof Error ? err.message : 'AI Ustoz bilan bog‘lanib bo‘lmadi. Qayta urinib ko‘ring.' }));
+    } finally {
+      setExplainingQuestionIds((previous) => ({ ...previous, [question.id]: false }));
     }
   };
 
@@ -177,10 +248,10 @@ export default function QuizScreen({
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>
+        <LocalizedText style={styles.loadingText}>
           Mavzuning testlari yuklanmoqda...
-        </Text>
-        <Text style={styles.muted}>Savollar umumiy testlar bazasidan olinadi</Text>
+        </LocalizedText>
+        <LocalizedText style={styles.muted}>Savollar umumiy testlar bazasidan olinadi</LocalizedText>
       </View>
     );
   }
@@ -188,18 +259,18 @@ export default function QuizScreen({
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorTitle}>Xatolik yuz berdi</Text>
-        <Text style={styles.muted}>{error}</Text>
+        <LocalizedText style={styles.errorTitle}>Xatolik yuz berdi</LocalizedText>
+        <LocalizedText style={styles.muted}>{error}</LocalizedText>
 
         <Pressable
           style={styles.primaryButton}
           onPress={() => void loadQuestions()}
         >
-          <Text style={styles.buttonText}>Qayta urinish</Text>
+          <LocalizedText style={styles.buttonText}>Qayta urinish</LocalizedText>
         </Pressable>
 
         <Pressable onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>Orqaga</Text>
+          <LocalizedText style={styles.backText}>Orqaga</LocalizedText>
         </Pressable>
       </View>
     );
@@ -207,21 +278,81 @@ export default function QuizScreen({
 
   if (finished) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.resultEmoji}>🏆</Text>
-        <Text style={styles.title}>Test yakunlandi!</Text>
-        <Text style={styles.score}>
+      <Animated.ScrollView
+        onScroll={dockScrollHandler}
+        scrollEventThrottle={16}
+        style={styles.container}
+        contentContainerStyle={styles.resultContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <LocalizedText style={styles.resultEmoji}>🏆</LocalizedText>
+        <LocalizedText style={styles.title}>Test yakunlandi!</LocalizedText>
+        <LocalizedText style={styles.score}>
           {score} / {questions.length}
-        </Text>
-        <Text style={styles.muted}>To‘g‘ri javoblar soni · {Math.round((score / questions.length) * 100)}% aniqlik</Text>
+        </LocalizedText>
+        <LocalizedText style={styles.muted}>To‘g‘ri javoblar soni · {Math.round((score / questions.length) * 100)}% aniqlik</LocalizedText>
+
+        <View style={{ width: '100%', gap: 10, marginTop: 18 }}>
+          <Pressable style={styles.primaryButton} onPress={() => setShowQuestionReview((value) => !value)}>
+            <LocalizedText style={styles.buttonText}>{showQuestionReview ? 'Natijaga qaytish' : 'Savollar tahlilini ko‘rish'}</LocalizedText>
+          </Pressable>
+          {showQuestionReview ? (
+            <>
+              <LocalizedText style={styles.sectionTitle}>Savollar tahlili</LocalizedText>
+              {questions.map((question, index) => {
+            const selected = answers[index];
+            const isCorrect = selected === question.correctAnswer;
+            return (
+              <View key={question.id} style={styles.reviewCard}>
+                <View style={styles.reviewTopRow}>
+                  <LocalizedText style={styles.reviewNumber}>{`SAVOL ${String(index + 1).padStart(2, '0')}`}</LocalizedText>
+                  <View style={[styles.reviewStatus, isCorrect ? styles.reviewStatusCorrect : styles.reviewStatusWrong]}>
+                    <LocalizedText style={[styles.reviewStatusText, { color: isCorrect ? '#35C995' : colors.danger }]}>{isCorrect ? 'To‘g‘ri' : 'Xato'}</LocalizedText>
+                  </View>
+                </View>
+                <LocalizedText style={styles.reviewQuestion}>{question.question}</LocalizedText>
+                <View style={styles.reviewAnswerBlock}>
+                  <LocalizedText style={styles.reviewLabel}>SIZNING JAVOBINGIZ</LocalizedText>
+                  <LocalizedText style={styles.reviewAnswer}>{selected === null || selected === undefined ? 'Javob berilmagan' : question.options[selected]}</LocalizedText>
+                </View>
+                <View style={styles.reviewAnswerBlock}>
+                  <LocalizedText style={styles.reviewLabel}>TO‘G‘RI JAVOB</LocalizedText>
+                  <LocalizedText style={[styles.reviewAnswer, { color: '#35C995' }]}>{question.options[question.correctAnswer]}</LocalizedText>
+                </View>
+                {!!question.explanation && (
+                  <View style={styles.reviewExplanation}>
+                    <LocalizedText style={styles.reviewLabel}>IZOH</LocalizedText>
+                    <LocalizedText style={styles.setupNoteText}>{question.explanation}</LocalizedText>
+                  </View>
+                )}
+                {!isCorrect && selected !== null && selected !== undefined && (
+                  <>
+                    <Pressable style={styles.reviewAiButton} disabled={!!explainingQuestionIds[question.id]} onPress={() => void explainQuestionWithAi(question, index)}>
+                      <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+                      <LocalizedText style={styles.buttonText}>{explainingQuestionIds[question.id] ? 'AI Ustoz tushuntirmoqda...' : 'AI Ustozdan batafsil tahlil'}</LocalizedText>
+                    </Pressable>
+                    {!!aiExplanations[question.id] && (
+                      <View style={styles.reviewAiBox}>
+                        <LocalizedText style={styles.reviewAiTitle}>AI USTOZ TAHLILI</LocalizedText>
+                        <LocalizedText style={styles.reviewAiText}>{aiExplanations[question.id]}</LocalizedText>
+                      </View>
+                    )}
+                  </>
+                )}
+              </View>
+            );
+              })}
+            </>
+          ) : null}
+        </View>
 
         {savingAttempt ? (
-          <Text style={styles.muted}>Natija statistika uchun saqlanmoqda...</Text>
+          <LocalizedText style={styles.muted}>Natija statistika uchun saqlanmoqda...</LocalizedText>
         ) : attemptSaved ? (
-          <Text style={styles.savedAttemptText}>✓ Natija statistikaga qo‘shildi</Text>
+          <LocalizedText style={styles.savedAttemptText}>✓ Natija statistikaga qo‘shildi</LocalizedText>
         ) : attemptSaveError ? (
           <Pressable onPress={() => void saveFinishedAttempt()}>
-            <Text style={styles.retryAttemptText}>Natija saqlanmadi. Qayta urinish</Text>
+            <LocalizedText style={styles.retryAttemptText}>Natija saqlanmadi. Qayta urinish</LocalizedText>
           </Pressable>
         ) : null}
 
@@ -229,33 +360,33 @@ export default function QuizScreen({
           style={styles.primaryButton}
           onPress={() => void loadQuestions()}
         >
-          <Text style={styles.buttonText}>Yangi test ishlash</Text>
+          <LocalizedText style={styles.buttonText}>Yangi test ishlash</LocalizedText>
         </Pressable>
 
         <Pressable onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>Mavzularga qaytish</Text>
+          <LocalizedText style={styles.backText}>Mavzularga qaytish</LocalizedText>
         </Pressable>
-      </View>
+      </Animated.ScrollView>
     );
   }
 
   if (questions.length === 0) {
     return (
       <Animated.ScrollView onScroll={dockScrollHandler} scrollEventThrottle={16} style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Pressable onPress={onBack} style={styles.backButton}><Text style={styles.backText}>‹ Mavzularga qaytish</Text></Pressable>
-        <Text style={styles.eyebrow}>{subject.name.toUpperCase()}</Text>
-        <Text style={styles.title}>{topic.name}</Text>
-        <Text style={styles.setupDescription}>Test sozlamalarini tanlang. Savollar bazadan olinadi va birinchi tayyorlangandan keyin qayta ishlatiladi.</Text>
+        <Pressable onPress={onBack} style={styles.backButton}><LocalizedText style={styles.backText}>‹ Mavzularga qaytish</LocalizedText></Pressable>
+        <LocalizedText style={styles.eyebrow}>{subject.name.toUpperCase()}</LocalizedText>
+        <LocalizedText style={styles.title}>{topic.name}</LocalizedText>
+        <LocalizedText style={styles.setupDescription}>Test sozlamalarini tanlang. Savollar bazadan olinadi va birinchi tayyorlangandan keyin qayta ishlatiladi.</LocalizedText>
         <View style={styles.setupCard}>
-          <Text style={styles.setupLabel}>SAVOLLAR SONI</Text>
-          <View style={styles.choiceRow}>{countOptions.map((count) => <Pressable key={count} onPress={() => setSelectedCount(count)} style={[styles.choiceChip, selectedCount === count && styles.selectedChoiceChip]}><Text style={[styles.choiceText, selectedCount === count && styles.selectedChoiceText]}>{count === topic.questionCount ? `${count} · Barchasi` : String(count)}</Text></Pressable>)}</View>
-          <Text style={styles.setupLabel}>QIYINLIK DARAJASI</Text>
-          <View style={styles.choiceRow}>{([{ value: 'easy', label: 'Oson' }, { value: 'medium', label: 'O‘rta' }, { value: 'hard', label: 'Qiyin' }, { value: 'expert', label: 'Ekspert' }] as const).map((item) => <Pressable key={item.value} onPress={() => setSelectedDifficulty(item.value)} style={[styles.choiceChip, selectedDifficulty === item.value && styles.selectedChoiceChip]}><Text style={[styles.choiceText, selectedDifficulty === item.value && styles.selectedChoiceText]}>{item.label}</Text></Pressable>)}</View>
-          <Text style={styles.setupLabel}>TEST TILI</Text>
-          <View style={styles.choiceRow}>{([{ value: 'uz', label: 'O‘zbekcha' }, { value: 'ru', label: 'Русский' }, { value: 'en', label: 'English' }] as const).map((item) => <Pressable key={item.value} onPress={() => setSelectedLanguage(item.value)} style={[styles.choiceChip, selectedLanguage === item.value && styles.selectedChoiceChip]}><Text style={[styles.choiceText, selectedLanguage === item.value && styles.selectedChoiceText]}>{item.label}</Text></Pressable>)}</View>
+          <LocalizedText style={styles.setupLabel}>SAVOLLAR SONI</LocalizedText>
+          <View style={styles.choiceRow}>{countOptions.map((count) => <Pressable key={count} onPress={() => setSelectedCount(count)} style={[styles.choiceChip, selectedCount === count && styles.selectedChoiceChip]}><LocalizedText style={[styles.choiceText, selectedCount === count && styles.selectedChoiceText]}>{count === topic.questionCount ? `${count} · Barchasi` : String(count)}</LocalizedText></Pressable>)}</View>
+          <LocalizedText style={styles.setupLabel}>QIYINLIK DARAJASI</LocalizedText>
+          <View style={styles.choiceRow}>{([{ value: 'easy', label: 'Oson' }, { value: 'medium', label: 'O‘rta' }, { value: 'hard', label: 'Qiyin' }, { value: 'expert', label: 'Ekspert' }] as const).map((item) => <Pressable key={item.value} onPress={() => setSelectedDifficulty(item.value)} style={[styles.choiceChip, selectedDifficulty === item.value && styles.selectedChoiceChip]}><LocalizedText style={[styles.choiceText, selectedDifficulty === item.value && styles.selectedChoiceText]}>{item.label}</LocalizedText></Pressable>)}</View>
+          <LocalizedText style={styles.setupLabel}>TEST TILI</LocalizedText>
+          <View style={styles.choiceRow}>{([{ value: 'uz', label: 'O‘zbekcha' }, { value: 'ru', label: 'Русский' }, { value: 'en', label: 'English' }] as const).map((item) => <Pressable key={item.value} onPress={() => setSelectedLanguage(item.value)} style={[styles.choiceChip, selectedLanguage === item.value && styles.selectedChoiceChip]}><LocalizedText style={[styles.choiceText, selectedLanguage === item.value && styles.selectedChoiceText]}>{item.label}</LocalizedText></Pressable>)}</View>
         </View>
-        <View style={styles.setupNote}><Text style={styles.setupNoteTitle}>Testlar bazasi qanday ishlaydi?</Text><Text style={styles.setupNoteText}>Har bir mavzu uchun savollar server bazasida saqlanadi. Birinchi tayyorlashdan keyin keyingi foydalanuvchilar ham shu savollarni AI chaqirmasdan oladi. Natijangiz profilingizga saqlanadi.</Text></View>
-        <Pressable style={styles.primaryButton} onPress={() => void loadQuestions()}><Text style={styles.buttonText}>Testni boshlash</Text></Pressable>
+        <View style={styles.setupNote}><LocalizedText style={styles.setupNoteTitle}>Testlar bazasi qanday ishlaydi?</LocalizedText><LocalizedText style={styles.setupNoteText}>Har bir mavzu uchun savollar server bazasida saqlanadi. Birinchi tayyorlashdan keyin keyingi foydalanuvchilar ham shu savollarni AI chaqirmasdan oladi. Natijangiz profilingizga saqlanadi.</LocalizedText></View>
+        <Pressable style={styles.primaryButton} onPress={() => void loadQuestions()}><LocalizedText style={styles.buttonText}>Testni boshlash</LocalizedText></Pressable>
       </Animated.ScrollView>
     );
   }
@@ -270,16 +401,16 @@ export default function QuizScreen({
       contentContainerStyle={styles.content}
     >
       <Pressable onPress={onBack} style={styles.backButton}>
-        <Text style={styles.backText}>‹ Orqaga</Text>
+        <LocalizedText style={styles.backText}>‹ Orqaga</LocalizedText>
       </Pressable>
 
-      <Text style={styles.eyebrow}>{subject.name.toUpperCase()}</Text>
-      <Text style={styles.title}>{topic.name}</Text>
+      <LocalizedText style={styles.eyebrow}>{subject.name.toUpperCase()}</LocalizedText>
+      <LocalizedText style={styles.title}>{topic.name}</LocalizedText>
 
       <View style={styles.progressCard}>
-        <Text style={styles.muted}>
+        <LocalizedText style={styles.muted}>
           Savol {currentIndex + 1} / {questions.length}
-        </Text>
+        </LocalizedText>
         <View style={styles.progressBackground}>
           <View
             style={[
@@ -291,13 +422,13 @@ export default function QuizScreen({
       </View>
 
       <View style={styles.questionCard}>
-        <Text style={styles.questionLabel}>SAVOL</Text>
-        <Text style={styles.questionText}>
+        <LocalizedText style={styles.questionLabel}>SAVOL</LocalizedText>
+        <LocalizedText style={styles.questionText}>
           {currentQuestion.question}
-        </Text>
+        </LocalizedText>
       </View>
 
-      <Text style={styles.sectionTitle}>Javobni tanlang</Text>
+      <LocalizedText style={styles.sectionTitle}>Javobni tanlang</LocalizedText>
 
       {currentQuestion.options.map((option, index) => {
         const isCorrect = index === currentQuestion.correctAnswer;
@@ -314,37 +445,37 @@ export default function QuizScreen({
             onPress={() => chooseAnswer(index)}
             disabled={selectedAnswer !== null}
           >
-            <Text style={styles.optionLetter}>
+            <LocalizedText style={styles.optionLetter}>
               {String.fromCharCode(65 + index)}
-            </Text>
-            <Text style={styles.optionText}>{option}</Text>
+            </LocalizedText>
+            <LocalizedText style={styles.optionText}>{option}</LocalizedText>
           </Pressable>
         );
       })}
 
       {selectedAnswer !== null && (
         <View style={styles.explanationCard}>
-          <Text style={styles.explanationTitle}>
+          <LocalizedText style={styles.explanationTitle}>
             {selectedAnswer === currentQuestion.correctAnswer
               ? 'To‘g‘ri javob!'
               : 'Noto‘g‘ri javob'}
-          </Text>
+          </LocalizedText>
 
-          <Text style={styles.explanationText}>
+          <LocalizedText style={styles.explanationText}>
             {currentQuestion.explanation}
-          </Text>
+          </LocalizedText>
 
           <Pressable style={styles.primaryButton} onPress={nextQuestion}>
-            <Text style={styles.buttonText}>
+            <LocalizedText style={styles.buttonText}>
               {currentIndex === questions.length - 1
                 ? 'Natijani ko‘rish'
                 : 'Keyingi savol'}
-            </Text>
+            </LocalizedText>
           </Pressable>
         </View>
       )}
 
-      <Text style={styles.scoreText}>Joriy ball: {score}</Text>
+      <LocalizedText style={styles.scoreText}>Joriy ball: {score}</LocalizedText>
     </Animated.ScrollView>
   );
 }
@@ -356,9 +487,17 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     backgroundColor: colors.background,
   },
   content: {
-    paddingHorizontal: 18,
-    paddingTop: 8,
+    paddingHorizontal: 20,
+    paddingTop: 14,
     paddingBottom: 128,
+  },
+  resultContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 140,
+    gap: 14,
   },
   center: {
     flex: 1,
@@ -390,6 +529,22 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   selectedChoiceChip: { borderColor: colors.primary, backgroundColor: colors.primary + '22' },
   choiceText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
   selectedChoiceText: { color: colors.primary },
+  reviewCard: { padding: 16, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 11 },
+  reviewTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  reviewNumber: { color: colors.textMuted, fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
+  reviewStatus: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  reviewStatusCorrect: { backgroundColor: 'rgba(53,201,149,0.12)' },
+  reviewStatusWrong: { backgroundColor: colors.dangerSurface },
+  reviewStatusText: { fontSize: 10, fontWeight: '900' },
+  reviewQuestion: { color: colors.text, fontSize: 15, lineHeight: 22, fontWeight: '800' },
+  reviewAnswerBlock: { padding: 11, borderRadius: 12, backgroundColor: colors.surfaceElevated, gap: 5 },
+  reviewLabel: { color: colors.textMuted, fontSize: 9, fontWeight: '900', letterSpacing: 0.9 },
+  reviewAnswer: { color: colors.text, fontSize: 12, lineHeight: 18, fontWeight: '700' },
+  reviewExplanation: { gap: 6, paddingHorizontal: 2 },
+  reviewAiButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primaryDark, borderRadius: 13, paddingHorizontal: 12, marginTop: 2 },
+  reviewAiBox: { padding: 13, borderRadius: 13, backgroundColor: colors.primary + '16', borderWidth: 1, borderColor: colors.primary + '35', gap: 7 },
+  reviewAiTitle: { color: colors.primary, fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
+  reviewAiText: { color: colors.text, fontSize: 12, lineHeight: 19 },
   setupNote: { padding: 16, marginTop: 14, borderRadius: 17, backgroundColor: colors.surfaceElevated },
   setupNoteTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginBottom: 7 },
   setupNoteText: { color: colors.textSecondary, fontSize: 12, lineHeight: 19 },
@@ -427,7 +582,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     fontSize: 14,
   },
   progressCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceGlass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
     minHeight: 66,
     padding: 16,
     borderRadius: 17,
@@ -447,8 +604,10 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   },
   questionCard: {
     minHeight: 138,
-    backgroundColor: colors.surface,
-    borderRadius: 21,
+    backgroundColor: colors.surfaceGlass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: 22,
     padding: 20,
     marginBottom: 20,
     justifyContent: 'center',
@@ -475,7 +634,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     minHeight: 58,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceGlass,
     borderWidth: 1,
     borderColor: colors.borderStrong,
     borderRadius: 16,
@@ -521,10 +680,10 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   },
   primaryButton: {
     minHeight: 52,
-    backgroundColor: '#7657E8',
+    backgroundColor: colors.primaryDark,
     paddingHorizontal: 18,
     paddingVertical: 14,
-    borderRadius: 15,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 18,
