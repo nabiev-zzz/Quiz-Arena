@@ -752,8 +752,8 @@ export class BattleGateway
     const localRoom = this.privateRooms.get(roomCode);
     if (localRoom) clearTimeout(localRoom.timer);
     const room = await this.removePrivateInvite(roomCode);
-    if (!room) return;
     this.privateRooms.delete(roomCode);
+    if (!room) return;
 
     const hostSocket = (await this.server.fetchSockets()).find(
       (socket) =>
