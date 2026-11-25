@@ -527,6 +527,10 @@ export class AuthService {
     return `quizarena://auth?code=${encodeURIComponent(rawCode)}`;
   }
 
+  async exchangeTelegramCode(rawCode: string) {
+    return this.exchangeGoogleCode(rawCode);
+  }
+
   async exchangeGoogleCode(rawCode: string) {
     if (!/^[A-Za-z0-9_-]{40,60}$/.test(rawCode)) {
       throw new UnauthorizedException('Google kirish kodi noto‘g‘ri yoki muddati tugagan');

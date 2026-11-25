@@ -11,6 +11,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
 import { getLearningHistory, getLearningHistoryItem, type LearningHistoryItem, type LearningHistorySummary } from '../services/learningService';
+import { getPremiumStatus, type PremiumStatus } from '../services/subscriptionService';
 
 interface ProfileScreenProps {
   onClosePress?: () => void;
@@ -82,6 +83,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const [followingUserId, setFollowingUserId] = useState<string | null>(null);
   const [cosmeticType, setCosmeticType] = useState<'decoration' | 'frame' | null>(null);
   const [cosmeticSaving, setCosmeticSaving] = useState(false);
+  const [premiumStatus, setPremiumStatus] = useState<PremiumStatus | null>(null);
   const [learningHistory, setLearningHistory] = useState<LearningHistorySummary[]>([]);
   const [historyDetails, setHistoryDetails] = useState<Record<string, LearningHistoryItem>>({});
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -106,6 +108,15 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
       .finally(() => { if (active) setHistoryLoading(false); });
     return () => { active = false; };
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    getPremiumStatus()
+      .then((status) => { if (active) setPremiumStatus(status); })
+      .catch(() => { if (active) setPremiumStatus(null); });
+    return () => { active = false; };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -139,6 +150,12 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const nextRank = rankTiers[rankIndex + 1];
   const rankProgress = nextRank ? Math.min(100, ((rankPoints - rankInfo.min) / (nextRank.min - rankInfo.min)) * 100) : 100;
   const initials = user.displayName.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  const premiumUntil = premiumStatus?.subscription?.expiresAt ? new Date(premiumStatus.subscription.expiresAt) : null;
+  const premiumDescription = premiumStatus?.isPremium
+    ? premiumUntil && !Number.isNaN(premiumUntil.getTime())
+      ? `Faol obuna · ${premiumUntil.toLocaleDateString('uz-UZ')} gacha`
+      : 'Premium obunangiz faol'
+    : 'Maxsus imkoniyatlar va tariflar';
 
   const applyAvatar = async (uri: string | null) => {
     if (avatarSaving) return;
@@ -317,7 +334,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
                 <View style={styles.iconTile}><Ionicons name="diamond-outline" size={21} color={C.purple} /></View>
                 <View style={styles.rowBody}>
                   <LocalizedText style={styles.cardTitle}>Premium</LocalizedText>
-                  <LocalizedText style={styles.cardSubtitle}>Maxsus imkoniyatlar va tariflar</LocalizedText>
+                  <LocalizedText style={styles.cardSubtitle}>{premiumDescription}</LocalizedText>
                 </View>
                 <Ionicons name="chevron-forward" size={19} color={C.muted} />
               </Pressable>,
