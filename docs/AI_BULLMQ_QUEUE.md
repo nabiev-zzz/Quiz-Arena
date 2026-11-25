@@ -43,6 +43,8 @@ Optional:
 - `AI_WORKER_CONCURRENCY` (default 3, bounded to 1–8).
 - `AI_WORKER_RATE_LIMIT_MAX` (default 120 jobs).
 - `AI_WORKER_RATE_LIMIT_DURATION_MS` (default 60000 ms).
+- `AI_QUEUE_MAX_WAITING` (default 100000 waiting jobs).
+- `AI_MAX_PENDING_JOBS_PER_USER` (default 5 queued/active jobs per account).
 
 The API and worker must point to the same PostgreSQL and Redis/Valkey instances.
 If Redis is unavailable, the API can still serve database-backed learning
@@ -69,6 +71,7 @@ than falling back to synchronous provider calls.
 - Three attempts with exponential backoff (3 seconds base).
 - Worker concurrency defaults to 3; the global rate limiter defaults to 120 jobs/minute and is configurable.
 - BullMQ priority favors Premium Pro, then Premium, then Free; AI Tutor and quiz-start jobs are ahead of document conversion. System prewarm jobs use low priority.
+- Admission control rejects excess backlog and caps pending jobs per account to protect API/DB capacity.
 - Stalled jobs are recovered by BullMQ; worker handles SIGTERM/SIGINT shutdown.
 - User quota is consumed once after the durable job row is created. Idempotency
   keys prevent duplicate quota consumption for repeated identical requests.
