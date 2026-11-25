@@ -260,6 +260,7 @@ export class BattleStateStore implements OnModuleInit, OnModuleDestroy {
   async markPlayerReady(
     matchId: string,
     userId: string,
+    socketId: string,
     questionIndex: number,
   ): Promise<BattleStateSnapshot | null> {
     return this.withMatchLock(matchId, async () => {
@@ -267,6 +268,7 @@ export class BattleStateStore implements OnModuleInit, OnModuleDestroy {
       if (
         !state ||
         !state.playerIds.includes(userId) ||
+        state.socketIds[userId] !== socketId ||
         state.questionIndex !== questionIndex ||
         (!state.questionResolved && Date.now() < state.deadline)
       ) {
