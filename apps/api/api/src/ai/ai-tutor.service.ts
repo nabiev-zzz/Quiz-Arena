@@ -21,6 +21,7 @@ import {
   AiTutorMessage,
   AiTutorMessageRole,
 } from './entities/ai-tutor-message.entity';
+import { AiGenerationQueueService } from './queue/ai-generation-queue.service';
 
 @Injectable()
 export class AiTutorService {
@@ -40,6 +41,7 @@ export class AiTutorService {
     private readonly learningAttemptRepository: Repository<LearningAttempt>,
     private readonly featureUsageService: FeatureUsageService,
     private readonly subscriptionsService: SubscriptionsService,
+    private readonly aiQueue: AiGenerationQueueService,
   ) {}
 
   private async getPreviousMessages(userId: string) {
@@ -274,6 +276,86 @@ Answer the student's new message in the requested language.
       dataNote: 'Test natijalari oxirgi 30 ta saqlangan urinish asosida hisoblangan.',
     };
   }
+  async enqueueMessage(
+    userId: string,
+    message: string,
+    language: 'uz' | 'ru' | 'en' = 'uz',
+  ) {
+    const normalized = message.trim();
+    if (!normalized || normalized.length > 6000) {
+      throw new HttpException('Xabar bo‘sh yoki juda uzun.', HttpStatus.BAD_REQUEST);
+    }
+    const userMessage = this.messageRepository.create({
+      userId,
+      role: 'user' as AiTutorMessageRole,
+      content: normalized,
+    });
+    const savedUserMessage = await this.messageRepository.save(userMessage);
+    try {
+      const queued = await this.aiQueue.enqueue({
+        userId,
+        jobType: 'ai_tutor',
+        quotaFeature: 'aiTutor',
+        idempotencyKey: `ai-tutor-message:${savedUserMessage.id}`,
+        payload: {
+          userId,
+          messageId: savedUserMessage.id,
+          message: normalized,
+          language,
+        },
+      });
+      return {
+        status: queued.status,
+        jobId: queued.jobId,
+        message: 'AI Ustoz javob tayyorlamoqda',
+        userMessage: savedUserMessage,
+        usage: queued.usage,
+      };
+    } catch (error) {
+      await this.messageRepository.delete({ id: savedUserMessage.id, userId });
+      throw error;
+    }
+  }
+
+  async processQueuedMessage(payload: {
+    userId: string;
+    messageId: string;
+    message: string;
+    language: 'uz' | 'ru' | 'en';
+    _jobId: string;
+    _quotaReceipt?: unknown;
+  }) {
+    const existingReply = await this.messageRepository.findOne({
+      where: { generationJobId: payload._jobId, role: 'assistant' },
+    });
+    if (existingReply) {
+      const userMessage = await this.messageRepository.findOne({ where: { id: payload.messageId, userId: payload.userId } });
+      return { userMessage, assistantMessage: existingReply, usage: payload._quotaReceipt ?? null };
+    }
+
+    const [history, progress, userMessage] = await Promise.all([
+      this.getPreviousMessages(payload.userId),
+      this.getStudentProgress(payload.userId),
+      this.messageRepository.findOne({ where: { id: payload.messageId, userId: payload.userId } }),
+    ]);
+    if (!userMessage) throw new Error('AI Tutor foydalanuvchi xabari topilmadi.');
+    const prompt = this.createPrompt(
+      payload.message,
+      payload.language,
+      history.filter((item) => item.id !== payload.messageId),
+      progress,
+    );
+    const answer = await this.generateAnswer(prompt);
+    const assistantMessage = this.messageRepository.create({
+      userId: payload.userId,
+      role: 'assistant' as AiTutorMessageRole,
+      content: answer,
+      generationJobId: payload._jobId,
+    });
+    const saved = await this.messageRepository.save(assistantMessage);
+    return { userMessage, assistantMessage: saved, usage: payload._quotaReceipt ?? null };
+  }
+
   async sendMessage(
     userId: string,
     message: string,
