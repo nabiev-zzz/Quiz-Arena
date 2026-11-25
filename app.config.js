@@ -14,18 +14,6 @@ module.exports = ({ config }) => {
     plugins: selectedPlugins,
     ...(isGalaxyStoreBuild
       ? {
-          autolinking: {
-            ...(config.autolinking ?? {}),
-            android: {
-              ...(config.autolinking?.android ?? {}),
-              exclude: [
-                ...new Set([
-                  ...(config.autolinking?.android?.exclude ?? []),
-                  'expo-iap',
-                ]),
-              ],
-            },
-          },
           extra: {
             ...(config.extra ?? {}),
             distributionStore: 'galaxy-store',
