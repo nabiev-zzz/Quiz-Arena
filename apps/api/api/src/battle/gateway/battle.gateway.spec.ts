@@ -176,15 +176,18 @@ describe('BattleGateway private Friends Battle rooms', () => {
     const created = remoteHost.emit.mock.calls.find(
       ([event]) => event === 'battle:private:created',
     )?.[1] as { roomCode: string };
-    expect(created.roomCode).toBe(roomCode);
+    expect(created.roomCode).toMatch(/^[A-F0-9]{12}$/);
     expect(battleStateStore.createPrivateInvite).toHaveBeenCalledWith(
       expect.objectContaining({ hostUserId: invite.hostUserId }),
     );
+    const createdInvite = { ...invite, roomCode: created.roomCode };
+    battleStateStore.getPrivateInvite.mockResolvedValue(createdInvite);
+    battleStateStore.claimPrivateInvite.mockResolvedValue(createdInvite);
 
-    await gateway.joinPrivateRoom(guest as never, { roomCode });
+    await gateway.joinPrivateRoom(guest as never, { roomCode: created.roomCode });
 
     expect(battleStateStore.claimPrivateInvite).toHaveBeenCalledWith(
-      roomCode,
+      created.roomCode,
       'guest-local',
     );
     expect(remoteHost.join).toHaveBeenCalledWith('battle:PRIVATE123');
