@@ -60,7 +60,7 @@ export default function PremiumScreen({ onBack }: Props) {
     <ScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={s.content}>
       <View style={s.header}>
         <Pressable onPress={onBack} style={[s.back, { backgroundColor: c.surfaceGlass }]}><Ionicons name="arrow-back" size={21} color={c.text} /></Pressable>
-        <LocalizedText style={[s.heading, { color: c.text }]}>QUIZ ARENA Premium</LocalizedText>
+        <LocalizedText style={[s.heading, { color: c.text }]}>ZELQEN CORE Premium</LocalizedText>
       </View>
       <GlassSurface intensity={isDark ? 42 : 50} style={s.hero}>
         <Ionicons name="diamond" size={34} color="#F3CE75" />
