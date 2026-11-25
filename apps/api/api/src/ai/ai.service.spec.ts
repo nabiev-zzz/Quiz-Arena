@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { jest } from '@jest/globals';
 import { ConfigService } from '@nestjs/config';
 import { AiService } from './ai.service';
 
