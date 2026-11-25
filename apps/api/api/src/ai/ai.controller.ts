@@ -3,6 +3,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Post,
   Param,
   Request,
@@ -29,6 +31,7 @@ export class AiController {
   ) {}
 
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.ACCEPTED)
   @Post('generate')
   async generateQuestions(@Request() request: AuthenticatedRequest, @Body() body: GenerateQuestionsDto) {
     return this.aiQueue.enqueue({
