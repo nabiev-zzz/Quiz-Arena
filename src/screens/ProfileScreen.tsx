@@ -11,6 +11,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
 import { getLearningHistory, getLearningHistoryItem, type LearningHistoryItem, type LearningHistorySummary } from '../services/learningService';
+import { getZcHistory, type ZcTransactionItem } from '../services/zcWalletService';
 
 interface ProfileScreenProps {
   onClosePress?: () => void;
@@ -87,6 +88,8 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const [historyLoading, setHistoryLoading] = useState(false);
   const [loadingHistoryDetailId, setLoadingHistoryDetailId] = useState<string | null>(null);
   const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
+  const [zcHistory, setZcHistory] = useState<ZcTransactionItem[]>([]);
+  const [zcHistoryLoading, setZcHistoryLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -106,6 +109,17 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
       .finally(() => { if (active) setHistoryLoading(false); });
     return () => { active = false; };
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'main' || !user) return;
+    let active = true;
+    setZcHistoryLoading(true);
+    getZcHistory(5)
+      .then((result) => { if (active) setZcHistory(result.items); })
+      .catch(() => { if (active) setZcHistory([]); })
+      .finally(() => { if (active) setZcHistoryLoading(false); });
+    return () => { active = false; };
+  }, [activeTab, user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -324,6 +338,33 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
                 <NativeText style={{ color: '#D9B65B', fontSize: 16, fontWeight: '900' }}>
                   {Math.max(0, Number(user.zcBalance ?? 0)).toLocaleString('en-US')} ZC
                 </NativeText>
+              </View>,
+            )}
+            {renderCard(
+              <View style={{ gap: 11 }}>
+                <View style={styles.row}>
+                  <View style={styles.rowBody}>
+                    <LocalizedText style={styles.cardTitle}>ZC tranzaksiyalari</LocalizedText>
+                    <LocalizedText style={styles.cardSubtitle}>Oxirgi kirim va sarflar</LocalizedText>
+                  </View>
+                  {zcHistoryLoading ? <ActivityIndicator size="small" color={C.purple} /> : null}
+                </View>
+                {!zcHistoryLoading && zcHistory.length === 0 ? (
+                  <LocalizedText style={styles.cardSubtitle}>Hozircha tranzaksiyalar yo‘q.</LocalizedText>
+                ) : zcHistory.map((item) => (
+                  <View key={item.id} style={[styles.row, { paddingTop: 8, borderTopWidth: 1, borderTopColor: C.border }]}>
+                    <View style={[styles.iconTile, { backgroundColor: item.type === 'credit' ? 'rgba(76, 175, 125, 0.13)' : 'rgba(226, 140, 155, 0.13)' }]}>
+                      <Ionicons name={item.type === 'credit' ? 'arrow-down' : 'arrow-up'} size={19} color={item.type === 'credit' ? '#55B98A' : '#E28C9B'} />
+                    </View>
+                    <View style={styles.rowBody}>
+                      <LocalizedText style={styles.cardTitle}>{item.reason}</LocalizedText>
+                      <LocalizedText style={styles.cardSubtitle}>{new Date(item.createdAt).toLocaleDateString()}</LocalizedText>
+                    </View>
+                    <NativeText style={{ color: item.type === 'credit' ? '#55B98A' : '#E28C9B', fontSize: 14, fontWeight: '900' }}>
+                      {item.type === 'credit' ? '+' : '−'}{item.amount.toLocaleString('en-US')} ZC
+                    </NativeText>
+                  </View>
+                ))}
               </View>,
             )}
             {renderCard(
