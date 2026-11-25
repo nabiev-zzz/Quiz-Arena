@@ -7,6 +7,7 @@ describe('BattleService — Rank tizimi', () => {
   let match: any;
   let users: Map<string, any>;
   let manager: any;
+  let questionRepository: any;
 
   const playerOneId = 'user-1';
   const playerTwoId = 'user-2';
@@ -104,7 +105,7 @@ describe('BattleService — Rank tizimi', () => {
 
     const aiService: any = {};
 
-    const questionRepository: any = {};
+    questionRepository = { find: jest.fn(async () => []) };
     const userRepository: any = {};
 
     service = new BattleService(
@@ -261,4 +262,56 @@ describe('BattleService — Rank tizimi', () => {
     expect(users.get(playerOneId).rankPoints).toBe(127);
     expect(users.get(playerTwoId).rankPoints).toBe(85);
   });
+  it('Jang tafsilotlari faqat ishtirokchiga ochiladi va savol tahlilini qaytaradi', async () => {
+    setup('ranked');
+    match.status = 'finished';
+    match.winnerId = playerOneId;
+    match.roomCode = 'ARENA123';
+    match.scores = { [playerOneId]: 800, [playerTwoId]: 200 };
+    match.questionResults = [{
+      questionId: 'question-1',
+      questionIndex: 0,
+      correctAnswer: 1,
+      answers: { [playerOneId]: 1, [playerTwoId]: 0 },
+      points: { [playerOneId]: 100, [playerTwoId]: 0 },
+      explanation: 'To‘g‘ri javob izohi',
+    }];
+    match.rankChanges = {
+      [playerOneId]: {
+        userId: playerOneId,
+        previousPoints: 100,
+        rankPoints: 127,
+        delta: 27,
+        rankTier: 'Bronze',
+      },
+    };
+    questionRepository.find.mockResolvedValue([{
+      id: 'question-1',
+      question: '2 + 2 nechiga teng?',
+      options: ['3', '4', '5', '6'],
+      correctAnswer: 1,
+      explanation: 'Ikki va ikki yig‘indisi to‘rt.',
+    }]);
+
+    const detail = await service.getHistoryDetail(playerOneId, match.id);
+
+    expect(detail.questions).toHaveLength(1);
+    expect(detail.questions[0].question).toBe('2 + 2 nechiga teng?');
+    expect(detail.questions[0].selectedAnswer).toBe(1);
+    expect(detail.questions[0].isCorrect).toBe(true);
+    expect(detail.rankChange.delta).toBe(27);
+
+    await expect(
+      service.getHistoryDetail('not-a-player', match.id),
+    ).rejects.toThrow();
+  });
+
+  it('Yakunlanmagan jang savollar tahlilini bermaydi', async () => {
+    setup('ranked');
+
+    await expect(
+      service.getHistoryDetail(playerOneId, match.id),
+    ).rejects.toThrow();
+  });
+
 });
