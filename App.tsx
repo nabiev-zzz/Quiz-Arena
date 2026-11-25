@@ -1,15 +1,17 @@
 import { LocalizedText, LocalizedTextInput, translateText } from './src/i18n/LocalizedText';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
   withSpring,
+  FadeInDown,
 } from 'react-native-reanimated';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
+  Alert,
   StyleSheet,
   Text as NativeText,
   View,
@@ -23,6 +25,7 @@ import {
 } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { subjects as learningSubjects } from './src/data/subjects';
+import { getDailyTasks, claimDailyTask, type DailyTask } from './src/services/dailyTasksService';
 
 import LearnScreen from './src/screens/LearnScreen';
 import QuizScreen from './src/screens/QuizScreen';
@@ -65,6 +68,7 @@ function AppContent() {
   const {
     user,
     loading,
+    refreshUser,
     login,
     register,
     requestEmailVerification,
@@ -99,6 +103,38 @@ function AppContent() {
   });
 
   const isDark = theme === 'dark';
+  const [homeDailyTasks, setHomeDailyTasks] = useState<DailyTask[]>([]);
+  const homeDailyDateRef = useRef('');
+  const [homeDailyLoading, setHomeDailyLoading] = useState(false);
+  const [homeClaimingTaskId, setHomeClaimingTaskId] = useState<string | null>(null);
+
+  const loadHomeDailyTasks = async () => {
+    if (!user) return;
+    setHomeDailyLoading(true);
+    try {
+      const result = await getDailyTasks();
+      setHomeDailyTasks(result.tasks);
+      homeDailyDateRef.current = result.date;
+    } catch {
+      // Keep the home screen usable if the daily-task service is temporarily unavailable.
+    } finally {
+      setHomeDailyLoading(false);
+    }
+  };
+
+  const handleHomeTaskClaim = async (task: DailyTask) => {
+    if (!task.completed || task.claimed || homeClaimingTaskId) return;
+    setHomeClaimingTaskId(task.id);
+    try {
+      await claimDailyTask(task.id);
+      await Promise.all([loadHomeDailyTasks(), refreshUser()]);
+      Alert.alert('Mukofot olindi!', `Hisobingizga ${task.reward} ZC qo‘shildi.`);
+    } catch (error) {
+      Alert.alert('Xatolik', error instanceof Error ? error.message : 'Mukofotni olish amalga oshmadi.');
+    } finally {
+      setHomeClaimingTaskId(null);
+    }
+  };
 
   const [tab, setTab] = useState<Tab>('home');
   const [authScreen, setAuthScreen] = useState<'login' | 'register'>('login');
@@ -108,6 +144,18 @@ function AppContent() {
   const [showPremium, setShowPremium] = useState(false);
   const [selectedPublicUsername, setSelectedPublicUsername] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (tab !== 'home' || !user) return;
+    void loadHomeDailyTasks();
+    const refreshAtDayChange = setInterval(() => {
+      const tashkentDate = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Tashkent', year: 'numeric', month: '2-digit', day: '2-digit',
+      }).format(new Date());
+      if (homeDailyDateRef.current && tashkentDate !== homeDailyDateRef.current) void loadHomeDailyTasks();
+    }, 60_000);
+    return () => clearInterval(refreshAtDayChange);
+  }, [tab, user?.id]);
 
   const backgroundColor = tokens.colors.background;
   const textColor = tokens.colors.text;
@@ -192,6 +240,63 @@ function AppContent() {
           <LocalizedTextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Funksiya, fan yoki mavzuni qidiring" placeholderTextColor={mutedColor} style={[styles.homeSearchInput, { color: textColor }]} returnKeyType="search" autoCorrect={false} accessibilityLabel="Ilova bo‘ylab qidirish" />
           {searchQuery.length > 0 && <Pressable onPress={() => setSearchQuery('')} hitSlop={10}><Ionicons name="close-circle" size={18} color={mutedColor} /></Pressable>}
         </View>
+
+        <Animated.View entering={FadeInDown.duration(480)} style={[styles.dailyHomeCard, { backgroundColor: tokens.colors.surface, borderColor }]}>
+          <View style={styles.dailyHomeTop}>
+            <View style={styles.dailyHomeHeading}>
+              <View style={styles.dailyHomeIcon}><Ionicons name="flash" size={17} color="#FFFFFF" /></View>
+              <View style={{ flex: 1 }}>
+                <LocalizedText style={[styles.dailyHomeTitle, { color: textColor }]}>Kunlik vazifalar</LocalizedText>
+                <LocalizedText style={[styles.dailyHomeSubtitle, { color: mutedColor }]}>Har kuni yangi maqsadlar va ZC mukofotlari</LocalizedText>
+              </View>
+            </View>
+            <View style={styles.dailyTodayPill}><LocalizedText style={styles.dailyTodayText}>BUGUN</LocalizedText></View>
+          </View>
+          {homeDailyLoading && homeDailyTasks.length === 0 ? (
+            <View style={styles.dailyLoading}><ActivityIndicator size="small" color={tokens.colors.primary} /><LocalizedText style={[styles.dailyHomeSubtitle, { color: mutedColor }]}>Vazifalar yuklanmoqda...</LocalizedText></View>
+          ) : homeDailyTasks.length > 0 ? (
+            <View style={styles.dailyTaskList}>
+              {homeDailyTasks.map((task, index) => {
+                const progress = Math.min(100, Math.round((task.progress / Math.max(1, task.target)) * 100));
+                const readyToClaim = task.completed && !task.claimed;
+                return (
+                  <Animated.View key={task.id} entering={FadeInDown.delay(index * 90).duration(380)} style={styles.dailyTaskRow}>
+                    <View style={styles.dailyTaskMain}>
+                      <View style={[styles.dailyTaskCheck, task.completed && styles.dailyTaskCheckDone]}>
+                        <Ionicons name={task.completed ? 'checkmark' : 'ellipse-outline'} size={15} color={task.completed ? '#FFFFFF' : mutedColor} />
+                      </View>
+                      <View style={styles.dailyTaskCopy}>
+                        <LocalizedText style={[styles.dailyTaskName, { color: textColor }]}>{task.title}</LocalizedText>
+                        <LocalizedText style={[styles.dailyTaskDescription, { color: mutedColor }]}>{task.description}</LocalizedText>
+                      </View>
+                      <View style={styles.dailyRewardPill}><LocalizedText style={styles.dailyRewardText}>+{task.reward} ZC</LocalizedText></View>
+                    </View>
+                    <View style={styles.dailyProgressLine}>
+                      <View style={[styles.dailyProgressTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.09)' : '#E9E7F2' }]}>
+                        <Animated.View style={[styles.dailyProgressFill, { width: `${progress}%` }]} />
+                      </View>
+                      <LocalizedText style={[styles.dailyProgressText, { color: mutedColor }]}>{Math.min(task.progress, task.target)}/{task.target}</LocalizedText>
+                    </View>
+                    {readyToClaim ? (
+                      <Pressable disabled={homeClaimingTaskId !== null} onPress={() => void handleHomeTaskClaim(task)} style={({ pressed }) => [styles.dailyClaimButton, pressed && { opacity: 0.78 }]}>
+                        <LocalizedText style={styles.dailyClaimText}>{homeClaimingTaskId === task.id ? 'Olinmoqda...' : 'Mukofotni olish'}</LocalizedText>
+                        <Ionicons name="gift-outline" size={14} color="#FFFFFF" />
+                      </Pressable>
+                    ) : task.claimed ? (
+                      <LocalizedText style={styles.dailyClaimedText}>Mukofot olindi ✓</LocalizedText>
+                    ) : null}
+                  </Animated.View>
+                );
+              })}
+            </View>
+          ) : (
+            <LocalizedText style={[styles.dailyHomeSubtitle, { color: mutedColor }]}>Kunlik vazifalarni ko‘rish uchun keyinroq qayta urinib ko‘ring.</LocalizedText>
+          )}
+          <View style={styles.dailyHomeFooter}>
+            <Ionicons name="refresh-circle-outline" size={15} color={mutedColor} />
+            <LocalizedText style={[styles.dailyHomeFooterText, { color: mutedColor }]}>Vazifalar Toshkent vaqti bilan har kuni 00:00 da yangilanadi</LocalizedText>
+          </View>
+        </Animated.View>
 
         {normalizedQuery.length > 0 ? (
           <View style={styles.homeSearchResults}>
@@ -505,6 +610,34 @@ const styles = StyleSheet.create({
   homeProfileButton: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   homeSearch: { minHeight: 46, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 22 },
   homeSearchInput: { flex: 1, minWidth: 0, paddingVertical: 10, fontSize: 12 },
+  dailyHomeCard: { borderWidth: 1, borderRadius: 17, padding: 14, marginBottom: 21, overflow: 'hidden' },
+  dailyHomeTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 13 },
+  dailyHomeHeading: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  dailyHomeIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: '#7862D8', alignItems: 'center', justifyContent: 'center' },
+  dailyHomeTitle: { fontSize: 14, fontWeight: '900' },
+  dailyHomeSubtitle: { fontSize: 10, lineHeight: 15, marginTop: 3 },
+  dailyTodayPill: { borderRadius: 7, backgroundColor: 'rgba(120,98,216,0.14)', paddingHorizontal: 8, paddingVertical: 5 },
+  dailyTodayText: { color: '#A995FF', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
+  dailyLoading: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 12 },
+  dailyTaskList: { gap: 13 },
+  dailyTaskRow: { paddingTop: 11, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(140,130,170,0.2)' },
+  dailyTaskMain: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dailyTaskCheck: { width: 25, height: 25, borderRadius: 9, borderWidth: 1, borderColor: 'rgba(160,150,190,0.45)', alignItems: 'center', justifyContent: 'center' },
+  dailyTaskCheckDone: { backgroundColor: '#27B98A', borderColor: '#27B98A' },
+  dailyTaskCopy: { flex: 1, minWidth: 0 },
+  dailyTaskName: { fontSize: 11, fontWeight: '800' },
+  dailyTaskDescription: { fontSize: 9, lineHeight: 13, marginTop: 3 },
+  dailyRewardPill: { backgroundColor: 'rgba(39,185,138,0.13)', borderRadius: 7, paddingHorizontal: 7, paddingVertical: 5 },
+  dailyRewardText: { color: '#27B98A', fontSize: 9, fontWeight: '900' },
+  dailyProgressLine: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 33, marginTop: 8 },
+  dailyProgressTrack: { flex: 1, height: 5, borderRadius: 9, overflow: 'hidden' },
+  dailyProgressFill: { height: 5, borderRadius: 9, backgroundColor: '#8B73E6' },
+  dailyProgressText: { fontSize: 9, fontWeight: '800', minWidth: 27, textAlign: 'right' },
+  dailyClaimButton: { alignSelf: 'flex-start', marginLeft: 33, marginTop: 8, minHeight: 29, borderRadius: 8, backgroundColor: '#7862D8', paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dailyClaimText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
+  dailyClaimedText: { color: '#27B98A', fontSize: 9, fontWeight: '800', marginLeft: 33, marginTop: 7 },
+  dailyHomeFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 13, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(140,130,170,0.2)' },
+  dailyHomeFooterText: { fontSize: 9, flex: 1 },
   homeSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 },
   homeSectionTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
   homeXpChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(245,196,81,0.12)', borderRadius: 7, paddingHorizontal: 8, paddingVertical: 5 },
@@ -529,7 +662,7 @@ const styles = StyleSheet.create({
   discordBrandCopy: { flex: 1, minWidth: 0 },
   discordEyebrow: { color: '#AAB0BC', fontSize: 9, fontWeight: '900', letterSpacing: 1.8 },
   discordBrandTitle: { color: '#F2F3F5', fontSize: 17, fontWeight: '800', marginTop: 3 },
-  discordHeaderAction: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#2B2D31', alignItems: 'center', justifyContent: 'center' },
+  discordHeaderAction: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#2B2D31', alignItems: 'center', justifyContent: 'center' },
   discordAvatar: { width: 39, height: 39, borderRadius: 14, backgroundColor: '#5865F2', alignItems: 'center', justifyContent: 'center' },
   discordAvatarText: { color: '#FFFFFF', fontSize: 17, fontWeight: '800' },
   discordOnlineDot: { position: 'absolute', right: -2, bottom: -2, width: 12, height: 12, borderRadius: 6, backgroundColor: '#23A559', borderWidth: 2, borderColor: '#313338' },
