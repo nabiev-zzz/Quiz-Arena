@@ -8,6 +8,7 @@ on:
     branches:
       - feature/liquid-glass-dock
       - feat/education-statistics-dashboard
+      - feat/battle-multireplica-socket-discovery
 
 permissions:
   contents: read
