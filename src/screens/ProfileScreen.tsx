@@ -12,6 +12,7 @@ import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, 
 import { getProfileAchievements } from '../utils/profileAchievements';
 import { getLearningHistory, getLearningHistoryItem, type LearningHistoryItem, type LearningHistorySummary } from '../services/learningService';
 import { getZcHistory, type ZcTransactionItem } from '../services/zcWalletService';
+import { getZcStoreCatalog, purchaseZcStoreItem, type ZcStoreProduct } from '../services/zcStoreService';
 
 interface ProfileScreenProps {
   onClosePress?: () => void;
@@ -90,6 +91,9 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
   const [zcHistory, setZcHistory] = useState<ZcTransactionItem[]>([]);
   const [zcHistoryLoading, setZcHistoryLoading] = useState(false);
+  const [storeProducts, setStoreProducts] = useState<ZcStoreProduct[]>([]);
+  const [storeLoading, setStoreLoading] = useState(false);
+  const [purchasingItemId, setPurchasingItemId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -118,6 +122,17 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
       .then((result) => { if (active) setZcHistory(result.items); })
       .catch(() => { if (active) setZcHistory([]); })
       .finally(() => { if (active) setZcHistoryLoading(false); });
+    return () => { active = false; };
+  }, [activeTab, user?.id]);
+
+  useEffect(() => {
+    if (activeTab !== 'wishlist' || !user) return;
+    let active = true;
+    setStoreLoading(true);
+    getZcStoreCatalog()
+      .then((catalog) => { if (active) setStoreProducts(catalog.items); })
+      .catch((error) => { if (active) showLocalizedAlert('Do‘kon xatosi', error instanceof Error ? error.message : 'Do‘kon yuklanmadi'); })
+      .finally(() => { if (active) setStoreLoading(false); });
     return () => { active = false; };
   }, [activeTab, user?.id]);
 
@@ -220,6 +235,23 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
       showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Profilni saqlashda xatolik yuz berdi.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const buyOrEquipCosmetic = async (product: ZcStoreProduct) => {
+    if (purchasingItemId) return;
+    setPurchasingItemId(product.id);
+    try {
+      if (!product.owned) {
+        await purchaseZcStoreItem(product.id);
+      }
+      await updateProfile(product.kind === 'frame' ? { profileFrame: product.value } : { avatarDecoration: product.value });
+      setStoreProducts((current) => current.map((item) => item.id === product.id ? { ...item, owned: true } : item));
+      showLocalizedAlert(product.owned ? 'Jihozlandi' : 'Xarid muvaffaqiyatli', product.name + ' profilingizga qo‘llandi.');
+    } catch (error) {
+      showLocalizedAlert('Xarid amalga oshmadi', error instanceof Error ? error.message : 'ZC do‘konida xatolik yuz berdi.');
+    } finally {
+      setPurchasingItemId(null);
     }
   };
 
@@ -556,12 +588,31 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
                 <View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>Mening mukofotlarim</LocalizedText><LocalizedText style={styles.cardSubtitle}>Yutuqlar va medallar</LocalizedText></View>
               </View>,
             )}
-            <Pressable onPress={() => setCosmeticType('decoration')}>
-              {renderCard(<View style={styles.row}><View style={styles.iconTile}><Ionicons name="color-palette-outline" size={21} color={C.purple} /></View><View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>Avatar bezaklari</LocalizedText><LocalizedText style={styles.cardSubtitle}>{user.avatarDecoration || 'Hozircha bezak tanlanmagan'}</LocalizedText></View><LocalizedText style={styles.linkText}>Sozlash</LocalizedText></View>)}
-            </Pressable>
-            <Pressable onPress={() => setCosmeticType('frame')}>
-              {renderCard(<View style={styles.row}><View style={styles.iconTile}><Ionicons name="albums-outline" size={21} color={C.purple} /></View><View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>Profil ramkasi</LocalizedText><LocalizedText style={styles.cardSubtitle}>{user.profileFrame || 'Standart ramka'}</LocalizedText></View><LocalizedText style={styles.linkText}>Sozlash</LocalizedText></View>)}
-            </Pressable>
+            <View style={styles.sectionHeader}>
+              <View style={styles.rowBody}>
+                <LocalizedText style={styles.sectionTitle}>ZC do‘koni</LocalizedText>
+                <LocalizedText style={styles.cardSubtitle}>XP reyting uchun, ZC esa xaridlar uchun ishlatiladi.</LocalizedText>
+              </View>
+              <LocalizedText style={styles.linkText}>{Number(user.zcBalance ?? 0)} ZC</LocalizedText>
+            </View>
+            {storeLoading ? <ActivityIndicator color={C.purple} style={{ marginVertical: 18 }} /> : storeProducts.map((product) => {
+              const equipped = product.kind === 'frame' ? user.profileFrame === product.value : user.avatarDecoration === product.value;
+              return renderCard(
+                <View style={styles.row}>
+                  <View style={styles.iconTile}><Ionicons name={product.kind === 'frame' ? 'albums-outline' : 'sparkles-outline'} size={21} color={C.purple} /></View>
+                  <View style={styles.rowBody}>
+                    <LocalizedText style={styles.cardTitle}>{product.name}</LocalizedText>
+                    <LocalizedText style={styles.cardSubtitle}>{product.description}</LocalizedText>
+                    <LocalizedText style={styles.cardSubtitle}>{product.owned ? 'Sizda mavjud' : product.price + ' ZC'}</LocalizedText>
+                  </View>
+                  <Pressable style={styles.followButton} disabled={purchasingItemId !== null || equipped} onPress={() => void buyOrEquipCosmetic(product)}>
+                    {purchasingItemId === product.id ? <ActivityIndicator color="#FFFFFF" size="small" /> : <LocalizedText style={styles.followButtonText}>{equipped ? 'Tanlangan' : product.owned ? 'Jihozlash' : 'Xarid qilish'}</LocalizedText>}
+                  </Pressable>
+                </View>,
+                undefined,
+                product.id,
+              );
+            })}
           </>
         ) : null}
 
