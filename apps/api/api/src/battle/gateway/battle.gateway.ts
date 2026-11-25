@@ -201,6 +201,13 @@ export class BattleGateway
         this.activeBattles.set(saved.matchId, battle);
       }
 
+      // Rebuild disconnect grace timers from shared state on every replica.
+      for (const [userId, disconnectedAt] of Object.entries(saved.disconnectedAt)) {
+        if (!saved.socketIds[userId]) {
+          this.scheduleDisconnectTimeout(battle, userId, disconnectedAt);
+        }
+      }
+
       if (
         (!battle.timer || battle.timerQuestionIndex !== saved.questionIndex) &&
         !saved.questionResolved &&
@@ -410,18 +417,14 @@ export class BattleGateway
       );
 
       const oldTimer = battle.disconnectTimers.get(userId);
+      if (oldTimer) clearTimeout(oldTimer);
 
-      if (oldTimer) {
-        clearTimeout(oldTimer);
-      }
-
-      const timer = setTimeout(() => {
-        void this.handleReconnectTimeout(battle.matchId, userId);
-      }, this.reconnectGracePeriod);
-
-      battle.disconnectTimers.set(userId, timer);
-      battle.disconnectedAt[userId] = Date.now();
-      await this.persistBattle(battle).catch((error) => this.logger.error('Battle uzilish holati saqlanmadi:', error));
+      const disconnectedAt = Date.now();
+      battle.disconnectedAt[userId] = disconnectedAt;
+      await this.persistBattle(battle).catch((error) =>
+        this.logger.error('Battle uzilish holati saqlanmadi:', error),
+      );
+      this.scheduleDisconnectTimeout(battle, userId, disconnectedAt);
     }
   }
 
@@ -1357,20 +1360,46 @@ export class BattleGateway
     }
   }
 
+  private scheduleDisconnectTimeout(
+    battle: ActiveBattle,
+    userId: string,
+    disconnectedAt: number,
+  ): void {
+    if (battle.disconnectTimers.has(userId)) return;
+
+    const delay = Math.max(
+      0,
+      disconnectedAt + this.reconnectGracePeriod - Date.now(),
+    );
+    const timer = setTimeout(() => {
+      battle.disconnectTimers.delete(userId);
+      void this.handleReconnectTimeout(battle.matchId, userId, disconnectedAt);
+    }, delay);
+    battle.disconnectTimers.set(userId, timer);
+  }
+
   private async handleReconnectTimeout(
     matchId: string,
     userId: string,
+    expectedDisconnectedAt: number,
   ): Promise<void> {
-    const battle = this.activeBattles.get(matchId);
-
-    if (!battle || battle.socketIds[userId]) {
+    const battle = await this.getActiveBattle(matchId);
+    if (
+      !battle ||
+      battle.socketIds[userId] ||
+      battle.disconnectedAt[userId] !== expectedDisconnectedAt
+    ) {
       return;
     }
 
-    const timer = battle.disconnectTimers.get(userId);
-
-    if (timer) {
-      battle.disconnectTimers.delete(userId);
+    if (this.battleStateStore.isReady()) {
+      const claimed = await this.battleStateStore.claimDisconnectTimeout(
+        matchId,
+        userId,
+        expectedDisconnectedAt,
+      );
+      if (!claimed) return;
+      this.applySnapshot(battle, claimed);
     }
 
     this.logger.warn(
@@ -1380,10 +1409,13 @@ export class BattleGateway
     try {
       await this.battleService.cancelMatch(matchId);
     } catch (error) {
+      battle.finishing = false;
+      await this.persistBattle(battle).catch(() => undefined);
       this.logger.error(
         'Uzilgan Battle bekor qilinmadi:',
         error instanceof Error ? error.message : String(error),
       );
+      return;
     }
 
     this.server.to(battle.room).emit('battle:cancelled', {
