@@ -88,7 +88,6 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     payload: Record<string, unknown>;
     fileBuffer?: Buffer;
     quotaFeature?: string;
-    quotaConsumed?: boolean;
     idempotencyKey?: string;
   }): Promise<{ status: 'queued' | 'active' | 'completed'; jobId: string; message: string; result?: Record<string, unknown> | null; usage?: unknown }> {
     if (!this.queue) {
@@ -108,6 +107,11 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
           message: existing.status === 'completed' ? 'Natija tayyor.' : 'Test tayyorlanmoqda',
           result: existing.result,
         };
+      }
+      if (existing?.status === 'failed') {
+        const oldBullJob = await this.queue.getJob(existing.id);
+        if (oldBullJob) await oldBullJob.remove();
+        await this.jobs.update({ id: existing.id }, { idempotencyKey: null });
       }
     }
 
@@ -138,13 +142,23 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
 
     let usage: unknown;
     if (input.quotaFeature) {
-      if (!input.userId) throw new Error('Quota bilan AI job yaratish uchun userId talab qilinadi.');
-      usage = await this.featureUsage.consume(input.userId, input.quotaFeature);
+      if (!input.userId) {
+        await this.jobs.update({ id: job.id }, { status: 'failed', error: 'Quota owner missing.', fileBuffer: null, completedAt: new Date() });
+        throw new Error('Quota bilan AI job yaratish uchun userId talab qilinadi.');
+      }
+      try {
+        usage = await this.featureUsage.consume(input.userId, input.quotaFeature);
+      } catch (error) {
+        await this.jobs.update({ id: job.id }, { status: 'failed', error: 'Quota tekshiruvi bajarilmadi.', fileBuffer: null, completedAt: new Date() });
+        throw error;
+      }
       if (!(usage as { allowed?: boolean }).allowed) {
-        await this.jobs.update({ id: job.id }, { status: 'failed', error: 'Tarif limitingiz tugagan.', completedAt: new Date() });
+        await this.jobs.update({ id: job.id }, { status: 'failed', error: 'Tarif limitingiz tugagan.', fileBuffer: null, completedAt: new Date() });
         throw new TooManyRequestsException('Ushbu AI funksiyasi uchun tarif limitingiz tugagan.');
       }
       await this.jobs.update({ id: job.id }, { quotaConsumed: true, payload: { ...input.payload, _jobId: job.id, ...(usage ? { _quotaReceipt: usage } : {}) } });
+    } else {
+      await this.jobs.update({ id: job.id }, { payload: { ...input.payload, _jobId: job.id } });
     }
 
     try {
