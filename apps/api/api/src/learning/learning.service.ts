@@ -11,6 +11,7 @@ import { learningCatalog } from './learning-catalog';
 import { LearningWebSession } from './entities/learning-web-session.entity';
 import { FeatureUsageService } from '../subscriptions/feature-usage.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { generateDocumentQuizFallback } from './document-quiz-fallback';
 
 export interface CreateLearningAttemptInput {
   subjectId: string;
@@ -168,9 +169,34 @@ export class LearningService {
           count: batchCount,
           topicDescription: generationInput.topicDescription + previousQuestions,
         };
-        const batch = extension === 'pdf'
-          ? await this.aiService.generateQuestionsFromPdf(file.buffer, batchInput)
-          : await this.aiService.generateQuestions(batchInput);
+        let batch: typeof generated;
+        try {
+          batch = extension === 'pdf'
+            ? await this.aiService.generateQuestionsFromPdf(file.buffer, batchInput)
+            : await this.aiService.generateQuestions(batchInput);
+        } catch (aiError) {
+          // Text-based formats have a deterministic, source-grounded fallback.
+          // PDF remains AI-backed until a dedicated PDF text extraction parser is added.
+          if (!documentText) throw aiError;
+          const questions = generateDocumentQuizFallback(documentText, {
+            topicId,
+            count,
+            difficulty,
+            language,
+          });
+          return {
+            title: generationInput.topicName,
+            topicId,
+            sourceFileName: fileName,
+            questionCount: questions.length,
+            source: 'rule-based' as const,
+            questions,
+            quota,
+          };
+        }
+        if (!Array.isArray(batch) || batch.length !== batchCount) {
+          throw new Error('AI savol generatori so‘ralgan miqdordagi savollarni qaytarmadi.');
+        }
         generated.push(...batch);
       }
       const questions = generated.slice(0, count).map((question, index) => ({
@@ -179,7 +205,15 @@ export class LearningService {
         subjectId: 'document',
         topicId,
       }));
-      return { title: generationInput.topicName, topicId, sourceFileName: fileName, questionCount: questions.length, questions, quota };
+      return {
+        title: generationInput.topicName,
+        topicId,
+        sourceFileName: fileName,
+        questionCount: questions.length,
+        source: 'ai' as const,
+        questions,
+        quota,
+      };
     } catch (error) {
       try { await this.featureUsageService.refund(userId, 'documentQuiz'); } catch { /* Keep the original AI error; quota refund can be retried by support if needed. */ }
       throw error;
