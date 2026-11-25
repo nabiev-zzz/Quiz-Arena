@@ -15,6 +15,7 @@ function boundedInteger(value: string | undefined, fallback: number, min: number
 }
 
 async function main(): Promise<void> {
+  process.env.AI_WORKER_PROCESS = 'true';
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: ['error', 'warn', 'log'],
   });
@@ -32,6 +33,8 @@ async function main(): Promise<void> {
     async (bullJob: Job<{ jobId: string }>) => {
       const job = await queueService.markActive(bullJob.data.jobId);
       const stored = await queueService.getJobForWorker(job.id);
+      if (stored.status === 'completed' && stored.result) return stored.result;
+      if (stored.status === 'failed') throw new Error(stored.error || 'AI generation job already failed');
       let result: Record<string, unknown>;
 
       switch (stored.jobType) {
