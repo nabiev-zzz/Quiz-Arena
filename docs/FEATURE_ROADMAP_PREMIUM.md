@@ -20,13 +20,15 @@ Prices remain configured through the existing Railway environment variables; nev
 | Statistics PDF export | 1 basic/month | 10 expanded/month | Unlimited detailed reports | Unlimited advanced reports |
 | Document-to-quiz | 1/month, 10 questions, 5 MB | 5/month, 25 questions, 8 MB | 30/month, 50 questions, 12 MB | 100/month, 100 questions, 15 MB |
 | Private Friends Battle | 3/day, 1v1 | 10/day, 1v1 | 20/day, 1v1 | 30/day, 1v1 |
-| Smart Practice | 1/day, basic | 3/day, basic | Unlimited, AI-personalized | Unlimited, AI-personalized + detailed roadmap |
-| AI Tutor | Not included | Not included | 100 messages/day + error analysis/history | Unlimited messages + detailed recommendations |
+| Smart Practice | 1/day, saved mistakes | 3/day, saved mistakes | Unlimited, AI-personalized | Unlimited, AI-personalized |
+| AI Tutor | 3 messages/day | 10 messages/day | 100 messages/day + error analysis/history | Unlimited messages + detailed recommendations |
 | Cosmetics | Standard | Premium badge/items | Premium badge/items | Rare items + animated gold frame |
 | Tournaments | Public/basic | Public/basic | Special tournaments | Elite tournaments |
 | Rank identity | Standard | Standard | Standard | Legend status |
 
 Unlimited limits in the API entitlement contract are represented as null and remain subject to abuse prevention and infrastructure safeguards. Monthly and daily usage must be counted server-side using the authenticated user ID, never trusted from the client.
+
+Only the exact server-known plan keys `premium_monthly`, `premium_yearly`, `premium_pro_monthly`, `premium_pro_yearly`, `legenda_plus_monthly`, and `legenda_plus_yearly` grant paid entitlements. Missing, expired, unknown, or malformed plan keys resolve to FREE.
 
 ## Delivery order
 
