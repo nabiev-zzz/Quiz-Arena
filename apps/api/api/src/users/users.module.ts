@@ -11,11 +11,14 @@ import { ZcWalletController } from './zc-wallet.controller';
 import { ZcWalletService } from './zc-wallet.service';
 import { ZcStoreController } from './zc-store.controller';
 import { ZcStoreService } from './zc-store.service';
+import { DailyTaskProgress } from './entities/daily-task-progress.entity';
+import { DailyTasksController } from './daily-tasks.controller';
+import { DailyTasksService } from './daily-tasks.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, UserFollow, ZcTransaction, ZcStoreItem]), AuthModule],
-  controllers: [UsersController, ZcWalletController, ZcStoreController],
-  providers: [UsersService, ZcWalletService, ZcStoreService],
-  exports: [UsersService, ZcWalletService, ZcStoreService],
+  imports: [TypeOrmModule.forFeature([User, UserFollow, ZcTransaction, ZcStoreItem, DailyTaskProgress]), AuthModule],
+  controllers: [UsersController, ZcWalletController, ZcStoreController, DailyTasksController],
+  providers: [UsersService, ZcWalletService, ZcStoreService, DailyTasksService],
+  exports: [UsersService, ZcWalletService, ZcStoreService, DailyTasksService],
 })
 export class UsersModule {}
