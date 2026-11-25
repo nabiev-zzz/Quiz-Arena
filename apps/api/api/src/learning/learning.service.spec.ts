@@ -144,12 +144,34 @@ describe('LearningService document quiz generation', () => {
     expect(featureUsageService.consume).not.toHaveBeenCalled();
   });
 
-  it('refunds quota if AI generation fails', async () => {
+  it('uses a deterministic source-grounded fallback when AI is unavailable for text documents', async () => {
+    aiService.generateQuestions.mockRejectedValue(new Error('AI unavailable'));
+    const sourceText = [
+      'Photosynthesis converts sunlight into chemical energy inside green plant cells during normal growth.',
+      'Mitochondria produce energy through cellular respiration inside eukaryotic organisms.',
+      'Gravity attracts objects toward one another according to mass and distance.',
+      'Evaporation changes liquid water into vapor when temperature increases.',
+      'Condensation transforms water vapor into liquid droplets under cooler conditions.',
+    ].join(' ');
+
+    const result = await service.createDocumentQuiz('user-1', {
+      buffer: Buffer.from(sourceText),
+      originalname: 'science.txt', mimetype: 'text/plain', size: sourceText.length,
+    }, { count: '3', difficulty: 'medium', language: 'en' });
+
+    expect(result.source).toBe('rule-based');
+    expect(result.questionCount).toBe(3);
+    expect(result.questions.every((question) => question.options.length === 4)).toBe(true);
+    expect(result.questions.every((question) => question.explanation.length > 0)).toBe(true);
+    expect(featureUsageService.refund).not.toHaveBeenCalled();
+  });
+
+  it('refunds quota when AI fails and the text is insufficient for deterministic fallback', async () => {
     aiService.generateQuestions.mockRejectedValue(new Error('AI unavailable'));
     await expect(service.createDocumentQuiz('user-1', {
       buffer: Buffer.from('Ushbu hujjat test yaratish uchun yetarli bo‘lgan matnni o‘z ichiga oladi.'),
       originalname: 'lesson.txt', mimetype: 'text/plain', size: 80,
-    }, { count: '1' })).rejects.toThrow('AI unavailable');
+    }, { count: '1' })).rejects.toThrow('kamida 4 ta turli atama');
     expect(featureUsageService.refund).toHaveBeenCalledWith('user-1', 'documentQuiz');
   });
 
