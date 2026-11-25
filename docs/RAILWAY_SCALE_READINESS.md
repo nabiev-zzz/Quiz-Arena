@@ -138,3 +138,11 @@ Remaining engineering gates:
 - Make completion and rank/reward application idempotent across Redis and PostgreSQL failure windows, and reconcile Redis snapshots from the PostgreSQL match record after restart.
 - Add a real two-API end-to-end test with two Socket.IO servers connected to the same Redis and PostgreSQL test services. Exercise simultaneous answers, duplicate answer attempts, timer races, restart during a question, reconnect on the other node, finish races and exactly-once rank updates.
 - Do not raise API replica count until the above tests pass. Current CI's two-store Redis test does not prove the complete gateway flow.
+
+### 2c. Cross-replica Socket.IO peer discovery — first gateway correction
+
+The Battle gateway now resolves matchmaking opponents and private-room hosts with the Redis adapter's namespace-wide `fetchSockets()` API instead of the process-local `namespace.sockets.get()` map. This allows a replica to locate and address a socket connected to another API replica. The gateway's reconnect and explicit-cancel handlers now load the latest match snapshot through `BattleStateStore`, and disconnect handling enumerates the shared active-match index before marking a player's socket disconnected.
+
+A focused gateway test covers matchmaking when the opponent socket is returned by the namespace-wide adapter lookup.
+
+This is a limited correction, not the multi-replica release gate. Private invite-room records, queue cancellation ownership, rate-limit counters, and reconnect-grace timers still contain process-local state. Redis snapshot reconciliation and socket discovery have not yet been validated with two live NestJS API instances and real Socket.IO clients. Keep production at one API replica until shared private-room/queue ownership, disconnect failover, idempotent completion/rewards, and full two-instance end-to-end tests are complete.
