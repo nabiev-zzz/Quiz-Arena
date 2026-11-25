@@ -301,6 +301,17 @@ export class BattleStateStore implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+
+  async claimFinish(matchId: string): Promise<BattleStateSnapshot | null> {
+    return this.withMatchLock(matchId, async () => {
+      const state = await this.get(matchId);
+      if (!state || state.finishing) return null;
+      state.finishing = true;
+      await this.save(state);
+      return state;
+    });
+  }
+
   async remove(matchId: string): Promise<void> {
     this.assertReady();
     const pipeline = this.redis.pipeline();
