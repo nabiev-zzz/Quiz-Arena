@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const processGoogleRedirect = useCallback(async (url: string) => {
     try {
       const parsed = new URL(url);
-      const isWebCallback = Platform.OS === 'web' && parsed.pathname.replace(/\\/$/, '') === '/app';
+      const isWebCallback = Platform.OS === 'web' && parsed.pathname.replace(/\/$/, '') === '/app';
       const isNativeCallback = parsed.protocol === 'quizarena:' && parsed.hostname === 'auth';
       if (!isWebCallback && !isNativeCallback) return;
       if (isWebCallback) {
