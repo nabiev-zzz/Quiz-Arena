@@ -459,8 +459,11 @@ export class LearningService {
       };
     });
     if (result.cachePool.length >= count) await this.questionCache?.set(cacheKey, result.cachePool);
-    const { cachePool: _cachePool, ...response } = result;
-    return response;
+    return {
+      questions: result.questions,
+      source: result.source,
+      cachedQuestionCount: result.cachedQuestionCount,
+    };
   }
 
   /**
