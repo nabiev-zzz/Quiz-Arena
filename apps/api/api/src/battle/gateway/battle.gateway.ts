@@ -640,6 +640,8 @@ export class BattleGateway
       answers,
       points,
       explanation: question.explanation,
+      question: question.question,
+      options: [...question.options],
     };
 
     battle.results.push(result);

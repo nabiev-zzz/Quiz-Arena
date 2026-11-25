@@ -13,7 +13,7 @@ import {
   Alert,
   Pressable,
   StyleSheet,
-  Text as NativeText,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -25,6 +25,7 @@ import LeaderboardScreen from './leaderboard/LeaderboardScreen';
 import {
   BattleFinished,
   BattleHistoryItem,
+  BattleHistoryDetail,
   BattleLeaderboardEntry,
   BattleMatched,
   BattleMode,
@@ -36,6 +37,7 @@ import {
   BattleStats,
   createBattleSocket,
   getBattleHistory,
+  getBattleHistoryDetail,
   getBattleLeaderboard,
   getBattleStats,
 } from '../services/battleService';
@@ -93,6 +95,10 @@ export default function BattleScreen({
   const [error, setError] = useState('');
 
   const [history, setHistory] = useState<BattleHistoryItem[]>([]);
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'win' | 'loss' | 'draw' | 'ranked' | 'casual'>('all');
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyDetail, setHistoryDetail] = useState<BattleHistoryDetail | null>(null);
+  const [historyDetailLoading, setHistoryDetailLoading] = useState<string | null>(null);
   const [stats, setStats] = useState<BattleStats | null>(null);
   const [learningStats, setLearningStats] = useState<LearningStats | null>(null);
   const [statsView, setStatsView] = useState<StatsView>('overview');
@@ -166,8 +172,8 @@ export default function BattleScreen({
 
     try {
       if (target === 'history') {
-        const data = await getBattleHistory(30);
-        setHistory(Array.isArray(data) ? data : []);
+        const data = await getBattleHistory(50);
+        setHistory(Array.isArray(data.matches) ? data.matches : []);
       } else if (target === 'stats') {
         const [battleResult, learningResult] = await Promise.allSettled([
           getBattleStats(),
@@ -878,28 +884,235 @@ export default function BattleScreen({
     );
   }
 
+  async function openHistoryDetail(matchId: string) {
+    if (historyDetail?.id === matchId) {
+      setHistoryDetail(null);
+      return;
+    }
+    setHistoryDetailLoading(matchId);
+    setHistoryDetail(null);
+    try {
+      const detail = await getBattleHistoryDetail(matchId);
+      setHistoryDetail(detail);
+    } catch (detailError) {
+      showLocalizedAlert(
+        'Xatolik',
+        detailError instanceof Error
+          ? detailError.message
+          : 'Jang tafsilotlarini yuklab bo‘lmadi.',
+      );
+    } finally {
+      setHistoryDetailLoading(null);
+    }
+  }
+
   function renderHistory() {
-    if (loadingData) {
-      return <ActivityIndicator color={colors.primary} />;
-    }
+    const filteredHistory = history.filter((item) => {
+      const result = item.result || 'unfinished';
+      const matchesFilter =
+        historyFilter === 'all' ||
+        historyFilter === result ||
+        historyFilter === item.mode;
+      const opponentName = item.opponent?.displayName || item.opponent?.username || '';
+      const query = historySearch.trim().toLocaleLowerCase();
+      const matchesSearch = !query ||
+        opponentName.toLocaleLowerCase().includes(query) ||
+        item.roomCode.toLocaleLowerCase().includes(query);
+      return matchesFilter && matchesSearch;
+    });
 
-    if (!history.length) {
-      return <LocalizedText style={styles.muted}>Battle tarixi hozircha yoвЂq.</LocalizedText>;
-    }
+    const wins = history.filter((item) => item.result === 'win').length;
+    const losses = history.filter((item) => item.result === 'loss').length;
+    const draws = history.filter((item) => item.result === 'draw').length;
 
-    return history.map((item) => (
-      <View key={item.id} style={styles.listCard}>
-        <LocalizedText style={styles.cardTitle}>
-          {item.mode === 'ranked' ? 'Ranked' : 'Casual'} · {item.roomCode}
-        </LocalizedText>
-        <LocalizedText style={styles.muted}>
-          Holati: {item.status} · {new Date(item.createdAt).toLocaleString()}
-        </LocalizedText>
-        <LocalizedText style={styles.bodyText}>
-          {item.winnerId ? `GвЂolib ID: ${item.winnerId}` : 'GвЂolib: aniqlanmagan'}
-        </LocalizedText>
+    return (
+      <View style={{ gap: 14 }}>
+        <View style={{
+          padding: 20, borderRadius: 26, overflow: 'hidden',
+          backgroundColor: dark ? '#25145B' : '#4B32A8',
+          borderWidth: 1, borderColor: 'rgba(191,170,255,0.35)',
+        }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ flex: 1 }}>
+              <LocalizedText style={{ color: '#DCD4FF', fontSize: 11, fontWeight: '900', letterSpacing: 1.4 }}>
+                BATTLE ARENA · MATCH LOG
+              </LocalizedText>
+              <LocalizedText style={{ color: '#FFFFFF', fontSize: 25, fontWeight: '900', marginTop: 5 }}>
+                Janglar tarixi
+              </LocalizedText>
+              <LocalizedText style={{ color: '#D8D1F5', fontSize: 12, marginTop: 5 }}>
+                Har bir jang, har bir natija — barchasi shu yerda
+              </LocalizedText>
+            </View>
+            <View style={{ width: 54, height: 54, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.13)', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="trophy" size={27} color="#FFD36A" />
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', marginTop: 19, gap: 8 }}>
+            {[
+              { label: 'Janglar', value: history.length, color: '#FFFFFF' },
+              { label: 'G‘alaba', value: wins, color: '#5BE0A7' },
+              { label: 'Mag‘lubiyat', value: losses, color: '#FF9BAA' },
+              { label: 'Durang', value: draws, color: '#D6D0EA' },
+            ].map((metric) => (
+              <View key={metric.label} style={{ flex: 1, padding: 9, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.10)' }}>
+                <LocalizedText style={{ color: metric.color, fontSize: 19, fontWeight: '900' }}>{metric.value}</LocalizedText>
+                <LocalizedText style={{ color: '#D8D1F5', fontSize: 9, marginTop: 2 }}>{metric.label}</LocalizedText>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 13, minHeight: 46, borderRadius: 15, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card }}>
+          <Ionicons name="search-outline" size={18} color={colors.muted} />
+          <TextInput
+            value={historySearch}
+            onChangeText={setHistorySearch}
+            placeholder="Raqib yoki xona kodi bo‘yicha qidirish"
+            placeholderTextColor={colors.muted}
+            style={{ flex: 1, color: colors.text, fontSize: 12, paddingVertical: 8 }}
+          />
+          <Pressable onPress={() => setHistorySearch('')}><Ionicons name="close-circle-outline" size={18} color={colors.muted} /></Pressable>
+        </View>
+
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+          {([
+            ['all', 'Barchasi'],
+            ['win', 'G‘alabalar'],
+            ['loss', 'Mag‘lubiyat'],
+            ['draw', 'Durang'],
+            ['ranked', 'Ranked'],
+            ['casual', 'Casual'],
+          ] as [typeof historyFilter, string][]).map(([value, label]) => (
+            <Pressable key={value} onPress={() => setHistoryFilter(value)} style={{
+              paddingHorizontal: 13, paddingVertical: 9, borderRadius: 20,
+              backgroundColor: historyFilter === value ? colors.primary : colors.card,
+              borderWidth: 1, borderColor: historyFilter === value ? colors.primary : colors.border,
+            }}>
+              <LocalizedText style={{ color: historyFilter === value ? '#FFFFFF' : colors.muted, fontSize: 11, fontWeight: '800' }}>
+                {label}
+              </LocalizedText>
+            </Pressable>
+          ))}
+        </View>
+
+        {loadingData && !history.length ? (
+          <View style={{ padding: 35, alignItems: 'center' }}><ActivityIndicator color={colors.primary} size="large" /></View>
+        ) : filteredHistory.length ? filteredHistory.map((item) => {
+          const meta = item.result === 'win'
+            ? { label: 'G‘ALABA', color: '#20B981', icon: 'trophy' as const, surface: dark ? 'rgba(32,185,129,0.15)' : '#E5F8F0' }
+            : item.result === 'loss'
+              ? { label: 'MAG‘LUBIYAT', color: '#E35B73', icon: 'close-circle' as const, surface: dark ? 'rgba(227,91,115,0.15)' : '#FCECEF' }
+              : item.result === 'draw'
+                ? { label: 'DURANG', color: '#929BB0', icon: 'remove-circle' as const, surface: dark ? 'rgba(146,155,176,0.15)' : '#F0F2F7' }
+                : { label: item.result === 'cancelled' ? 'BEKOR QILINGAN' : 'YAKUNLANMAGAN', color: colors.muted, icon: 'time-outline' as const, surface: colors.background };
+          const opponent = item.opponent?.displayName || item.opponent?.username || 'Raqib topilmadi';
+          const date = item.finishedAt || item.createdAt;
+          return (
+            <View key={item.id} style={[styles.listCard, { padding: 16 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11 }}>
+                <View style={{ width: 43, height: 43, borderRadius: 15, backgroundColor: meta.surface, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name={meta.icon} size={21} color={meta.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <LocalizedText style={{ color: colors.text, fontSize: 14, fontWeight: '900' }}>{opponent}</LocalizedText>
+                  <LocalizedText style={{ color: colors.muted, fontSize: 10, marginTop: 3 }}>
+                    {item.mode === 'ranked' ? 'Ranked jang' : 'Casual jang'} · {date ? new Date(date).toLocaleString('uz-UZ') : 'Sana yo‘q'}
+                  </LocalizedText>
+                </View>
+                <View style={{ paddingHorizontal: 9, paddingVertical: 6, borderRadius: 10, backgroundColor: meta.surface }}>
+                  <LocalizedText style={{ color: meta.color, fontSize: 9, fontWeight: '900' }}>{meta.label}</LocalizedText>
+                </View>
+              </View>
+              <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 13 }} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View>
+                  <LocalizedText style={{ color: colors.muted, fontSize: 10 }}>Yakuniy hisob</LocalizedText>
+                  <LocalizedText style={{ color: colors.text, fontSize: 21, fontWeight: '900', marginTop: 2 }}>
+                    {item.myScore} <LocalizedText style={{ color: colors.muted, fontSize: 13 }}>:</LocalizedText> {item.opponentScore}
+                  </LocalizedText>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <LocalizedText style={{ color: colors.muted, fontSize: 10 }}>Xona kodi</LocalizedText>
+                  <LocalizedText style={{ color: colors.primary, fontSize: 12, fontWeight: '900', marginTop: 4 }}>{item.roomCode}</LocalizedText>
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 }}>
+                <LocalizedText style={{ color: colors.muted, fontSize: 10 }}>
+                  {item.startedAt && item.finishedAt
+                    ? `Davomiyligi: ${Math.max(1, Math.round((new Date(item.finishedAt).getTime() - new Date(item.startedAt).getTime()) / 60000))} daqiqa`
+                    : 'Davomiylik mavjud emas'}
+                </LocalizedText>
+                <LocalizedText style={{ color: colors.muted, fontSize: 10 }}>{item.mode === 'ranked' ? 'RP reyting jangi' : 'Oddiy jang'}</LocalizedText>
+              </View>
+              {item.result !== 'cancelled' && item.result !== 'unfinished' ? (
+                <Pressable
+                  onPress={() => openHistoryDetail(item.id)}
+                  style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7 }}
+                >
+                  {historyDetailLoading === item.id
+                    ? <ActivityIndicator size="small" color={colors.primary} />
+                    : <Ionicons name={historyDetail?.id === item.id ? 'chevron-up' : 'analytics-outline'} size={16} color={colors.primary} />}
+                  <LocalizedText style={{ color: colors.primary, fontSize: 11, fontWeight: '900' }}>
+                    {historyDetailLoading === item.id ? 'Tafsilotlar yuklanmoqda...' : historyDetail?.id === item.id ? 'Tafsilotlarni yopish' : 'Jang tafsilotlari'}
+                  </LocalizedText>
+                </Pressable>
+              ) : null}
+              {historyDetail?.id === item.id ? (
+                <View style={{ marginTop: 13, gap: 10 }}>
+                  {historyDetail.rankChange ? (
+                    <View style={{ padding: 12, borderRadius: 14, backgroundColor: dark ? 'rgba(117,104,245,0.13)' : '#F0EDFF' }}>
+                      <LocalizedText style={{ color: colors.text, fontSize: 11, fontWeight: '900' }}>Rank o‘zgarishi · {historyDetail.rankChange.rankTier}</LocalizedText>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
+                        <LocalizedText style={{ color: colors.muted, fontSize: 10 }}>{historyDetail.rankChange.previousPoints} RP → {historyDetail.rankChange.rankPoints} RP</LocalizedText>
+                        <LocalizedText style={{ color: historyDetail.rankChange.delta >= 0 ? colors.success : colors.danger, fontSize: 11, fontWeight: '900' }}>
+                          {historyDetail.rankChange.delta > 0 ? '+' : ''}{historyDetail.rankChange.delta} RP
+                        </LocalizedText>
+                      </View>
+                    </View>
+                  ) : null}
+                  <LocalizedText style={{ color: colors.text, fontSize: 13, fontWeight: '900' }}>
+                    Savollar tahlili · {historyDetail.questions.length}/10
+                  </LocalizedText>
+                  {historyDetail.questions.map((question) => (
+                    <View key={question.index} style={{ padding: 12, borderRadius: 14, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, gap: 7 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <LocalizedText style={{ color: colors.muted, fontSize: 10, fontWeight: '900' }}>SAVOL {question.index}</LocalizedText>
+                        <LocalizedText style={{ color: question.isCorrect ? colors.success : colors.danger, fontSize: 10, fontWeight: '900' }}>
+                          {question.isCorrect ? 'TO‘G‘RI' : 'NOTO‘G‘RI'} · +{question.points}
+                        </LocalizedText>
+                      </View>
+                      <LocalizedText style={{ color: colors.text, fontSize: 12, fontWeight: '800', lineHeight: 18 }}>{question.question}</LocalizedText>
+                      {question.options.map((option, optionIndex) => (
+                        <View key={optionIndex} style={{ padding: 9, borderRadius: 10, backgroundColor: optionIndex === question.correctAnswer ? (dark ? 'rgba(32,185,129,0.15)' : '#E5F8F0') : optionIndex === question.selectedAnswer ? (dark ? 'rgba(227,91,115,0.15)' : '#FCECEF') : colors.card, borderWidth: 1, borderColor: optionIndex === question.correctAnswer ? colors.success : optionIndex === question.selectedAnswer ? colors.danger : colors.border }}>
+                          <LocalizedText style={{ color: colors.text, fontSize: 11 }}>
+                            {String.fromCharCode(65 + optionIndex)}. {option}
+                            {optionIndex === question.correctAnswer ? '  ✓' : optionIndex === question.selectedAnswer ? '  ← Sizning javobingiz' : ''}
+                          </LocalizedText>
+                        </View>
+                      ))}
+                      {question.explanation ? <LocalizedText style={{ color: colors.muted, fontSize: 10, lineHeight: 16 }}>Izoh: {question.explanation}</LocalizedText> : null}
+                    </View>
+                  ))}
+                  {!historyDetail.questions.length ? <LocalizedText style={{ color: colors.muted, fontSize: 11 }}>Bu jang uchun savollar tahlili saqlanmagan.</LocalizedText> : null}
+                </View>
+              ) : null}
+            </View>
+          );
+        }) : (
+          <View style={{ padding: 28, alignItems: 'center', borderRadius: 22, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+            <Ionicons name="file-tray-outline" size={34} color={colors.muted} />
+            <LocalizedText style={{ color: colors.text, fontSize: 15, fontWeight: '900', marginTop: 12 }}>
+              {history.length ? 'Natija topilmadi' : 'Hali janglar yo‘q'}
+            </LocalizedText>
+            <LocalizedText style={{ color: colors.muted, fontSize: 12, textAlign: 'center', marginTop: 6 }}>
+              {history.length ? 'Tanlangan filtrni o‘zgartirib ko‘ring.' : 'Birinchi Battle jangini boshlang — natijangiz shu yerda saqlanadi.'}
+            </LocalizedText>
+            {history.length ? <Pressable onPress={() => { setHistoryFilter('all'); setHistorySearch(''); }} style={{ marginTop: 13 }}><LocalizedText style={{ color: colors.primary, fontWeight: '800' }}>Filtrlarni tozalash</LocalizedText></Pressable> : null}
+          </View>
+        )}
       </View>
-    ));
+    );
   }
 
   function renderBattleStats() {
