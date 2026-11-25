@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { User } from './entities/user.entity';
 import { ZcTransaction } from './entities/zc-transaction.entity';
 import { DailyTaskProgress } from './entities/daily-task-progress.entity';
@@ -49,7 +49,7 @@ export class DailyTasksService {
     };
   }
 
-  async recordRankedBattle(manager: any, userId: string, won: boolean) {
+  async recordRankedBattle(manager: EntityManager, userId: string, won: boolean) {
     const date = tashkentDate();
     const repo = manager.getRepository(DailyTaskProgress);
     const increments = [
