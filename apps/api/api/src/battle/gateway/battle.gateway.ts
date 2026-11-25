@@ -68,6 +68,7 @@ interface ActiveBattle {
   results: BattleQuestionResult[];
   deadline: number;
   timer: ReturnType<typeof setTimeout> | null;
+  timerQuestionIndex?: number;
   nextTimer: ReturnType<typeof setTimeout> | null;
   disconnectTimers: Map<string, ReturnType<typeof setTimeout>>;
   resolving: boolean;
@@ -139,7 +140,10 @@ export class BattleGateway
 
       if (!battle.questionResolved && !battle.resolving) {
         const delay = Math.max(0, battle.deadline - now);
+        battle.timerQuestionIndex = battle.questionIndex;
         battle.timer = setTimeout(() => {
+          battle.timer = null;
+          battle.timerQuestionIndex = undefined;
           void this.resolveQuestion(battle);
         }, delay);
       }
@@ -175,9 +179,17 @@ export class BattleGateway
         this.activeBattles.set(saved.matchId, battle);
       }
 
-      if (!battle.timer && !saved.questionResolved && !saved.resolving) {
+      if (
+        (!battle.timer || battle.timerQuestionIndex !== saved.questionIndex) &&
+        !saved.questionResolved &&
+        !saved.resolving
+      ) {
+        if (battle.timer) clearTimeout(battle.timer);
         const delay = Math.max(0, saved.deadline - Date.now());
+        battle.timerQuestionIndex = saved.questionIndex;
         battle.timer = setTimeout(() => {
+          battle!.timer = null;
+          battle!.timerQuestionIndex = undefined;
           void this.resolveQuestion(battle!);
         }, delay);
       } else if (
@@ -869,7 +881,10 @@ export class BattleGateway
       publicQuestion,
     );
 
+    battle.timerQuestionIndex = battle.questionIndex;
     battle.timer = setTimeout(() => {
+      battle.timer = null;
+      battle.timerQuestionIndex = undefined;
       void this.resolveQuestion(battle);
     }, this.questionDuration);
   }
@@ -961,6 +976,7 @@ export class BattleGateway
       clearTimeout(battle.timer);
       battle.timer = null;
     }
+    battle.timerQuestionIndex = undefined;
 
     const question = battle.questions[battle.questionIndex];
 
@@ -1141,6 +1157,7 @@ export class BattleGateway
       clearTimeout(battle.timer);
       battle.timer = null;
     }
+    battle.timerQuestionIndex = undefined;
 
     if (battle.nextTimer) {
       clearTimeout(battle.nextTimer);
@@ -1421,6 +1438,7 @@ export class BattleGateway
       clearTimeout(battle.timer);
       battle.timer = null;
     }
+    battle.timerQuestionIndex = undefined;
 
     if (battle.nextTimer) {
       clearTimeout(battle.nextTimer);
