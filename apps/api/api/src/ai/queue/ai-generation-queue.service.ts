@@ -154,6 +154,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
       idempotencyKey,
       attempts: 0,
       priority: 50,
+      queueEnqueuedAt: null,
     });
     let persistedJob: AiGenerationJob;
     try {
@@ -200,6 +201,11 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
       const priority = input.userId ? tierPriority + taskOffset : 100;
       await this.jobs.update({ id: persistedJob.id }, { priority });
       await this.queue.add(input.jobType, { jobId: persistedJob.id }, { jobId: persistedJob.id, priority });
+      try {
+        await this.jobs.update({ id: persistedJob.id }, { queueEnqueuedAt: new Date() });
+      } catch (ackError) {
+        this.logger.warn(`AI job ${persistedJob.id} queued but enqueue acknowledgement failed: ${ackError instanceof Error ? ackError.message : String(ackError)}`);
+      }
     } catch (error) {
       await this.jobs.update({ id: persistedJob.id }, {
         status: 'failed',
@@ -223,7 +229,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     if (!this.queue) return;
     const batchSize = boundedInteger(process.env.AI_QUEUE_RECONCILE_BATCH_SIZE, 500, 1, 5000);
     const pending = await this.jobs.find({
-      where: { status: In(['queued', 'active']) },
+      where: { status: In(['queued', 'active']), queueEnqueuedAt: IsNull() },
       order: { createdAt: 'ASC' },
       take: batchSize,
     });
@@ -239,11 +245,13 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
             jobId: job.id,
             priority: job.priority ?? (job.userId ? 20 : 100),
           });
+          await this.jobs.update({ id: job.id }, { queueEnqueuedAt: new Date() });
           requeued += 1;
           continue;
         }
 
         const state = await bullJob.getState();
+        await this.jobs.update({ id: job.id }, { queueEnqueuedAt: new Date() });
         if (state === 'completed' && job.status !== 'completed') {
           const value = bullJob.returnvalue;
           const result = value && typeof value === 'object'
@@ -312,6 +320,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     job.fileBuffer = null;
     job.error = null;
     job.completedAt = new Date();
+    job.queueEnqueuedAt = job.queueEnqueuedAt ?? new Date();
     await this.jobs.save(job);
   }
 
