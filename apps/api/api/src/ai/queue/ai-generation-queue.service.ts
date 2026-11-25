@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { createHash } from 'node:crypto';
-import { IsNull, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { FeatureUsageService } from '../../subscriptions/feature-usage.service';
 import { AiGenerationJob, AiGenerationJobType } from '../entities/ai-generation-job.entity';
 
@@ -114,6 +114,21 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
         const oldBullJob = await this.queue.getJob(existing.id);
         if (oldBullJob) await oldBullJob.remove();
         await this.jobs.update({ id: existing.id }, { idempotencyKey: null });
+      }
+    }
+
+    const waitingCount = await this.queue.getWaitingCount();
+    const maxWaiting = Math.max(100, Math.min(1_000_000, Number(process.env.AI_QUEUE_MAX_WAITING || 100_000)));
+    if (waitingCount >= maxWaiting) {
+      throw new ServiceUnavailableException('AI navbati band. So‘rovingizni birozdan keyin qayta yuboring.');
+    }
+    if (input.userId) {
+      const maxPendingPerUser = Math.max(1, Math.min(20, Number(process.env.AI_MAX_PENDING_JOBS_PER_USER || 5)));
+      const pendingCount = await this.jobs.count({
+        where: { userId: input.userId, status: In(['queued', 'active']) },
+      });
+      if (pendingCount >= maxPendingPerUser) {
+        throw new HttpException('Sizda bajarilayotgan AI so‘rovlari ko‘p. Avval mavjud natijalarni kuting.', HttpStatus.TOO_MANY_REQUESTS);
       }
     }
 
