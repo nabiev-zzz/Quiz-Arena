@@ -299,7 +299,7 @@ describe('BattleService — Rank tizimi', () => {
     expect(detail.questions[0].question).toBe('2 + 2 nechiga teng?');
     expect(detail.questions[0].selectedAnswer).toBe(1);
     expect(detail.questions[0].isCorrect).toBe(true);
-    expect(detail.rankChange.delta).toBe(27);
+    expect(detail.rankChange?.delta).toBe(27);
 
     await expect(
       service.getHistoryDetail('not-a-player', match.id),
