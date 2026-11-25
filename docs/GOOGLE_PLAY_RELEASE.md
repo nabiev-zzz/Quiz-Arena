@@ -4,7 +4,7 @@
 
 - Android application ID: `uz.quizarena.app` (must never change after publication)
 - App version: `1.0.0`
-- Android version code started at `1`; EAS local auto-increment reserved `2` for the first Google Play test build. Later Google Play builds increment the local value automatically
+- Current Android version code in the source tree: `3`; EAS local auto-increment will reserve the next code automatically for a later build
 - Artifact: Android App Bundle (`.aab`)
 - EAS profile: `googlePlay`
 - EAS Update channel: `google-play` (isolated from direct/preview builds)

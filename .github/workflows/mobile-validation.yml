@@ -69,7 +69,7 @@ jobs:
           NODE
 
       - name: Build the combined public website image
-        run: docker build --build-arg APP_SOURCE_BRANCH=main -t quiz-arena-website:ci -f website/Dockerfile website
+        run: docker build --build-arg APP_SOURCE_BRANCH="${{ github.head_ref || github.ref_name }}" -t quiz-arena-website:ci -f website/Dockerfile website
 
       - name: Smoke-test landing page and browser app routes
         run: |
