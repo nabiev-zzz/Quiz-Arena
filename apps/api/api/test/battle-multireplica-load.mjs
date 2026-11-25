@@ -194,11 +194,22 @@ async function runTwoReplicaBattleE2E(users) {
     const reconnectQuestionB = waitForEvent(playerB.socket, 'battle:question');
     playerA.socket.emit('battle:reconnect', { matchId });
     playerB.socket.emit('battle:reconnect', { matchId });
-    await Promise.all([reconnectA, reconnectB, reconnectQuestionA, reconnectQuestionB]);
+    const [, , restoredQuestionA, restoredQuestionB] = await Promise.all([
+      reconnectA,
+      reconnectB,
+      reconnectQuestionA,
+      reconnectQuestionB,
+    ]);
     oldA.socket.disconnect();
     oldB.socket.disconnect();
 
-    const questionIndex = reconnectQuestionA ? 0 : 0;
+    if (restoredQuestionA.matchId !== matchId || restoredQuestionB.matchId !== matchId) {
+      throw new Error('Reconnected clients did not receive the current Battle question.');
+    }
+    const questionIndex = restoredQuestionA.questionIndex;
+    if (restoredQuestionB.questionIndex !== questionIndex) {
+      throw new Error('Reconnected clients received different question indexes.');
+    }
     const acceptedA = waitForEvent(playerA.socket, 'battle:answer:accepted');
     playerA.socket.emit('battle:answer', { matchId, questionIndex, answerIndex: 0 });
     await acceptedA;
@@ -216,7 +227,7 @@ async function runTwoReplicaBattleE2E(users) {
     const resultB = waitForEvent(playerB.socket, 'battle:question:result');
     const acceptedB = waitForEvent(playerB.socket, 'battle:answer:accepted');
     playerB.socket.emit('battle:answer', { matchId, questionIndex, answerIndex: 1 });
-    const [resultForA, resultForB] = await Promise.all([resultA, resultB, acceptedB]).then((items) => items);
+    const [resultForA, resultForB] = await Promise.all([resultA, resultB, acceptedB]);
     if (resultForA.matchId !== matchId || resultForB.matchId !== matchId) {
       throw new Error('Question result was not synchronized across the two API replicas.');
     }
