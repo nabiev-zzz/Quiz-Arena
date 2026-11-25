@@ -62,8 +62,7 @@ than falling back to synchronous provider calls.
 - AI Tutor / direct AI generation jobs are polled through
   `GET /api/ai/jobs/:jobId`.
 - Both status endpoints enforce the authenticated user's ownership.
-- Mobile service wrappers poll and open the generated test or append the Tutor
-  response when the job completes. The loading state says “Test tayyorlanmoqda”.
+- Mobile service wrappers poll every 3 seconds (up to 6 minutes) and open the generated test or append the Tutor response when the job completes. The loading state says “Test tayyorlanmoqda”.
 - Job results/status remain in PostgreSQL; BullMQ completed jobs are retained
   for 24 hours and failed queue entries for 7 days.
 
