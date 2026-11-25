@@ -218,7 +218,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     return { status: 'queued', jobId: job.id, message: 'Test tayyorlanmoqda', usage };
   }
 
-  private async reconcilePendingJobs(): Promise<void> {
+  async reconcilePendingJobs(): Promise<void> {
     if (!this.queue) return;
     const batchSize = boundedInteger(process.env.AI_QUEUE_RECONCILE_BATCH_SIZE, 500, 1, 5000);
     const pending = await this.jobs.find({
