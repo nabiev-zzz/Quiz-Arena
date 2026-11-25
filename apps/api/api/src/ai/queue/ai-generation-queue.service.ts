@@ -240,13 +240,15 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
 
   async markFailedAndRefund(jobId: string, error: unknown): Promise<void> {
     const job = await this.jobs.findOne({ where: { id: jobId } });
-    if (!job || job.status === 'completed' || job.status === 'failed') return;
-    await this.jobs.update({ id: jobId }, {
-      status: 'failed',
-      error: error instanceof Error ? error.message.slice(0, 1000) : 'AI generation failed',
-      fileBuffer: null,
-      completedAt: new Date(),
-    });
+    if (!job || job.status === 'completed') return;
+    if (job.status !== 'failed') {
+      await this.jobs.update({ id: jobId }, {
+        status: 'failed',
+        error: error instanceof Error ? error.message.slice(0, 1000) : 'AI generation failed',
+        fileBuffer: null,
+        completedAt: new Date(),
+      });
+    }
     if (job.quotaConsumed && job.quotaFeature && !job.quotaRefunded) {
       try {
         if (!job.userId) throw new Error('Quota job owner is missing');
