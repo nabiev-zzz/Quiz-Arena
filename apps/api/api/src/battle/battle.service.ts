@@ -147,7 +147,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
       status: 'initialized',
       valkey,
       database: 'configured',
-      testSystem: 'independent',
+      testSystem: 'database-first-ai-assisted',
     };
   }
 
