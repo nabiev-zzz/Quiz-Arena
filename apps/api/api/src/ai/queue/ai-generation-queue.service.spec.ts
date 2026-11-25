@@ -59,7 +59,7 @@ describe('AiGenerationQueueService', () => {
         payload: expect.objectContaining({ _jobId: 'job-1', _quotaReceipt: expect.objectContaining({ allowed: true }) }),
       }),
     );
-    expect(queue.add).toHaveBeenCalledWith('document_quiz', { jobId: 'job-1' }, { jobId: 'job-1' });
+    expect(queue.add).toHaveBeenCalledWith('document_quiz', { jobId: 'job-1' }, { jobId: 'job-1', priority: 5 });
   });
 
   it('returns an existing idempotent job without consuming quota again', async () => {
