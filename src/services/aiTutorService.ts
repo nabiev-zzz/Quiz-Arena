@@ -69,7 +69,7 @@ export async function sendTutorMessage(
   message: string,
   signal?: AbortSignal,
 ): Promise<AiTutorChatResponse> {
-  const queued = await tutorRequest<AiTutorChatResponse & { status?: 'queued' | 'active'; jobId?: string }>('/api/ai/tutor/chat', {
+  const queued = await tutorRequest<AiTutorChatResponse & { status?: 'queued' | 'active' | 'completed'; jobId?: string; result?: AiTutorChatResponse }>('/api/ai/tutor/chat', {
     method: 'POST',
     signal,
     body: JSON.stringify({
@@ -80,6 +80,7 @@ export async function sendTutorMessage(
   if (queued.status === 'queued' || queued.status === 'active') {
     return waitForTutorJob(String(queued.jobId));
   }
+  if (queued.status === 'completed' && queued.result) return queued.result;
   return queued;
 }
 
