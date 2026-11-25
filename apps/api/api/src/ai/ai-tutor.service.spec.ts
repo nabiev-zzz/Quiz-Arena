@@ -10,6 +10,7 @@ describe('AiTutorService tier-aware progress context', () => {
   const attempts = { find: jest.fn() };
   const usage = { consume: jest.fn(), refund: jest.fn() };
   const subscriptions = { current: jest.fn() };
+  const aiQueue = { enqueue: jest.fn() };
   const service = new AiTutorService(
     config as never,
     messages as never,
@@ -18,6 +19,7 @@ describe('AiTutorService tier-aware progress context', () => {
     attempts as never,
     usage as never,
     subscriptions as never,
+    aiQueue as never,
   );
 
   beforeEach(() => {
