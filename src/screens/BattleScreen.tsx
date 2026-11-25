@@ -420,7 +420,7 @@ export default function BattleScreen({
     const socket = socketRef.current;
 
     if (!socket || !socket.connected) {
-      setError('Serverga ulanish kutilmoqda. Birozdan soвЂng urinib koвЂring.');
+      setError('Serverga ulanish kutilmoqda. Birozdan soвЂng urinib ko‘ring.');
       return;
     }
 
