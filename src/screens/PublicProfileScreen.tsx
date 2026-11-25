@@ -6,6 +6,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
 import { followUser, getPublicUserProfile, unfollowUser, type PublicUser } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
+import { RankBadge3D } from '../components/RankBadge3D';
 
 interface Props {
   username: string;
@@ -60,7 +61,10 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
             {profile.avatarDecoration ? <View style={styles.decoration}><Ionicons name={profile.avatarDecoration === 'crown' ? 'ribbon' : profile.avatarDecoration === 'laurel' ? 'leaf' : 'sparkles'} size={17} color="#F3C96A" /></View> : null}
           </View>
           <View style={styles.identityText}>
-            <LocalizedText style={styles.name}>{profile.displayName}</LocalizedText>
+            <View style={styles.publicNameLine}>
+              <LocalizedText style={styles.name}>{profile.displayName}</LocalizedText>
+              <RankBadge3D tier={profile.rankTier} compact />
+            </View>
             <LocalizedText style={styles.username}>@{profile.username}</LocalizedText>
             {!!profile.bio && <LocalizedText style={styles.bio}>{profile.bio}</LocalizedText>}
           </View>
@@ -122,6 +126,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     hero: { alignItems: 'center', padding: 22, borderRadius: 27, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: isDark ? 'rgba(35,31,57,0.46)' : 'rgba(255,255,255,0.54)' },
     identityRow: { flexDirection: 'row', alignItems: 'center', gap: 15, width: '100%' },
     identityText: { flex: 1, minWidth: 0, alignItems: 'flex-start' },
+    publicNameLine: { flexDirection: 'row', alignItems: 'center', gap: 7, maxWidth: '100%' },
     avatarRing: { width: 92, height: 92, borderRadius: 46, padding: 4, borderWidth: 2, borderColor: 'rgba(157,133,232,0.65)', flexShrink: 0 },
     frameAurora: { borderColor: '#A78BFA', borderWidth: 4 },
     frameRoyal: { borderColor: '#EFCB78', borderWidth: 4 },

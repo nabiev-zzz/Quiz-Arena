@@ -1,15 +1,19 @@
 import { LocalizedText, LocalizedTextInput, translateText } from './src/i18n/LocalizedText';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SecureStore from 'expo-secure-store';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
+  Linking,
+  Modal,
   StyleSheet,
   Text as NativeText,
   View,
@@ -462,6 +466,88 @@ function AppContent() {
   );
 }
 
+const TUTORIAL_URL = 'https://quiz-arena-website-production.up.railway.app/#how';
+const TUTORIAL_PROMPT_KEY = 'quiz_arena_tutorial_welcome_seen_v1';
+
+function FirstLaunchTutorialPrompt() {
+  const { language, ready } = useAppSettings();
+  const { isDark } = useTheme();
+  const [visible, setVisible] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    SecureStore.getItemAsync(TUTORIAL_PROMPT_KEY)
+      .then((seen) => {
+        if (active && ready && seen !== '1') setVisible(true);
+      })
+      .catch(() => {
+        if (active && ready) setVisible(true);
+      })
+      .finally(() => {
+        if (active) setChecking(false);
+      });
+    return () => { active = false; };
+  }, [ready]);
+
+  const copy = language === 'ru'
+    ? { eyebrow: 'ДОБРО ПОЖАЛОВАТЬ В QUIZ ARENA', title: 'Откройте все возможности арены', description: 'Узнайте, как изучать предметы, проходить тесты, соревноваться в Battle, пользоваться ИИ-наставником и отслеживать свои результаты.', action: 'Посмотреть руководство', later: 'Позже', foot: 'Короткое руководство поможет быстро освоиться.' }
+    : language === 'en'
+      ? { eyebrow: 'WELCOME TO QUIZ ARENA', title: 'Discover everything the arena offers', description: 'Learn how to explore subjects, take quizzes, compete in Battle, use your AI Tutor and track your progress.', action: 'Explore the guide', later: 'Maybe later', foot: 'A quick guide to help you get started.' }
+      : { eyebrow: 'QUIZ ARENA’GA XUSH KELIBSIZ', title: 'Arena imkoniyatlarini kashf eting', description: 'Fanlarni o‘rganish, test ishlash, Battle’da bellashish, AI Ustozdan foydalanish va natijalaringizni kuzatishni bilib oling.', action: 'Qo‘llanmani ko‘rish', later: 'Keyinroq', foot: 'Qisqa qo‘llanma ilovadan tez foydalanishni o‘rgatadi.' };
+
+  const dismiss = async () => {
+    setVisible(false);
+    try { await SecureStore.setItemAsync(TUTORIAL_PROMPT_KEY, '1'); } catch { /* Keep the current session quiet if secure storage is unavailable. */ }
+  };
+
+  const openGuide = async () => {
+    await dismiss();
+    try { await Linking.openURL(TUTORIAL_URL); } catch { /* The user can open the guide from the app website later. */ }
+  };
+
+  if (checking || !visible) return null;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={dismiss}>
+      <View style={tutorialStyles.backdrop}>
+        <View style={[tutorialStyles.card, !isDark && tutorialStyles.cardLight]}>
+          <LinearGradient colors={isDark ? ['#27204A', '#17172B', '#111827'] : ['#F0EBFF', '#FFFFFF', '#F2FBFA']} style={tutorialStyles.hero}>
+            <Pressable onPress={dismiss} accessibilityRole="button" accessibilityLabel="Close tutorial welcome" hitSlop={12} style={[tutorialStyles.close, !isDark && tutorialStyles.closeLight]}>
+              <Ionicons name="close" size={21} color={isDark ? '#F7F4FF' : '#29233D'} />
+            </Pressable>
+            <View style={tutorialStyles.logoGlow}>
+              <LinearGradient colors={['#DCCBFF', '#9B7BFF', '#6D5AE8']} style={tutorialStyles.logo}>
+                <Ionicons name="school" size={34} color="#FFFFFF" />
+              </LinearGradient>
+            </View>
+            <LocalizedText style={[tutorialStyles.eyebrow, !isDark && tutorialStyles.eyebrowLight]}>{copy.eyebrow}</LocalizedText>
+            <LocalizedText style={[tutorialStyles.title, !isDark && tutorialStyles.titleLight]}>{copy.title}</LocalizedText>
+            <LocalizedText style={[tutorialStyles.description, !isDark && tutorialStyles.descriptionLight]}>{copy.description}</LocalizedText>
+            <View style={tutorialStyles.featurePills}>
+              <View style={tutorialStyles.pill}><Ionicons name="book-outline" size={13} color="#C8B8FF" /><LocalizedText style={tutorialStyles.pillText}>Learn</LocalizedText></View>
+              <View style={tutorialStyles.pill}><Ionicons name="flash-outline" size={13} color="#9CEBD8" /><LocalizedText style={tutorialStyles.pillText}>Battle</LocalizedText></View>
+              <View style={tutorialStyles.pill}><Ionicons name="sparkles-outline" size={13} color="#F5D58A" /><LocalizedText style={tutorialStyles.pillText}>AI Ustoz</LocalizedText></View>
+            </View>
+          </LinearGradient>
+          <View style={tutorialStyles.actions}>
+            <Pressable onPress={openGuide} accessibilityRole="button" style={({ pressed }) => [tutorialStyles.primary, pressed && tutorialStyles.pressed]}>
+              <LinearGradient colors={['#C9B5FF', '#9878F7', '#6E65E8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={tutorialStyles.primaryGradient}>
+                <LocalizedText style={tutorialStyles.primaryText}>{copy.action}</LocalizedText>
+                <Ionicons name="open-outline" size={18} color="#FFFFFF" />
+              </LinearGradient>
+            </Pressable>
+            <Pressable onPress={dismiss} accessibilityRole="button" style={tutorialStyles.later}>
+              <LocalizedText style={[tutorialStyles.laterText, !isDark && tutorialStyles.laterTextLight]}>{copy.later}</LocalizedText>
+            </Pressable>
+            <LocalizedText style={[tutorialStyles.foot, !isDark && tutorialStyles.footLight]}>{copy.foot}</LocalizedText>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function App() {
   const [done, setDone] = useState(false);
   const nativeSplashHidden = useRef(false);
@@ -482,6 +568,7 @@ export default function App() {
           <ThemeProvider>
             <AuthProvider>
               <AppContent />
+              <FirstLaunchTutorialPrompt />
             </AuthProvider>
           </ThemeProvider>
         </AppSettingsProvider>
@@ -491,6 +578,36 @@ export default function App() {
     </View>
   );
 }
+
+const tutorialStyles = StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: 'rgba(4, 5, 14, 0.78)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 22, paddingVertical: 28 },
+  card: { width: '100%', maxWidth: 430, borderRadius: 28, overflow: 'hidden', backgroundColor: '#111827', borderWidth: 1, borderColor: 'rgba(196,181,253,0.28)', shadowColor: '#8B5CF6', shadowOpacity: 0.28, shadowRadius: 28, shadowOffset: { width: 0, height: 15 }, elevation: 18 },
+  cardLight: { backgroundColor: '#FFFFFF', borderColor: 'rgba(124,97,220,0.2)' },
+  hero: { paddingHorizontal: 24, paddingTop: 30, paddingBottom: 23, alignItems: 'center' },
+  close: { position: 'absolute', top: 14, right: 14, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', zIndex: 2, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
+  closeLight: { backgroundColor: 'rgba(40,30,70,0.07)', borderColor: 'rgba(40,30,70,0.08)' },
+  logoGlow: { width: 82, height: 82, borderRadius: 27, padding: 5, backgroundColor: 'rgba(167,139,250,0.16)', marginBottom: 20 },
+  logo: { flex: 1, borderRadius: 23, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.38)' },
+  eyebrow: { color: '#B9A6FF', fontSize: 9, fontWeight: '900', letterSpacing: 1.8, textAlign: 'center' },
+  eyebrowLight: { color: '#7458C8' },
+  title: { color: '#FFFFFF', fontSize: 25, lineHeight: 31, fontWeight: '900', textAlign: 'center', letterSpacing: -0.55, marginTop: 10 },
+  titleLight: { color: '#211B36' },
+  description: { color: '#C5C2D6', fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 11 },
+  descriptionLight: { color: '#625C73' },
+  featurePills: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 7, marginTop: 19 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: 'rgba(255,255,255,0.09)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)' },
+  pillText: { color: '#EAE6F8', fontSize: 10, fontWeight: '800' },
+  actions: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 20, alignItems: 'center' },
+  primary: { width: '100%', borderRadius: 15, overflow: 'hidden' },
+  primaryGradient: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 16 },
+  primaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+  pressed: { opacity: 0.82, transform: [{ scale: 0.985 }] },
+  later: { minHeight: 42, justifyContent: 'center', paddingHorizontal: 18, marginTop: 4 },
+  laterText: { color: '#C6C1D9', fontSize: 12, fontWeight: '700' },
+  laterTextLight: { color: '#69627B' },
+  foot: { color: '#8E8AA5', fontSize: 10, textAlign: 'center', marginTop: 5 },
+  footLight: { color: '#89839A' },
+});
 
 const styles = StyleSheet.create({
 

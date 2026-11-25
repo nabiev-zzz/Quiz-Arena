@@ -1,9 +1,10 @@
 import { LocalizedText } from '../../i18n/LocalizedText';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeContext';
 import type { BattleLeaderboardEntry } from '../../services/battleService';
+import { RankBadge3D } from '../../components/RankBadge3D';
 
 interface Props { leaderboard: BattleLeaderboardEntry[]; currentUserId?: string; loading?: boolean; error?: string; onRefresh?: () => void; }
 const medals = ['trophy', 'medal', 'ribbon'] as const;
@@ -23,10 +24,16 @@ export default function LeaderboardScreen({ leaderboard, currentUserId, loading 
       <View style={[s.place, i < 3 && { backgroundColor: medalColors[i] + '20' }]}>
         {i < 3 ? <Ionicons name={medals[i]} size={17} color={medalColors[i]} /> : <LocalizedText style={s.placeText}>{i + 1}</LocalizedText>}
       </View>
-      <View style={[s.avatar, mine && s.myAvatar]}><LocalizedText style={s.avatarText}>{name.trim().charAt(0).toLocaleUpperCase()}</LocalizedText></View>
+      <View style={[s.avatar, mine && s.myAvatar, p.profileFrame === 'royal' && s.avatarRoyal, p.profileFrame === 'ocean' && s.avatarOcean, p.profileFrame === 'aurora' && s.avatarAurora]}>
+        {p.avatarUrl ? <Image source={{ uri: p.avatarUrl }} style={s.avatarImage} /> : <LocalizedText style={s.avatarText}>{name.trim().charAt(0).toLocaleUpperCase()}</LocalizedText>}
+        {p.avatarDecoration ? <View style={s.avatarDecoration}><Ionicons name={p.avatarDecoration === 'crown' ? 'ribbon' : p.avatarDecoration === 'laurel' ? 'leaf' : 'sparkles'} size={11} color="#F5D78A" /></View> : null}
+      </View>
       <View style={s.identity}>
         <View style={s.nameLine}><LocalizedText numberOfLines={1} style={[s.name, mine && s.myName]}>{mine ? 'Siz' : name}</LocalizedText>{mine && <View style={s.you}><LocalizedText style={s.youText}>SIZ</LocalizedText></View>}</View>
-        <LocalizedText numberOfLines={1} style={s.meta}>{p.rankTier || 'Boshlovchi'} · {p.wins ?? 0} g‘alaba</LocalizedText>
+        <View style={s.metaLine}>
+          <RankBadge3D tier={p.rankTier} compact />
+          <LocalizedText numberOfLines={1} style={s.meta}>{p.rankTier || 'Bronze'} · {p.wins ?? 0} g‘alaba</LocalizedText>
+        </View>
       </View>
       <View style={s.points}><LocalizedText style={s.pointsValue}>{(p.rankPoints ?? 0).toLocaleString('uz-UZ')}</LocalizedText><LocalizedText style={s.pointsLabel}>RP</LocalizedText></View>
     </View>;
@@ -53,8 +60,12 @@ export default function LeaderboardScreen({ leaderboard, currentUserId, loading 
           const name = p.displayName || p.username || 'Bilimdon';
           return <View key={p.userId} style={[s.topCard, i === 0 && s.topFirst]}>
             <Ionicons name={medals[i]} size={22} color={medalColors[i]} />
-            <View style={[s.topAvatar,{borderColor:medalColors[i]}]}><LocalizedText style={s.topAvatarText}>{name.trim().charAt(0).toLocaleUpperCase()}</LocalizedText></View>
+            <View style={[s.topAvatar,{borderColor:medalColors[i]}, p.profileFrame === 'royal' && s.avatarRoyal, p.profileFrame === 'ocean' && s.avatarOcean, p.profileFrame === 'aurora' && s.avatarAurora]}>
+              {p.avatarUrl ? <Image source={{ uri: p.avatarUrl }} style={s.topAvatarImage} /> : <LocalizedText style={s.topAvatarText}>{name.trim().charAt(0).toLocaleUpperCase()}</LocalizedText>}
+              {p.avatarDecoration ? <View style={s.topAvatarDecoration}><Ionicons name={p.avatarDecoration === 'crown' ? 'ribbon' : p.avatarDecoration === 'laurel' ? 'leaf' : 'sparkles'} size={10} color="#F5D78A" /></View> : null}
+            </View>
             <LocalizedText numberOfLines={1} style={s.topName}>{name}</LocalizedText>
+            <RankBadge3D tier={p.rankTier} compact />
             <LocalizedText style={s.topPoints}>{(p.rankPoints ?? 0).toLocaleString('uz-UZ')} RP</LocalizedText>
             <LocalizedText style={[s.topPlace,{color:medalColors[i]}]}>{i+1}-O‘RIN</LocalizedText>
           </View>;
@@ -78,8 +89,8 @@ function makeStyles(c: ReturnType<typeof useTheme>['tokens']['colors']) {
   eyebrow:{color:c.primary,fontSize:10,fontWeight:'900',letterSpacing:1.6,marginBottom:5},title:{color:c.text,fontSize:29,lineHeight:35,fontWeight:'900',letterSpacing:-.7},subtitle:{color:c.textMuted,fontSize:12,lineHeight:18,marginTop:3},
   summary:{width:'100%',minHeight:78,borderRadius:14,paddingHorizontal:14,paddingVertical:12,flexDirection:'row',alignItems:'center',gap:12,backgroundColor:c.surface,borderWidth:1,borderColor:c.glassBorder},summaryIcon:{width:42,height:42,borderRadius:12,backgroundColor:'rgba(245,196,81,0.12)',alignItems:'center',justifyContent:'center'},summaryCopy:{flex:1,minWidth:0},summaryTitle:{color:c.text,fontSize:14,fontWeight:'900'},summaryText:{color:c.textMuted,fontSize:10,lineHeight:15,marginTop:4},total:{color:c.text,fontSize:21,fontWeight:'900'},
   section:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:25,marginBottom:12},sectionTitle:{color:c.textMuted,fontSize:10,fontWeight:'900',letterSpacing:1.1},sectionMeta:{color:c.textMuted,fontSize:10,fontWeight:'700'},
-  topThree:{width:'100%',flexDirection:'row',gap:9,alignItems:'stretch'},topCard:{flex:1,minWidth:0,minHeight:154,borderRadius:14,paddingHorizontal:7,paddingVertical:13,alignItems:'center',justifyContent:'center',backgroundColor:c.surface,borderWidth:1,borderColor:c.glassBorder},topFirst:{borderColor:'rgba(245,196,81,0.58)',backgroundColor:c.surfaceElevated},topAvatar:{width:43,height:43,borderRadius:22,borderWidth:2,backgroundColor:c.surfaceElevated,alignItems:'center',justifyContent:'center',marginTop:8},topAvatarText:{color:c.text,fontSize:17,fontWeight:'900'},topName:{color:c.text,fontSize:11,fontWeight:'800',marginTop:8,maxWidth:'100%'},topPoints:{color:c.text,fontSize:11,fontWeight:'900',marginTop:4},topPlace:{fontSize:9,fontWeight:'900',letterSpacing:.8,marginTop:5},
-  list:{width:'100%',gap:9},row:{width:'100%',minHeight:82,borderRadius:13,paddingHorizontal:13,paddingVertical:11,flexDirection:'row',alignItems:'center',gap:11,backgroundColor:c.surface,borderWidth:1,borderColor:c.glassBorder},myRow:{borderColor:c.primary,backgroundColor:c.surfaceElevated},place:{width:30,height:30,borderRadius:10,alignItems:'center',justifyContent:'center',backgroundColor:c.surfaceElevated},placeText:{color:c.textMuted,fontSize:11,fontWeight:'900'},avatar:{width:43,height:43,borderRadius:13,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(88,101,242,0.18)'},myAvatar:{backgroundColor:'rgba(139,92,246,0.30)'},avatarText:{color:c.primaryLight,fontSize:17,fontWeight:'900'},identity:{flex:1,minWidth:0},nameLine:{flexDirection:'row',alignItems:'center',gap:6},name:{color:c.text,fontSize:13,fontWeight:'900',flexShrink:1},myName:{color:c.primaryLight},you:{backgroundColor:c.primary,borderRadius:5,paddingHorizontal:5,paddingVertical:2},youText:{color:'#FFFFFF',fontSize:8,fontWeight:'900'},meta:{color:c.textMuted,fontSize:10,marginTop:5},points:{alignItems:'flex-end',minWidth:54},pointsValue:{color:c.text,fontSize:15,fontWeight:'900'},pointsLabel:{color:c.textMuted,fontSize:9,fontWeight:'800',marginTop:2},
+  topThree:{width:'100%',flexDirection:'row',gap:9,alignItems:'stretch'},topCard:{flex:1,minWidth:0,minHeight:154,borderRadius:14,paddingHorizontal:7,paddingVertical:13,alignItems:'center',justifyContent:'center',backgroundColor:c.surface,borderWidth:1,borderColor:c.glassBorder},topFirst:{borderColor:'rgba(245,196,81,0.58)',backgroundColor:c.surfaceElevated},topAvatar:{width:43,height:43,borderRadius:22,borderWidth:2,backgroundColor:c.surfaceElevated,alignItems:'center',justifyContent:'center',marginTop:8},topAvatarText:{color:c.text,fontSize:17,fontWeight:'900'},topAvatarImage:{width:'100%',height:'100%',borderRadius:22},topAvatarDecoration:{position:'absolute',right:-5,bottom:-4,width:19,height:19,borderRadius:10,alignItems:'center',justifyContent:'center',backgroundColor:c.surface,borderWidth:1,borderColor:c.glassBorder},topName:{color:c.text,fontSize:11,fontWeight:'800',marginTop:8,maxWidth:'100%'},metaLine:{flexDirection:'row',alignItems:'center',gap:7,marginTop:6},topPoints:{color:c.text,fontSize:11,fontWeight:'900',marginTop:4},topPlace:{fontSize:9,fontWeight:'900',letterSpacing:.8,marginTop:5},
+  list:{width:'100%',gap:9},row:{width:'100%',minHeight:82,borderRadius:13,paddingHorizontal:13,paddingVertical:11,flexDirection:'row',alignItems:'center',gap:11,backgroundColor:c.surface,borderWidth:1,borderColor:c.glassBorder},myRow:{borderColor:c.primary,backgroundColor:c.surfaceElevated},place:{width:30,height:30,borderRadius:10,alignItems:'center',justifyContent:'center',backgroundColor:c.surfaceElevated},placeText:{color:c.textMuted,fontSize:11,fontWeight:'900'},avatar:{width:43,height:43,borderRadius:13,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(88,101,242,0.18)'},myAvatar:{backgroundColor:'rgba(139,92,246,0.30)'},avatarText:{color:c.primaryLight,fontSize:17,fontWeight:'900'},avatarImage:{width:'100%',height:'100%',borderRadius:13},avatarRoyal:{borderWidth:2,borderColor:'#D7A93F'},avatarOcean:{borderWidth:2,borderColor:'#4D9FC8'},avatarAurora:{borderWidth:2,borderColor:'#8B72E8'},avatarDecoration:{position:'absolute',right:-5,bottom:-5,width:19,height:19,borderRadius:10,alignItems:'center',justifyContent:'center',backgroundColor:c.surface,borderWidth:1,borderColor:c.glassBorder},identity:{flex:1,minWidth:0},nameLine:{flexDirection:'row',alignItems:'center',gap:6},name:{color:c.text,fontSize:13,fontWeight:'900',flexShrink:1},myName:{color:c.primaryLight},you:{backgroundColor:c.primary,borderRadius:5,paddingHorizontal:5,paddingVertical:2},youText:{color:'#FFFFFF',fontSize:8,fontWeight:'900'},meta:{color:c.textMuted,fontSize:10,marginTop:5},points:{alignItems:'flex-end',minWidth:54},pointsValue:{color:c.text,fontSize:15,fontWeight:'900'},pointsLabel:{color:c.textMuted,fontSize:9,fontWeight:'800',marginTop:2},
   state:{width:'100%',minHeight:150,borderRadius:14,padding:20,alignItems:'center',justifyContent:'center',gap:12,backgroundColor:c.surface,borderWidth:1,borderColor:c.glassBorder},stateText:{color:c.textMuted,fontSize:12,lineHeight:18,textAlign:'center'},footer:{flexDirection:'row',alignItems:'flex-start',gap:8,marginTop:18,paddingHorizontal:2},footerText:{color:c.textMuted,fontSize:10,lineHeight:15,flex:1},
  });
 }
