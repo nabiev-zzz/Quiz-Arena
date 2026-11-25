@@ -55,6 +55,7 @@ export class AiController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.ACCEPTED)
   @Post('tutor/chat')
   async sendTutorMessage(
     @Request() request: AuthenticatedRequest,
