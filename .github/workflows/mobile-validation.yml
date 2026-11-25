@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - feat/premium-entitlements-feature-roadmap
   push:
     branches:
       - feature/liquid-glass-dock
