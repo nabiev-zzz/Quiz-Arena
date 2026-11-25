@@ -115,7 +115,15 @@ export class BattleGateway
     if (!this.battleStateStore.isReady()) return;
 
     const savedBattles = await this.battleStateStore.listActive();
-    for (const saved of savedBattles) {
+    for (const snapshot of savedBattles) {
+      let saved = snapshot;
+      if (
+        (saved.resolving || saved.finishing) &&
+        Date.now() - saved.updatedAt >= 60_000
+      ) {
+        saved = (await this.battleStateStore.recoverStaleTransition(saved.matchId)) || saved;
+      }
+
       const battle: ActiveBattle = {
         ...saved,
         socketIds: { ...saved.socketIds },
@@ -124,8 +132,8 @@ export class BattleGateway
         disconnectTimers: new Map<string, ReturnType<typeof setTimeout>>(),
         readyPlayers: new Set(saved.readyPlayers || []),
         disconnectedAt: { ...(saved.disconnectedAt || {}) },
-        resolving: saved.resolving && Date.now() - saved.updatedAt > 60_000 ? false : saved.resolving,
-        finishing: saved.finishing && Date.now() - saved.updatedAt > 60_000 ? false : saved.finishing,
+        resolving: saved.resolving,
+        finishing: saved.finishing,
       };
 
       this.activeBattles.set(battle.matchId, battle);
@@ -148,7 +156,6 @@ export class BattleGateway
         }, delay);
       }
 
-      await this.persistBattle(battle);
       if (shouldAdvance) await this.advanceIfReady(battle);
       this.logger.warn(`Battle Redisdan tiklandi: ${battle.roomCode}`);
     }
