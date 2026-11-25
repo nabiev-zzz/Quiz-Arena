@@ -189,16 +189,13 @@ export default function AiTutorScreen({
               isUser ? styles.userBubble : styles.assistantBubble,
             ]}
           >
-            <LocalizedText
-              style={[
-                styles.messageText,
-                isUser
-                  ? styles.userMessageText
-                  : styles.assistantMessageText,
-              ]}
-            >
-              {item.content}
-            </LocalizedText>
+{isUser ? (
+              <LocalizedText style={[styles.messageText, styles.userMessageText]}>
+                {item.content}
+              </LocalizedText>
+            ) : (
+              <TutorFormattedMessage content={item.content} colors={colors} />
+            )}
           </View>
 
           {canRetry && (
@@ -357,6 +354,111 @@ export default function AiTutorScreen({
           AI javoblarini muhim ma’lumotlar bilan solishtirib tekshiring.
         </LocalizedText>
       </KeyboardAvoidingView>
+    </View>
+  );
+}
+
+
+type TutorColors = ReturnType<typeof useTheme>['tokens']['colors'];
+
+function TutorFormattedMessage({
+  content,
+  colors,
+}: {
+  content: string;
+  colors: TutorColors;
+}) {
+  const lines = content.replace(/\\r/g, '').split('\\n');
+  const inline = (value: string, keyPrefix: string) => {
+    const pieces = value.split(/(\\*\\*[^*]+\\*\\*)/g);
+    return pieces.map((piece, index) =>
+      piece.startsWith('**') && piece.endsWith('**') ? (
+        <NativeText key={keyPrefix + index} style={{ fontWeight: '800', color: colors.text }}>
+          {piece.slice(2, -2)}
+        </NativeText>
+      ) : (
+        <NativeText key={keyPrefix + index}>{piece}</NativeText>
+      ),
+    );
+  };
+
+  return (
+    <View style={{ gap: 7 }}>
+      {lines.map((rawLine, index) => {
+        const line = rawLine.trim();
+        if (!line) return <View key={index} style={{ height: 2 }} />;
+        if (/^[-*_]{3,}$/.test(line)) {
+          return <View key={index} style={{ height: 1, backgroundColor: colors.border, marginVertical: 4 }} />;
+        }
+        const heading = line.match(/^(#{1,3})\\s+(.+)$/);
+        if (heading) {
+          return (
+            <NativeText
+              key={index}
+              style={{
+                color: colors.text,
+                fontSize: heading[1].length === 1 ? 17 : 15,
+                lineHeight: 22,
+                fontWeight: '900',
+                marginTop: index === 0 ? 0 : 5,
+              }}
+            >
+              {inline(heading[2], 'h' + index)}
+            </NativeText>
+          );
+        }
+        const metric = line.match(/^(?:[-•]\\s*)?\\*\\*(.+?)\\*\\*\\s*:\\s*(.+)$/);
+        if (metric) {
+          return (
+            <View
+              key={index}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                paddingVertical: 8,
+                paddingHorizontal: 10,
+                borderRadius: 10,
+                backgroundColor: colors.background,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <NativeText style={{ color: colors.textSecondary, fontSize: 13, flex: 1 }}>
+                {metric[1]}
+              </NativeText>
+              <NativeText style={{ color: colors.primary, fontSize: 14, fontWeight: '900', textAlign: 'right' }}>
+                {inline(metric[2], 'v' + index)}
+              </NativeText>
+            </View>
+          );
+        }
+        const bullet = line.match(/^[-•]\\s+(.+)$/);
+        if (bullet) {
+          return (
+            <View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+              <NativeText style={{ color: colors.primary, fontSize: 16, lineHeight: 22 }}>•</NativeText>
+              <NativeText style={{ color: colors.text, fontSize: 14, lineHeight: 21, flex: 1 }}>
+                {inline(bullet[1], 'b' + index)}
+              </NativeText>
+            </View>
+          );
+        }
+        const numbered = line.match(/^\\d+[.)]\\s+(.+)$/);
+        if (numbered) {
+          return (
+            <NativeText key={index} style={{ color: colors.text, fontSize: 14, lineHeight: 21 }}>
+              {inline(line, 'n' + index)}
+            </NativeText>
+          );
+        }
+        return (
+          <NativeText key={index} style={{ color: colors.text, fontSize: 14, lineHeight: 21 }}>
+            {inline(line, 'p' + index)}
+          </NativeText>
+        );
+      })}
     </View>
   );
 }
