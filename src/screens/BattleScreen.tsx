@@ -13,7 +13,7 @@ import {
   Alert,
   Pressable,
   StyleSheet,
-  Text as NativeText,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -939,15 +939,13 @@ export default function BattleScreen({
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 13, minHeight: 46, borderRadius: 15, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card }}>
           <Ionicons name="search-outline" size={18} color={colors.muted} />
-          <NativeText
-            value={undefined}
-            style={{ display: 'none' } as never}
+          <TextInput
+            value={historySearch}
+            onChangeText={setHistorySearch}
+            placeholder="Raqib yoki xona kodi bo‘yicha qidirish"
+            placeholderTextColor={colors.muted}
+            style={{ flex: 1, color: colors.text, fontSize: 12, paddingVertical: 8 }}
           />
-          <Pressable onPress={() => setHistorySearch('')} style={{ flex: 1 }}>
-            <LocalizedText style={{ color: colors.muted, fontSize: 12 }}>
-              {historySearch ? historySearch : 'Raqib yoki xona kodi bo‘yicha qidirish'}
-            </LocalizedText>
-          </Pressable>
           <Pressable onPress={() => setHistorySearch('')}><Ionicons name="close-circle-outline" size={18} color={colors.muted} /></Pressable>
         </View>
 
