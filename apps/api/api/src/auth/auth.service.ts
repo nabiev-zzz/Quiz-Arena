@@ -62,6 +62,7 @@ export class AuthService {
       role: user.role,
       status: user.status,
       xp: user.xp,
+      zcBalance: user.zcBalance ?? 0,
       rankPoints: user.rankPoints,
       rankTier: this.getRankTier(user.rankPoints),
       level: user.level,
@@ -207,7 +208,7 @@ export class AuthService {
       .getOne();
     // Keep the response identical whether the account exists or not.
     if (user) await this.otpService.issue(phone, 'password_reset');
-    return { message: 'Agar raqam QUIZ ARENA hisobiga bog‘langan bo‘lsa, kod yuboriladi' };
+    return { message: 'Agar raqam ZELQEN CORE hisobiga bog‘langan bo‘lsa, kod yuboriladi' };
   }
 
 
