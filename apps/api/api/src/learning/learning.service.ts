@@ -378,7 +378,7 @@ export class LearningService {
       }
       return {
         questions: shuffled.slice(0, count),
-        source: 'redis-cache',
+        source: 'database',
         cachedQuestionCount: redisPool.length,
       };
     }
