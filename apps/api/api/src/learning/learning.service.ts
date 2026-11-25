@@ -464,6 +464,53 @@ export class LearningService {
     return response;
   }
 
+  /**
+   * Run only from the dedicated scheduled prewarm command/service.
+   * The catalog currently has subjects/topics but no grade field, so this list
+   * uses existing canonical topic IDs and never invents a grade mapping.
+   */
+  async prewarmPopularTopics() {
+    const popular = [
+      { subjectId: 'algebra', topicId: 'equations', difficulty: 'medium' as const },
+      { subjectId: 'algebra', topicId: 'percentages', difficulty: 'easy' as const },
+      { subjectId: 'english', topicId: 'vocabulary', difficulty: 'easy' as const },
+      { subjectId: 'history', topicId: 'uzbek-history', difficulty: 'medium' as const },
+      { subjectId: 'physics', topicId: 'mechanics', difficulty: 'medium' as const },
+      { subjectId: 'informatics', topicId: 'algorithms', difficulty: 'medium' as const },
+    ];
+    const results: Array<{ subjectId: string; topicId: string; status: 'ready' | 'failed'; questionCount?: number; error?: string }> = [];
+
+    // Sequential warming protects AI-provider rate limits and database capacity.
+    for (const topic of popular) {
+      try {
+        const result = await this.getTopicQuestions({
+          ...topic,
+          count: 20,
+          language: 'uz',
+        });
+        results.push({
+          subjectId: topic.subjectId,
+          topicId: topic.topicId,
+          status: 'ready',
+          questionCount: result.questions.length,
+        });
+      } catch (error) {
+        results.push({
+          subjectId: topic.subjectId,
+          topicId: topic.topicId,
+          status: 'failed',
+          error: error instanceof Error ? error.message.slice(0, 240) : 'Unknown error',
+        });
+      }
+    }
+
+    return {
+      warmed: results.filter((item) => item.status === 'ready').length,
+      failed: results.filter((item) => item.status === 'failed').length,
+      results,
+    };
+  }
+
   async getWebTopicQuestions(userId: string, input: {
     subjectId: string;
     topicId: string;
