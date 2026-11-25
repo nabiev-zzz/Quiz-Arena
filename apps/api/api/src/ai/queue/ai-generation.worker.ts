@@ -1,7 +1,6 @@
 import { HttpException, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { Job, UnrecoverableError, Worker } from 'bullmq';
-import { AppModule } from '../../app.module';
 import { AiService } from '../ai.service';
 import { AiTutorService } from '../ai-tutor.service';
 import { AiGenerationQueueService, AI_GENERATION_PREFIX, AI_GENERATION_QUEUE, createAiQueueRedisConnection } from './ai-generation-queue.service';
@@ -29,6 +28,7 @@ function boundedInteger(value: string | undefined, fallback: number, min: number
 
 async function main(): Promise<void> {
   process.env.AI_WORKER_PROCESS = 'true';
+  const { AppModule } = await import('../../app.module');
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: ['error', 'warn', 'log'],
   });
