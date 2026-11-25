@@ -97,6 +97,34 @@ export interface BattleHistoryResponse {
   matches: BattleHistoryItem[];
 }
 
+export interface BattleHistoryDetail {
+  id: string;
+  roomCode: string;
+  mode: string;
+  result: 'win' | 'loss' | 'draw';
+  myScore: number;
+  opponentScore: number;
+  startedAt: string | null;
+  finishedAt: string | null;
+  rankChange: {
+    previousPoints: number;
+    rankPoints: number;
+    delta: number;
+    rankTier: string;
+  } | null;
+  questions: {
+    index: number;
+    question: string;
+    options: string[];
+    selectedAnswer: number | null;
+    correctAnswer: number;
+    isCorrect: boolean;
+    points: number;
+    explanation: string;
+  }[];
+}
+
+
 export interface BattleStats {
   totalMatches: number;
   wins: number;
@@ -179,6 +207,14 @@ export async function getBattleHistory(
 ): Promise<BattleHistoryResponse> {
   return authenticatedRequest<BattleHistoryResponse>(
     `/api/battle/history?limit=${limit}`,
+  );
+}
+
+export async function getBattleHistoryDetail(
+  matchId: string,
+): Promise<BattleHistoryDetail> {
+  return authenticatedRequest<BattleHistoryDetail>(
+    `/api/battle/history/${encodeURIComponent(matchId)}`,
   );
 }
 
