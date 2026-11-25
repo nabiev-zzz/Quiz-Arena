@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 import { BattleGateway } from './battle.gateway';
 
 describe('BattleGateway private Friends Battle rooms', () => {
-  const battleService = { createMatch: jest.fn() };
+  const battleService = {
+    createMatch: jest.fn(),
+    joinQueue: jest.fn(),
+    prepareQuestions: jest.fn(),
+    markMatchStarted: jest.fn(),
+  };
   const featureUsageService = { consume: jest.fn(), refund: jest.fn() };
   const battleStateStore = {
     isReady: jest.fn(() => false),
@@ -43,6 +48,61 @@ describe('BattleGateway private Friends Battle rooms', () => {
   afterEach(() => {
     jest.clearAllTimers();
     jest.useRealTimers();
+  });
+
+  it('discovers a queued opponent connected to another API replica', async () => {
+    const remoteOpponent = {
+      id: 'socket-on-api-2',
+      data: { userId: 'opponent-1', username: 'opponent' },
+      join: jest.fn().mockResolvedValue(undefined),
+      emit: jest.fn(),
+    };
+    const localPlayer = {
+      id: 'socket-on-api-1',
+      data: { userId: 'player-1', username: 'player' },
+      join: jest.fn().mockResolvedValue(undefined),
+      emit: jest.fn(),
+    };
+    const roomEmitter = { emit: jest.fn() };
+    (gateway as never as { server: unknown }).server = {
+      fetchSockets: jest.fn().mockResolvedValue([remoteOpponent]),
+      to: jest.fn().mockReturnValue(roomEmitter),
+    };
+    battleService.joinQueue.mockResolvedValue('opponent-1:socket-on-api-2');
+    battleService.createMatch.mockResolvedValue({
+      id: 'match-1',
+      roomCode: 'ROOM123',
+      mode: 'casual',
+    });
+    battleService.prepareQuestions.mockResolvedValue(
+      Array.from({ length: 10 }, (_, index) => ({
+        id: `question-${index}`,
+        question: `Question ${index}`,
+        options: ['A', 'B', 'C', 'D'],
+        correctAnswer: 0,
+        explanation: 'Explanation',
+      })),
+    );
+    battleService.markMatchStarted.mockResolvedValue(undefined);
+
+    await gateway.joinQueue(localPlayer as never, {
+      mode: 'casual',
+      categoryId: 'general',
+    });
+
+    expect(battleService.joinQueue).toHaveBeenCalled();
+    expect((gateway as never as { server: { fetchSockets: jest.Mock } }).server.fetchSockets)
+      .toHaveBeenCalled();
+    expect(remoteOpponent.join).toHaveBeenCalledWith('battle:ROOM123');
+    expect(remoteOpponent.emit).toHaveBeenCalledWith(
+      'battle:matched',
+      expect.objectContaining({ matchId: 'match-1' }),
+    );
+    expect(localPlayer.emit).toHaveBeenCalledWith(
+      'battle:matched',
+      expect.objectContaining({ matchId: 'match-1' }),
+    );
+    expect(battleService.markMatchStarted).toHaveBeenCalledWith('match-1');
   });
 
   it('creates a twelve-character private room and consumes the host daily quota', async () => {
