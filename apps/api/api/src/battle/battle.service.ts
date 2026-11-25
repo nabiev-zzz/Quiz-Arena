@@ -419,6 +419,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
       async (manager): Promise<FinishedBattleResult> => {
         const matchRepo = manager.getRepository(BattleMatch);
         const userRepo = manager.getRepository(User);
+        const zcTransactionRepo = manager.getRepository(ZcTransaction);
 
         const match = await matchRepo.findOne({
           where: { id: matchId },
@@ -431,7 +432,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
 
         if (match.status === 'finished') {
           const existingWalletEntries = match.playerTwoId
-            ? await manager.getRepository(ZcTransaction).find({
+            ? await zcTransactionRepo.find({
                 where: {
                   idempotencyKey: In([
                     `battle:${match.id}:${match.playerOneId}`,
@@ -663,7 +664,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
             const amount = winnerId === null ? 10 : winnerId === playerId ? 20 : 5;
             user.zcBalance = Math.max(0, Number(user.zcBalance ?? 0)) + amount;
             await userRepo.save(user);
-            const entry = manager.create(ZcTransaction, {
+            const entry = zcTransactionRepo.create({
               userId: playerId,
               type: 'credit',
               amount,
@@ -675,7 +676,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
                   : 'Ranked Battle ishtiroki',
               idempotencyKey: `battle:${match.id}:${playerId}`,
             });
-            await manager.save(ZcTransaction, entry);
+            await zcTransactionRepo.save(entry);
             zcChanges[playerId] = {
               userId: playerId,
               amount,
