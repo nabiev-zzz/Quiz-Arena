@@ -1,0 +1,44 @@
+name: Generate BullMQ lockfile
+
+on:
+  push:
+    branches:
+      - feat/premium-entitlements-feature-roadmap
+    paths:
+      - apps/api/api/package.json
+      - .github/workflows/generate-bullmq-lockfile.yml
+
+permissions:
+  contents: write
+
+jobs:
+  lock-and-validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api/api
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/premium-entitlements-feature-roadmap
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/api/api/package-lock.json
+      - name: Resolve BullMQ and update lockfile
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify clean install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build API
+        run: npm run build
+      - name: Commit generated lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(api): update lockfile for BullMQ"
+            git push origin HEAD:feat/premium-entitlements-feature-roadmap
+          fi
