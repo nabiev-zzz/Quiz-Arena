@@ -150,7 +150,8 @@ export async function createBattleSocket(): Promise<BattleSocket> {
   }
 
   return io(`${API_BASE_URL}/battle`, {
-    transports: ['polling', 'websocket'],
+    // Railway does not provide sticky sessions; WebSocket-only avoids Socket.IO polling affinity.
+    transports: ['websocket'],
     auth: {
       token,
     },
