@@ -354,7 +354,7 @@ export class LearningService {
     count: number;
     difficulty: 'easy' | 'medium' | 'hard' | 'expert';
     language: 'uz' | 'ru' | 'en';
-  }, fromWorker = false) {
+  }, fromWorker = false, userId?: string) {
     const subjectId = String(input?.subjectId ?? '').trim();
     const topicId = String(input?.topicId ?? '').trim();
     const count = Number(input?.count);
@@ -393,7 +393,7 @@ export class LearningService {
       });
       if (bankCount < count) {
         const queued = await this.aiQueue.enqueue({
-          userId: input.userId || '00000000-0000-0000-0000-000000000000',
+          userId: userId || (() => { throw new BadRequestException('Foydalanuvchi sessiyasi topilmadi.'); })(),
           jobType: 'topic_questions',
           payload: {
             subjectId, topicId, count, difficulty: input.difficulty, language: input.language,
@@ -487,6 +487,16 @@ export class LearningService {
     };
   }
 
+  async generateTopicQuestionsForQueue(input: {
+    subjectId: string;
+    topicId: string;
+    count: number;
+    difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+    language: 'uz' | 'ru' | 'en';
+  }) {
+    return this.getTopicQuestions(input, true);
+  }
+
   /**
    * Run only from the dedicated scheduled prewarm command/service.
    * The catalog currently has subjects/topics but no grade field, so this list
@@ -510,7 +520,7 @@ export class LearningService {
           ...topic,
           count: 20,
           language: 'uz',
-        });
+        }, true);
         results.push({
           subjectId: topic.subjectId,
           topicId: topic.topicId,
@@ -543,7 +553,7 @@ export class LearningService {
     difficulty: 'easy' | 'medium' | 'hard' | 'expert';
     language: 'uz' | 'ru' | 'en';
   }) {
-    const result = await this.getTopicQuestions(input);
+    const result = await this.getTopicQuestions(input, false, userId);
     if ('status' in result && result.status === 'queued') return result;
     const session = this.webSessions.create({
       userId,
