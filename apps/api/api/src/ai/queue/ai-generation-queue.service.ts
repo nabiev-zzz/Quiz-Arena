@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit, ServiceUnavailableException, TooManyRequestsException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
@@ -90,7 +90,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     quotaFeature?: string;
     quotaConsumed?: boolean;
     idempotencyKey?: string;
-  }): Promise<{ status: 'queued' | 'active' | 'completed'; jobId: string; message: string; result?: Record<string, unknown> | null }> {
+  }): Promise<{ status: 'queued' | 'active' | 'completed'; jobId: string; message: string; result?: Record<string, unknown> | null; usage?: unknown }> {
     if (!this.queue) {
       throw new ServiceUnavailableException('AI navbati vaqtincha ishlamayapti. Iltimos, birozdan keyin qayta urinib ko‘ring.');
     }
@@ -119,12 +119,31 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
       result: null,
       error: null,
       quotaFeature: input.quotaFeature ?? null,
-      quotaConsumed: Boolean(input.quotaConsumed),
+      quotaConsumed: false,
       quotaRefunded: false,
       idempotencyKey,
       attempts: 0,
     });
-    await this.jobs.save(job);
+    try {
+      await this.jobs.save(job);
+    } catch (error) {
+      // A concurrent identical request may have won the unique idempotency key.
+      if (idempotencyKey) {
+        const existing = await this.jobs.findOne({ where: { userId: input.userId, idempotencyKey } });
+        if (existing) return { status: existing.status as 'queued' | 'active' | 'completed', jobId: existing.id, message: existing.status === 'completed' ? 'Natija tayyor.' : 'Test tayyorlanmoqda', result: existing.result };
+      }
+      throw error;
+    }
+
+    let usage: unknown;
+    if (input.quotaFeature) {
+      usage = await this.featureUsage.consume(input.userId, input.quotaFeature);
+      if (!(usage as { allowed?: boolean }).allowed) {
+        await this.jobs.update({ id: job.id }, { status: 'failed', error: 'Tarif limitingiz tugagan.', completedAt: new Date() });
+        throw new TooManyRequestsException('Ushbu AI funksiyasi uchun tarif limitingiz tugagan.');
+      }
+      await this.jobs.update({ id: job.id }, { quotaConsumed: true });
+    }
 
     try {
       await this.queue.add(input.jobType, { jobId: job.id }, { jobId: job.id });
@@ -135,13 +154,16 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
         completedAt: new Date(),
         fileBuffer: null,
       });
-      if (input.quotaConsumed && input.quotaFeature) {
-        try { await this.featureUsage.refund(input.userId, input.quotaFeature as never); } catch { /* retain queue error */ }
+      if (usage && input.quotaFeature) {
+        try {
+          await this.featureUsage.refund(input.userId, input.quotaFeature as never);
+          await this.jobs.update({ id: job.id }, { quotaRefunded: true });
+        } catch { /* Preserve the queue error; refund can be retried operationally. */ }
       }
       throw new ServiceUnavailableException('AI navbatiga ulanishda xatolik. Qayta urinib ko‘ring.');
     }
 
-    return { status: 'queued', jobId: job.id, message: 'Test tayyorlanmoqda' };
+    return { status: 'queued', jobId: job.id, message: 'Test tayyorlanmoqda', usage };
   }
 
   async getOwnedJob(userId: string, jobId: string): Promise<AiGenerationJob> {
