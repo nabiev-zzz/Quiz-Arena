@@ -35,6 +35,33 @@ jobs:
       - name: Export browser-ready web app
         run: npx expo export --platform web --output-dir "$RUNNER_TEMP/expo-web-export"
 
+      - name: Export native Android app bundle
+        run: npx expo export --platform android --output-dir "$RUNNER_TEMP/expo-android-export"
+
+      - name: Export native iOS app bundle
+        run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-ios-export"
+
+      - name: Validate mobile release and EAS Update configuration
+        run: |
+          node - <<'NODE'
+          const app = require('./app.json').expo;
+          const eas = require('./eas.json');
+          const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+          };
+          assert(app.android?.package === 'uz.quizarena.app', 'Android package is missing');
+          assert(app.ios?.bundleIdentifier === 'uz.quizarena.app', 'iOS bundle identifier is missing');
+          assert(app.updates?.url === `https://u.expo.dev/${app.extra?.eas?.projectId}`, 'EAS Update URL/project ID mismatch');
+          assert(app.runtimeVersion?.policy === 'appVersion', 'runtimeVersion appVersion policy is required');
+          assert(require('./package.json').dependencies?.['expo-updates'], 'expo-updates dependency is missing');
+          assert(eas.build?.preview?.distribution === 'internal', 'preview must use internal distribution');
+          assert(eas.build?.preview?.channel === 'preview', 'preview channel is missing');
+          assert(eas.build?.preview?.android?.buildType === 'apk', 'preview Android build must be an APK');
+          assert(eas.build?.production?.channel === 'production', 'production channel is missing');
+          assert(eas.build?.production?.android?.buildType === 'app-bundle', 'production Android build must be an AAB');
+          console.log('Mobile release configuration is valid.');
+          NODE
+
       - name: Build the combined public website image
         run: docker build --build-arg APP_SOURCE_BRANCH=main -t quiz-arena-website:ci -f website/Dockerfile website
 
