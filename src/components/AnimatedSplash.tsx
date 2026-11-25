@@ -19,7 +19,7 @@ type AnimatedSplashProps = {
   onFinish: () => void;
 };
 
-const APP_NAME = 'QUIZ ARENA';
+const APP_NAME = 'ZELQEN CORE';
 const LETTERS = Array.from(APP_NAME);
 
 function PulseRing({ delay }: { delay: number }) {
@@ -162,7 +162,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
             />
           ))}
         </View>
-        <Text style={styles.tagline}>O'RGAN. RIVOJLAN. G'ALABA QOZON.</Text>
+        <Text style={styles.tagline}>BILIM. RIVOJLAN. G'ALABA QOZON.</Text>
       </Animated.View>
     </View>
   );
