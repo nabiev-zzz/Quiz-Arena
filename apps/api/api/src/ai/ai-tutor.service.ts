@@ -361,52 +361,8 @@ Answer the student's new message in the requested language.
     message: string,
     language: 'uz' | 'ru' | 'en' = 'uz',
   ) {
-    const quota = await this.featureUsageService.consume(userId, 'aiTutor');
-    if (!quota.allowed) {
-      throw new HttpException('AI Ustoz uchun kunlik xabar limiti tugagan. Tarifingizni yangilang yoki ertaga qayta urinib ko‘ring.', HttpStatus.TOO_MANY_REQUESTS);
-    }
-
-    try {
-      const [history, progress] = await Promise.all([
-        this.getPreviousMessages(userId),
-        this.getStudentProgress(userId),
-      ]);
-
-      const prompt = this.createPrompt(
-        message.trim(),
-        language,
-        history,
-        progress,
-      );
-
-      const answer = await this.generateAnswer(prompt);
-
-      const userMessage = this.messageRepository.create({
-      userId,
-      role: 'user' as AiTutorMessageRole,
-      content: message.trim(),
-    });
-
-    const assistantMessage = this.messageRepository.create({
-      userId,
-      role: 'assistant' as AiTutorMessageRole,
-      content: answer,
-    });
-
-      const savedMessages = await this.messageRepository.save([
-        userMessage,
-        assistantMessage,
-      ]);
-
-      return {
-        userMessage: savedMessages[0],
-        assistantMessage: savedMessages[1],
-        usage: quota,
-      };
-    } catch (error) {
-      try { await this.featureUsageService.refund(userId, 'aiTutor'); } catch { /* Preserve the original AI error. */ }
-      throw error;
-    }
+    // Compatibility alias: all public Tutor messages are queued; only the worker calls the provider.
+    return this.enqueueMessage(userId, message, language);
   }
 
   async getHistory(userId: string) {
