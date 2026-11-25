@@ -47,6 +47,9 @@ export class AiGenerationJob {
   @Column({ type: 'integer', default: 50 })
   priority: number;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  queueEnqueuedAt: Date | null;
+
   @Column({ type: 'integer', default: 0 })
   attempts: number;
 
