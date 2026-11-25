@@ -119,9 +119,28 @@ async function seed() {
 }
 
 async function stop(child) {
-  if (!child || child.exitCode !== null) return;
-  child.kill('SIGKILL');
-  await new Promise((resolve) => child.once('exit', resolve));
+  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+
+  await new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(fallback);
+      child.off('exit', finish);
+      resolve();
+    };
+    const fallback = setTimeout(finish, 5_000);
+
+    // Attach the listener before sending the signal to avoid an exit-event race.
+    child.once('exit', finish);
+    if (child.exitCode !== null || child.signalCode !== null) {
+      finish();
+      return;
+    }
+    child.kill('SIGKILL');
+    if (child.exitCode !== null || child.signalCode !== null) finish();
+  });
 }
 
 async function cleanup() {
