@@ -1,0 +1,106 @@
+# AI generation queue (BullMQ)
+
+All externally triggered AI provider calls are executed by a dedicated BullMQ worker.
+The API validates and stores the request, responds with a job ID, and never waits
+for Groq/Gemini to finish.
+
+## Scope and isolation
+
+This queue is only for AI generation:
+- cold topic question-bank generation;
+- PDF/DOCX/TXT/MD/CSV document-to-quiz generation;
+- Premium AI-personalized Smart Practice;
+- AI Tutor chat responses;
+- the authenticated `POST /api/ai/generate` endpoint.
+
+It does not use or modify BattleStateStore, Battle matchmaking, Battle gateway,
+private Battle rooms, or the Socket.IO Redis adapter. BullMQ has its own queue
+name (`ai-generation`) and Redis prefix
+`quiz-arena:<NODE_ENV>:ai-bull`. The shared question cache has a different
+prefix as well.
+
+## Runtime services
+
+Run two Railway services from the same API source and build:
+
+| Service | Start command | Responsibility |
+|---|---|---|
+| API | `npm run start:prod` | Auth, validation, database jobs, enqueue, polling |
+| AI worker | `npm run start:worker:prod` | BullMQ consumption and AI provider calls |
+
+The worker is a separate process, not an API replica. Do not start one worker
+inside every API instance. BullMQ coordinates multiple worker replicas safely.
+
+Required shared environment:
+- `DATABASE_URL` or the existing `DB_HOST`, `DB_PORT`, `DB_USERNAME`,
+  `DB_PASSWORD`, `DB_DATABASE` values used by the API;
+- `REDIS_URL`, `VALKEY_URL`, or `VALKEY_HOST` plus optional
+  `VALKEY_PORT` / `VALKEY_PASSWORD`;
+- the existing provider secrets `GROQ_API_KEY` and/or `GEMINI_API_KEY`,
+  plus the existing model variables.
+
+Optional:
+- `AI_WORKER_CONCURRENCY` (default 3, bounded to 1–8).
+
+The API and worker must point to the same PostgreSQL and Redis/Valkey instances.
+If Redis is unavailable, the API can still serve database-backed learning
+questions, but AI generation endpoints return a controlled 503 response rather
+than falling back to synchronous provider calls.
+
+## Job lifecycle and API
+
+- API creates a durable `ai_generation_jobs` row first.
+- BullMQ stores only the database job ID, not the uploaded document bytes or
+  provider prompt.
+- Job status is `queued`, `active`, `completed`, or `failed`.
+- Learning jobs are polled through `GET /api/learning/jobs/:jobId`.
+- AI Tutor / direct AI generation jobs are polled through
+  `GET /api/ai/jobs/:jobId`.
+- Both status endpoints enforce the authenticated user's ownership.
+- Mobile service wrappers poll and open the generated test or append the Tutor
+  response when the job completes. The loading state says “Test tayyorlanmoqda”.
+- Job results/status remain in PostgreSQL; BullMQ completed jobs are retained
+  for 24 hours and failed queue entries for 7 days.
+
+## Reliability and quotas
+
+- Three attempts with exponential backoff (3 seconds base).
+- Worker concurrency defaults to 3; global queue limiter is 20 jobs/minute.
+- Stalled jobs are recovered by BullMQ; worker handles SIGTERM/SIGINT shutdown.
+- User quota is consumed once after the durable job row is created. Idempotency
+  keys prevent duplicate quota consumption for repeated identical requests.
+- Terminal worker failure triggers a quota refund; queue insertion failure also
+  refunds the quota.
+- Personalized Smart Practice is queued; non-personalized practice from saved
+  mistakes stays database-only and does not call AI.
+- Topic requests first check Redis and PostgreSQL. Only a cold/insufficient
+  question bank creates a queue job. PostgreSQL advisory locks prevent duplicate
+  generation for the same topic while multiple users' jobs are processed.
+- Document uploads are held temporarily in PostgreSQL `bytea`, never in Redis
+  or BullMQ payloads. The buffer is cleared from the job row after success or
+  terminal failure.
+
+## Prewarming
+
+Run:
+```bash
+npm run build
+npm run prewarm:learning
+```
+
+This enqueues six system-owned popular-topic jobs. It does not call an AI
+provider in the cron process; the worker generates and stores the question bank
+and warms the Redis question cache. Schedule this as a Railway Cron service only
+after the API, PostgreSQL, Redis/Valkey and at least one worker are online.
+
+## Local validation
+
+```bash
+npm ci
+npm run build
+npm test -- --runInBand src/ai/ai-tutor.service.spec.ts src/learning/learning.service.spec.ts
+```
+
+A Redis 7 service is included in the API CI job. Provider API keys are not
+required for queue infrastructure tests; AI provider calls should be mocked in
+unit tests.
