@@ -15,6 +15,15 @@
       "android": {
         "buildType": "app-bundle"
       }
+    },
+    "galaxyStore": {
+      "distribution": "store",
+      "env": {
+        "GALAXY_STORE_BUILD": "true"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
     }
   },
   "submit": {
