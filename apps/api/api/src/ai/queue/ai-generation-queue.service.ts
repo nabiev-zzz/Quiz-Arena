@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit, ServiceUnavailableException, TooManyRequestsException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
@@ -154,7 +154,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
       }
       if (!(usage as { allowed?: boolean }).allowed) {
         await this.jobs.update({ id: job.id }, { status: 'failed', error: 'Tarif limitingiz tugagan.', fileBuffer: null, completedAt: new Date() });
-        throw new TooManyRequestsException('Ushbu AI funksiyasi uchun tarif limitingiz tugagan.');
+        throw new HttpException('Ushbu AI funksiyasi uchun tarif limitingiz tugagan.', HttpStatus.TOO_MANY_REQUESTS);
       }
       await this.jobs.update({ id: job.id }, { quotaConsumed: true, payload: { ...input.payload, _jobId: job.id, ...(usage ? { _quotaReceipt: usage } : {}) } });
     } else {
@@ -221,13 +221,14 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   async markCompleted(jobId: string, result: Record<string, unknown>): Promise<void> {
-    await this.jobs.update({ id: jobId }, {
-      status: 'completed',
-      result,
-      fileBuffer: null,
-      error: null,
-      completedAt: new Date(),
-    });
+    const job = await this.jobs.findOne({ where: { id: jobId } });
+    if (!job) throw new Error('AI generation job not found');
+    job.status = 'completed';
+    job.result = result;
+    job.fileBuffer = null;
+    job.error = null;
+    job.completedAt = new Date();
+    await this.jobs.save(job);
   }
 
   async markRetrying(jobId: string, error: unknown): Promise<void> {
