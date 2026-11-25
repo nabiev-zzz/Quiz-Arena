@@ -4,11 +4,24 @@ import { BattleGateway } from './battle.gateway';
 describe('BattleGateway private Friends Battle rooms', () => {
   const battleService = { createMatch: jest.fn() };
   const featureUsageService = { consume: jest.fn(), refund: jest.fn() };
+  const battleStateStore = {
+    isReady: jest.fn(() => false),
+    listActive: jest.fn().mockResolvedValue([]),
+    save: jest.fn().mockResolvedValue(undefined),
+    remove: jest.fn().mockResolvedValue(undefined),
+    get: jest.fn().mockResolvedValue(null),
+    recordAnswer: jest.fn(),
+    claimQuestionResolution: jest.fn(),
+    markPlayerReady: jest.fn(),
+    claimAdvance: jest.fn(),
+    withMatchLock: jest.fn(),
+  };
   const gateway = new BattleGateway(
     {} as never,
     battleService as never,
     {} as never,
     featureUsageService as never,
+    battleStateStore as never,
   );
 
   const makeSocket = (userId: string, id: string) => ({
