@@ -93,6 +93,7 @@ describe('BattleService — Rank tizimi', () => {
     };
 
     const matchRepository: any = {
+      findOne: jest.fn(async () => match),
       manager: {
         transaction: jest.fn(async (callback: any) => {
           return callback(manager);
