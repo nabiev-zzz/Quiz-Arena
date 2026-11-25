@@ -159,11 +159,13 @@ export async function getTopicQuestions(input: {
     cachedQuestionCount?: number;
     status?: 'queued' | 'active' | 'completed';
     jobId?: string;
+    result?: { questions: Question[] };
   }>('/api/learning/questions', { method: 'POST', body: JSON.stringify(input) });
   if (result.status === 'queued' || result.status === 'active') {
     const completed = await waitForLearningJob<{ questions: Question[] }>(String(result.jobId));
     return completed.questions;
   }
+  if (result.status === 'completed' && result.result) return result.result.questions;
   return result.questions || [];
 }
 
@@ -219,6 +221,7 @@ export async function createDocumentQuiz(
   if (data.status === 'queued' || data.status === 'active') {
     return waitForLearningJob<DocumentQuizResult>(String(data.jobId));
   }
+  if (data.status === 'completed' && data.result) return data.result as DocumentQuizResult;
   return data as DocumentQuizResult;
 }
 
@@ -238,5 +241,6 @@ export const createSmartPractice = async (count: number, language: 'uz' | 'ru' |
   if (result.status === 'queued' || result.status === 'active') {
     return waitForLearningJob<SmartPracticeResult>(String(result.jobId));
   }
+  if (result.status === 'completed' && result.result) return result.result as SmartPracticeResult;
   return result;
 };
