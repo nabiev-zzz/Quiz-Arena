@@ -51,11 +51,25 @@ async function tutorRequest<T>(
   return data as T;
 }
 
+async function waitForTutorJob(jobId: string): Promise<AiTutorChatResponse> {
+  for (let attempt = 0; attempt < 240; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const status = await tutorRequest<{
+      status: 'queued' | 'active' | 'completed' | 'failed';
+      result?: AiTutorChatResponse;
+      error?: string;
+    }>(`/api/ai/jobs/${encodeURIComponent(jobId)}`);
+    if (status.status === 'completed' && status.result) return status.result;
+    if (status.status === 'failed') throw new Error(status.error || 'AI Ustoz javob bera olmadi.');
+  }
+  throw new Error('AI Ustoz navbatida kutish vaqti tugadi. Qayta urinib ko‘ring.');
+}
+
 export async function sendTutorMessage(
   message: string,
   signal?: AbortSignal,
 ): Promise<AiTutorChatResponse> {
-  return tutorRequest<AiTutorChatResponse>('/api/ai/tutor/chat', {
+  const queued = await tutorRequest<AiTutorChatResponse & { status?: 'queued' | 'active'; jobId?: string }>('/api/ai/tutor/chat', {
     method: 'POST',
     signal,
     body: JSON.stringify({
@@ -63,6 +77,10 @@ export async function sendTutorMessage(
       language: 'uz',
     }),
   });
+  if (queued.status === 'queued' || queued.status === 'active') {
+    return waitForTutorJob(String(queued.jobId));
+  }
+  return queued;
 }
 
 export async function getTutorHistory(
