@@ -7,6 +7,7 @@ describe('AiGenerationQueueService', () => {
     create: jest.fn(),
     save: jest.fn(),
     findOne: jest.fn(),
+    count: jest.fn(),
     update: jest.fn(),
     increment: jest.fn(),
     createQueryBuilder: jest.fn(),
@@ -16,13 +17,15 @@ describe('AiGenerationQueueService', () => {
     refund: jest.fn(),
   };
   const service = new AiGenerationQueueService(jobRepository as never, featureUsage as never);
-  const queue = { add: jest.fn(), getJob: jest.fn() };
+  const queue = { add: jest.fn(), getJob: jest.fn(), getWaitingCount: jest.fn() };
 
   beforeEach(() => {
     jest.clearAllMocks();
     (service as unknown as { queue: typeof queue }).queue = queue;
     queue.add.mockResolvedValue({});
     queue.getJob.mockResolvedValue(null);
+    queue.getWaitingCount.mockResolvedValue(0);
+    jobRepository.count.mockResolvedValue(0);
     jobRepository.findOne.mockResolvedValue(null);
     jobRepository.create.mockImplementation((value) => ({ ...value, id: 'job-1' }));
     jobRepository.save.mockImplementation(async (value) => value);
