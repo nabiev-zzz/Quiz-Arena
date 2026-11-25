@@ -8,7 +8,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { OnModuleInit } from '@nestjs/common';
+import { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -86,7 +86,7 @@ interface ActiveBattle {
   },
 })
 export class BattleGateway
-  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit
+  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(BattleGateway.name);
   private readonly activeBattles = new Map<string, ActiveBattle>();
@@ -95,6 +95,7 @@ export class BattleGateway
   private readonly privateJoinAttempts = new Map<string, { count: number; windowStartedAt: number }>();
   private readonly questionDuration = 20_000;
   private readonly reconnectGracePeriod = 30_000;
+  private reconciliationTimer: ReturnType<typeof setInterval> | null = null;
 
   @WebSocketServer()
   server: Namespace;
@@ -148,6 +149,40 @@ export class BattleGateway
 
       await this.persistBattle(battle);
       this.logger.warn(`Battle Redisdan tiklandi: ${battle.roomCode}`);
+    }
+
+    // Every API node discovers matches created after it booted. Timers may be
+    // scheduled on several nodes; Redis claims ensure only one node resolves.
+    this.reconciliationTimer = setInterval(() => {
+      void this.reconcileActiveBattles().catch((error) =>
+        this.logger.error('Battle Redis reconciliation xatosi:', error),
+      );
+    }, 2_000);
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    if (this.reconciliationTimer) clearInterval(this.reconciliationTimer);
+    this.reconciliationTimer = null;
+    for (const battle of this.activeBattles.values()) this.clearBattleTimers(battle);
+  }
+
+  private async reconcileActiveBattles(): Promise<void> {
+    if (!this.battleStateStore.isReady()) return;
+    const snapshots = await this.battleStateStore.listActive();
+
+    for (const saved of snapshots) {
+      let battle = this.activeBattles.get(saved.matchId);
+      if (!battle) {
+        battle = this.fromSnapshot(saved);
+        this.activeBattles.set(saved.matchId, battle);
+      }
+
+      if (!battle.timer && !saved.questionResolved && !saved.resolving) {
+        const delay = Math.max(0, saved.deadline - Date.now());
+        battle.timer = setTimeout(() => {
+          void this.resolveQuestion(battle!);
+        }, delay);
+      }
     }
   }
 
