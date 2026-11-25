@@ -49,6 +49,7 @@ describe('BattleGateway private Friends Battle rooms', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.clearAllMocks();
+    battleStateStore.isReady.mockReturnValue(false);
     featureUsageService.consume.mockResolvedValue({
       allowed: true, featureKey: 'privateBattle', tier: 'free',
       period: 'daily', limit: 3, used: 1, remaining: 2,
