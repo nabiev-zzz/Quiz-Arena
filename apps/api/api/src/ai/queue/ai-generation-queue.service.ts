@@ -142,7 +142,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
         await this.jobs.update({ id: job.id }, { status: 'failed', error: 'Tarif limitingiz tugagan.', completedAt: new Date() });
         throw new TooManyRequestsException('Ushbu AI funksiyasi uchun tarif limitingiz tugagan.');
       }
-      await this.jobs.update({ id: job.id }, { quotaConsumed: true });
+      await this.jobs.update({ id: job.id }, { quotaConsumed: true, payload: { ...input.payload, _quotaReceipt: usage } });
     }
 
     try {
