@@ -7,6 +7,13 @@ import { AiTutorService } from '../ai-tutor.service';
 import { AiGenerationQueueService, AI_GENERATION_PREFIX, AI_GENERATION_QUEUE, createAiQueueRedisConnection } from './ai-generation-queue.service';
 import { LearningService } from '../../learning/learning.service';
 
+function boundedInteger(value: string | undefined, fallback: number, min: number, max: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed)
+    ? Math.min(max, Math.max(min, Math.floor(parsed)))
+    : fallback;
+}
+
 async function main(): Promise<void> {
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: ['error', 'warn', 'log'],
@@ -59,10 +66,10 @@ async function main(): Promise<void> {
     {
       connection,
       prefix: AI_GENERATION_PREFIX,
-      concurrency: Math.max(1, Math.min(8, Number(process.env.AI_WORKER_CONCURRENCY || 3))),
+      concurrency: boundedInteger(process.env.AI_WORKER_CONCURRENCY, 3, 1, 8),
       limiter: {
-        max: Math.max(1, Math.min(1000, Number(process.env.AI_WORKER_RATE_LIMIT_MAX || 120))),
-        duration: Math.max(1000, Number(process.env.AI_WORKER_RATE_LIMIT_DURATION_MS || 60_000)),
+        max: boundedInteger(process.env.AI_WORKER_RATE_LIMIT_MAX, 120, 1, 1000),
+        duration: boundedInteger(process.env.AI_WORKER_RATE_LIMIT_DURATION_MS, 60_000, 1000, 3_600_000),
       },
       lockDuration: 120_000,
       stalledInterval: 30_000,
