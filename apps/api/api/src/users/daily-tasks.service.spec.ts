@@ -1,8 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { DailyTasksService } from './daily-tasks.service';
 import { User } from './entities/user.entity';
-import { DailyTaskProgress } from './entities/daily-task-progress.entity';
-import { ZcTransaction } from './entities/zc-transaction.entity';
 
 describe('DailyTasksService', () => {
   it('returns the three daily missions with Tashkent timezone', async () => {
