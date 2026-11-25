@@ -5,7 +5,7 @@ import React, {
   useEffect,
   useState,
 } from 'react';
-import { Alert, Linking } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 
 import {
   AuthUser,
@@ -85,7 +85,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const processGoogleRedirect = useCallback(async (url: string) => {
     try {
       const parsed = new URL(url);
-      if (parsed.protocol !== 'quizarena:' || parsed.hostname !== 'auth') return;
+      const isWebCallback = Platform.OS === 'web' && parsed.pathname.replace(/\\/$/, '') === '/app';
+      const isNativeCallback = parsed.protocol === 'quizarena:' && parsed.hostname === 'auth';
+      if (!isWebCallback && !isNativeCallback) return;
+      if (isWebCallback) {
+        window.history.replaceState({}, document.title, parsed.pathname);
+      }
       if (parsed.searchParams.get('error')) {
         Alert.alert('Kirish', 'Kirish jarayoni yakunlanmadi. Qayta urinib ko‘ring.');
         return;
@@ -106,9 +111,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const subscription = Linking.addEventListener('url', ({ url }) => {
       void processGoogleRedirect(url);
     });
-    void Linking.getInitialURL().then((url) => {
-      if (url) void processGoogleRedirect(url);
-    });
+    if (Platform.OS === 'web') {
+      void processGoogleRedirect(window.location.href);
+    } else {
+      void Linking.getInitialURL().then((url) => {
+        if (url) void processGoogleRedirect(url);
+      });
+    }
     return () => subscription.remove();
   }, [processGoogleRedirect]);
 
@@ -153,13 +162,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(updatedUser);
   };
 
-  const startGoogleLogin = async () => {
-    await Linking.openURL(`${API_BASE_URL}/api/auth/google/start`);
+  const openOAuth = async (provider: 'google' | 'telegram') => {
+    const platform = Platform.OS === 'web' ? '?platform=web' : '';
+    const url = `${API_BASE_URL}/api/auth/${provider}/start${platform}`;
+    if (Platform.OS === 'web') {
+      window.location.assign(url);
+      return;
+    }
+    await Linking.openURL(url);
   };
 
-  const startTelegramLogin = async () => {
-    await Linking.openURL(`${API_BASE_URL}/api/auth/telegram/start`);
-  };
+  const startGoogleLogin = async () => openOAuth('google');
+
+  const startTelegramLogin = async () => openOAuth('telegram');
 
   const updateProfile = async (input: UpdateProfileInput) => {
     const updatedUser = await updateCurrentUser(input);
