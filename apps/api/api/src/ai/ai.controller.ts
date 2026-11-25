@@ -9,7 +9,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import { AiService } from './ai.service';
 import { AiTutorService } from './ai-tutor.service';
 import { GenerateQuestionsDto } from './dto/generate-questions.dto';
 import { AiTutorMessageDto } from './dto/ai-tutor-message.dto';
@@ -25,7 +24,6 @@ interface AuthenticatedRequest {
 @Controller('api/ai')
 export class AiController {
   constructor(
-    private readonly aiService: AiService,
     private readonly aiTutorService: AiTutorService,
     private readonly aiQueue: AiGenerationQueueService,
   ) {}
