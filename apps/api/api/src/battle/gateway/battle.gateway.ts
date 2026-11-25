@@ -172,7 +172,15 @@ export class BattleGateway
     if (!this.battleStateStore.isReady()) return;
     const snapshots = await this.battleStateStore.listActive();
 
-    for (const saved of snapshots) {
+    for (const snapshot of snapshots) {
+      let saved = snapshot;
+      if (
+        (saved.resolving || saved.finishing) &&
+        Date.now() - saved.updatedAt >= 60_000
+      ) {
+        saved = (await this.battleStateStore.recoverStaleTransition(saved.matchId)) || saved;
+      }
+
       let battle = this.activeBattles.get(saved.matchId);
       if (!battle) {
         battle = this.fromSnapshot(saved);
