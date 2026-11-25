@@ -714,7 +714,7 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     progressTrack: { height: 6, borderRadius: 4, backgroundColor: C.surfaceRaised, overflow: 'hidden', marginTop: 16, marginBottom: 8 },
     progressFill: { height: 6, borderRadius: 4, backgroundColor: C.purple },
     achievementList: { gap: 9 },
-    historyHero: { borderRadius: 24, padding: 18, marginBottom: 12, overflow: 'hidden', backgroundColor: isDark ? '#30285F' : '#6554D9', borderWidth: 1, borderColor: isDark ? 'rgba(190,178,255,0.28)' : 'rgba(255,255,255,0.24)' },
+    historyHero: { borderRadius: 24, padding: 18, marginBottom: 12, overflow: 'hidden', backgroundColor: '#6554D9', borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)' },
     historyHeroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     historyEyebrow: { color: '#D8D0FF', fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
     historyHeroTitle: { color: '#FFFFFF', fontSize: 21, fontWeight: '900', marginTop: 5 },
