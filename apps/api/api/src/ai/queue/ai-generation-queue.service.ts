@@ -19,6 +19,7 @@ export function createAiQueueRedisConnection(): Redis {
       connectTimeout: 5000,
       maxRetriesPerRequest: null,
       enableReadyCheck: true,
+      retryStrategy: (times) => times > 2 ? null : Math.min(times * 250, 1000),
     });
   }
   if (!host) throw new Error('AI queue uchun REDIS_URL, VALKEY_URL yoki VALKEY_HOST sozlanmagan.');
@@ -30,6 +31,7 @@ export function createAiQueueRedisConnection(): Redis {
     connectTimeout: 5000,
     maxRetriesPerRequest: null,
     enableReadyCheck: true,
+    retryStrategy: (times) => times > 2 ? null : Math.min(times * 250, 1000),
   });
 }
 
