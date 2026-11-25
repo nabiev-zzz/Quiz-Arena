@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { jest } from '@jest/globals';
 import { BattleService, BattleQuestionResult } from './battle.service';
 import { BattleMatch } from './entities/battle-match.entity';
 import { User } from '../users/entities/user.entity';
