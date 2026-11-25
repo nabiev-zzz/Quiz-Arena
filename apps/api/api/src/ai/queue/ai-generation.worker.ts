@@ -80,8 +80,11 @@ async function main(): Promise<void> {
     },
   );
 
+  let recoveryInProgress = false;
   const recoveryTimer = setInterval(() => {
-    void queueService.reconcilePendingJobs();
+    if (recoveryInProgress) return;
+    recoveryInProgress = true;
+    void queueService.reconcilePendingJobs().finally(() => { recoveryInProgress = false; });
   }, 30_000);
 
   worker.on('failed', (job, error) => {
