@@ -29,8 +29,8 @@ describe('AiGenerationQueueService', () => {
     jobRepository.count.mockResolvedValue(0);
     jobRepository.findOne.mockResolvedValue(null);
     jobRepository.find.mockResolvedValue([]);
-    jobRepository.create.mockImplementation((value) => ({ ...value, id: 'job-1' }));
-    jobRepository.save.mockImplementation(async (value) => value);
+    jobRepository.create.mockImplementation((value) => ({ ...value }));
+    jobRepository.save.mockImplementation(async (value) => ({ ...value, id: 'job-1' }));
     jobRepository.update.mockResolvedValue({ affected: 1 });
     featureUsage.consume.mockResolvedValue({
       allowed: true,
