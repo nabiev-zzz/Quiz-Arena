@@ -305,6 +305,46 @@ export class BattleStateStore implements OnModuleInit, OnModuleDestroy {
   }
 
 
+  async markPlayerDisconnected(
+    matchId: string,
+    userId: string,
+    socketId: string,
+    disconnectedAt: number,
+  ): Promise<BattleStateSnapshot | null> {
+    return this.withMatchLock(matchId, async () => {
+      const state = await this.get(matchId);
+      if (
+        !state ||
+        !state.playerIds.includes(userId) ||
+        state.socketIds[userId] !== socketId ||
+        state.finishing
+      ) {
+        return null;
+      }
+      delete state.socketIds[userId];
+      state.disconnectedAt[userId] = disconnectedAt;
+      await this.save(state);
+      return state;
+    });
+  }
+
+  async reconnectPlayer(
+    matchId: string,
+    userId: string,
+    socketId: string,
+  ): Promise<BattleStateSnapshot | null> {
+    return this.withMatchLock(matchId, async () => {
+      const state = await this.get(matchId);
+      if (!state || !state.playerIds.includes(userId) || state.finishing) {
+        return null;
+      }
+      state.socketIds[userId] = socketId;
+      delete state.disconnectedAt[userId];
+      await this.save(state);
+      return state;
+    });
+  }
+
   async claimDisconnectTimeout(
     matchId: string,
     userId: string,
