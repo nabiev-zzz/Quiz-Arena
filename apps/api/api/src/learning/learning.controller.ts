@@ -16,6 +16,7 @@ import { LearningService } from './learning.service';
 import type { CreateLearningAttemptInput } from './learning.service';
 import { GetTopicQuestionsDto } from './dto/get-topic-questions.dto';
 import { SubmitWebLearningAttemptDto } from './dto/submit-web-learning-attempt.dto';
+import { AiGenerationQueueService } from '../ai/queue/ai-generation-queue.service';
 
 interface AuthenticatedRequest {
   user: { id: string };
@@ -24,7 +25,10 @@ interface AuthenticatedRequest {
 @Controller('api/learning')
 @UseGuards(JwtAuthGuard)
 export class LearningController {
-  constructor(private readonly learningService: LearningService) {}
+  constructor(
+    private readonly learningService: LearningService,
+    private readonly aiQueue: AiGenerationQueueService,
+  ) {}
 
   @Get('catalog')
   getCatalog() {
@@ -66,8 +70,13 @@ export class LearningController {
   }
 
   @Post('questions')
-  getTopicQuestions(@Body() body: GetTopicQuestionsDto) {
-    return this.learningService.getTopicQuestions(body);
+  getTopicQuestions(@Request() request: AuthenticatedRequest, @Body() body: GetTopicQuestionsDto) {
+    return this.learningService.getTopicQuestions(body, false, request.user.id);
+  }
+
+  @Get('jobs/:jobId')
+  getAiJobStatus(@Request() request: AuthenticatedRequest, @Param('jobId') jobId: string) {
+    return this.aiQueue.getStatus(request.user.id, jobId);
   }
 
   @Get('attempts')
