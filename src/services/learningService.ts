@@ -105,6 +105,20 @@ async function learningRequest<T>(
   return data as T;
 }
 
+async function waitForLearningJob<T>(jobId: string): Promise<T> {
+  for (let attempt = 0; attempt < 240; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const status = await learningRequest<{
+      status: 'queued' | 'active' | 'completed' | 'failed';
+      result?: T;
+      error?: string;
+    }>(`/api/learning/jobs/${encodeURIComponent(jobId)}`);
+    if (status.status === 'completed' && status.result) return status.result;
+    if (status.status === 'failed') throw new Error(status.error || 'AI test yaratishda xatolik yuz berdi.');
+  }
+  throw new Error('AI navbatida kutish vaqti tugadi. Keyinroq test tarixidan tekshirib ko‘ring.');
+}
+
 export function saveLearningAttempt(input: LearningAttemptInput): Promise<LearningHistoryItem> {
   return learningRequest('/api/learning/attempts', {
     method: 'POST',
@@ -139,11 +153,18 @@ export async function getTopicQuestions(input: {
   difficulty: Difficulty;
   language: 'uz' | 'ru' | 'en';
 }): Promise<Question[]> {
-  const result = await learningRequest<{ questions: Question[]; source: 'database'; cachedQuestionCount: number }>(
-    '/api/learning/questions',
-    { method: 'POST', body: JSON.stringify(input) },
-  );
-  return result.questions;
+  const result = await learningRequest<{
+    questions?: Question[];
+    source?: 'database';
+    cachedQuestionCount?: number;
+    status?: 'queued' | 'active' | 'completed';
+    jobId?: string;
+  }>('/api/learning/questions', { method: 'POST', body: JSON.stringify(input) });
+  if (result.status === 'queued' || result.status === 'active') {
+    const completed = await waitForLearningJob<{ questions: Question[] }>(String(result.jobId));
+    return completed.questions;
+  }
+  return result.questions || [];
 }
 
 export interface DocumentQuizQuestion {
@@ -195,6 +216,9 @@ export async function createDocumentQuiz(
   if (!response.ok) {
     throw new Error(typeof data.message === 'string' ? data.message : 'Hujjatdan test yaratib bo‘lmadi.');
   }
+  if (data.status === 'queued' || data.status === 'active') {
+    return waitForLearningJob<DocumentQuizResult>(String(data.jobId));
+  }
   return data as DocumentQuizResult;
 }
 
@@ -206,8 +230,13 @@ export interface SmartPracticeResult {
   questions: DocumentQuizQuestion[];
 }
 
-export const createSmartPractice = (count: number, language: 'uz' | 'ru' | 'en') =>
-  learningRequest<SmartPracticeResult>('/api/learning/smart-practice', {
-    method: 'POST',
-    body: JSON.stringify({ count, language }),
-  });
+export const createSmartPractice = async (count: number, language: 'uz' | 'ru' | 'en') => {
+  const result = await learningRequest<SmartPracticeResult & { status?: 'queued' | 'active'; jobId?: string }>(
+    '/api/learning/smart-practice',
+    { method: 'POST', body: JSON.stringify({ count, language }) },
+  );
+  if (result.status === 'queued' || result.status === 'active') {
+    return waitForLearningJob<SmartPracticeResult>(String(result.jobId));
+  }
+  return result;
+};
