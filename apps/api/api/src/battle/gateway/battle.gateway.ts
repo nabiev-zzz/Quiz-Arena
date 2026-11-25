@@ -816,6 +816,7 @@ export class BattleGateway
         roomCode: battle.roomCode,
         scores: battle.scores,
         rankChanges: match.rankChanges,
+        zcChanges: match.zcChanges,
         winnerId: match.winnerId,
         draw: match.winnerId === null,
         totalQuestions: battle.questions.length,
