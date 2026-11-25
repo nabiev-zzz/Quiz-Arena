@@ -44,6 +44,9 @@ export class AiGenerationJob {
   @Column({ type: 'varchar', length: 64, nullable: true })
   idempotencyKey: string | null;
 
+  @Column({ type: 'integer', default: 50 })
+  priority: number;
+
   @Column({ type: 'integer', default: 0 })
   attempts: number;
 
