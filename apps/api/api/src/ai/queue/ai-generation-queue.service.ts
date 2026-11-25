@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
@@ -148,10 +148,30 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     const job = await this.jobs.findOne({ where: { id: jobId, userId } });
     if (!job) {
       // Avoid revealing whether a job belongs to another account.
-      const { NotFoundException } = await import('@nestjs/common');
       throw new NotFoundException('AI so‘rovi topilmadi.');
     }
     return job;
+  }
+
+  async getJobForWorker(jobId: string): Promise<AiGenerationJob> {
+    const job = await this.jobs.createQueryBuilder('job')
+      .addSelect('job.fileBuffer')
+      .where('job.id = :jobId', { jobId })
+      .getOne();
+    if (!job) throw new Error('AI generation job not found');
+    return job;
+  }
+
+  async getStatus(userId: string, jobId: string) {
+    const job = await this.getOwnedJob(userId, jobId);
+    return {
+      jobId: job.id,
+      status: job.status,
+      result: job.status === 'completed' ? job.result : undefined,
+      error: job.status === 'failed' ? job.error : undefined,
+      createdAt: job.createdAt,
+      completedAt: job.completedAt,
+    };
   }
 
   async markActive(jobId: string): Promise<AiGenerationJob> {
