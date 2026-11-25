@@ -9,7 +9,7 @@ import type { Server, ServerOptions } from 'socket.io';
  * API replicas. This adapter does NOT persist BattleGateway's in-memory state.
  */
 export class RedisIoAdapter extends IoAdapter {
-  private readonly logger = new Logger(RedisIoAdapter.name);
+  private readonly adapterLogger = new Logger(RedisIoAdapter.name);
   private pubClient: Redis | null = null;
   private subClient: Redis | null = null;
 
@@ -23,7 +23,7 @@ export class RedisIoAdapter extends IoAdapter {
     const host = process.env.VALKEY_HOST?.trim();
 
     if (!redisUrl && !host) {
-      this.logger.warn(
+      this.adapterLogger.warn(
         'REDIS_URL/VALKEY_URL/VALKEY_HOST sozlanmagan; Socket.IO lokal adapterda ishlaydi. Multi-replica rejimi yoqilmagan.',
       );
       return false;
@@ -47,7 +47,7 @@ export class RedisIoAdapter extends IoAdapter {
     const subscriber = publisher.duplicate();
 
     const logClientError = (role: string) => (error: Error) => {
-      this.logger.error(`Socket.IO Redis ${role} xatosi: ${error.message}`);
+      this.adapterLogger.error(`Socket.IO Redis ${role} xatosi: ${error.message}`);
     };
     publisher.on('error', logClientError('publisher'));
     subscriber.on('error', logClientError('subscriber'));
@@ -58,12 +58,12 @@ export class RedisIoAdapter extends IoAdapter {
 
       this.pubClient = publisher;
       this.subClient = subscriber;
-      this.logger.log('Socket.IO Redis adapter ulanishi tayyor');
+      this.adapterLogger.log('Socket.IO Redis adapter ulanishi tayyor');
       return true;
     } catch (error) {
       publisher.disconnect();
       subscriber.disconnect();
-      this.logger.error(
+      this.adapterLogger.error(
         'Socket.IO Redis adapter ulanmadi; noto‘g‘ri single-node fallback bilan API ishga tushirilmaydi.',
         error instanceof Error ? error.stack : String(error),
       );
