@@ -78,8 +78,12 @@ describe('BattleGateway private Friends Battle rooms', () => {
       emit: jest.fn(),
     };
     const roomEmitter = { emit: jest.fn() };
-    (gateway as never as { server: unknown }).server = {
+    const remoteSocketLookup = {
       fetchSockets: jest.fn().mockResolvedValue([remoteOpponent]),
+    };
+    const serverIn = jest.fn().mockReturnValue(remoteSocketLookup);
+    (gateway as never as { server: unknown }).server = {
+      in: serverIn,
       to: jest.fn().mockReturnValue(roomEmitter),
     };
     battleService.joinQueue.mockResolvedValue('opponent-1:socket-on-api-2');
@@ -105,8 +109,8 @@ describe('BattleGateway private Friends Battle rooms', () => {
     });
 
     expect(battleService.joinQueue).toHaveBeenCalled();
-    expect((gateway as never as { server: { fetchSockets: jest.Mock } }).server.fetchSockets)
-      .toHaveBeenCalled();
+    expect(serverIn).toHaveBeenCalledWith('socket-on-api-2');
+    expect(remoteSocketLookup.fetchSockets).toHaveBeenCalled();
     expect(remoteOpponent.join).toHaveBeenCalledWith('battle:ROOM123');
     expect(remoteOpponent.emit).toHaveBeenCalledWith(
       'battle:matched',
@@ -166,8 +170,12 @@ describe('BattleGateway private Friends Battle rooms', () => {
     );
     battleService.markMatchStarted.mockResolvedValue(undefined);
 
-    (gateway as never as { server: unknown }).server = {
+    const remoteHostLookup = {
       fetchSockets: jest.fn().mockResolvedValue([remoteHost]),
+    };
+    const serverIn = jest.fn().mockReturnValue(remoteHostLookup);
+    (gateway as never as { server: unknown }).server = {
+      in: serverIn,
       to: jest.fn().mockReturnValue(roomEmitter),
     };
 
@@ -190,6 +198,8 @@ describe('BattleGateway private Friends Battle rooms', () => {
 
     await gateway.joinPrivateRoom(guest as never, { roomCode: created.roomCode });
 
+    expect(serverIn).toHaveBeenCalledWith(invite.hostSocketId);
+    expect(remoteHostLookup.fetchSockets).toHaveBeenCalled();
     expect(battleStateStore.claimPrivateInvite).toHaveBeenCalledWith(
       created.roomCode,
       'guest-local',
