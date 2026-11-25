@@ -28,8 +28,7 @@ Run two Railway services from the same API source and build:
 | API | `npm run start:prod` | Auth, validation, database jobs, enqueue, polling |
 | AI worker | `npm run start:worker:prod` | BullMQ consumption and AI provider calls |
 
-The worker is a separate process, not an API replica. Do not start one worker
-inside every API instance. BullMQ coordinates multiple worker replicas safely.
+The worker is a separate process, not an API replica. Deploy the API first so its startup migrations create the job tables, then start the worker service. Worker mode skips TypeORM migrations to avoid concurrent migration runners. Do not start one worker inside every API instance. BullMQ coordinates multiple worker replicas safely.
 
 Required shared environment:
 - `DATABASE_URL` or the existing `DB_HOST`, `DB_PORT`, `DB_USERNAME`,
