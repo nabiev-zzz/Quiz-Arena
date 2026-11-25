@@ -10,6 +10,7 @@ import { LearningController } from './learning.controller';
 import { LearningService } from './learning.service';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { LearningQuestionCache } from './learning-question-cache.service';
+import { AiJobsModule } from '../ai/queue/ai-jobs.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { LearningQuestionCache } from './learning-question-cache.service';
     AuthModule,
     AiModule,
     SubscriptionsModule,
+    AiJobsModule,
   ],
   controllers: [LearningController],
   providers: [LearningService, LearningQuestionCache],
