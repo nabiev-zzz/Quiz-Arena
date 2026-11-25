@@ -77,7 +77,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         AllowSystemAiGenerationJobs20261125102000,
         AddAiGenerationJobPriority20261125103000,
       ],
-      migrationsRun: true,
+      migrationsRun: process.env.AI_WORKER_PROCESS !== 'true',
       migrationsTableName: 'typeorm_migrations',
     }),
     AiModule,
