@@ -116,6 +116,52 @@ describe('BattleStateStore (shared Redis)', () => {
     await serverA.remove(state.matchId);
   });
 
+  it('serializes disconnect and reconnect transitions across API instances', async () => {
+    const state = createState(randomUUID());
+    await serverA.save(state);
+    const disconnectedAt = Date.now();
+
+    const disconnected = await serverA.markPlayerDisconnected(
+      state.matchId,
+      'player-a',
+      'socket-a',
+      disconnectedAt,
+    );
+    expect(disconnected?.socketIds['player-a']).toBeUndefined();
+    expect(disconnected?.disconnectedAt['player-a']).toBe(disconnectedAt);
+
+    const reconnected = await serverB.reconnectPlayer(
+      state.matchId,
+      'player-a',
+      'socket-a-new',
+    );
+    expect(reconnected?.socketIds['player-a']).toBe('socket-a-new');
+    expect(reconnected?.disconnectedAt['player-a']).toBeUndefined();
+
+    await expect(
+      serverA.claimDisconnectTimeout(state.matchId, 'player-a', disconnectedAt),
+    ).resolves.toBeNull();
+    await serverA.remove(state.matchId);
+  });
+
+  it('allows only one replica to claim an expired disconnect timeout', async () => {
+    const state = createState(randomUUID());
+    const disconnectedAt = Date.now() - 31_000;
+    delete state.socketIds['player-a'];
+    state.disconnectedAt['player-a'] = disconnectedAt;
+    await serverA.save(state);
+
+    const claims = await Promise.all([
+      serverA.claimDisconnectTimeout(state.matchId, 'player-a', disconnectedAt),
+      serverB.claimDisconnectTimeout(state.matchId, 'player-a', disconnectedAt),
+    ]);
+
+    expect(claims.filter(Boolean)).toHaveLength(1);
+    const saved = await serverB.get(state.matchId);
+    expect(saved?.finishing).toBe(true);
+    await serverA.remove(state.matchId);
+  });
+
   it('serializes critical sections across two API instances', async () => {
     const matchId = randomUUID();
     const order: string[] = [];
