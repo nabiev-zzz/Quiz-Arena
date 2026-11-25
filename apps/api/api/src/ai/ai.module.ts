@@ -11,12 +11,14 @@ import { User } from '../users/entities/user.entity';
 
 import { AuthModule } from '../auth/auth.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { AiJobsModule } from './queue/ai-jobs.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([AiTutorMessage, BattleMatch, User]),
     AuthModule,
     SubscriptionsModule,
+    AiJobsModule,
   ],
   providers: [
     AiService,
