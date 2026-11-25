@@ -13,6 +13,7 @@ import * as bcrypt from 'bcryptjs';
 import { createHash, createPublicKey, randomBytes, randomInt, verify as verifySignature } from 'node:crypto';
 
 import { User } from '../users/entities/user.entity';
+import { ZcStoreItem } from '../users/entities/zc-store-item.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { PhoneRegisterDto, PasswordResetDto } from './dto/phone-otp.dto';
@@ -38,6 +39,8 @@ export class AuthService {
     private readonly config: ConfigService,
     @InjectRepository(AuthOAuthCode)
     private readonly oauthCodeRepository: Repository<AuthOAuthCode>,
+    @InjectRepository(ZcStoreItem)
+    private readonly zcStoreItems: Repository<ZcStoreItem>,
   ) {}
 
   private getRankTier(points: number): string {
@@ -112,8 +115,21 @@ export class AuthService {
 
     if (input.bio !== undefined) user.bio = input.bio?.trim() || null;
     if (input.avatarUrl !== undefined) user.avatarUrl = input.avatarUrl;
-    if (input.avatarDecoration !== undefined) user.avatarDecoration = input.avatarDecoration;
-    if (input.profileFrame !== undefined) user.profileFrame = input.profileFrame;
+
+    if (input.avatarDecoration !== undefined && input.avatarDecoration !== user.avatarDecoration) {
+      if (input.avatarDecoration !== null) {
+        const owned = await this.zcStoreItems.exists({ where: { userId, kind: 'decoration', itemId: `decoration_${input.avatarDecoration}` } });
+        if (!owned) throw new BadRequestException('Bu avatar bezagi sizda yo‘q. Avval ZC do‘konidan xarid qiling.');
+      }
+      user.avatarDecoration = input.avatarDecoration;
+    }
+    if (input.profileFrame !== undefined && input.profileFrame !== user.profileFrame) {
+      if (input.profileFrame !== null) {
+        const owned = await this.zcStoreItems.exists({ where: { userId, kind: 'frame', itemId: `frame_${input.profileFrame}` } });
+        if (!owned) throw new BadRequestException('Bu profil ramkasi sizda yo‘q. Avval ZC do‘konidan xarid qiling.');
+      }
+      user.profileFrame = input.profileFrame;
+    }
 
     try {
       const savedUser = await this.userRepository.save(user);
