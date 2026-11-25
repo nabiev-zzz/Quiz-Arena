@@ -17,6 +17,7 @@ import { In, Repository } from 'typeorm';
 import { BattleMatch } from './entities/battle-match.entity';
 import { BattleQuestion } from './entities/battle-question.entity';
 import { User } from '../users/entities/user.entity';
+import { ZcTransaction } from '../users/entities/zc-transaction.entity';
 import { AiService } from '../ai/ai.service';
 
 interface AiGeneratedBattleQuestion {
@@ -45,8 +46,15 @@ export interface BattleRankChange {
   rankTier: string;
 }
 
+export type BattleZcChange = {
+  userId: string;
+  amount: number;
+  balanceAfter: number;
+};
+
 export type FinishedBattleResult = BattleMatch & {
   rankChanges: Record<string, BattleRankChange>;
+  zcChanges: Record<string, BattleZcChange>;
 };
 
 function getBattleRankTier(points: number): string {
@@ -422,9 +430,28 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
         }
 
         if (match.status === 'finished') {
+          const existingWalletEntries = match.playerTwoId
+            ? await manager.getRepository(ZcTransaction).find({
+                where: {
+                  idempotencyKey: In([
+                    `battle:${match.id}:${match.playerOneId}`,
+                    `battle:${match.id}:${match.playerTwoId}`,
+                  ]),
+                },
+              })
+            : [];
+          const zcChanges: Record<string, BattleZcChange> = {};
+          for (const entry of existingWalletEntries) {
+            zcChanges[entry.userId] = {
+              userId: entry.userId,
+              amount: entry.amount,
+              balanceAfter: entry.balanceAfter,
+            };
+          }
           return Object.assign(match, {
             rankChanges: (match.rankChanges ??
               {}) as Record<string, BattleRankChange>,
+            zcChanges,
           });
         }
 
@@ -626,8 +653,39 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
           }
         }
 
-        // RP natijasi match bilan bir tranzaksiyada saqlanadi.
-        // Shu sababli qayta urinishlarda aynan shu natija qaytariladi.
+        // Ranked Battle mukofotlari ham match va RP bilan bitta DB tranzaksiyasida yoziladi.
+        // G'alaba: 20 ZC, durang: 10 ZC, mag'lubiyat: 5 ZC.
+        // Idempotency kaliti match qayta yakunlansa ham ikki marta to'lashga yo'l qo'ymaydi.
+        const zcChanges: Record<string, BattleZcChange> = {};
+        if (match.mode === 'ranked' && match.playerTwoId) {
+          for (const playerId of [match.playerOneId, match.playerTwoId]) {
+            const user = lockedUsers.get(playerId);
+            if (!user) continue;
+            const amount = winnerId === null ? 10 : winnerId === playerId ? 20 : 5;
+            user.zcBalance = Math.max(0, Number(user.zcBalance ?? 0)) + amount;
+            await userRepo.save(user);
+            const entry = manager.create(ZcTransaction, {
+              userId: playerId,
+              type: 'credit',
+              amount,
+              balanceAfter: user.zcBalance,
+              reason: winnerId === null
+                ? 'Ranked Battle durangi'
+                : winnerId === playerId
+                  ? 'Ranked Battle g‘alabasi'
+                  : 'Ranked Battle ishtiroki',
+              idempotencyKey: `battle:${match.id}:${playerId}`,
+            });
+            await manager.save(ZcTransaction, entry);
+            zcChanges[playerId] = {
+              userId: playerId,
+              amount,
+              balanceAfter: user.zcBalance,
+            };
+          }
+        }
+
+        // RP va ZC natijalari match bilan bitta tranzaksiyada saqlanadi.
         match.rankChanges = rankChanges as unknown as Record<string, unknown>;
 
         const saved = await matchRepo.save(match);
@@ -636,7 +694,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
           `Battle ${match.roomCode} yakunlandi. G'olib: ${winnerId || 'Durang'}. Rank: ${Object.keys(rankChanges).length} ishtirokchi.`,
         );
 
-        return Object.assign(saved, { rankChanges });
+        return Object.assign(saved, { rankChanges, zcChanges });
       },
     );
   }
