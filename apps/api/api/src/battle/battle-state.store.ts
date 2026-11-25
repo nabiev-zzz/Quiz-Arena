@@ -270,7 +270,8 @@ export class BattleStateStore implements OnModuleInit, OnModuleDestroy {
         !state.playerIds.includes(userId) ||
         state.socketIds[userId] !== socketId ||
         state.questionIndex !== questionIndex ||
-        (!state.questionResolved && Date.now() < state.deadline)
+        (!Object.prototype.hasOwnProperty.call(state.answers, userId) &&
+          !state.questionResolved && Date.now() < state.deadline)
       ) {
         return null;
       }
