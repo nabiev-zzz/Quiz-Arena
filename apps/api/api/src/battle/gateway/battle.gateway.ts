@@ -102,7 +102,6 @@ export class BattleGateway
 {
   private readonly logger = new Logger(BattleGateway.name);
   private readonly activeBattles = new Map<string, ActiveBattle>();
-  private readonly queuedSockets = new Map<string, string>();
   private readonly privateRooms = new Map<string, PrivateBattleRoom>();
   private readonly privateJoinAttempts = new Map<string, { count: number; windowStartedAt: number }>();
   private readonly questionDuration = 20_000;
@@ -446,14 +445,14 @@ export class BattleGateway
 
     await this.cleanupPrivateRoomsForSocket(client.id);
 
-    const queueKey = this.queuedSockets.get(client.id);
+    const queueKey = await this.battleService.getQueueForSocket(client.id);
 
     if (queueKey) {
       await this.battleService
         .leaveQueue(queueKey, userId, client.id)
         .catch(() => undefined);
 
-      this.queuedSockets.delete(client.id);
+      
     }
 
     const battles = this.battleStateStore.isReady()
@@ -505,7 +504,7 @@ export class BattleGateway
       client.emit('battle:error', { message: 'Avval tizimga kiring.' });
       return;
     }
-    if (this.queuedSockets.has(client.id)) {
+    if (await this.battleService.getQueueForSocket(client.id)) {
       client.emit('battle:error', { message: 'Avval raqib qidirish navbatidan chiqing.' });
       return;
     }
@@ -612,7 +611,7 @@ export class BattleGateway
       client.emit('battle:error', { message: '12 belgili xona kodi noto‘g‘ri.' });
       return;
     }
-    if (this.queuedSockets.has(client.id)) {
+    if (await this.battleService.getQueueForSocket(client.id)) {
       client.emit('battle:error', { message: 'Avval raqib qidirish navbatidan chiqing.' });
       return;
     }
@@ -815,7 +814,7 @@ export class BattleGateway
     const queueKey = `battle:queue:${mode}:${categoryId}`;
 
     try {
-      const previousQueue = this.queuedSockets.get(client.id);
+      const previousQueue = await this.battleService.getQueueForSocket(client.id);
 
       if (previousQueue) {
         await this.battleService.leaveQueue(
@@ -823,7 +822,7 @@ export class BattleGateway
           userId,
           client.id,
         );
-        this.queuedSockets.delete(client.id);
+        
       }
 
       const opponent = await this.battleService.joinQueue(
@@ -833,7 +832,7 @@ export class BattleGateway
       );
 
       if (!opponent) {
-        this.queuedSockets.set(client.id, queueKey);
+        
 
         client.emit('battle:queue:waiting', {
           status: 'waiting',
@@ -876,7 +875,7 @@ export class BattleGateway
         );
 
         if (!nextOpponent) {
-          this.queuedSockets.set(client.id, queueKey);
+          
 
           client.emit('battle:queue:waiting', {
             status: 'waiting',
@@ -895,8 +894,8 @@ export class BattleGateway
         return;
       }
 
-      this.queuedSockets.delete(client.id);
-      this.queuedSockets.delete(opponentSocketId);
+      
+      
 
       const match = await this.battleService.createMatch(
         opponentId,
@@ -1616,7 +1615,7 @@ export class BattleGateway
       return;
     }
 
-    const trackedQueue = this.queuedSockets.get(client.id);
+    const trackedQueue = await this.battleService.getQueueForSocket(client.id);
 
     const mode = payload?.mode === 'ranked' ? 'ranked' : 'casual';
     const rawCategory = payload?.categoryId || 'general';
@@ -1634,7 +1633,7 @@ export class BattleGateway
       client.id,
     );
 
-    this.queuedSockets.delete(client.id);
+    
 
     client.emit('battle:queue:cancelled', {
       cancelled: true,
