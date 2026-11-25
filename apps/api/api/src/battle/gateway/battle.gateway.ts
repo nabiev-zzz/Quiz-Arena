@@ -275,10 +275,15 @@ export class BattleGateway
   }
 
   private async getActiveBattle(matchId: string): Promise<ActiveBattle | undefined> {
-    const local = this.activeBattles.get(matchId);
-    if (local) return local;
     const saved = await this.battleStateStore.get(matchId);
     if (!saved) return undefined;
+
+    const local = this.activeBattles.get(matchId);
+    if (local) {
+      this.applySnapshot(local, saved);
+      return local;
+    }
+
     const battle = this.fromSnapshot(saved);
     this.activeBattles.set(matchId, battle);
     return battle;
