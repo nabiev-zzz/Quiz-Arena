@@ -17,6 +17,7 @@ import { AddUserProfileFields20261122192000 } from './database/migrations/AddUse
 import { AddUserRankPoints20261124002500 } from './database/migrations/AddUserRankPoints';
 import { AddUserZcBalance20261125230000 } from './database/migrations/AddUserZcBalance';
 import { CreateZcTransactions20261126010000 } from './database/migrations/CreateZcTransactions';
+import { CreateZcStoreItems20261126020000 } from './database/migrations/CreateZcStoreItems';
 import { AddBattleMatchRankChanges20261124040000 } from './database/migrations/AddBattleMatchRankChanges';
 import { CreateUserFollows20261124070000 } from './database/migrations/CreateUserFollows';
 import { CreateLearningAttempts20261124090000 } from './database/migrations/CreateLearningAttempts';
@@ -53,6 +54,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         AddUserRankPoints20261124002500,
         AddUserZcBalance20261125230000,
         CreateZcTransactions20261126010000,
+        CreateZcStoreItems20261126020000,
         CreateBattleMatches20261122210000,
         CreateBattleQuestions20261122220000,
         AddBattleMatchRankChanges20261124040000,
