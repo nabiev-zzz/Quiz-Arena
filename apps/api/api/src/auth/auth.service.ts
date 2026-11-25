@@ -265,7 +265,7 @@ export class AuthService {
 
   private getWebAppUrl(): string {
     const configured = this.config.get<string>('WEB_APP_URL')?.trim();
-    return (configured || 'https://quiz-arena-website-production.up.railway.app').replace(/\\/+$/, '');
+    return (configured || 'https://quiz-arena-website-production.up.railway.app').replace(/\/+$/, '');
   }
 
   async getOAuthErrorRedirect(provider: 'google' | 'telegram', state: string): Promise<string> {
@@ -368,7 +368,9 @@ export class AuthService {
       expiresAt: new Date(Date.now() + 90_000),
       consumedAt: null,
     }));
-    return statePayload.client === 'web'\n      ? `${this.getWebAppUrl()}/app?provider=telegram&code=${encodeURIComponent(rawCode)}`\n      : `quizarena://auth?provider=telegram&code=${encodeURIComponent(rawCode)}`;
+    return statePayload.client === 'web'
+      ? `${this.getWebAppUrl()}/app?provider=telegram&code=${encodeURIComponent(rawCode)}`
+      : `quizarena://auth?provider=telegram&code=${encodeURIComponent(rawCode)}`;
   }
 
   async loginWithTelegram(idToken: string, expectedNonce: string) {
@@ -542,7 +544,9 @@ export class AuthService {
       expiresAt: new Date(Date.now() + 90_000),
       consumedAt: null,
     }));
-    return statePayload.client === 'web'\n      ? `${this.getWebAppUrl()}/app?provider=google&code=${encodeURIComponent(rawCode)}`\n      : `quizarena://auth?code=${encodeURIComponent(rawCode)}`;
+    return statePayload.client === 'web'
+      ? `${this.getWebAppUrl()}/app?provider=google&code=${encodeURIComponent(rawCode)}`
+      : `quizarena://auth?code=${encodeURIComponent(rawCode)}`;
   }
 
   async exchangeGoogleCode(rawCode: string) {
