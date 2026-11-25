@@ -21,9 +21,11 @@ const GOOGLE_PLAY_SKUS: Record<string, string | undefined> = {
 
 export default function PremiumScreen({ onBack }: Props) {
   const { tokens, isDark } = useTheme();
-  // Only mount expo-iap inside a native Android build. Expo Go does not include ExpoIap.
-  // Use an allow-list so unknown/store-client environments fail closed instead of crashing.
-  const canUseGooglePlayBilling = Platform.OS === 'android' && (
+  // Galaxy Store builds use Click/Payme; never initialize Google Play Billing there.
+  // Samsung IAP can be integrated separately if native Galaxy Store purchases are added later.
+  const isGalaxyStoreBuild = Constants.expoConfig?.extra?.distributionStore === 'galaxy-store';
+  // Only mount Google Play Billing inside a native Android build. Expo Go does not include ExpoIap.
+  const canUseGooglePlayBilling = !isGalaxyStoreBuild && Platform.OS === 'android' && (
     Constants.executionEnvironment === 'bare' ||
     Constants.executionEnvironment === 'standalone'
   );
@@ -90,15 +92,23 @@ export default function PremiumScreen({ onBack }: Props) {
       {canUseGooglePlayBilling ? (
         <GooglePlayPurchaseControls plans={plans} busy={busy} setBusy={setBusy} load={load} />
       ) : null}
-      <LocalizedText style={[s.section, { color: c.text }]}>Google Play</LocalizedText>
-      <GlassSurface intensity={isDark ? 30 : 38} style={s.googleNotice}>
-        <Ionicons name="logo-google-playstore" size={23} color={c.text} />
-        <View style={{ flex: 1 }}>
-          <LocalizedText style={{ color: c.text, fontWeight: '800' }}>Google Play obunasi</LocalizedText>
-          <LocalizedText style={{ color: c.textMuted, fontSize: 12, lineHeight: 17, marginTop: 4 }}>{isExpoGo ? 'Expo Go Google Play Billing native modulini qo‘llab-quvvatlamaydi. Ilovani Android development build orqali ochganda xaridlar ishlaydi.' : 'Google Play Billing va Play Console mahsulot ID’lari sozlangan Android build orqali obuna xarid qilishingiz mumkin.'}</LocalizedText>
-        </View>
-      </GlassSurface>
-      <LocalizedText style={[s.footnote,{color:c.textMuted}]}>Premium faqat Click, Payme yoki Google Play serveri to‘lovni tasdiqlagandan keyin faollashadi. To‘lov oynasidan qaytgach, obuna holatini yangilang.</LocalizedText>
+      {!isGalaxyStoreBuild && (
+        <>
+          <LocalizedText style={[s.section, { color: c.text }]}>Google Play</LocalizedText>
+          <GlassSurface intensity={isDark ? 30 : 38} style={s.googleNotice}>
+            <Ionicons name="logo-google-playstore" size={23} color={c.text} />
+            <View style={{ flex: 1 }}>
+              <LocalizedText style={{ color: c.text, fontWeight: '800' }}>Google Play obunasi</LocalizedText>
+              <LocalizedText style={{ color: c.textMuted, fontSize: 12, lineHeight: 17, marginTop: 4 }}>{isExpoGo ? 'Expo Go Google Play Billing native modulini qo‘llab-quvvatlamaydi. Ilovani Android development build orqali ochganda xaridlar ishlaydi.' : 'Google Play Billing va Play Console mahsulot ID’lari sozlangan Android build orqali obuna xarid qilishingiz mumkin.'}</LocalizedText>
+            </View>
+          </GlassSurface>
+        </>
+      )}
+      <LocalizedText style={[s.footnote,{color:c.textMuted}]}>
+        {isGalaxyStoreBuild
+          ? 'Premium Click yoki Payme to‘lovi serverda tasdiqlangandan keyin faollashadi. To‘lov oynasidan qaytgach, obuna holatini yangilang.'
+          : 'Premium faqat Click, Payme yoki Google Play serveri to‘lovni tasdiqlagandan keyin faollashadi. To‘lov oynasidan qaytgach, obuna holatini yangilang.'}
+      </LocalizedText>
     </ScrollView>
   );
 }
