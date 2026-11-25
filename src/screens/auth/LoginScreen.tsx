@@ -85,12 +85,16 @@ export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, o
             <Pressable style={styles.textButton} onPress={() => { setMode('forgot'); setCodeSent(false); setCode(''); }}>
               <LocalizedText style={styles.link}>Parolni unutdingizmi?</LocalizedText>
             </Pressable>
-            <Pressable style={[styles.googleButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onGoogleLogin)}>
-              <LocalizedText style={styles.googleButtonText}>G  Google orqali kirish</LocalizedText>
-            </Pressable>
-            <Pressable style={[styles.telegramButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onTelegramLogin)}>
-              <LocalizedText style={styles.telegramButtonText}>✈  Telegram orqali kirish</LocalizedText>
-            </Pressable>
+            {Platform.OS !== 'web' && (
+              <>
+                <Pressable style={[styles.googleButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onGoogleLogin)}>
+                  <LocalizedText style={styles.googleButtonText}>G  Google orqali kirish</LocalizedText>
+                </Pressable>
+                <Pressable style={[styles.telegramButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onTelegramLogin)}>
+                  <LocalizedText style={styles.telegramButtonText}>✈  Telegram orqali kirish</LocalizedText>
+                </Pressable>
+              </>
+            )}
           </>
         ) : (
           <>
