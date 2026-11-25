@@ -23,7 +23,11 @@ import {
   BattleService,
 } from '../battle.service';
 import { BattleQuestion } from '../entities/battle-question.entity';
-import { BattleStateSnapshot, BattleStateStore } from '../battle-state.store';
+import {
+  BattleStateSnapshot,
+  BattleStateStore,
+  PrivateBattleInviteSnapshot,
+} from '../battle-state.store';
 
 interface QueueJoinPayload {
   mode?: 'casual' | 'ranked';
@@ -51,6 +55,13 @@ interface PrivateBattleRoom {
   hostSocketId: string;
   expiresAt: number;
   timer: ReturnType<typeof setTimeout>;
+}
+
+interface BattleSocketPeer {
+  id: string;
+  data: Record<string, unknown>;
+  join(room: string): Promise<void> | void;
+  emit(event: string, ...args: unknown[]): unknown;
 }
 
 interface ActiveBattle {
@@ -91,7 +102,6 @@ export class BattleGateway
 {
   private readonly logger = new Logger(BattleGateway.name);
   private readonly activeBattles = new Map<string, ActiveBattle>();
-  private readonly queuedSockets = new Map<string, string>();
   private readonly privateRooms = new Map<string, PrivateBattleRoom>();
   private readonly privateJoinAttempts = new Map<string, { count: number; windowStartedAt: number }>();
   private readonly questionDuration = 20_000;
@@ -163,7 +173,10 @@ export class BattleGateway
     // Every API node discovers matches created after it booted. Timers may be
     // scheduled on several nodes; Redis claims ensure only one node resolves.
     this.reconciliationTimer = setInterval(() => {
-      void this.reconcileActiveBattles().catch((error) =>
+      void Promise.all([
+        this.reconcileActiveBattles(),
+        this.reconcilePrivateInvites(),
+      ]).catch((error) =>
         this.logger.error('Battle Redis reconciliation xatosi:', error),
       );
     }, 2_000);
@@ -175,9 +188,28 @@ export class BattleGateway
     for (const battle of this.activeBattles.values()) this.clearBattleTimers(battle);
   }
 
+  private async reconcilePrivateInvites(): Promise<void> {
+    if (!this.battleStateStore.isReady()) return;
+    const invites = await this.battleStateStore.listPrivateInvites();
+    for (const invite of invites) {
+      if (invite.expiresAt <= Date.now()) {
+        await this.expirePrivateRoom(invite.roomCode);
+      }
+    }
+  }
+
   private async reconcileActiveBattles(): Promise<void> {
     if (!this.battleStateStore.isReady()) return;
     const snapshots = await this.battleStateStore.listActive();
+    const activeMatchIds = new Set(snapshots.map((snapshot) => snapshot.matchId));
+
+    // Drop local working copies removed by another replica after finish/cancel.
+    for (const [matchId, battle] of this.activeBattles) {
+      if (!activeMatchIds.has(matchId)) {
+        this.clearBattleTimers(battle);
+        this.activeBattles.delete(matchId);
+      }
+    }
 
     for (const snapshot of snapshots) {
       let saved = snapshot;
@@ -192,6 +224,13 @@ export class BattleGateway
       if (!battle) {
         battle = this.fromSnapshot(saved);
         this.activeBattles.set(saved.matchId, battle);
+      }
+
+      // Rebuild disconnect grace timers from shared state on every replica.
+      for (const [userId, disconnectedAt] of Object.entries(saved.disconnectedAt)) {
+        if (!saved.socketIds[userId]) {
+          this.scheduleDisconnectTimeout(battle, userId, disconnectedAt);
+        }
       }
 
       if (
@@ -275,6 +314,9 @@ export class BattleGateway
   }
 
   private async getActiveBattle(matchId: string): Promise<ActiveBattle | undefined> {
+    if (!this.battleStateStore.isReady()) {
+      return this.activeBattles.get(matchId);
+    }
     const saved = await this.battleStateStore.get(matchId);
     if (!saved) return undefined;
 
@@ -287,6 +329,52 @@ export class BattleGateway
     const battle = this.fromSnapshot(saved);
     this.activeBattles.set(matchId, battle);
     return battle;
+  }
+
+  private async getPrivateInvite(
+    roomCode: string,
+  ): Promise<PrivateBattleInviteSnapshot | PrivateBattleRoom | null> {
+    if (this.battleStateStore.isReady()) {
+      return this.battleStateStore.getPrivateInvite(roomCode);
+    }
+    return this.privateRooms.get(roomCode) || null;
+  }
+
+  private async getPrivateInviteForHost(
+    userId: string,
+  ): Promise<PrivateBattleInviteSnapshot | PrivateBattleRoom | null> {
+    if (this.battleStateStore.isReady()) {
+      return this.battleStateStore.getPrivateInviteForHost(userId);
+    }
+    return [...this.privateRooms.values()].find((room) => room.hostUserId === userId) || null;
+  }
+
+  private async listPrivateInvites(): Promise<Array<PrivateBattleInviteSnapshot | PrivateBattleRoom>> {
+    if (this.battleStateStore.isReady()) {
+      return this.battleStateStore.listPrivateInvites();
+    }
+    return [...this.privateRooms.values()];
+  }
+
+  private async hasActiveBattleForUser(userId: string): Promise<boolean> {
+    if (this.battleStateStore.isReady()) {
+      const active = await this.battleStateStore.listActive();
+      return active.some((battle) => battle.playerIds.includes(userId));
+    }
+    return [...this.activeBattles.values()].some((battle) => battle.playerIds.includes(userId));
+  }
+
+  private async removePrivateInvite(
+    roomCode: string,
+    hostUserId?: string,
+  ): Promise<PrivateBattleInviteSnapshot | PrivateBattleRoom | null> {
+    if (this.battleStateStore.isReady()) {
+      return this.battleStateStore.removePrivateInvite(roomCode, hostUserId);
+    }
+    const room = this.privateRooms.get(roomCode);
+    if (!room || (hostUserId && room.hostUserId !== hostUserId)) return null;
+    this.privateRooms.delete(roomCode);
+    return room;
   }
 
   async handleConnection(client: Socket): Promise<void> {
@@ -366,18 +454,26 @@ export class BattleGateway
 
     await this.cleanupPrivateRoomsForSocket(client.id);
 
-    const queueKey = this.queuedSockets.get(client.id);
+    const queueKey = await this.battleService.getQueueForSocket(client.id);
 
     if (queueKey) {
       await this.battleService
         .leaveQueue(queueKey, userId, client.id)
         .catch(() => undefined);
 
-      this.queuedSockets.delete(client.id);
+      
     }
 
-    for (const battle of this.activeBattles.values()) {
-      if (!battle.playerIds.includes(userId)) {
+    const battles = this.battleStateStore.isReady()
+      ? await Promise.all(
+          (await this.battleStateStore.listActive()).map(({ matchId }) =>
+            this.getActiveBattle(matchId),
+          ),
+        )
+      : [...this.activeBattles.values()];
+
+    for (const battle of battles) {
+      if (!battle || !battle.playerIds.includes(userId)) {
         continue;
       }
 
@@ -385,25 +481,28 @@ export class BattleGateway
         continue;
       }
 
-      delete battle.socketIds[userId];
+      const disconnectedAt = Date.now();
+      if (this.battleStateStore.isReady()) {
+        const updated = await this.battleStateStore.markPlayerDisconnected(
+          battle.matchId,
+          userId,
+          client.id,
+          disconnectedAt,
+        );
+        if (!updated) continue;
+        this.applySnapshot(battle, updated);
+      } else {
+        delete battle.socketIds[userId];
+        battle.disconnectedAt[userId] = disconnectedAt;
+      }
 
       this.logger.warn(
         `${userId} Battle xonasidan uzildi: ${battle.roomCode}`,
       );
 
       const oldTimer = battle.disconnectTimers.get(userId);
-
-      if (oldTimer) {
-        clearTimeout(oldTimer);
-      }
-
-      const timer = setTimeout(() => {
-        void this.handleReconnectTimeout(battle.matchId, userId);
-      }, this.reconnectGracePeriod);
-
-      battle.disconnectTimers.set(userId, timer);
-      battle.disconnectedAt[userId] = Date.now();
-      await this.persistBattle(battle).catch((error) => this.logger.error('Battle uzilish holati saqlanmadi:', error));
+      if (oldTimer) clearTimeout(oldTimer);
+      this.scheduleDisconnectTimeout(battle, userId, disconnectedAt);
     }
   }
 
@@ -414,15 +513,15 @@ export class BattleGateway
       client.emit('battle:error', { message: 'Avval tizimga kiring.' });
       return;
     }
-    if (this.queuedSockets.has(client.id)) {
+    if (await this.battleService.getQueueForSocket(client.id)) {
       client.emit('battle:error', { message: 'Avval raqib qidirish navbatidan chiqing.' });
       return;
     }
-    if ([...this.activeBattles.values()].some((battle) => battle.playerIds.includes(userId))) {
+    if (await this.hasActiveBattleForUser(userId)) {
       client.emit('battle:error', { message: 'Avval joriy Battle ni yakunlang.' });
       return;
     }
-    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId)) {
+    if (await this.getPrivateInviteForHost(userId)) {
       client.emit('battle:error', { message: 'Sizda allaqachon faol taklif xonasi bor.' });
       return;
     }
@@ -437,8 +536,27 @@ export class BattleGateway
 
       const roomCode = randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase();
       const expiresAt = Date.now() + 10 * 60 * 1000;
-      const timer = setTimeout(() => { void this.expirePrivateRoom(roomCode); }, 10 * 60 * 1000);
-      this.privateRooms.set(roomCode, { roomCode, hostUserId: userId, hostSocketId: client.id, expiresAt, timer });
+      const invite: PrivateBattleInviteSnapshot = {
+        roomCode,
+        hostUserId: userId,
+        hostSocketId: client.id,
+        expiresAt,
+      };
+      if (this.battleStateStore.isReady()) {
+        const created = await this.battleStateStore.createPrivateInvite(invite);
+        if (!created) {
+          throw new BadRequestException('Sizda allaqachon faol taklif xonasi bor.');
+        }
+      } else {
+        if (this.privateRooms.has(roomCode)) {
+          throw new BadRequestException('Xona kodi band. Qayta urinib ko‘ring.');
+        }
+      }
+
+      const timer = setTimeout(() => {
+        void this.expirePrivateRoom(roomCode);
+      }, Math.max(0, expiresAt - Date.now()));
+      this.privateRooms.set(roomCode, { ...invite, timer });
 
       client.emit('battle:private:created', {
         roomCode,
@@ -450,7 +568,11 @@ export class BattleGateway
       });
     } catch (error) {
       if (quotaConsumed) {
-        try { await this.featureUsageService.refund(userId, 'privateBattle'); } catch { /* Preserve the original room error. */ }
+        try {
+          await this.featureUsageService.refund(userId, 'privateBattle');
+        } catch {
+          // Preserve the original room error.
+        }
       }
       client.emit('battle:error', {
         message: error instanceof Error ? error.message : 'Xususiy Battle xonasi yaratilmadi.',
@@ -470,36 +592,49 @@ export class BattleGateway
       return;
     }
 
-    const now = Date.now();
-    const previousAttempts = this.privateJoinAttempts.get(userId);
-    const attempts = !previousAttempts || now - previousAttempts.windowStartedAt >= 60_000
-      ? { count: 0, windowStartedAt: now }
-      : previousAttempts;
-    if (attempts.count >= 8) {
-      client.emit('battle:error', { message: 'Xona kodini tekshirish limiti tugadi. Bir daqiqadan so‘ng qayta urinib ko‘ring.' });
-      return;
+    if (this.battleStateStore.isReady()) {
+      const allowed = await this.battleStateStore.consumePrivateJoinAttempt(userId, 8, 60);
+      if (!allowed) {
+        client.emit('battle:error', {
+          message: 'Xona kodini tekshirish limiti tugadi. Bir daqiqadan so‘ng qayta urinib ko‘ring.',
+        });
+        return;
+      }
+    } else {
+      const now = Date.now();
+      const previousAttempts = this.privateJoinAttempts.get(userId);
+      const attempts = !previousAttempts || now - previousAttempts.windowStartedAt >= 60_000
+        ? { count: 0, windowStartedAt: now }
+        : previousAttempts;
+      if (attempts.count >= 8) {
+        client.emit('battle:error', {
+          message: 'Xona kodini tekshirish limiti tugadi. Bir daqiqadan so‘ng qayta urinib ko‘ring.',
+        });
+        return;
+      }
+      attempts.count += 1;
+      this.privateJoinAttempts.set(userId, attempts);
     }
-    attempts.count += 1;
-    this.privateJoinAttempts.set(userId, attempts);
 
     if (!/^[A-F0-9]{12}$/.test(roomCode)) {
       client.emit('battle:error', { message: '12 belgili xona kodi noto‘g‘ri.' });
       return;
     }
-    if (this.queuedSockets.has(client.id)) {
+    if (await this.battleService.getQueueForSocket(client.id)) {
       client.emit('battle:error', { message: 'Avval raqib qidirish navbatidan chiqing.' });
       return;
     }
-    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId && room.roomCode !== roomCode)) {
+    const ownInvite = await this.getPrivateInviteForHost(userId);
+    if (ownInvite && ownInvite.roomCode !== roomCode) {
       client.emit('battle:error', { message: 'Avval o‘zingiz yaratgan taklif xonasini bekor qiling.' });
       return;
     }
-    if ([...this.activeBattles.values()].some((battle) => battle.playerIds.includes(userId))) {
+    if (await this.hasActiveBattleForUser(userId)) {
       client.emit('battle:error', { message: 'Avval joriy Battle ni yakunlang.' });
       return;
     }
 
-    const privateRoom = this.privateRooms.get(roomCode);
+    const privateRoom = await this.getPrivateInvite(roomCode);
     if (!privateRoom || privateRoom.expiresAt <= Date.now()) {
       if (privateRoom) await this.expirePrivateRoom(roomCode);
       client.emit('battle:error', { message: 'Xona topilmadi yoki uning muddati tugagan.' });
@@ -510,18 +645,35 @@ export class BattleGateway
       return;
     }
 
-    const hostSocket = this.server.sockets.get(privateRoom.hostSocketId);
-    if (!hostSocket || hostSocket.data.userId !== privateRoom.hostUserId) {
+    const hostSocket = (await this.server.in(privateRoom.hostSocketId).fetchSockets()).find(
+      (socket) =>
+        socket.id === privateRoom.hostSocketId &&
+        socket.data.userId === privateRoom.hostUserId,
+    );
+    if (!hostSocket) {
       await this.expirePrivateRoom(roomCode);
       client.emit('battle:error', { message: 'Xona egasi serverga ulanmagan.' });
       return;
     }
 
-    clearTimeout(privateRoom.timer);
+    const claimedRoom = this.battleStateStore.isReady()
+      ? await this.battleStateStore.claimPrivateInvite(roomCode, userId)
+      : await this.removePrivateInvite(roomCode, privateRoom.hostUserId);
+    if (!claimedRoom) {
+      client.emit('battle:error', { message: 'Xona allaqachon band yoki muddati tugagan.' });
+      return;
+    }
+
+    const localRoom = this.privateRooms.get(roomCode);
+    if (localRoom) clearTimeout(localRoom.timer);
     this.privateRooms.delete(roomCode);
 
     try {
-      const match = await this.battleService.createMatch(privateRoom.hostUserId, userId, 'private');
+      const match = await this.battleService.createMatch(
+        claimedRoom.hostUserId,
+        userId,
+        'private',
+      );
       const room = `battle:${match.roomCode}`;
       await Promise.all([hostSocket.join(room), client.join(room)]);
 
@@ -531,7 +683,7 @@ export class BattleGateway
         mode: 'private',
         status: 'matched',
         players: [
-          { id: privateRoom.hostUserId, username: hostSocket.data.username },
+          { id: claimedRoom.hostUserId, username: hostSocket.data.username },
           { id: userId, username: client.data.username },
         ],
         message: 'Do‘stingiz qo‘shildi. Battle boshlanmoqda.',
@@ -545,17 +697,25 @@ export class BattleGateway
         match.id,
         match.roomCode,
         'private',
-        privateRoom.hostUserId,
+        claimedRoom.hostUserId,
         userId,
         hostSocket,
         client,
         'general',
       );
       if (!started) {
-        try { await this.featureUsageService.refund(privateRoom.hostUserId, 'privateBattle'); } catch { /* Preserve the original match error. */ }
+        try {
+          await this.featureUsageService.refund(claimedRoom.hostUserId, 'privateBattle');
+        } catch {
+          // Preserve the original match error.
+        }
       }
     } catch (error) {
-      try { await this.featureUsageService.refund(privateRoom.hostUserId, 'privateBattle'); } catch { /* Preserve the original match error. */ }
+      try {
+        await this.featureUsageService.refund(claimedRoom.hostUserId, 'privateBattle');
+      } catch {
+        // Preserve the original match error.
+      }
       const message = error instanceof Error ? error.message : 'Xususiy Battle boshlanmadi.';
       hostSocket.emit('battle:error', { message });
       client.emit('battle:error', { message });
@@ -569,32 +729,68 @@ export class BattleGateway
   ): Promise<void> {
     const userId = client.data.userId as string | undefined;
     const roomCode = String(payload?.roomCode || '').trim().toUpperCase();
-    const room = this.privateRooms.get(roomCode);
-    if (!userId || !room || room.hostUserId !== userId || room.hostSocketId !== client.id) {
+    const room = await this.getPrivateInvite(roomCode);
+    if (
+      !userId ||
+      !room ||
+      room.hostUserId !== userId ||
+      room.hostSocketId !== client.id
+    ) {
       client.emit('battle:error', { message: 'Xonani bekor qilish huquqi topilmadi.' });
       return;
     }
-    clearTimeout(room.timer);
+
+    const localRoom = this.privateRooms.get(roomCode);
+    if (localRoom) clearTimeout(localRoom.timer);
+    const removed = await this.removePrivateInvite(roomCode, userId);
+    if (!removed) {
+      client.emit('battle:error', { message: 'Xona allaqachon bekor qilingan.' });
+      return;
+    }
     this.privateRooms.delete(roomCode);
-    try { await this.featureUsageService.refund(userId, 'privateBattle'); } catch { /* Preserve the original room error. */ }
+    try {
+      await this.featureUsageService.refund(userId, 'privateBattle');
+    } catch {
+      // Preserve room cleanup even if quota refund fails.
+    }
     client.emit('battle:private:cancelled', { roomCode });
   }
 
   private async expirePrivateRoom(roomCode: string): Promise<void> {
-    const room = this.privateRooms.get(roomCode);
-    if (!room) return;
-    clearTimeout(room.timer);
+    const localRoom = this.privateRooms.get(roomCode);
+    if (localRoom) clearTimeout(localRoom.timer);
+    const room = await this.removePrivateInvite(roomCode);
     this.privateRooms.delete(roomCode);
-    this.server.sockets.get(room.hostSocketId)?.emit('battle:private:expired', { roomCode });
-    try { await this.featureUsageService.refund(room.hostUserId, 'privateBattle'); } catch { /* Preserve room cleanup even if quota refund fails. */ }
+    if (!room) return;
+
+    const hostSocket = (await this.server.in(room.hostSocketId).fetchSockets()).find(
+      (socket) =>
+        socket.id === room.hostSocketId &&
+        socket.data.userId === room.hostUserId,
+    );
+    hostSocket?.emit('battle:private:expired', { roomCode });
+    try {
+      await this.featureUsageService.refund(room.hostUserId, 'privateBattle');
+    } catch {
+      // Preserve room cleanup even if quota refund fails.
+    }
   }
 
   private async cleanupPrivateRoomsForSocket(socketId: string): Promise<void> {
-    const ownedRooms = [...this.privateRooms.values()].filter((room) => room.hostSocketId === socketId);
+    const ownedRooms = (await this.listPrivateInvites()).filter(
+      (room) => room.hostSocketId === socketId,
+    );
     for (const room of ownedRooms) {
-      clearTimeout(room.timer);
+      const localRoom = this.privateRooms.get(room.roomCode);
+      if (localRoom) clearTimeout(localRoom.timer);
+      const removed = await this.removePrivateInvite(room.roomCode, room.hostUserId);
+      if (!removed) continue;
       this.privateRooms.delete(room.roomCode);
-      try { await this.featureUsageService.refund(room.hostUserId, 'privateBattle'); } catch { /* Preserve room cleanup even if quota refund fails. */ }
+      try {
+        await this.featureUsageService.refund(room.hostUserId, 'privateBattle');
+      } catch {
+        // Preserve room cleanup even if quota refund fails.
+      }
     }
   }
 
@@ -612,7 +808,7 @@ export class BattleGateway
       return;
     }
 
-    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId)) {
+    if (await this.getPrivateInviteForHost(userId)) {
       client.emit('battle:error', { message: 'Avval xususiy taklif xonasini bekor qiling.' });
       return;
     }
@@ -627,7 +823,7 @@ export class BattleGateway
     const queueKey = `battle:queue:${mode}:${categoryId}`;
 
     try {
-      const previousQueue = this.queuedSockets.get(client.id);
+      const previousQueue = await this.battleService.getQueueForSocket(client.id);
 
       if (previousQueue) {
         await this.battleService.leaveQueue(
@@ -635,7 +831,7 @@ export class BattleGateway
           userId,
           client.id,
         );
-        this.queuedSockets.delete(client.id);
+        
       }
 
       const opponent = await this.battleService.joinQueue(
@@ -645,7 +841,7 @@ export class BattleGateway
       );
 
       if (!opponent) {
-        this.queuedSockets.set(client.id, queueKey);
+        
 
         client.emit('battle:queue:waiting', {
           status: 'waiting',
@@ -672,13 +868,15 @@ export class BattleGateway
         );
       }
 
-      const opponentSocket =
-        this.server.sockets.get(opponentSocketId);
+      // The Redis Socket.IO adapter makes fetchSockets() span every API replica.
+      // Namespace.sockets.get() only sees sockets attached to this process.
+      const opponentSocket = (await this.server.in(opponentSocketId).fetchSockets()).find(
+        (socket) =>
+          socket.id === opponentSocketId &&
+          socket.data.userId === opponentId,
+      );
 
-      if (
-        !opponentSocket ||
-        opponentSocket.data.userId !== opponentId
-      ) {
+      if (!opponentSocket) {
         const nextOpponent = await this.battleService.joinQueue(
           queueKey,
           userId,
@@ -686,7 +884,7 @@ export class BattleGateway
         );
 
         if (!nextOpponent) {
-          this.queuedSockets.set(client.id, queueKey);
+          
 
           client.emit('battle:queue:waiting', {
             status: 'waiting',
@@ -705,8 +903,8 @@ export class BattleGateway
         return;
       }
 
-      this.queuedSockets.delete(client.id);
-      this.queuedSockets.delete(opponentSocketId);
+      
+      
 
       const match = await this.battleService.createMatch(
         opponentId,
@@ -775,8 +973,8 @@ export class BattleGateway
     mode: string,
     playerOneId: string,
     playerTwoId: string,
-    playerOneSocket: Socket,
-    playerTwoSocket: Socket,
+    playerOneSocket: BattleSocketPeer,
+    playerTwoSocket: BattleSocketPeer,
     categoryId: string,
   ): Promise<boolean> {
     try {
@@ -1261,7 +1459,7 @@ export class BattleGateway
       return;
     }
 
-    const battle = this.activeBattles.get(matchId);
+    const battle = await this.getActiveBattle(matchId);
 
     if (!battle || !battle.playerIds.includes(userId)) {
       client.emit('battle:reconnect:failed', {
@@ -1270,19 +1468,30 @@ export class BattleGateway
       return;
     }
 
-    const latestState = await this.battleStateStore.get(matchId);
-    if (latestState) this.applySnapshot(battle, latestState);
+    if (this.battleStateStore.isReady()) {
+      const updated = await this.battleStateStore.reconnectPlayer(
+        matchId,
+        userId,
+        client.id,
+      );
+      if (!updated) {
+        client.emit('battle:reconnect:failed', {
+          message: 'Battle holati yangilanmoqda. Qayta urinib ko‘ring.',
+        });
+        return;
+      }
+      this.applySnapshot(battle, updated);
+    } else {
+      battle.socketIds[userId] = client.id;
+      delete battle.disconnectedAt[userId];
+      await this.persistBattle(battle);
+    }
 
     const disconnectTimer = battle.disconnectTimers.get(userId);
-
     if (disconnectTimer) {
       clearTimeout(disconnectTimer);
       battle.disconnectTimers.delete(userId);
     }
-
-    battle.socketIds[userId] = client.id;
-    delete battle.disconnectedAt[userId];
-    await this.persistBattle(battle);
 
     await client.join(battle.room);
 
@@ -1336,20 +1545,46 @@ export class BattleGateway
     }
   }
 
+  private scheduleDisconnectTimeout(
+    battle: ActiveBattle,
+    userId: string,
+    disconnectedAt: number,
+  ): void {
+    if (battle.disconnectTimers.has(userId)) return;
+
+    const delay = Math.max(
+      0,
+      disconnectedAt + this.reconnectGracePeriod - Date.now(),
+    );
+    const timer = setTimeout(() => {
+      battle.disconnectTimers.delete(userId);
+      void this.handleReconnectTimeout(battle.matchId, userId, disconnectedAt);
+    }, delay);
+    battle.disconnectTimers.set(userId, timer);
+  }
+
   private async handleReconnectTimeout(
     matchId: string,
     userId: string,
+    expectedDisconnectedAt: number,
   ): Promise<void> {
-    const battle = this.activeBattles.get(matchId);
-
-    if (!battle || battle.socketIds[userId]) {
+    const battle = await this.getActiveBattle(matchId);
+    if (
+      !battle ||
+      battle.socketIds[userId] ||
+      battle.disconnectedAt[userId] !== expectedDisconnectedAt
+    ) {
       return;
     }
 
-    const timer = battle.disconnectTimers.get(userId);
-
-    if (timer) {
-      battle.disconnectTimers.delete(userId);
+    if (this.battleStateStore.isReady()) {
+      const claimed = await this.battleStateStore.claimDisconnectTimeout(
+        matchId,
+        userId,
+        expectedDisconnectedAt,
+      );
+      if (!claimed) return;
+      this.applySnapshot(battle, claimed);
     }
 
     this.logger.warn(
@@ -1359,10 +1594,13 @@ export class BattleGateway
     try {
       await this.battleService.cancelMatch(matchId);
     } catch (error) {
+      battle.finishing = false;
+      await this.persistBattle(battle).catch(() => undefined);
       this.logger.error(
         'Uzilgan Battle bekor qilinmadi:',
         error instanceof Error ? error.message : String(error),
       );
+      return;
     }
 
     this.server.to(battle.room).emit('battle:cancelled', {
@@ -1386,7 +1624,7 @@ export class BattleGateway
       return;
     }
 
-    const trackedQueue = this.queuedSockets.get(client.id);
+    const trackedQueue = await this.battleService.getQueueForSocket(client.id);
 
     const mode = payload?.mode === 'ranked' ? 'ranked' : 'casual';
     const rawCategory = payload?.categoryId || 'general';
@@ -1404,7 +1642,7 @@ export class BattleGateway
       client.id,
     );
 
-    this.queuedSockets.delete(client.id);
+    
 
     client.emit('battle:queue:cancelled', {
       cancelled: true,
@@ -1423,7 +1661,7 @@ export class BattleGateway
       return;
     }
 
-    const battle = this.activeBattles.get(matchId);
+    const battle = await this.getActiveBattle(matchId);
 
     if (!battle || !battle.playerIds.includes(userId)) {
       client.emit('battle:error', {

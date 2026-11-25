@@ -75,6 +75,7 @@ interface BattleRankingEntry {
 export class BattleService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(BattleService.name);
   private readonly redis: Redis;
+  private readonly redisPrefix: string;
 
   constructor(
     private readonly configService: ConfigService,
@@ -89,6 +90,9 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {
+    this.redisPrefix =
+      this.configService.get<string>('BATTLE_REDIS_PREFIX') ||
+      `quiz-arena:${process.env.NODE_ENV || 'development'}`;
     const redisUrl =
       this.configService.get<string>('REDIS_URL') ||
       this.configService.get<string>('VALKEY_URL');
@@ -163,6 +167,15 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  private queueSocketKey(socketId: string): string {
+    return `${this.redisPrefix}:battle:queued-socket:${socketId}`;
+  }
+
+  async getQueueForSocket(socketId: string): Promise<string | null> {
+    if (this.redis.status !== 'ready') return null;
+    return this.redis.get(this.queueSocketKey(socketId));
+  }
+
   async joinQueue(
     queueKey: string,
     userId: string,
@@ -185,8 +198,13 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
 
           if queuedUserId == ARGV[1] then
             redis.call('ZREM', KEYS[1], entry)
+            local ownSocketId = string.sub(entry, separator + 1)
+            redis.call('DEL', ARGV[4] .. ':battle:queued-socket:' .. ownSocketId)
           else
             redis.call('ZREM', KEYS[1], entry)
+            local queuedSocketId = string.sub(entry, separator + 1)
+            redis.call('DEL', ARGV[4] .. ':battle:queued-socket:' .. queuedSocketId)
+            redis.call('DEL', KEYS[2])
             return entry
           end
         end
@@ -195,17 +213,21 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
       local member = ARGV[1] .. ':' .. ARGV[2]
       redis.call('ZADD', KEYS[1], ARGV[3], member)
       redis.call('EXPIRE', KEYS[1], 300)
+      redis.call('SET', KEYS[2], ARGV[5], 'EX', 300)
 
       return ''
     `;
 
     const result = await this.redis.eval(
       script,
-      1,
+      2,
       queueKey,
+      this.queueSocketKey(socketId),
       userId,
       socketId,
       String(Date.now()),
+      this.redisPrefix,
+      queueKey,
     );
 
     if (typeof result !== 'string' || !result) {
@@ -220,11 +242,22 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
     userId: string,
     socketId: string,
   ): Promise<void> {
-    if (this.redis.status !== 'ready') {
-      return;
-    }
-
-    await this.redis.zrem(queueKey, `${userId}:${socketId}`);
+    if (this.redis.status !== 'ready') return;
+    await this.redis.eval(
+      `
+        redis.call('ZREM', KEYS[1], ARGV[1] .. ':' .. ARGV[2])
+        if redis.call('GET', KEYS[2]) == ARGV[3] then
+          redis.call('DEL', KEYS[2])
+        end
+        return 1
+      `,
+      2,
+      queueKey,
+      this.queueSocketKey(socketId),
+      userId,
+      socketId,
+      queueKey,
+    );
   }
 
   async createMatch(

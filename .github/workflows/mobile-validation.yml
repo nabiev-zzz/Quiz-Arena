@@ -9,6 +9,7 @@ on:
     branches:
       - feature/liquid-glass-dock
       - feat/education-statistics-dashboard
+      - feat/battle-multireplica-socket-discovery
 
 permissions:
   contents: read
@@ -31,6 +32,12 @@ jobs:
 
       - name: TypeScript validation
         run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Bundle Android JavaScript runtime
+        run: npx expo export --platform android --output-dir "$RUNNER_TEMP/expo-android-export"
+
+      - name: Bundle iOS JavaScript runtime
+        run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-ios-export"
 
       - name: Expo dependency validation
         run: npx expo install --check
@@ -76,4 +83,4 @@ jobs:
         run: node --check start-api-with-ai-worker.cjs
 
       - name: Test payment security, plan entitlements, AI Tutor quotas, document quiz and private Battle
-        run: npm test -- --runInBand src/subscriptions/subscription-payments.service.spec.ts src/subscriptions/plan-entitlements.spec.ts src/subscriptions/feature-usage.service.spec.ts src/learning/learning.service.spec.ts src/battle/gateway/battle.gateway.spec.ts src/battle/redis-io.adapter.spec.ts src/battle/battle-state.store.spec.ts src/ai/ai-tutor.service.spec.ts src/ai/queue/ai-generation-queue.service.spec.ts src/ai/queue/ai-generation.queue.integration.spec.ts
+        run: npm test -- --runInBand src/subscriptions/subscription-payments.service.spec.ts src/subscriptions/plan-entitlements.spec.ts src/subscriptions/feature-usage.service.spec.ts src/learning/learning.service.spec.ts src/battle/gateway/battle.gateway.spec.ts src/battle/battle.service.spec.ts src/battle/redis-io.adapter.spec.ts src/battle/battle-state.store.spec.ts src/ai/ai-tutor.service.spec.ts src/ai/queue/ai-generation-queue.service.spec.ts src/ai/queue/ai-generation.queue.integration.spec.ts

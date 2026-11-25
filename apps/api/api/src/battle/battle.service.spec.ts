@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { jest } from '@jest/globals';
 import { BattleService, BattleQuestionResult } from './battle.service';
 import { BattleMatch } from './entities/battle-match.entity';
 import { User } from '../users/entities/user.entity';
@@ -120,6 +122,32 @@ describe('BattleService — Rank tizimi', () => {
     if (service) {
       await service.onModuleDestroy();
     }
+  });
+
+  it('tracks matchmaking queue ownership across API instances', async () => {
+    setup('casual');
+    await service.onModuleInit();
+    const queueKey = `battle:test:${randomUUID()}`;
+
+    await expect(service.joinQueue(queueKey, 'queued-user', 'socket-a')).resolves.toBeNull();
+    await expect(service.getQueueForSocket('socket-a')).resolves.toBe(queueKey);
+
+    await expect(service.joinQueue(queueKey, 'opponent-user', 'socket-b')).resolves.toBe(
+      'queued-user:socket-a',
+    );
+    await expect(service.getQueueForSocket('socket-a')).resolves.toBeNull();
+    await expect(service.getQueueForSocket('socket-b')).resolves.toBeNull();
+  });
+
+  it('removes queue membership and its socket mapping on cancellation', async () => {
+    setup('casual');
+    await service.onModuleInit();
+    const queueKey = `battle:test:${randomUUID()}`;
+
+    await service.joinQueue(queueKey, 'queued-user', 'socket-c');
+    await service.leaveQueue(queueKey, 'queued-user', 'socket-c');
+
+    await expect(service.getQueueForSocket('socket-c')).resolves.toBeNull();
   });
 
   it('Ranked g‘alabada RP to‘g‘ri hisoblanadi', async () => {

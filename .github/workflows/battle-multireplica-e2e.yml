@@ -1,0 +1,89 @@
+name: Battle multi-replica E2E and load test
+
+on:
+  push:
+    branches:
+      - feat/battle-multireplica-socket-discovery
+  pull_request:
+    branches:
+      - feat/premium-entitlements-feature-roadmap
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  battle-multireplica:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: quiz_arena_e2e
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d quiz_arena_e2e"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: quiz_arena_e2e
+      JWT_SECRET: quiz-arena-e2e-only-secret-not-used-in-production
+      REDIS_URL: redis://127.0.0.1:6379
+      BATTLE_SHARED_STATE_REQUIRED: 'true'
+      BATTLE_REDIS_PREFIX: quiz-arena:e2e:${{ github.run_id }}-${{ github.run_attempt }}
+      NODE_ENV: test
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install mobile and Socket.IO client dependencies
+        run: npm ci
+
+      - name: Install API dependencies
+        working-directory: apps/api/api
+        run: npm ci
+
+      - name: Build NestJS API
+        working-directory: apps/api/api
+        run: npm run build
+
+      - name: Run two real API replicas and 100/300/500 concurrent Battle clients
+        working-directory: apps/api/api
+        run: node test/battle-multireplica-load.mjs
+
+      - name: Verify API replica loss, timer failover, reconnect and 10-question ranked completion
+        working-directory: apps/api/api
+        run: node test/battle-failover-completion.mjs
+
+      - name: Upload Battle load-test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-multireplica-load-report
+          path: apps/api/api/test-results/battle-multireplica-load.json
+          if-no-files-found: warn
+          retention-days: 14
