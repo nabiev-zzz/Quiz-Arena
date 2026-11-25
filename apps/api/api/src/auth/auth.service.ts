@@ -630,7 +630,7 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(configuredPassword, 12);
     const owner = this.userRepository.create({
-      displayName: 'QUIZ ARENA Owner',
+      displayName: 'ZELQEN CORE Owner',
       username: configuredUsername,
       email: null,
       passwordHash,
