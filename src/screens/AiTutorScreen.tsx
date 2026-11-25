@@ -368,9 +368,9 @@ function TutorFormattedMessage({
   content: string;
   colors: TutorColors;
 }) {
-  const lines = content.replace(/\\r/g, '').split('\\n');
+  const lines = content.replace(/\r/g, '').split('\n');
   const inline = (value: string, keyPrefix: string) => {
-    const pieces = value.split(/(\\*\\*[^*]+\\*\\*)/g);
+    const pieces = value.split(/(\*\*[^*]+\*\*)/g);
     return pieces.map((piece, index) =>
       piece.startsWith('**') && piece.endsWith('**') ? (
         <NativeText key={keyPrefix + index} style={{ fontWeight: '800', color: colors.text }}>
@@ -390,7 +390,7 @@ function TutorFormattedMessage({
         if (/^[-*_]{3,}$/.test(line)) {
           return <View key={index} style={{ height: 1, backgroundColor: colors.border, marginVertical: 4 }} />;
         }
-        const heading = line.match(/^(#{1,3})\\s+(.+)$/);
+        const heading = line.match(/^(#{1,3})\s+(.+)$/);
         if (heading) {
           return (
             <NativeText
@@ -407,7 +407,7 @@ function TutorFormattedMessage({
             </NativeText>
           );
         }
-        const metric = line.match(/^(?:[-•]\\s*)?\\*\\*(.+?)\\*\\*\\s*:\\s*(.+)$/);
+        const metric = line.match(/^(?:[-•]\s*)?\*\*(.+?)\*\*\s*:\s*(.+)$/);
         if (metric) {
           return (
             <View
@@ -434,7 +434,7 @@ function TutorFormattedMessage({
             </View>
           );
         }
-        const bullet = line.match(/^[-•]\\s+(.+)$/);
+        const bullet = line.match(/^[-•]\s+(.+)$/);
         if (bullet) {
           return (
             <View key={index} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
@@ -445,7 +445,7 @@ function TutorFormattedMessage({
             </View>
           );
         }
-        const numbered = line.match(/^\\d+[.)]\\s+(.+)$/);
+        const numbered = line.match(/^\d+[.)]\s+(.+)$/);
         if (numbered) {
           return (
             <NativeText key={index} style={{ color: colors.text, fontSize: 14, lineHeight: 21 }}>
