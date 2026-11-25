@@ -3,6 +3,9 @@ import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 import {
   Alert,
+  ActivityIndicator,
+  Linking,
+  Modal,
   Pressable,
   StyleSheet,
   Switch,
@@ -12,6 +15,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
+import { useState } from 'react';
+import { LocalizedTextInput } from '../i18n/LocalizedText';
 
 import {
   useAppSettings,
@@ -29,7 +34,7 @@ export default function SettingsScreen({
   onBack,
   dockStretch,
 }: SettingsScreenProps) {
-  const { user } = useAuth();
+  const { user, deleteAccount } = useAuth();
   const { tokens } = useTheme();
 
   const {
@@ -48,6 +53,10 @@ export default function SettingsScreen({
   } = useAppSettings();
 
   const isDark = theme === 'dark';
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const lastDockScrollY = useSharedValue(0);
   const dockScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -111,17 +120,30 @@ export default function SettingsScreen({
   };
 
   const showPrivacy = () => {
-    showLocalizedAlert(
-      'Maxfiylik va xavfsizlik',
-      'Hisobingiz xavfsizligi va shaxsiy ma’lumotlaringizni himoya qilish bo‘limi.',
-    );
+    void Linking.openURL('https://quiz-arena-website-production.up.railway.app/privacy.html');
   };
 
   const showHelp = () => {
-    showLocalizedAlert(
-      'Yordam',
-      'Yordam xizmati bilan bog‘lanish imkoniyatini keyingi bosqichda qo‘shamiz.',
-    );
+    void Linking.openURL('https://quiz-arena-website-production.up.railway.app/support.html');
+  };
+
+  const submitAccountDeletion = async () => {
+    if (deletePassword.length > 128) {
+      setDeleteError('Parol 128 belgidan oshmasligi kerak.');
+      return;
+    }
+    setDeletingAccount(true);
+    setDeleteError('');
+    try {
+      await deleteAccount(deletePassword);
+      setDeletePassword('');
+      setDeleteModalVisible(false);
+      onBack?.();
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Hisobni o‘chirib bo‘lmadi. Qayta urinib ko‘ring.');
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   const SettingRow = ({
@@ -424,12 +446,15 @@ export default function SettingsScreen({
             color={colors.muted}
           />
         }
-        onPress={() =>
-          showLocalizedAlert(
-            'Maxfiylik siyosati',
-            'Rasmiy maxfiylik siyosati sahifasini keyingi bosqichda qo‘shamiz.',
-          )
-        }
+        onPress={showPrivacy}
+      />
+
+      <SettingRow
+        icon="trash-outline"
+        title="Hisobni butunlay o‘chirish"
+        description="Profil va hisobga bog‘langan ma’lumotlarni o‘chirish"
+        right={<Ionicons name="chevron-forward" size={20} color="#EF4444" />}
+        onPress={() => { setDeletePassword(''); setDeleteError(''); setDeleteModalVisible(true); }}
       />
 
       <LocalizedText style={[styles.sectionTitle, { color: colors.muted }]}>
@@ -453,6 +478,27 @@ export default function SettingsScreen({
       <LocalizedText style={[styles.version, { color: colors.muted }]}>
         QUIZ ARENA • Sozlamalar
       </LocalizedText>
+
+      <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => { if (!deletingAccount) setDeleteModalVisible(false); }}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.deleteModal, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.deleteIcon}><Ionicons name="warning-outline" size={26} color="#EF4444" /></View>
+            <LocalizedText style={[styles.deleteTitle, { color: colors.text }]}>Hisobni o‘chirish</LocalizedText>
+            <LocalizedText style={[styles.deleteDescription, { color: colors.muted }]}>Bu amal qaytarilmaydi. Profilingiz, AI suhbatlaringiz, o‘quv natijalaringiz va Battle tarixingiz o‘chiriladi. Ayrim to‘lov qaydlari hisobdan ajratilgan, shaxsni ko‘rsatmaydigan shaklda saqlanishi mumkin.</LocalizedText>
+            <LocalizedTextInput value={deletePassword} onChangeText={setDeletePassword} placeholder="Joriy parol (Google/Telegram orqali kirgan bo‘lsangiz ixtiyoriy)" placeholderTextColor={colors.muted} secureTextEntry editable={!deletingAccount} autoCapitalize="none" autoCorrect={false} returnKeyType="done" onSubmitEditing={() => void submitAccountDeletion()} style={[styles.deleteInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]} />
+            <Pressable disabled={deletingAccount} onPress={() => void Linking.openURL('https://quiz-arena-website-production.up.railway.app/account-deletion.html')} style={{ marginTop: 10 }}>
+              <LocalizedText style={{ color: colors.accent, fontSize: 12, fontWeight: '700' }}>Email orqali tasdiqlash sahifasini ochish</LocalizedText>
+            </Pressable>
+            {deleteError ? <LocalizedText style={styles.deleteError}>{deleteError}</LocalizedText> : null}
+            <Pressable disabled={deletingAccount} onPress={() => void submitAccountDeletion()} style={[styles.deleteConfirm, { opacity: deletingAccount ? 0.65 : 1 }]}>
+              {deletingAccount ? <ActivityIndicator color="#FFFFFF" /> : <LocalizedText style={styles.deleteConfirmText}>Hisobni butunlay o‘chirish</LocalizedText>}
+            </Pressable>
+            <Pressable disabled={deletingAccount} onPress={() => setDeleteModalVisible(false)} style={styles.deleteCancel}>
+              <LocalizedText style={[styles.deleteCancelText, { color: colors.text }]}>Bekor qilish</LocalizedText>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </Animated.ScrollView>
   );
 }
@@ -571,6 +617,17 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginTop: 4,
   },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.62)', justifyContent: 'center', padding: 22 },
+  deleteModal: { borderWidth: 1, borderRadius: 24, padding: 22 },
+  deleteIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(239,68,68,0.12)', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  deleteTitle: { fontSize: 20, fontWeight: '800', marginBottom: 9 },
+  deleteDescription: { fontSize: 13, lineHeight: 20, marginBottom: 16 },
+  deleteInput: { minHeight: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 13, fontSize: 15 },
+  deleteError: { color: '#EF4444', fontSize: 12, marginTop: 8 },
+  deleteConfirm: { minHeight: 48, borderRadius: 12, backgroundColor: '#DC2626', alignItems: 'center', justifyContent: 'center', marginTop: 14 },
+  deleteConfirmText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+  deleteCancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  deleteCancelText: { fontSize: 14, fontWeight: '700' },
   securityInput: {
     minHeight: 48,
     borderRadius: 12,

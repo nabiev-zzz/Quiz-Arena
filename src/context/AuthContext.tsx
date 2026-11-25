@@ -14,6 +14,7 @@ import {
   exchangeGoogleCode,
   exchangeTelegramCode,
   getCurrentUser,
+  deleteCurrentUser,
   getToken,
   loginUser,
   requestPhoneLinkOtp,
@@ -48,6 +49,7 @@ interface AuthContextValue {
   updateProfile: (input: UpdateProfileInput) => Promise<void>;
   refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -171,6 +173,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  const deleteAccount = async (password: string) => {
+    await deleteCurrentUser(password);
+    setUser(null);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -189,6 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateProfile,
         refreshUser,
         logout,
+        deleteAccount,
       }}
     >
       {children}

@@ -299,7 +299,7 @@ const phrases: Record<string, readonly [string, string]> = {
   'avatar tanlash': ['Choose avatar', 'Выбрать аватар'],
   'o‘zingizga mos uslubni tanlang': ['Choose a style that fits you', 'Выберите стиль по душе'],
   'galereyadan rasm tanlash': ['Choose photo from gallery', 'Выбрать фото из галереи'],
-  'o‘zingizning rasmingizni yuklang': ['Upload your own photo', 'Загрузите собственное фото'],
+  'o‘zingizning rasmingizni yuklang': ['Upload your own photo', 'Загрузите собственное фото'],
   'standart avatarni ishlatish': ['Use default avatar', 'Использовать стандартный аватар'],
   'avatar profilingizga saqlandi.': ['Avatar saved to your profile.', 'Аватар сохранён в вашем профиле.'],
   'rasmni tayyorlab bo‘lmadi. boshqa rasm tanlang.': ['Could not prepare the image. Choose another photo.', 'Не удалось подготовить изображение. Выберите другое фото.'],
@@ -313,6 +313,20 @@ const phrases: Record<string, readonly [string, string]> = {
   'minimal': ['Minimal', 'Минимализм'],
   'cartoon': ['Cartoon', 'Мультфильмы'],
   'emoji': ['Emoji', 'Эмодзи'],
+
+
+  'hisobni o‘chirish': ['Delete account', 'Удалить аккаунт'],
+  'hisobni butunlay o‘chirish': ['Permanently delete account', 'Удалить аккаунт навсегда'],
+  'profil va hisobga bog‘langan ma’lumotlarni o‘chirish': ['Delete your profile and account data', 'Удалить профиль и связанные данные аккаунта'],
+  'bu amal qaytarilmaydi. profilingiz, ai suhbatlaringiz, o‘quv natijalaringiz va battle tarixingiz o‘chiriladi. ayrim to‘lov qaydlari hisobdan ajratilgan, shaxsni ko‘rsatmaydigan shaklda saqlanishi mumkin.': ['This action cannot be undone. Your profile, AI chats, learning results and Battle history will be deleted. Some payment records may be retained in a de-identified form, detached from your account.', 'Это действие нельзя отменить. Ваш профиль, чаты с ИИ, результаты обучения и история Battle будут удалены. Некоторые платёжные записи могут храниться в обезличенном виде отдельно от аккаунта.'],
+  'joriy parolingiz': ['Current password', 'Текущий пароль'],
+  'davom etish uchun parolingizni kiriting.': ['Enter your password to continue.', 'Введите пароль, чтобы продолжить.'],
+  'bekor qilish': ['Cancel', 'Отмена'],
+
+
+  'joriy parol (google/telegram orqali kirgan bo‘lsangiz ixtiyoriy)': ['Current password (optional if you signed in with Google/Telegram)', 'Текущий пароль (необязательно при входе через Google/Telegram)'],
+  'email orqali tasdiqlash sahifasini ochish': ['Open email verification page', 'Открыть страницу подтверждения по email'],
+  'parol 128 belgidan oshmasligi kerak.': ['Password must be no longer than 128 characters.', 'Пароль не должен превышать 128 символов.'],
 
 };
 

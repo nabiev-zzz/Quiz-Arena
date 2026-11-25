@@ -1,15 +1,29 @@
 {
   "cli": {
-    "version": ">= 16.0.0"
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
   },
   "build": {
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
+      "channel": "production",
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
+    "googlePlay": {
+      "distribution": "store",
+      "channel": "google-play",
+      "autoIncrement": true,
+      "env": {
+        "GOOGLE_PLAY_RELEASE": "true"
+      },
       "android": {
         "buildType": "app-bundle"
       }

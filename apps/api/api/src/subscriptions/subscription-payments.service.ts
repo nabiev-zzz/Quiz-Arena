@@ -337,6 +337,7 @@ export class SubscriptionPaymentsService {
       if (type === 12) await this.payments.update({ id: payment.id }, { status: 'refunded', providerState: -2, providerCancelledAt: new Date() });
       return { received: true, updated: true };
     }
+    if (!payment.userId) return { received: true, ignored: true };
     try {
       await this.verifyGooglePlayPurchase(payment.userId, event.purchaseToken);
     } catch {
@@ -377,6 +378,7 @@ export class SubscriptionPaymentsService {
       if (payment.provider !== provider || (payment.providerTransactionId && payment.providerTransactionId !== reference)) {
         throw new ConflictException('Payment provider reference mismatch');
       }
+      if (!payment.userId) throw new BadRequestException('Payment account has been deleted');
       const user = await manager.findOne(User, { where: { id: payment.userId }, lock: { mode: 'pessimistic_write' } });
       if (!user) throw new BadRequestException('Subscription owner not found');
       const now = new Date();

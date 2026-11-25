@@ -210,6 +210,17 @@ export async function linkPhoneNumber(input: {
   });
 }
 
+export async function deleteCurrentUser(password: string): Promise<void> {
+  const token = await getToken();
+  if (!token) throw new Error('Avval hisobingizga kiring');
+  await request<{ deleted: boolean }>('/api/auth/account', {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ password }),
+  });
+  await removeToken();
+}
+
 export async function getCurrentUser(): Promise<AuthUser> {
   const token = await getToken();
   if (!token) throw new Error('Kirish tokeni topilmadi');

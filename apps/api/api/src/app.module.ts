@@ -29,6 +29,8 @@ import { CreateAuthOAuthCodes20261124151000 } from './database/migrations/Create
 import { CreateAuthEmailCodes20261124170000 } from './database/migrations/CreateAuthEmailCodes';
 import { AddTelegramIdentity20261124190000 } from './database/migrations/AddTelegramIdentity';
 import { AddAvatarImageSupport20261124230000 } from './database/migrations/AddAvatarImageSupport';
+import { AnonymizeDeletedAccountPayments20261125180000 } from './database/migrations/AnonymizeDeletedAccountPayments';
+import { AllowAccountDeletionEmailCode20261125181000 } from './database/migrations/AllowAccountDeletionEmailCode';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
 
@@ -65,6 +67,8 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         CreateAuthEmailCodes20261124170000,
         AddTelegramIdentity20261124190000,
         AddAvatarImageSupport20261124230000,
+        AnonymizeDeletedAccountPayments20261125180000,
+        AllowAccountDeletionEmailCode20261125181000,
       ],
       migrationsRun: true,
       migrationsTableName: 'typeorm_migrations',
