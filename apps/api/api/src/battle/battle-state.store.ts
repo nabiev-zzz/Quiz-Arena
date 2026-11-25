@@ -15,6 +15,13 @@ import { BattleQuestionResult } from './battle.service';
  * Durable, JSON-serializable state for one live Battle.
  * Runtime timer handles and Socket instances must never be stored here.
  */
+export interface PrivateBattleInviteSnapshot {
+  roomCode: string;
+  hostUserId: string;
+  hostSocketId: string;
+  expiresAt: number;
+}
+
 export interface BattleStateSnapshot {
   version: 1;
   matchId: string;
@@ -304,6 +311,138 @@ export class BattleStateStore implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+
+  private privateRoomKey(roomCode: string): string {
+    return `${this.prefix}:battle:private-room:${roomCode}`;
+  }
+
+  private privateRoomOwnerKey(userId: string): string {
+    return `${this.prefix}:battle:private-room-owner:${userId}`;
+  }
+
+  private privateRoomIndexKey(): string {
+    return `${this.prefix}:battle:private-room-index`;
+  }
+
+  async createPrivateInvite(
+    invite: PrivateBattleInviteSnapshot,
+  ): Promise<boolean> {
+    this.assertReady();
+    return this.withMatchLock(`private-owner:${invite.hostUserId}`, async () => {
+      const ownerKey = this.privateRoomOwnerKey(invite.hostUserId);
+      if (await this.redis.exists(ownerKey)) return false;
+      const ttlSeconds = Math.max(1, Math.ceil((invite.expiresAt - Date.now()) / 1000));
+      const pipeline = this.redis.pipeline();
+      pipeline.set(
+        this.privateRoomKey(invite.roomCode),
+        JSON.stringify(invite),
+        'EX',
+        ttlSeconds,
+        'NX',
+      );
+      pipeline.set(ownerKey, invite.roomCode, 'EX', ttlSeconds);
+      pipeline.sadd(this.privateRoomIndexKey(), invite.roomCode);
+      pipeline.expire(this.privateRoomIndexKey(), ttlSeconds);
+      const result = await pipeline.exec();
+      if (!result || result.some(([error]) => error)) {
+        throw new Error('Xususiy Battle taklifini Redisga saqlash muvaffaqiyatsiz.');
+      }
+      return result[0]?.[1] === 'OK';
+    });
+  }
+
+  async getPrivateInvite(roomCode: string): Promise<PrivateBattleInviteSnapshot | null> {
+    this.assertReady();
+    const raw = await this.redis.get(this.privateRoomKey(roomCode));
+    if (!raw) {
+      await this.redis.srem(this.privateRoomIndexKey(), roomCode);
+      return null;
+    }
+    return JSON.parse(raw) as PrivateBattleInviteSnapshot;
+  }
+
+  async getPrivateInviteForHost(
+    hostUserId: string,
+  ): Promise<PrivateBattleInviteSnapshot | null> {
+    this.assertReady();
+    const roomCode = await this.redis.get(this.privateRoomOwnerKey(hostUserId));
+    return roomCode ? this.getPrivateInvite(roomCode) : null;
+  }
+
+  async listPrivateInvites(): Promise<PrivateBattleInviteSnapshot[]> {
+    this.assertReady();
+    const roomCodes = await this.redis.smembers(this.privateRoomIndexKey());
+    if (!roomCodes.length) return [];
+    const values = await Promise.all(roomCodes.map((code) => this.getPrivateInvite(code)));
+    return values.filter((value): value is PrivateBattleInviteSnapshot => value !== null);
+  }
+
+  async claimPrivateInvite(
+    roomCode: string,
+    guestUserId: string,
+  ): Promise<PrivateBattleInviteSnapshot | null> {
+    this.assertReady();
+    return this.withMatchLock(`private-room:${roomCode}`, async () => {
+      const invite = await this.getPrivateInvite(roomCode);
+      if (
+        !invite ||
+        invite.expiresAt <= Date.now() ||
+        invite.hostUserId === guestUserId
+      ) {
+        return null;
+      }
+      return this.withMatchLock(`private-owner:${invite.hostUserId}`, async () => {
+        const ownerKey = this.privateRoomOwnerKey(invite.hostUserId);
+        if ((await this.redis.get(ownerKey)) !== roomCode) return null;
+        const pipeline = this.redis.pipeline();
+        pipeline.del(this.privateRoomKey(roomCode));
+        pipeline.del(ownerKey);
+        pipeline.srem(this.privateRoomIndexKey(), roomCode);
+        await pipeline.exec();
+        return invite;
+      });
+    });
+  }
+
+  async removePrivateInvite(
+    roomCode: string,
+    hostUserId?: string,
+  ): Promise<PrivateBattleInviteSnapshot | null> {
+    this.assertReady();
+    return this.withMatchLock(`private-room:${roomCode}`, async () => {
+      const invite = await this.getPrivateInvite(roomCode);
+      if (!invite || (hostUserId && invite.hostUserId !== hostUserId)) return null;
+      return this.withMatchLock(`private-owner:${invite.hostUserId}`, async () => {
+        const ownerKey = this.privateRoomOwnerKey(invite.hostUserId);
+        const pipeline = this.redis.pipeline();
+        pipeline.del(this.privateRoomKey(roomCode));
+        if ((await this.redis.get(ownerKey)) === roomCode) pipeline.del(ownerKey);
+        pipeline.srem(this.privateRoomIndexKey(), roomCode);
+        await pipeline.exec();
+        return invite;
+      });
+    });
+  }
+
+  async consumePrivateJoinAttempt(
+    userId: string,
+    limit = 8,
+    windowSeconds = 60,
+  ): Promise<boolean> {
+    this.assertReady();
+    const key = `${this.prefix}:battle:private-join-attempts:${userId}`;
+    const count = await this.redis.eval(
+      `
+        local count = redis.call('INCR', KEYS[1])
+        if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+        return count
+      `,
+      1,
+      key,
+      windowSeconds,
+    ) as number;
+    return count <= limit;
+  }
 
   async markPlayerDisconnected(
     matchId: string,
