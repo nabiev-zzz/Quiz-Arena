@@ -36,10 +36,25 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package-lock.json
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(api): update lockfile for BullMQ"
-            git pull --rebase origin feat/premium-entitlements-feature-roadmap
-            git push origin HEAD:feat/premium-entitlements-feature-roadmap
+          if git diff --cached --quiet; then
+            echo "Lockfile already current."
+            exit 0
           fi
+          git commit -m "chore(api): update lockfile for BullMQ"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin feat/premium-entitlements-feature-roadmap
+            git rebase origin/feat/premium-entitlements-feature-roadmap || {
+              git rebase --abort
+              echo "Rebase conflict while updating package lock."
+              exit 1
+            }
+            if git push origin HEAD:feat/premium-entitlements-feature-roadmap; then
+              exit 0
+            fi
+            echo "Branch advanced during push; retrying lockfile update ($attempt/5)."
+            sleep 2
+          done
+          echo "Could not push generated lockfile after five attempts."
+          exit 1
       - name: Build API
         run: npm run build
