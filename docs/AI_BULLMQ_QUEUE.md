@@ -45,6 +45,7 @@ Optional:
 - `AI_WORKER_RATE_LIMIT_DURATION_MS` (default 60000 ms).
 - `AI_QUEUE_MAX_WAITING` (default 100000 waiting jobs).
 - `AI_MAX_PENDING_JOBS_PER_USER` (default 5 queued/active jobs per account).
+- `AI_QUEUE_RECONCILE_BATCH_SIZE` (default 500 jobs checked by each worker on startup).
 
 The API and worker must point to the same PostgreSQL and Redis/Valkey instances.
 If Redis is unavailable, the API can still serve database-backed learning
@@ -73,6 +74,7 @@ than falling back to synchronous provider calls.
 - BullMQ priority favors Premium Pro, then Premium, then Free; AI Tutor and quiz-start jobs are ahead of document conversion. System prewarm jobs use low priority.
 - Admission control rejects excess backlog and caps pending jobs per account to protect API/DB capacity.
 - Stalled jobs are recovered by BullMQ; worker handles SIGTERM/SIGINT shutdown.
+- Durable DB rows act as an outbox: worker startup reconciles orphaned queued/active rows, re-enqueues missing BullMQ entries, and syncs already-completed/terminal-failed BullMQ state. A completed DB result is returned on retry instead of calling the provider again.
 - User quota is consumed once after the durable job row is created. Idempotency
   keys prevent duplicate quota consumption for repeated identical requests.
 - Terminal worker failure triggers a quota refund; queue insertion failure also
