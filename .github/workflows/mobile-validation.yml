@@ -8,6 +8,7 @@ on:
     branches:
       - feature/liquid-glass-dock
       - feat/education-statistics-dashboard
+      - feat/free-web-launch-validation
 
 permissions:
   contents: read
@@ -30,6 +31,9 @@ jobs:
 
       - name: TypeScript validation
         run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Export browser-ready web app
+        run: npx expo export --platform web --output-dir "$RUNNER_TEMP/expo-web-export"
 
       - name: Expo dependency validation
         run: npx expo install --check
