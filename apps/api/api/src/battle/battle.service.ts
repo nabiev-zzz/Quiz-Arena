@@ -555,14 +555,13 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
         match.finishedAt = new Date();
 
         const rankChanges: Record<string, BattleRankChange> = {};
+        const lockedUsers = new Map<string, User>();
 
         if (match.mode === 'ranked' && match.playerTwoId) {
           const playerIds = [
             match.playerOneId,
             match.playerTwoId,
           ].sort();
-
-          const lockedUsers = new Map<string, User>();
 
           for (const playerId of playerIds) {
             const user = await userRepo.findOne({
