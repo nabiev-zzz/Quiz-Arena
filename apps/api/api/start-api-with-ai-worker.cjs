@@ -41,8 +41,6 @@ function launch(processInfo) {
     workerRestartDelay = Math.min(workerRestartDelay * 2, 30000);
     setTimeout(() => launch(worker), delay).unref();
   });
-
-  if (processInfo === worker) workerRestartDelay = 5000;
 }
 
 function finishIfStopped() {
@@ -64,7 +62,7 @@ function shutdown(reason) {
 
   shutdownTimer = setTimeout(() => {
     for (const processInfo of [api, worker]) {
-      if (processInfo.child && !processInfo.child.killed) {
+      if (processInfo.child) {
         processInfo.child.kill('SIGKILL');
       }
     }
