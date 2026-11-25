@@ -133,19 +133,19 @@ export class BattleGateway
       // client replaces its socket through battle:reconnect; clearing every
       // socket ID here would disconnect players served by a different replica.
       const now = Date.now();
+      const shouldAdvance =
+        battle.questionResolved &&
+        battle.readyPlayers.size === battle.playerIds.length;
+
       if (!battle.questionResolved && !battle.resolving) {
         const delay = Math.max(0, battle.deadline - now);
         battle.timer = setTimeout(() => {
           void this.resolveQuestion(battle);
         }, delay);
-      } else if (
-        battle.questionResolved &&
-        battle.readyPlayers.size === battle.playerIds.length
-      ) {
-        void this.advanceIfReady(battle);
       }
 
       await this.persistBattle(battle);
+      if (shouldAdvance) await this.advanceIfReady(battle);
       this.logger.warn(`Battle Redisdan tiklandi: ${battle.roomCode}`);
     }
 
