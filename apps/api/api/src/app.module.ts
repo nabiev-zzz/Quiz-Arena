@@ -34,6 +34,7 @@ import { CreateFeatureUsage20261124203000 } from './database/migrations/CreateFe
 import { CreateAiGenerationJobs20261125100000 } from './database/migrations/CreateAiGenerationJobs';
 import { AddAiTutorGenerationJobLink20261125101000 } from './database/migrations/AddAiTutorGenerationJobLink';
 import { AllowSystemAiGenerationJobs20261125102000 } from './database/migrations/AllowSystemAiGenerationJobs';
+import { AddAiGenerationJobPriority20261125103000 } from './database/migrations/AddAiGenerationJobPriority';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
 
@@ -74,6 +75,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         CreateAiGenerationJobs20261125100000,
         AddAiTutorGenerationJobLink20261125101000,
         AllowSystemAiGenerationJobs20261125102000,
+        AddAiGenerationJobPriority20261125103000,
       ],
       migrationsRun: true,
       migrationsTableName: 'typeorm_migrations',
