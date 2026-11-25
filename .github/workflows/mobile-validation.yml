@@ -105,6 +105,21 @@ jobs:
           console.log('Galaxy Store configuration is valid.');
           NODE
 
+      - name: Validate Samsung Galaxy Store native autolinking
+        run: |
+          cp package.json "$RUNNER_TEMP/package.json.before-galaxy"
+          trap 'cp "$RUNNER_TEMP/package.json.before-galaxy" package.json' EXIT
+          GALAXY_STORE_BUILD=true EAS_BUILD_PLATFORM=android node scripts/configure-galaxy-autolinking.js
+          npx expo-modules-autolinking resolve --platform android --json > "$RUNNER_TEMP/galaxy-autolinking.json"
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const data = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/galaxy-autolinking.json', 'utf8'));
+          const modules = Array.isArray(data) ? data : (data.modules ?? []);
+          const hasIap = modules.some((module) => module.packageName === 'expo-iap' || module.name === 'expo-iap');
+          if (hasIap) throw new Error('expo-iap is still linked in the Galaxy Store Android build');
+          console.log('Galaxy Store native autolinking excludes expo-iap.');
+          NODE
+
       - name: Export Galaxy Store Android bundle
         run: GALAXY_STORE_BUILD=true npx expo export --platform android --output-dir "$RUNNER_TEMP/galaxy-store-android-export"
 
