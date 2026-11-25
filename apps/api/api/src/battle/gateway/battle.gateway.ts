@@ -708,32 +708,69 @@ export class BattleGateway
   ): Promise<void> {
     const userId = client.data.userId as string | undefined;
     const roomCode = String(payload?.roomCode || '').trim().toUpperCase();
-    const room = this.privateRooms.get(roomCode);
-    if (!userId || !room || room.hostUserId !== userId || room.hostSocketId !== client.id) {
+    const room = await this.getPrivateInvite(roomCode);
+    if (
+      !userId ||
+      !room ||
+      room.hostUserId !== userId ||
+      room.hostSocketId !== client.id
+    ) {
       client.emit('battle:error', { message: 'Xonani bekor qilish huquqi topilmadi.' });
       return;
     }
-    clearTimeout(room.timer);
+
+    const removed = await this.removePrivateInvite(roomCode, userId);
+    if (!removed) {
+      client.emit('battle:error', { message: 'Xona allaqachon bekor qilingan.' });
+      return;
+    }
+    const localRoom = this.privateRooms.get(roomCode);
+    if (localRoom) clearTimeout(localRoom.timer);
     this.privateRooms.delete(roomCode);
-    try { await this.featureUsageService.refund(userId, 'privateBattle'); } catch { /* Preserve the original room error. */ }
+    try {
+      await this.featureUsageService.refund(userId, 'privateBattle');
+    } catch {
+      // Preserve room cleanup even if quota refund fails.
+    }
     client.emit('battle:private:cancelled', { roomCode });
   }
 
   private async expirePrivateRoom(roomCode: string): Promise<void> {
-    const room = this.privateRooms.get(roomCode);
+    const room = await this.removePrivateInvite(roomCode);
     if (!room) return;
-    clearTimeout(room.timer);
+
+    const localRoom = this.privateRooms.get(roomCode);
+    if (localRoom) clearTimeout(localRoom.timer);
     this.privateRooms.delete(roomCode);
-    this.server.sockets.get(room.hostSocketId)?.emit('battle:private:expired', { roomCode });
-    try { await this.featureUsageService.refund(room.hostUserId, 'privateBattle'); } catch { /* Preserve room cleanup even if quota refund fails. */ }
+
+    const hostSocket = (await this.server.fetchSockets()).find(
+      (socket) =>
+        socket.id === room.hostSocketId &&
+        socket.data.userId === room.hostUserId,
+    );
+    hostSocket?.emit('battle:private:expired', { roomCode });
+    try {
+      await this.featureUsageService.refund(room.hostUserId, 'privateBattle');
+    } catch {
+      // Preserve room cleanup even if quota refund fails.
+    }
   }
 
   private async cleanupPrivateRoomsForSocket(socketId: string): Promise<void> {
-    const ownedRooms = [...this.privateRooms.values()].filter((room) => room.hostSocketId === socketId);
+    const ownedRooms = (await this.listPrivateInvites()).filter(
+      (room) => room.hostSocketId === socketId,
+    );
     for (const room of ownedRooms) {
-      clearTimeout(room.timer);
+      const removed = await this.removePrivateInvite(room.roomCode, room.hostUserId);
+      if (!removed) continue;
+      const localRoom = this.privateRooms.get(room.roomCode);
+      if (localRoom) clearTimeout(localRoom.timer);
       this.privateRooms.delete(room.roomCode);
-      try { await this.featureUsageService.refund(room.hostUserId, 'privateBattle'); } catch { /* Preserve room cleanup even if quota refund fails. */ }
+      try {
+        await this.featureUsageService.refund(room.hostUserId, 'privateBattle');
+      } catch {
+        // Preserve room cleanup even if quota refund fails.
+      }
     }
   }
 
@@ -751,7 +788,7 @@ export class BattleGateway
       return;
     }
 
-    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId)) {
+    if (await this.getPrivateInviteForHost(userId)) {
       client.emit('battle:error', { message: 'Avval xususiy taklif xonasini bekor qiling.' });
       return;
     }
