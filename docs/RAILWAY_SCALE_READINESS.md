@@ -17,9 +17,9 @@ Status: two-process Battle E2E and 100/300/500-client CI load tests passed on 20
 
 ## Important scale blockers found in code
 
-### 1. Battle state is process-local
+### 1. Battle state is shared, with a process-local working cache
 
-`BattleGateway` keeps an in-memory working cache for active matches and local timer handles. Authoritative active-match snapshots, queue-to-socket ownership, private invite records, and private-join rate limits are stored in Redis. Timer callbacks are reconciled across replicas and protected by Redis claims; the remaining multi-node behavior still requires live end-to-end verification.
+`BattleGateway` keeps an in-memory working cache for active matches and local timer handles. Authoritative active-match snapshots, queue-to-socket ownership, private invite records, and private-join rate limits are stored in Redis. Timer callbacks are reconciled across replicas and protected by Redis claims; core multi-node behavior now passes the CI two-process end-to-end test, while the additional release gates are listed below.
 
 Before enabling multiple API replicas:
 - Move authoritative Battle room/match/queue state to Redis or another shared, atomic state store.
@@ -99,7 +99,7 @@ Use Railway's private service networking for API-to-Postgres/Redis connections. 
 
 ### Phase A — no extra spend
 - Keep current production untouched.
-- Keep PR #55 open as draft.
+- Keep PR #56 open as draft.
 - Finish code-level readiness work and automated tests.
 - Document exact staging service settings and required variable names (not values).
 - Add CI checks for API build/tests and mobile type/dependency validation.
