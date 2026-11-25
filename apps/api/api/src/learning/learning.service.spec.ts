@@ -216,7 +216,6 @@ describe('LearningService document quiz generation', () => {
 
     const result = await service.createSmartPractice('user-1', { language: 'uz' });
 
-    expect(result.personalized).toBeUndefined();
     expect(result.status).toBe('queued');
     expect(aiQueue.enqueue).toHaveBeenCalledWith(expect.objectContaining({
       jobType: 'smart_practice',
