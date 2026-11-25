@@ -61,7 +61,7 @@ export class BattleStateStore implements OnModuleInit, OnModuleDestroy {
     const host = this.config.get<string>('VALKEY_HOST');
 
     this.enabled = Boolean(url || host);
-    this.prefix = this.config.get<string>('BATTLE_REDIS_PREFIX') || 'quiz-arena:staging';
+    this.prefix = this.config.get<string>('BATTLE_REDIS_PREFIX') || `quiz-arena:${process.env.NODE_ENV || 'development'}`;
 
     const options = {
       lazyConnect: true,
@@ -95,6 +95,15 @@ export class BattleStateStore implements OnModuleInit, OnModuleDestroy {
         );
       }
       return;
+    }
+
+    if (
+      this.config.get<string>('BATTLE_SHARED_STATE_REQUIRED') === 'true' &&
+      !this.config.get<string>('BATTLE_REDIS_PREFIX')
+    ) {
+      throw new ServiceUnavailableException(
+        'BATTLE_SHARED_STATE_REQUIRED=true bo‘lsa, muhitga xos BATTLE_REDIS_PREFIX majburiy.',
+      );
     }
 
     try {
