@@ -13,7 +13,6 @@ import { Repository } from 'typeorm';
 
 import { BattleMatch } from '../battle/entities/battle-match.entity';
 import { LearningAttempt } from '../learning/entities/learning-attempt.entity';
-import { FeatureUsageService } from '../subscriptions/feature-usage.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { User } from '../users/entities/user.entity';
 
@@ -39,7 +38,6 @@ export class AiTutorService {
 
     @InjectRepository(LearningAttempt)
     private readonly learningAttemptRepository: Repository<LearningAttempt>,
-    private readonly featureUsageService: FeatureUsageService,
     private readonly subscriptionsService: SubscriptionsService,
     private readonly aiQueue: AiGenerationQueueService,
   ) {}
