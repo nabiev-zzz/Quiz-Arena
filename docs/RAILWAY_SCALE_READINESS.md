@@ -13,6 +13,7 @@ Status: preparation only. This document does not authorize a plan upgrade, produ
 - API production start script: `npm run start:prod` (runs `node dist/main`).
 - API listens on `process.env.PORT` and binds to `0.0.0.0`.
 - TypeORM currently uses explicit `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, and `DB_DATABASE` variables; schema synchronization is disabled and migrations currently run during application startup.
+- Battle Redis connection now accepts a managed `REDIS_URL` or `VALKEY_URL`; existing `VALKEY_HOST`, `VALKEY_PORT`, and `VALKEY_PASSWORD` settings remain supported. Configure only one URL or the host/port set in Railway staging variables; never commit connection strings.
 
 ## Important scale blockers found in code
 
