@@ -14,6 +14,7 @@ describe('BattleGateway private Friends Battle rooms', () => {
     claimQuestionResolution: jest.fn(),
     markPlayerReady: jest.fn(),
     claimAdvance: jest.fn(),
+    claimFinish: jest.fn(),
     withMatchLock: jest.fn(),
   };
   const gateway = new BattleGateway(
