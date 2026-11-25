@@ -123,9 +123,12 @@ describe('BattleService — Rank tizimi', () => {
     questionRepository = { find: jest.fn(async () => []) };
     const userRepository: any = {};
 
+    const dailyTasksService: any = { recordRankedBattle: jest.fn(async () => undefined) };
+
     service = new BattleService(
       configService,
       aiService,
+      dailyTasksService,
       matchRepository,
       questionRepository,
       userRepository,
