@@ -110,3 +110,15 @@ Use Railway's private service networking for API-to-Postgres/Redis connections. 
 ## Release gate
 
 Do not call the app scale-ready merely because Railway Pro is enabled. The release gate is: staging deployment succeeds, migrations are safe, health checks pass, two-instance Battle tests pass, Android/iOS QA passes, backups are restorable, and observed load-test metrics meet agreed targets.
+
+
+### 2a. Socket.IO Redis adapter — Pub/Sub layer connected
+
+The API now creates dedicated Redis publisher/subscriber connections and installs the official `@socket.io/redis-adapter` when `REDIS_URL`, `VALKEY_URL`, or `VALKEY_HOST` is configured. If Redis is configured but unavailable, API startup fails rather than silently running a misleading local-only adapter. If no Redis endpoint is configured, the API logs that it is using the local adapter.
+
+Important limitations:
+- The adapter forwards Socket.IO broadcasts and socket-management operations between API replicas; it does not persist application Battle state in Redis.
+- Socket.IO connection-state recovery is not supported by this adapter. When HTTP long-polling is enabled, the load balancer must use sticky sessions; alternatively, validate a WebSocket-only client transport before changing production transport settings.
+- `BattleGateway` still stores active match state, player answers, timers, private rooms, and reconnect state in process-local maps. Matchmaking also currently looks up opponent sockets locally. Therefore this adapter is a required transport foundation, **not permission to run multiple Battle API replicas**.
+- Keep Battle at one API replica until authoritative Battle state and matchmaking are moved to shared storage, transitions are atomic/idempotent, and two-replica end-to-end tests pass.
+- Redis Pub/Sub must remain private and protected with authentication, TLS/private networking and least-privilege credentials. Never expose the Redis endpoint publicly.
