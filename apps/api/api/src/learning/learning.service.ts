@@ -12,6 +12,9 @@ import { LearningWebSession } from './entities/learning-web-session.entity';
 import { FeatureUsageService } from '../subscriptions/feature-usage.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { generateDocumentQuizFallback } from './document-quiz-fallback';
+import { createHash } from 'node:crypto';
+import { Inject, Optional } from '@nestjs/common';
+import { LearningQuestionCache } from './learning-question-cache.service';
 
 export interface CreateLearningAttemptInput {
   subjectId: string;
@@ -83,6 +86,8 @@ export class LearningService {
     private readonly aiService: AiService,
     private readonly featureUsageService: FeatureUsageService,
     private readonly subscriptionsService: SubscriptionsService,
+    @Optional() @Inject(LearningQuestionCache)
+    private readonly questionCache?: LearningQuestionCache,
   ) {}
 
   getCatalog() {
@@ -357,10 +362,32 @@ export class LearningService {
     const topic = await this.topics.findOne({ where: { subjectId, topicId, isActive: true } });
     if (!topic) throw new NotFoundException('Bu mavzu topilmadi yoki vaqtincha faol emas.');
 
-    // Database-first: yetarli savol bazada bo‘lsa, test AI provayderisiz ham ishlaydi.
-    // Parallel so‘rovlar bir xil mavzu uchun takroriy AI generatsiyasini advisory lock bilan cheklaydi.
+    // Shared cache faqat umumiy mavzu savollarini saqlaydi; foydalanuvchi shaxsiy ma'lumotlari keshga kiritilmaydi.
+    // Savollar soni cache keyga kiritilmaydi: 20 talik pooldan kerakli miqdor tanlanadi.
+    const cacheKey = createHash('sha256').update(JSON.stringify({
+      version: 1, subjectId, topicId, language: input.language, difficulty: input.difficulty,
+    })).digest('hex');
+    const redisPool = await this.questionCache?.get<Array<{
+      id: string; subjectId: string; topicId: string; question: string;
+      options: string[]; correctAnswer: number; explanation: string; difficulty: string;
+    }>>(cacheKey);
+    if (Array.isArray(redisPool) && redisPool.length >= count) {
+      const shuffled = [...redisPool];
+      for (let index = shuffled.length - 1; index > 0; index -= 1) {
+        const target = Math.floor(Math.random() * (index + 1));
+        [shuffled[index], shuffled[target]] = [shuffled[target], shuffled[index]];
+      }
+      return {
+        questions: shuffled.slice(0, count),
+        source: 'redis-cache',
+        cachedQuestionCount: redisPool.length,
+      };
+    }
+
+    // Database-first: PostgreSQL question bank is authoritative and survives Redis loss.
+    // Advisory lock prevents duplicate AI generation for the same topic/parameters.
     const lockKey = [subjectId, topicId, input.language, input.difficulty].join(':');
-    return this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [lockKey]);
       const bank = manager.getRepository(LearningQuestion);
       let cached = await bank.find({
@@ -407,17 +434,34 @@ export class LearningService {
         .take(count)
         .getMany();
 
-      return { questions: selected.map((question) => ({
-        id: question.id,
-        subjectId: question.subjectId,
-        topicId: question.topicId,
-        question: question.question,
-        options: question.options,
-        correctAnswer: question.correctAnswer,
-        explanation: question.explanation,
-        difficulty: question.difficulty,
-      })), source: 'database', cachedQuestionCount: cached.length };
+      return {
+        questions: selected.map((question) => ({
+          id: question.id,
+          subjectId: question.subjectId,
+          topicId: question.topicId,
+          question: question.question,
+          options: question.options,
+          correctAnswer: question.correctAnswer,
+          explanation: question.explanation,
+          difficulty: question.difficulty,
+        })),
+        source: 'database' as const,
+        cachedQuestionCount: cached.length,
+        cachePool: cached.map((question) => ({
+          id: question.id,
+          subjectId: question.subjectId,
+          topicId: question.topicId,
+          question: question.question,
+          options: question.options,
+          correctAnswer: question.correctAnswer,
+          explanation: question.explanation,
+          difficulty: question.difficulty,
+        })),
+      };
     });
+    if (result.cachePool.length >= count) await this.questionCache?.set(cacheKey, result.cachePool);
+    const { cachePool: _cachePool, ...response } = result;
+    return response;
   }
 
   async getWebTopicQuestions(userId: string, input: {
