@@ -176,29 +176,6 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
     return this.redis.get(this.queueSocketKey(socketId));
   }
 
-  async clearQueueForSocket(
-    socketId: string,
-    expectedQueueKey?: string,
-  ): Promise<void> {
-    if (this.redis.status !== 'ready') return;
-    const key = this.queueSocketKey(socketId);
-    if (!expectedQueueKey) {
-      await this.redis.del(key);
-      return;
-    }
-    await this.redis.eval(
-      `
-        if redis.call('GET', KEYS[1]) == ARGV[1] then
-          return redis.call('DEL', KEYS[1])
-        end
-        return 0
-      `,
-      1,
-      key,
-      expectedQueueKey,
-    );
-  }
-
   async joinQueue(
     queueKey: string,
     userId: string,
