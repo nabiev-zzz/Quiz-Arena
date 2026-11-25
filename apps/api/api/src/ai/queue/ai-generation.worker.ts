@@ -80,6 +80,10 @@ async function main(): Promise<void> {
     },
   );
 
+  const recoveryTimer = setInterval(() => {
+    void queueService.reconcilePendingJobs();
+  }, 30_000);
+
   worker.on('failed', (job, error) => {
     if (!job) return;
     const maxAttempts = Number(job.opts.attempts || 1);
@@ -94,6 +98,7 @@ async function main(): Promise<void> {
   logger.log('AI generation worker ishga tushdi. Battle navbati bilan bog‘lanmagan.');
 
   const shutdown = async () => {
+    clearInterval(recoveryTimer);
     await worker.close();
     if (connection.status === 'ready') await connection.quit();
     else connection.disconnect();
