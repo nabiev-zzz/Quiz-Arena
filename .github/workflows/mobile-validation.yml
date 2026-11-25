@@ -36,7 +36,21 @@ jobs:
         run: npx expo export --platform web --output-dir "$RUNNER_TEMP/expo-web-export"
 
       - name: Build the combined public website image
-        run: docker build --build-arg APP_SOURCE_BRANCH=feat/free-web-app-launch -f Dockerfile website
+        run: docker build --build-arg APP_SOURCE_BRANCH=feat/free-web-app-launch -t quiz-arena-website:ci -f Dockerfile website
+
+      - name: Smoke-test landing page and browser app routes
+        run: |
+          docker run -d --name quiz-arena-web-smoke -p 8080:8080 quiz-arena-website:ci
+          trap 'docker rm -f quiz-arena-web-smoke >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8080/ > "$RUNNER_TEMP/landing.html"; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8080/app/ > "$RUNNER_TEMP/app.html"
+          grep -q "QUIZ ARENA" "$RUNNER_TEMP/landing.html"
+          grep -q "/app/_expo/" "$RUNNER_TEMP/app.html"
 
       - name: Expo dependency validation
         run: npx expo install --check
