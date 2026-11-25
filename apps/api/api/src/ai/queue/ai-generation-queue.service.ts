@@ -155,8 +155,9 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
       attempts: 0,
       priority: 50,
     });
+    let persistedJob: AiGenerationJob;
     try {
-      await this.jobs.save(job);
+      persistedJob = await this.jobs.save(job);
     } catch (error) {
       // A concurrent identical request may have won the unique idempotency key.
       if (idempotencyKey) {
@@ -169,22 +170,22 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     let usage: unknown;
     if (input.quotaFeature) {
       if (!input.userId) {
-        await this.jobs.update({ id: job.id }, { status: 'failed', error: 'Quota owner missing.', fileBuffer: null, completedAt: new Date() });
+        await this.jobs.update({ id: persistedJob.id }, { status: 'failed', error: 'Quota owner missing.', fileBuffer: null, completedAt: new Date() });
         throw new Error('Quota bilan AI job yaratish uchun userId talab qilinadi.');
       }
       try {
         usage = await this.featureUsage.consume(input.userId, input.quotaFeature);
       } catch (error) {
-        await this.jobs.update({ id: job.id }, { status: 'failed', error: 'Quota tekshiruvi bajarilmadi.', fileBuffer: null, completedAt: new Date() });
+        await this.jobs.update({ id: persistedJob.id }, { status: 'failed', error: 'Quota tekshiruvi bajarilmadi.', fileBuffer: null, completedAt: new Date() });
         throw error;
       }
       if (!(usage as { allowed?: boolean }).allowed) {
-        await this.jobs.update({ id: job.id }, { status: 'failed', error: 'Tarif limitingiz tugagan.', fileBuffer: null, completedAt: new Date() });
+        await this.jobs.update({ id: persistedJob.id }, { status: 'failed', error: 'Tarif limitingiz tugagan.', fileBuffer: null, completedAt: new Date() });
         throw new HttpException('Ushbu AI funksiyasi uchun tarif limitingiz tugagan.', HttpStatus.TOO_MANY_REQUESTS);
       }
-      await this.jobs.update({ id: job.id }, { quotaConsumed: true, payload: { ...input.payload, _jobId: job.id, ...(usage ? { _quotaReceipt: usage } : {}) } });
+      await this.jobs.update({ id: persistedJob.id }, { quotaConsumed: true, payload: { ...input.payload, _jobId: persistedJob.id, ...(usage ? { _quotaReceipt: usage } : {}) } });
     } else {
-      await this.jobs.update({ id: job.id }, { payload: { ...input.payload, _jobId: job.id } });
+      await this.jobs.update({ id: persistedJob.id }, { payload: { ...input.payload, _jobId: persistedJob.id } });
     }
 
     try {
@@ -197,10 +198,10 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
         : input.jobType === 'document_quiz' ? 4
         : 0;
       const priority = input.userId ? tierPriority + taskOffset : 100;
-      await this.jobs.update({ id: job.id }, { priority });
-      await this.queue.add(input.jobType, { jobId: job.id }, { jobId: job.id, priority });
+      await this.jobs.update({ id: persistedJob.id }, { priority });
+      await this.queue.add(input.jobType, { jobId: persistedJob.id }, { jobId: persistedJob.id, priority });
     } catch (error) {
-      await this.jobs.update({ id: job.id }, {
+      await this.jobs.update({ id: persistedJob.id }, {
         status: 'failed',
         error: 'AI navbatiga qo‘shib bo‘lmadi. Qayta urinib ko‘ring.',
         completedAt: new Date(),
@@ -209,13 +210,13 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
       if (usage && input.quotaFeature) {
         try {
           if (input.userId) await this.featureUsage.refund(input.userId, input.quotaFeature as never);
-          await this.jobs.update({ id: job.id }, { quotaRefunded: true });
+          await this.jobs.update({ id: persistedJob.id }, { quotaRefunded: true });
         } catch { /* Preserve the queue error; refund can be retried operationally. */ }
       }
       throw new ServiceUnavailableException('AI navbatiga ulanishda xatolik. Qayta urinib ko‘ring.');
     }
 
-    return { status: 'queued', jobId: job.id, message: 'Test tayyorlanmoqda', usage };
+    return { status: 'queued', jobId: persistedJob.id, message: 'Test tayyorlanmoqda', usage };
   }
 
   async reconcilePendingJobs(): Promise<void> {
