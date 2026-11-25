@@ -75,6 +75,10 @@ jobs:
         working-directory: apps/api/api
         run: node test/battle-multireplica-load.mjs
 
+      - name: Verify API replica loss, timer failover, reconnect and 10-question ranked completion
+        working-directory: apps/api/api
+        run: node test/battle-failover-completion.mjs
+
       - name: Upload Battle load-test report
         if: always()
         uses: actions/upload-artifact@v4
