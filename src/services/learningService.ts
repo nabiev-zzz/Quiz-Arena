@@ -234,7 +234,7 @@ export interface SmartPracticeResult {
 }
 
 export const createSmartPractice = async (count: number, language: 'uz' | 'ru' | 'en') => {
-  const result = await learningRequest<SmartPracticeResult & { status?: 'queued' | 'active'; jobId?: string }>(
+  const result = await learningRequest<SmartPracticeResult & { status?: 'queued' | 'active' | 'completed'; jobId?: string; result?: SmartPracticeResult }>(
     '/api/learning/smart-practice',
     { method: 'POST', body: JSON.stringify({ count, language }) },
   );
