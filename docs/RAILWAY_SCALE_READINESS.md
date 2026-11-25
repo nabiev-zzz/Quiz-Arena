@@ -119,6 +119,22 @@ The API now creates dedicated Redis publisher/subscriber connections and install
 Important limitations:
 - The adapter forwards Socket.IO broadcasts and socket-management operations between API replicas; it does not persist application Battle state in Redis.
 - Socket.IO connection-state recovery is not supported by this adapter. When HTTP long-polling is enabled, the load balancer must use sticky sessions; alternatively, validate a WebSocket-only client transport before changing production transport settings.
-- `BattleGateway` still stores active match state, player answers, timers, private rooms, and reconnect state in process-local maps. Matchmaking also currently looks up opponent sockets locally. Therefore this adapter is a required transport foundation, **not permission to run multiple Battle API replicas**.
-- Keep Battle at one API replica until authoritative Battle state and matchmaking are moved to shared storage, transitions are atomic/idempotent, and two-replica end-to-end tests pass.
+- `BattleStateStore` now persists active match snapshots in Redis (players, questions, answers, scores, current question, deadline, results, ready state and reconnect metadata). The gateway restores snapshots at API startup and reconstructs timers; stale socket IDs are invalidated and players receive a reconnect grace period.
+- Answer submission, question-resolution claims, ready markers and question advancement use token-owned Redis locks/atomic read-modify-write operations. PostgreSQL remains the durable record for match progress and completed results.
+- The gateway still keeps a process-local working cache for active matches. Private invite rooms, private-join throttling and queue-to-local-socket matchmaking still have process-local pieces; remote opponent socket discovery and full live reconciliation between already-running replicas remain unfinished. A Redis state store alone is not yet a complete multi-node Battle implementation.
+- CI now starts Redis 7 and tests two independent `BattleStateStore` instances for shared reads, restart-style recovery and lock serialization. These are store-level integration tests, **not yet a full two-NestJS-API / two-Socket.IO-server Battle end-to-end test**.
+- Keep Battle at one API replica until live two-replica matchmaking, answer races, timer failover, reconnect, completion/reward idempotency and server-restart recovery all pass end-to-end tests.
 - Redis Pub/Sub must remain private and protected with authentication, TLS/private networking and least-privilege credentials. Never expose the Redis endpoint publicly.
+
+### 2b. Redis BattleStateStore — first durable-state layer
+
+`BattleStateStore` uses the same managed Redis endpoint family as the Battle queue (`REDIS_URL` / `VALKEY_URL` / `VALKEY_HOST`) and stores versioned JSON snapshots with a six-hour TTL plus an active-match index. Configure a unique `BATTLE_REDIS_PREFIX` for each environment; when `BATTLE_SHARED_STATE_REQUIRED=true`, the API refuses to start without an explicit prefix and a reachable Redis instance. Example names (not secret values): `quiz-arena:staging` and `quiz-arena:production`.
+
+The Redis lock uses `SET NX PX` with a random ownership token and compare-and-delete release script. Current critical-section TTL is 10 seconds; operations protected by it must remain short and must not perform AI generation or long database work while holding the lock.
+
+Remaining engineering gates:
+- Add continuous active-state reconciliation so an already-running second API instance notices matches created by the first and can take over timer work after a process crash.
+- Move private invite rooms, matchmaking ownership, reconnect metadata and join-attempt limits fully to shared storage; remove reliance on local-only socket lookup.
+- Make completion and rank/reward application idempotent across Redis and PostgreSQL failure windows, and reconcile Redis snapshots from the PostgreSQL match record after restart.
+- Add a real two-API end-to-end test with two Socket.IO servers connected to the same Redis and PostgreSQL test services. Exercise simultaneous answers, duplicate answer attempts, timer races, restart during a question, reconnect on the other node, finish races and exactly-once rank updates.
+- Do not raise API replica count until the above tests pass. Current CI's two-store Redis test does not prove the complete gateway flow.
