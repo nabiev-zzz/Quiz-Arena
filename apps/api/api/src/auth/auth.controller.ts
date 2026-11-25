@@ -117,11 +117,8 @@ export class AuthController {
   }
 
   @Get('telegram/start')
-  async telegramStart(
-    @Query('platform') platform: string,
-    @Res() response: Response,
-  ) {
-    response.redirect(302, await this.authService.getTelegramAuthorizationUrl(platform === 'web'));
+  async telegramStart(@Res() response: Response) {
+    response.redirect(302, await this.authService.getTelegramAuthorizationUrl());
   }
 
   @Get('telegram/callback')
@@ -134,7 +131,7 @@ export class AuthController {
       const appUrl = await this.authService.handleTelegramCallback(code, state);
       response.redirect(302, appUrl);
     } catch {
-      response.redirect(302, await this.authService.getOAuthErrorRedirect('telegram', state));
+      response.redirect(302, 'quizarena://auth?error=telegram_sign_in_failed');
     }
   }
 
@@ -144,11 +141,8 @@ export class AuthController {
   }
 
   @Get('google/start')
-  async googleStart(
-    @Query('platform') platform: string,
-    @Res() response: Response,
-  ) {
-    response.redirect(302, await this.authService.getGoogleAuthorizationUrl(platform === 'web'));
+  async googleStart(@Res() response: Response) {
+    response.redirect(302, await this.authService.getGoogleAuthorizationUrl());
   }
 
   @Get('google/callback')
@@ -161,7 +155,7 @@ export class AuthController {
       const appUrl = await this.authService.handleGoogleCallback(code, state);
       response.redirect(302, appUrl);
     } catch {
-      response.redirect(302, await this.authService.getOAuthErrorRedirect('google', state));
+      response.redirect(302, 'quizarena://auth?error=google_sign_in_failed');
     }
   }
 
