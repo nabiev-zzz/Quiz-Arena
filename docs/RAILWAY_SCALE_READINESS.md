@@ -41,7 +41,19 @@ This is an initial PostgreSQL readiness check, not the final production health c
 
 TypeORM has `migrationsRun: true`. Before running multiple replicas, change deployment flow so exactly one release/migration job applies migrations before API rollout; API replicas must not race to run schema changes. Continue additive migrations only, take a verified backup before production schema changes, and never use destructive rollback.
 
-### 4. API and background work need separate capacity
+### 4. Quiz generation must degrade gracefully without AI
+
+The learning topic endpoint now follows a database-first rule: if the saved question bank already contains at least the requested number of questions, it serves the test without calling an AI provider. It no longer calls AI merely to fill the cache to 20 questions. AI is still used when the bank has fewer questions than requested.
+
+Battle question preparation is also database-first, but it still calls AI when fewer than 10 matching Battle questions exist. The Battle status now reports this honestly as `database-first-ai-assisted`; it must not claim full AI independence.
+
+Remaining work before claiming AI-independent test creation:
+- Build and maintain a curated, reviewed question bank for every supported subject/topic/language/difficulty combination.
+- Add a deterministic, non-AI document quiz fallback for supported text-based formats, with strict quality validation and clear labeling; PDF extraction needs a non-AI parser before PDF quizzes can be independent.
+- Make AI-generated questions optional enrichment, not the only source of test questions.
+- Add tests for provider outage, empty/partial banks, and sufficient-bank operation; do not return incomplete quizzes silently.
+
+### 5. API and background work need separate capacity
 
 Keep latency-sensitive HTTP and Battle Socket.IO traffic responsive. Move heavy document parsing, PDF generation, AI calls, and other long tasks to a separately deployable worker with bounded concurrency, retries, idempotency, and queue visibility. Do not create the worker until its queue semantics and retry safety are implemented.
 
