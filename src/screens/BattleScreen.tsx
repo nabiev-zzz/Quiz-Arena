@@ -198,7 +198,7 @@ export default function BattleScreen({
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'MaвЂ™lumotlarni olishda xato.',
+        err instanceof Error ? err.message : 'Ma’lumotlarni olishda xato.',
       );
     } finally {
       setLoadingData(false);
@@ -361,7 +361,7 @@ export default function BattleScreen({
         socket.on('battle:reconnect:failed', (data: {
           message?: string;
         }) => {
-          setError(data.message || 'Battlega qayta ulanib boвЂlmadi.');
+          setError(data.message || 'Battlega qayta ulanib bo‘lmadi.');
           clearMatchState();
         });
 
@@ -485,7 +485,7 @@ export default function BattleScreen({
       'Battle dan chiqish',
       'Haqiqatan ham joriy Battle ni bekor qilmoqchimisiz?',
       [
-        { text: 'YoвЂq', style: 'cancel' },
+        { text: 'Yo‘q', style: 'cancel' },
         {
           text: 'Ha, chiqish',
           style: 'destructive',
@@ -525,7 +525,7 @@ export default function BattleScreen({
       return (
         <View style={styles.card}>
           <LocalizedText style={styles.resultEmoji}>
-            {finished.draw ? 'рџ¤ќ' : 'рџЏ†'}
+            {finished.draw ? '🤝' : '🏆'}
           </LocalizedText>
           <LocalizedText style={styles.cardTitle}>{title}</LocalizedText>
           <LocalizedText style={styles.muted}>Xona: {finished.roomCode}</LocalizedText>
@@ -552,8 +552,8 @@ export default function BattleScreen({
           {Object.entries(finished.scores || {}).map(([id, score]) => (
             <LocalizedText key={id} style={styles.scoreLine}>
               {match?.players.find((player) => player.id === id)?.username ||
-                `OвЂyinchi ${id.slice(0, 6)}`}
-              {' вЂ” '}
+                `O‘yinchi ${id.slice(0, 6)}`}
+              {' — '}
               {score} ball
             </LocalizedText>
           ))}
@@ -573,10 +573,10 @@ export default function BattleScreen({
       return (
         <View style={styles.card}>
           <LocalizedText style={styles.cardTitle}>
-            {correct ? 'ToвЂgвЂri javob!' : 'Keyingi safar omad!'}
+            {correct ? 'To‘g‘ri javob!' : 'Keyingi safar omad!'}
           </LocalizedText>
           <LocalizedText style={styles.muted}>
-            ToвЂgвЂri javob: {result.correctAnswer + 1}-variant
+            To‘g‘ri javob: {result.correctAnswer + 1}-variant
           </LocalizedText>
           <LocalizedText style={styles.bodyText}>{result.explanation}</LocalizedText>
 
@@ -584,8 +584,8 @@ export default function BattleScreen({
           {Object.entries(result.scores || {}).map(([id, score]) => (
             <LocalizedText key={id} style={styles.scoreLine}>
               {match?.players.find((player) => player.id === id)?.username ||
-                `OвЂyinchi ${id.slice(0, 6)}`}
-              {' вЂ” '}
+                `O‘yinchi ${id.slice(0, 6)}`}
+              {' — '}
               {score} ball
             </LocalizedText>
           ))}
@@ -642,7 +642,7 @@ export default function BattleScreen({
                 </LocalizedText>
                 <LocalizedText style={styles.optionText}>{option}</LocalizedText>
                 {selected ? (
-                  <LocalizedText style={styles.optionLetter}>вњ“</LocalizedText>
+                  <LocalizedText style={styles.optionLetter}>✓</LocalizedText>
                 ) : null}
               </Pressable>
             );
@@ -676,7 +676,7 @@ export default function BattleScreen({
     if (started || match) {
       return (
         <View style={styles.card}>
-          <LocalizedText style={styles.resultEmoji}>вљ”пёЏ</LocalizedText>
+          <LocalizedText style={styles.resultEmoji}>⚔️</LocalizedText>
           <LocalizedText style={styles.cardTitle}>
             {started ? 'Battle boshlandi!' : 'Raqib topildi!'}
           </LocalizedText>
@@ -1674,7 +1674,7 @@ export default function BattleScreen({
       <View style={styles.header}>
         {onBack ? (
           <Pressable onPress={onBack} style={styles.backButton}>
-            <LocalizedText style={styles.backText}>вЂ№</LocalizedText>
+            <LocalizedText style={styles.backText}>‹</LocalizedText>
           </Pressable>
         ) : null}
         <View style={{ flex: 1 }}>
