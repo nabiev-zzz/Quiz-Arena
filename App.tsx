@@ -176,7 +176,7 @@ function AppContent() {
       <>
         <View style={styles.homeHeader}>
           <View style={styles.homeBrand}>
-            <View style={styles.homeBrandIcon}><LocalizedText style={styles.homeBrandLetter}>Q</LocalizedText></View>
+            <View style={styles.homeBrandIcon}><LocalizedText style={styles.homeBrandLetter}>Z</LocalizedText></View>
             <View style={styles.homeBrandText}>
               <LocalizedText style={[styles.homeEyebrow, { color: mutedColor }]}>ZELQEN CORE</LocalizedText>
               <LocalizedText style={[styles.homeGreeting, { color: textColor }]}>Salom, {user?.displayName || 'Bilimdon'}!</LocalizedText>
