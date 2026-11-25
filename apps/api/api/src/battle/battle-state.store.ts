@@ -191,6 +191,107 @@ export class BattleStateStore implements OnModuleInit, OnModuleDestroy {
     return active;
   }
 
+
+  async recordAnswer(
+    matchId: string,
+    userId: string,
+    socketId: string,
+    questionIndex: number,
+    answerIndex: number,
+  ): Promise<{ accepted: boolean; allAnswered: boolean; reason?: string }> {
+    return this.withMatchLock(matchId, async () => {
+      const state = await this.get(matchId);
+      if (!state || !state.playerIds.includes(userId)) {
+        return { accepted: false, allAnswered: false, reason: 'missing' };
+      }
+      if (state.socketIds[userId] !== socketId) {
+        return { accepted: false, allAnswered: false, reason: 'socket' };
+      }
+      if (state.resolving || state.questionResolved) {
+        return { accepted: false, allAnswered: false, reason: 'resolving' };
+      }
+      if (state.questionIndex !== questionIndex || Date.now() > state.deadline) {
+        return { accepted: false, allAnswered: false, reason: 'expired' };
+      }
+      if (Object.prototype.hasOwnProperty.call(state.answers, userId)) {
+        return { accepted: false, allAnswered: false, reason: 'duplicate' };
+      }
+
+      state.answers[userId] = answerIndex;
+      await this.save(state);
+      return {
+        accepted: true,
+        allAnswered: state.playerIds.every((id) =>
+          Object.prototype.hasOwnProperty.call(state.answers, id),
+        ),
+      };
+    });
+  }
+
+  async claimQuestionResolution(
+    matchId: string,
+    expectedQuestionIndex: number,
+  ): Promise<BattleStateSnapshot | null> {
+    return this.withMatchLock(matchId, async () => {
+      const state = await this.get(matchId);
+      if (
+        !state ||
+        state.questionIndex !== expectedQuestionIndex ||
+        state.resolving ||
+        state.questionResolved
+      ) {
+        return null;
+      }
+      state.resolving = true;
+      await this.save(state);
+      return state;
+    });
+  }
+
+  async markPlayerReady(
+    matchId: string,
+    userId: string,
+    questionIndex: number,
+  ): Promise<BattleStateSnapshot | null> {
+    return this.withMatchLock(matchId, async () => {
+      const state = await this.get(matchId);
+      if (
+        !state ||
+        !state.playerIds.includes(userId) ||
+        state.questionIndex !== questionIndex ||
+        (!state.questionResolved && Date.now() < state.deadline)
+      ) {
+        return null;
+      }
+      if (!state.readyPlayers.includes(userId)) {
+        state.readyPlayers.push(userId);
+      }
+      await this.save(state);
+      return state;
+    });
+  }
+
+  async claimAdvance(matchId: string): Promise<BattleStateSnapshot | null> {
+    return this.withMatchLock(matchId, async () => {
+      const state = await this.get(matchId);
+      if (
+        !state ||
+        !state.questionResolved ||
+        state.readyPlayers.length !== state.playerIds.length
+      ) {
+        return null;
+      }
+      state.questionIndex += 1;
+      state.answers = {};
+      state.readyPlayers = [];
+      state.questionResolved = false;
+      state.resolving = false;
+      state.deadline = 0;
+      await this.save(state);
+      return state;
+    });
+  }
+
   async remove(matchId: string): Promise<void> {
     this.assertReady();
     const pipeline = this.redis.pipeline();
