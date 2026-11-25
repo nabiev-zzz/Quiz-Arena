@@ -5,6 +5,8 @@ describe('BattleGateway private Friends Battle rooms', () => {
   const battleService = {
     createMatch: jest.fn(),
     joinQueue: jest.fn(),
+    leaveQueue: jest.fn(),
+    getQueueForSocket: jest.fn(),
     prepareQuestions: jest.fn(),
     markMatchStarted: jest.fn(),
   };
@@ -50,6 +52,7 @@ describe('BattleGateway private Friends Battle rooms', () => {
     jest.useFakeTimers();
     jest.clearAllMocks();
     battleStateStore.isReady.mockReturnValue(false);
+    battleService.getQueueForSocket.mockResolvedValue(null);
     featureUsageService.consume.mockResolvedValue({
       allowed: true, featureKey: 'privateBattle', tier: 'free',
       period: 'daily', limit: 3, used: 1, remaining: 2,
