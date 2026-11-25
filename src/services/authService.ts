@@ -17,7 +17,7 @@ export interface AuthUser {
   role: 'user' | 'admin';
   status: 'active' | 'blocked';
   xp: number;
-  zcBalance: number;
+  zcBalance?: number;
   level: number;
   rankPoints?: number;
   rankTier?: string;
