@@ -7,6 +7,7 @@ describe('AiGenerationQueueService', () => {
     create: jest.fn(),
     save: jest.fn(),
     findOne: jest.fn(),
+    find: jest.fn(),
     count: jest.fn(),
     update: jest.fn(),
     increment: jest.fn(),
@@ -27,6 +28,7 @@ describe('AiGenerationQueueService', () => {
     queue.getWaitingCount.mockResolvedValue(0);
     jobRepository.count.mockResolvedValue(0);
     jobRepository.findOne.mockResolvedValue(null);
+    jobRepository.find.mockResolvedValue([]);
     jobRepository.create.mockImplementation((value) => ({ ...value, id: 'job-1' }));
     jobRepository.save.mockImplementation(async (value) => value);
     jobRepository.update.mockResolvedValue({ affected: 1 });
@@ -109,6 +111,55 @@ describe('AiGenerationQueueService', () => {
       { id: 'job-1' },
       expect.objectContaining({ status: 'failed', fileBuffer: null }),
     );
+  });
+
+  it('re-enqueues durable queued jobs missing from Redis after a worker restart', async () => {
+    jobRepository.find.mockResolvedValue([{
+      id: 'orphan-job',
+      userId: '11111111-1111-4111-8111-111111111111',
+      jobType: 'topic_questions',
+      status: 'queued',
+      priority: 21,
+    }]);
+    queue.getJob.mockResolvedValue(null);
+
+    await service.reconcilePendingJobs();
+
+    expect(queue.add).toHaveBeenCalledWith(
+      'topic_questions',
+      { jobId: 'orphan-job' },
+      { jobId: 'orphan-job', priority: 21 },
+    );
+  });
+
+  it('reconciles a BullMQ-completed result into PostgreSQL after a process crash', async () => {
+    const completedBullJob = {
+      getState: jest.fn().mockResolvedValue('completed'),
+      returnvalue: { questions: [{ id: 'q-1' }] },
+      attemptsMade: 1,
+      opts: { attempts: 3 },
+    };
+    jobRepository.find.mockResolvedValue([{
+      id: 'completed-job',
+      status: 'active',
+      jobType: 'topic_questions',
+      priority: 21,
+    }]);
+    queue.getJob.mockResolvedValue(completedBullJob);
+    jobRepository.findOne.mockResolvedValue({
+      id: 'completed-job',
+      status: 'active',
+      result: null,
+      fileBuffer: null,
+    });
+
+    await service.reconcilePendingJobs();
+
+    expect(jobRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'completed-job',
+      status: 'completed',
+      result: { questions: [{ id: 'q-1' }] },
+    }));
   });
 
   it('refunds quota if BullMQ refuses the newly reserved job', async () => {
