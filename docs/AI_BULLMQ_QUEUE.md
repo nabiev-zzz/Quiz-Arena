@@ -71,7 +71,7 @@ than falling back to synchronous provider calls.
 
 ## Reliability and quotas
 
-- Three attempts with exponential backoff (3 seconds base).
+- Transient provider/network failures get up to three attempts with exponential backoff (3 seconds base). Validation/client errors are marked unrecoverable and fail immediately, so they do not waste provider capacity.
 - Worker concurrency defaults to 3; the global rate limiter defaults to 120 jobs/minute and is configurable.
 - BullMQ priority favors Premium Pro, then Premium, then Free; AI Tutor and quiz-start jobs are ahead of document conversion. System prewarm jobs use low priority.
 - Admission control rejects excess backlog and caps pending jobs per account to protect API/DB capacity.
