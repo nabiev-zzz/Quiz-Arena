@@ -8,7 +8,7 @@ Use the `galaxyStore` EAS profile:
 - Android output: AAB
 - `GALAXY_STORE_BUILD=true`
 - `eas-build-pre-install` runs a Node script before EAS installs dependencies. It adds `expo-iap` to `expo.autolinking.android.exclude` in the temporary build checkout, preventing the Google Play Billing native module from being linked into the Galaxy Store binary.
-- `app.config.js` removes the `expo-iap` config plugin, marks the build as `galaxy-store`, and disables Expo Updates automatic checks for this profile.
+- `app.config.js` removes the `expo-iap` config plugin, marks the build as `galaxy-store`, and disables Expo Updates for this profile (including the update URL, so EAS does not configure an OTA channel).
 - Google Play Billing UI is hidden; Click and Payme checkout remains available.
 
 Build command:
