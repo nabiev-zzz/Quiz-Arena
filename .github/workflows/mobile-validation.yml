@@ -71,5 +71,8 @@ jobs:
       - name: Build NestJS API
         run: npm run build
 
+      - name: Validate Railway process supervisor
+        run: node --check start-api-with-ai-worker.cjs
+
       - name: Test payment security, plan entitlements, AI Tutor quotas, document quiz and private Battle
         run: npm test -- --runInBand src/subscriptions/subscription-payments.service.spec.ts src/subscriptions/plan-entitlements.spec.ts src/subscriptions/feature-usage.service.spec.ts src/learning/learning.service.spec.ts src/battle/gateway/battle.gateway.spec.ts src/battle/redis-io.adapter.spec.ts src/battle/battle-state.store.spec.ts src/ai/ai-tutor.service.spec.ts src/ai/queue/ai-generation-queue.service.spec.ts src/ai/queue/ai-generation.queue.integration.spec.ts
