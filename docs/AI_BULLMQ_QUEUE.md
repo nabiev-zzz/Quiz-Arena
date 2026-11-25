@@ -34,8 +34,11 @@ inside every API instance. BullMQ coordinates multiple worker replicas safely.
 Required shared environment:
 - `DATABASE_URL` or the existing `DB_HOST`, `DB_PORT`, `DB_USERNAME`,
   `DB_PASSWORD`, `DB_DATABASE` values used by the API;
-- `REDIS_URL`, `VALKEY_URL`, or `VALKEY_HOST` plus optional
-  `VALKEY_PORT` / `VALKEY_PASSWORD`;
+- Prefer a dedicated `AI_QUEUE_REDIS_URL` (or `AI_QUEUE_REDIS_HOST` plus
+  `AI_QUEUE_REDIS_PORT` / `AI_QUEUE_REDIS_PASSWORD`) for physical isolation.
+  If not set, the queue falls back to `REDIS_URL`, `VALKEY_URL`, or
+  `VALKEY_HOST` plus optional Valkey port/password, while retaining a distinct
+  BullMQ prefix and queue name;
 - the existing provider secrets `GROQ_API_KEY` and/or `GEMINI_API_KEY`,
   plus the existing model variables.
 
@@ -47,7 +50,7 @@ Optional:
 - `AI_MAX_PENDING_JOBS_PER_USER` (default 5 queued/active jobs per account).
 - `AI_QUEUE_RECONCILE_BATCH_SIZE` (default 500 jobs checked by each worker on startup).
 
-The API and worker must point to the same PostgreSQL and Redis/Valkey instances.
+The API and worker must point to the same PostgreSQL and AI queue Redis endpoint. A dedicated AI Redis instance is recommended; if the existing Redis is shared, the AI BullMQ prefix remains isolated from Battle and Socket.IO keyspaces.
 If Redis is unavailable, the API can still serve database-backed learning
 questions, but AI generation endpoints return a controlled 503 response rather
 than falling back to synchronous provider calls.
