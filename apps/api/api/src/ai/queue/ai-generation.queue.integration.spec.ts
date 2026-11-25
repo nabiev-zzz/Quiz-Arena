@@ -14,12 +14,12 @@ const hasRedis = Boolean(
 (hasRedis ? describe : describe.skip)('BullMQ Redis integration', () => {
   const queueName = 'ai-generation-integration';
   const prefix = `${AI_GENERATION_PREFIX}:integration:${process.pid}`;
-  let queue: Queue;
-  let worker: Worker;
-  let events: QueueEvents;
-  let queueConnection: ReturnType<typeof createAiQueueRedisConnection>;
-  let workerConnection: ReturnType<typeof createAiQueueRedisConnection>;
-  let eventsConnection: ReturnType<typeof createAiQueueRedisConnection>;
+  let queue: Queue | undefined;
+  let worker: Worker | undefined;
+  let events: QueueEvents | undefined;
+  let queueConnection: ReturnType<typeof createAiQueueRedisConnection> | undefined;
+  let workerConnection: ReturnType<typeof createAiQueueRedisConnection> | undefined;
+  let eventsConnection: ReturnType<typeof createAiQueueRedisConnection> | undefined;
 
   beforeAll(async () => {
     queueConnection = createAiQueueRedisConnection();
@@ -54,12 +54,12 @@ const hasRedis = Boolean(
   });
 
   it('persists, consumes and completes an AI queue job through Redis', async () => {
-    const job = await queue.add('integration-check', { value: 21 }, {
+    const job = await queue!.add('integration-check', { value: 21 }, {
       jobId: randomUUID(),
       attempts: 1,
       removeOnComplete: true,
     });
-    const result = await job.waitUntilFinished(events, 10_000);
+    const result = await job.waitUntilFinished(events!, 10_000);
     expect(result).toEqual({ doubled: 42 });
   }, 15_000);
 });
