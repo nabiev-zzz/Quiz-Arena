@@ -356,10 +356,6 @@ export class LearningService {
       };
     }
 
-    const sourceMaterial = selectedMistakes.map((item, index) =>
-      `Mistake ${index + 1} [${item.subjectName} / ${item.topicName}]: ${item.question}\nOptions: ${item.options.join(' | ')}\nCorrect option index: ${item.correctAnswer}\nExplanation: ${item.explanation}`,
-    ).join('\n\n');
-
     return this.aiQueue!.enqueue({
       userId,
       jobType: 'smart_practice',
