@@ -18,8 +18,8 @@ module.exports = ({ config }) => {
             ...(config.extra ?? {}),
             distributionStore: 'galaxy-store',
           },
+          // Galaxy Store distributes updates through Seller Portal, not Expo OTA.
           updates: {
-            ...(config.updates ?? {}),
             enabled: false,
             checkAutomatically: 'NEVER',
           },
