@@ -32,6 +32,7 @@ import { AddTelegramIdentity20261124190000 } from './database/migrations/AddTele
 import { AddAvatarImageSupport20261124230000 } from './database/migrations/AddAvatarImageSupport';
 import { CreateFeatureUsage20261124203000 } from './database/migrations/CreateFeatureUsage';
 import { CreateAiGenerationJobs20261125100000 } from './database/migrations/CreateAiGenerationJobs';
+import { AddAiTutorGenerationJobLink20261125101000 } from './database/migrations/AddAiTutorGenerationJobLink';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
 
@@ -70,6 +71,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         AddAvatarImageSupport20261124230000,
         CreateFeatureUsage20261124203000,
         CreateAiGenerationJobs20261125100000,
+        AddAiTutorGenerationJobLink20261125101000,
       ],
       migrationsRun: true,
       migrationsTableName: 'typeorm_migrations',
