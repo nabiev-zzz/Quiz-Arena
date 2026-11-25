@@ -420,7 +420,7 @@ export default function BattleScreen({
     const socket = socketRef.current;
 
     if (!socket || !socket.connected) {
-      setError('Serverga ulanish kutilmoqda. Birozdan soвЂng urinib ko‘ring.');
+      setError('Serverga ulanish kutilmoqda. Birozdan so‘ng urinib ko‘ring.');
       return;
     }
 
@@ -1680,7 +1680,7 @@ export default function BattleScreen({
         <View style={{ flex: 1 }}>
           <LocalizedText style={styles.heading}>Battle Arena</LocalizedText>
           <LocalizedText style={styles.muted}>
-            {connected ? 'в—Џ Ulangan' : 'в—‹ Ulanmagan'}
+            {connected ? '● Ulangan' : '○ Ulanmagan'}
           </LocalizedText>
         </View>
       </View>
