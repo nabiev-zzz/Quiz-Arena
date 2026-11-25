@@ -7,6 +7,13 @@ import { In, IsNull, Repository } from 'typeorm';
 import { FeatureUsageService } from '../../subscriptions/feature-usage.service';
 import { AiGenerationJob, AiGenerationJobType } from '../entities/ai-generation-job.entity';
 
+function boundedInteger(value: string | undefined, fallback: number, min: number, max: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed)
+    ? Math.min(max, Math.max(min, Math.floor(parsed)))
+    : fallback;
+}
+
 export const AI_GENERATION_QUEUE = 'ai-generation';
 export const AI_GENERATION_PREFIX = `quiz-arena:${process.env.NODE_ENV || 'development'}:ai-bull`;
 
@@ -118,12 +125,12 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     }
 
     const waitingCount = await this.queue.getWaitingCount();
-    const maxWaiting = Math.max(100, Math.min(1_000_000, Number(process.env.AI_QUEUE_MAX_WAITING || 100_000)));
+    const maxWaiting = boundedInteger(process.env.AI_QUEUE_MAX_WAITING, 100_000, 100, 1_000_000);
     if (waitingCount >= maxWaiting) {
       throw new ServiceUnavailableException('AI navbati band. So‘rovingizni birozdan keyin qayta yuboring.');
     }
     if (input.userId) {
-      const maxPendingPerUser = Math.max(1, Math.min(20, Number(process.env.AI_MAX_PENDING_JOBS_PER_USER || 5)));
+      const maxPendingPerUser = boundedInteger(process.env.AI_MAX_PENDING_JOBS_PER_USER, 5, 1, 20);
       const pendingCount = await this.jobs.count({
         where: { userId: input.userId, status: In(['queued', 'active']) },
       });
