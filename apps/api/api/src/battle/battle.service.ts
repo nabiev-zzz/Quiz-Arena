@@ -18,6 +18,7 @@ import { BattleMatch } from './entities/battle-match.entity';
 import { BattleQuestion } from './entities/battle-question.entity';
 import { User } from '../users/entities/user.entity';
 import { ZcTransaction } from '../users/entities/zc-transaction.entity';
+import { DailyTasksService } from '../users/daily-tasks.service';
 import { AiService } from '../ai/ai.service';
 
 interface AiGeneratedBattleQuestion {
@@ -89,6 +90,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
     private readonly aiService: AiService,
+    private readonly dailyTasksService: DailyTasksService,
 
     @InjectRepository(BattleMatch)
     private readonly matchRepository: Repository<BattleMatch>,
@@ -677,6 +679,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
               idempotencyKey: `battle:${match.id}:${playerId}`,
             });
             await zcTransactionRepo.save(entry);
+            await this.dailyTasksService.recordRankedBattle(manager, playerId, winnerId === playerId);
             zcChanges[playerId] = {
               userId: playerId,
               amount,
