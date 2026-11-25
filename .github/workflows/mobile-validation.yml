@@ -89,6 +89,25 @@ jobs:
       - name: Expo dependency validation
         run: npx expo install --check
 
+      - name: Validate Samsung Galaxy Store build profile and policy settings
+        run: |
+          GALAXY_STORE_BUILD=true npx expo config --type public --json > "$RUNNER_TEMP/galaxy-store-expo-config.json"
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const eas = require('./eas.json');
+          const config = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/galaxy-store-expo-config.json', 'utf8'));
+          const assert = (condition, message) => { if (!condition) throw new Error(message); };
+          assert(eas.build?.galaxyStore?.distribution === 'store', 'Galaxy Store profile must use store distribution');
+          assert(eas.build?.galaxyStore?.android?.buildType === 'app-bundle', 'Galaxy Store profile must build an AAB');
+          assert(config.extra?.distributionStore === 'galaxy-store', 'Galaxy Store build flag is missing');
+          assert(config.updates?.enabled === false, 'Galaxy Store builds must not enable automatic app updates');
+          assert(config.updates?.checkAutomatically === 'NEVER', 'Galaxy Store updates must not be checked automatically');
+          console.log('Galaxy Store configuration is valid.');
+          NODE
+
+      - name: Export Galaxy Store Android bundle
+        run: GALAXY_STORE_BUILD=true npx expo export --platform android --output-dir "$RUNNER_TEMP/galaxy-store-android-export"
+
       - name: Commit synchronized mobile lockfile
         if: github.event_name == 'pull_request' && github.head_ref == 'feat/mobile-release-eas-updates' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
