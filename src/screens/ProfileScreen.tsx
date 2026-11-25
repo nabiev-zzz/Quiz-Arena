@@ -43,7 +43,7 @@ function getAvatarUrl(style: string, seed: string) {
 }
 
 export default function ProfileScreen({ onClosePress, onSettingsPress, onPremiumPress, onUserPress, dockStretch }: ProfileScreenProps) {
-  const { user, updateProfile, logout } = useAuth();
+  const { user, updateProfile, refreshUser, logout } = useAuth();
   const { tokens, isDark } = useTheme();
   const C = {
     background: tokens.colors.background,
@@ -276,7 +276,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     try {
       const result = await claimDailyTask(task.id);
       setDailyTasks((current) => current.map((item) => item.id === task.id ? { ...item, claimed: true } : item));
-      await updateProfile({});
+      await refreshUser();
       showLocalizedAlert('Mukofot olindi', `+${result.reward} ZC balansingizga qo‘shildi.`);
     } catch (error) {
       showLocalizedAlert('Mukofot olinmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring.');
