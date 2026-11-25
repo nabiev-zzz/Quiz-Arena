@@ -8,6 +8,7 @@ on:
     branches:
       - feature/liquid-glass-dock
       - feat/education-statistics-dashboard
+      - feat/free-web-launch-validation
 
 permissions:
   contents: read
