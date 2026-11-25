@@ -36,7 +36,7 @@ jobs:
         run: npx expo export --platform web --output-dir "$RUNNER_TEMP/expo-web-export"
 
       - name: Build the combined public website image
-        run: docker build --build-arg APP_SOURCE_BRANCH=feat/free-web-app-launch -t quiz-arena-website:ci -f Dockerfile website
+        run: docker build --build-arg APP_SOURCE_BRANCH=feat/free-web-app-launch -t quiz-arena-website:ci -f website/Dockerfile website
 
       - name: Smoke-test landing page and browser app routes
         run: |
