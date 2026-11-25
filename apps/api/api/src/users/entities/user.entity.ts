@@ -54,6 +54,8 @@ export class User {
   xp: number;
   @Column({ type: 'integer', default: 0 })
   rankPoints: number;
+  @Column({ type: 'integer', default: 0 })
+  zcBalance: number;
   @Column({ type: 'integer', default: 1 })
   level: number;
 
