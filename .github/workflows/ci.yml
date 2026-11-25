@@ -46,3 +46,7 @@ jobs:
         run: npm ci
       - name: Build API
         run: npm run build
+      - name: API lint
+        run: npm run lint
+      - name: API unit tests
+        run: npm test -- --runInBand
