@@ -10,7 +10,7 @@ async function main(): Promise<void> {
   const logger = new Logger('LearningPrewarm');
   try {
     const report = await app.get(LearningService).prewarmPopularTopics();
-    logger.log(`AI question prewarm: ${report.queued} queued, ${report.failed} failed`);
+    logger.log(`AI question prewarm: ${report.queued} queued, ${report.completed} already completed, ${report.failed} failed`);
     for (const item of report.results) {
       logger.log(`${item.status}: ${item.subjectId}/${item.topicId} (${item.jobId ?? item.error ?? 'no job id'})${item.error ? ' — ' + item.error : ''}`);
     }
