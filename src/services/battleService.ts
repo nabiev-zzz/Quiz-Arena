@@ -77,13 +77,24 @@ export interface BattleHistoryItem {
   roomCode: string;
   mode: string;
   status: string;
-  playerOneId: string;
-  playerTwoId: string | null;
+  result: 'win' | 'loss' | 'draw' | 'cancelled' | 'unfinished';
+  opponent: {
+    id: string;
+    displayName?: string | null;
+    username: string;
+    avatarUrl?: string | null;
+  } | null;
+  myScore: number;
+  opponentScore: number;
   winnerId: string | null;
-  scores: BattleScores;
+  createdAt: string;
   startedAt: string | null;
   finishedAt: string | null;
-  createdAt: string;
+}
+
+export interface BattleHistoryResponse {
+  total: number;
+  matches: BattleHistoryItem[];
 }
 
 export interface BattleStats {
@@ -165,8 +176,8 @@ export async function createBattleSocket(): Promise<BattleSocket> {
 
 export async function getBattleHistory(
   limit = 20,
-): Promise<BattleHistoryItem[]> {
-  return authenticatedRequest<BattleHistoryItem[]>(
+): Promise<BattleHistoryResponse> {
+  return authenticatedRequest<BattleHistoryResponse>(
     `/api/battle/history?limit=${limit}`,
   );
 }
