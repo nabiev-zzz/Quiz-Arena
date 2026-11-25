@@ -54,6 +54,8 @@ Remaining work before claiming AI-independent test creation:
 - Make AI-generated questions optional enrichment, not the only source of test questions.
 - Add tests for provider outage, empty/partial banks, and sufficient-bank operation; do not return incomplete quizzes silently.
 
+PDF files are currently validated but their text is not extracted into `documentText`; PDF quiz generation therefore still requires the AI PDF path. Before claiming full document-quiz independence, add a maintained PDF text parser, scanned-PDF OCR as a separately optional path, parser resource limits, malformed-file tests, and source-grounded fallback tests. Rule-based cloze questions are a resilience fallback, not a replacement for editorially reviewed question banks.
+
 ### 5. API and background work need separate capacity
 
 Keep latency-sensitive HTTP and Battle Socket.IO traffic responsive. Move heavy document parsing, PDF generation, AI calls, and other long tasks to a separately deployable worker with bounded concurrency, retries, idempotency, and queue visibility. Do not create the worker until its queue semantics and retry safety are implemented.
