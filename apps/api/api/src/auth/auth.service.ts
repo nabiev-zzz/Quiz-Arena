@@ -140,14 +140,19 @@ export class AuthService {
     if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) {
       throw new BadRequestException('Username formati noto‘g‘ri');
     }
-    if (await this.userRepository.findOne({ where: { username } })) {
+    // Run independent database checks and password hashing concurrently.
+    // Cost 10 keeps a strong adaptive hash while reducing CPU time on the free tier.
+    const [existingUsername, existingEmail, passwordHash] = await Promise.all([
+      this.userRepository.findOne({ where: { username } }),
+      email ? this.userRepository.findOne({ where: { email } }) : Promise.resolve(null),
+      bcrypt.hash(dto.password, 10),
+    ]);
+    if (existingUsername) {
       throw new ConflictException('Bu username allaqachon band');
     }
-    if (email && await this.userRepository.findOne({ where: { email } })) {
+    if (existingEmail) {
       throw new ConflictException('Bu email allaqachon ro‘yxatdan o‘tgan');
     }
-
-    const passwordHash = await bcrypt.hash(dto.password, 12);
     const user = this.userRepository.create({
       displayName, username, email, passwordHash, role: 'user', status: 'active',
     });
