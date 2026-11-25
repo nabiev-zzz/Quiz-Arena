@@ -32,7 +32,7 @@ npm run build
 npm run prewarm:learning
 ```
 
-It sequentially prepares 20 Uzbek questions for the curated popular topics:
+It sequentially enqueues prewarm jobs for 20 Uzbek questions for the curated popular topics:
 Algebra equations, Algebra percentages, English vocabulary, Uzbekistan history,
 Physics mechanics, and Informatics algorithms. Sequential execution limits
 provider pressure. It is safe to schedule this command as a Railway Cron service
