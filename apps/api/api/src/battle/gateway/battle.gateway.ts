@@ -571,17 +571,29 @@ export class BattleGateway
       return;
     }
 
-    const now = Date.now();
-    const previousAttempts = this.privateJoinAttempts.get(userId);
-    const attempts = !previousAttempts || now - previousAttempts.windowStartedAt >= 60_000
-      ? { count: 0, windowStartedAt: now }
-      : previousAttempts;
-    if (attempts.count >= 8) {
-      client.emit('battle:error', { message: 'Xona kodini tekshirish limiti tugadi. Bir daqiqadan so‘ng qayta urinib ko‘ring.' });
-      return;
+    if (this.battleStateStore.isReady()) {
+      const allowed = await this.battleStateStore.consumePrivateJoinAttempt(userId, 8, 60);
+      if (!allowed) {
+        client.emit('battle:error', {
+          message: 'Xona kodini tekshirish limiti tugadi. Bir daqiqadan so‘ng qayta urinib ko‘ring.',
+        });
+        return;
+      }
+    } else {
+      const now = Date.now();
+      const previousAttempts = this.privateJoinAttempts.get(userId);
+      const attempts = !previousAttempts || now - previousAttempts.windowStartedAt >= 60_000
+        ? { count: 0, windowStartedAt: now }
+        : previousAttempts;
+      if (attempts.count >= 8) {
+        client.emit('battle:error', {
+          message: 'Xona kodini tekshirish limiti tugadi. Bir daqiqadan so‘ng qayta urinib ko‘ring.',
+        });
+        return;
+      }
+      attempts.count += 1;
+      this.privateJoinAttempts.set(userId, attempts);
     }
-    attempts.count += 1;
-    this.privateJoinAttempts.set(userId, attempts);
 
     if (!/^[A-F0-9]{12}$/.test(roomCode)) {
       client.emit('battle:error', { message: '12 belgili xona kodi noto‘g‘ri.' });
@@ -591,16 +603,17 @@ export class BattleGateway
       client.emit('battle:error', { message: 'Avval raqib qidirish navbatidan chiqing.' });
       return;
     }
-    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId && room.roomCode !== roomCode)) {
+    const ownInvite = await this.getPrivateInviteForHost(userId);
+    if (ownInvite && ownInvite.roomCode !== roomCode) {
       client.emit('battle:error', { message: 'Avval o‘zingiz yaratgan taklif xonasini bekor qiling.' });
       return;
     }
-    if ([...this.activeBattles.values()].some((battle) => battle.playerIds.includes(userId))) {
+    if (await this.hasActiveBattleForUser(userId)) {
       client.emit('battle:error', { message: 'Avval joriy Battle ni yakunlang.' });
       return;
     }
 
-    const privateRoom = this.privateRooms.get(roomCode);
+    const privateRoom = await this.getPrivateInvite(roomCode);
     if (!privateRoom || privateRoom.expiresAt <= Date.now()) {
       if (privateRoom) await this.expirePrivateRoom(roomCode);
       client.emit('battle:error', { message: 'Xona topilmadi yoki uning muddati tugagan.' });
@@ -622,11 +635,24 @@ export class BattleGateway
       return;
     }
 
-    clearTimeout(privateRoom.timer);
+    const claimedRoom = this.battleStateStore.isReady()
+      ? await this.battleStateStore.claimPrivateInvite(roomCode, userId)
+      : await this.removePrivateInvite(roomCode, privateRoom.hostUserId);
+    if (!claimedRoom) {
+      client.emit('battle:error', { message: 'Xona allaqachon band yoki muddati tugagan.' });
+      return;
+    }
+
+    const localRoom = this.privateRooms.get(roomCode);
+    if (localRoom) clearTimeout(localRoom.timer);
     this.privateRooms.delete(roomCode);
 
     try {
-      const match = await this.battleService.createMatch(privateRoom.hostUserId, userId, 'private');
+      const match = await this.battleService.createMatch(
+        claimedRoom.hostUserId,
+        userId,
+        'private',
+      );
       const room = `battle:${match.roomCode}`;
       await Promise.all([hostSocket.join(room), client.join(room)]);
 
@@ -636,7 +662,7 @@ export class BattleGateway
         mode: 'private',
         status: 'matched',
         players: [
-          { id: privateRoom.hostUserId, username: hostSocket.data.username },
+          { id: claimedRoom.hostUserId, username: hostSocket.data.username },
           { id: userId, username: client.data.username },
         ],
         message: 'Do‘stingiz qo‘shildi. Battle boshlanmoqda.',
@@ -650,17 +676,25 @@ export class BattleGateway
         match.id,
         match.roomCode,
         'private',
-        privateRoom.hostUserId,
+        claimedRoom.hostUserId,
         userId,
         hostSocket,
         client,
         'general',
       );
       if (!started) {
-        try { await this.featureUsageService.refund(privateRoom.hostUserId, 'privateBattle'); } catch { /* Preserve the original match error. */ }
+        try {
+          await this.featureUsageService.refund(claimedRoom.hostUserId, 'privateBattle');
+        } catch {
+          // Preserve the original match error.
+        }
       }
     } catch (error) {
-      try { await this.featureUsageService.refund(privateRoom.hostUserId, 'privateBattle'); } catch { /* Preserve the original match error. */ }
+      try {
+        await this.featureUsageService.refund(claimedRoom.hostUserId, 'privateBattle');
+      } catch {
+        // Preserve the original match error.
+      }
       const message = error instanceof Error ? error.message : 'Xususiy Battle boshlanmadi.';
       hostSocket.emit('battle:error', { message });
       client.emit('battle:error', { message });
