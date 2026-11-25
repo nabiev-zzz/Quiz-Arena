@@ -51,6 +51,7 @@ describe('LearningService document quiz generation', () => {
   const subscriptionsService = {
     current: jest.fn(),
   };
+  const aiQueue = { enqueue: jest.fn() };
   const service = new LearningService(
     attemptsRepository as never,
     {} as never,
@@ -59,6 +60,9 @@ describe('LearningService document quiz generation', () => {
     aiService as never,
     featureUsageService as never,
     subscriptionsService as never,
+    undefined,
+    undefined,
+    aiQueue as never,
   );
 
   beforeEach(() => {
@@ -68,6 +72,7 @@ describe('LearningService document quiz generation', () => {
       tier: 'premium_pro',
       entitlements: getPlanEntitlements('premium_pro_monthly'),
     });
+    aiQueue.enqueue.mockResolvedValue({ status: 'queued', jobId: 'ai-job-1', message: 'Test tayyorlanmoqda' });
     featureUsageService.consume.mockResolvedValue({
       allowed: true, featureKey: 'documentQuiz', tier: 'premium_pro', period: 'monthly',
       limit: 30, used: 1, remaining: 29,
@@ -84,15 +89,15 @@ describe('LearningService document quiz generation', () => {
     }]);
   });
 
-  it('creates a quiz from a plain text document and consumes the server quota', async () => {
+  it('worker generates a quiz from a plain text document after quota was reserved', async () => {
     const result = await service.createDocumentQuiz('user-1', {
       buffer: Buffer.from('Ushbu hujjat test yaratish uchun yetarli bo‘lgan matnni o‘z ichiga oladi.'),
       originalname: 'lesson.txt', mimetype: 'text/plain', size: 80,
-    }, { count: '1', difficulty: 'medium', language: 'uz' });
+    }, { count: '1', difficulty: 'medium', language: 'uz' }, { topicId: 'document-worker-1', _quotaReceipt: { allowed: true } });
 
     expect(result.questionCount).toBe(1);
     expect(result.sourceFileName).toBe('lesson.txt');
-    expect(featureUsageService.consume).toHaveBeenCalledWith('user-1', 'documentQuiz');
+    expect(featureUsageService.consume).not.toHaveBeenCalled();
     expect(aiService.generateQuestions).toHaveBeenCalledTimes(1);
   });
 
@@ -106,7 +111,7 @@ describe('LearningService document quiz generation', () => {
     const result = await service.createDocumentQuiz('user-1', {
       buffer: Buffer.from('This document contains enough educational text for a fifty question quiz generation test.'),
       originalname: 'long-lesson.txt', mimetype: 'text/plain', size: 90,
-    }, { count: '50' });
+    }, { count: '50' }, { topicId: 'document-worker-50', _quotaReceipt: { allowed: true } });
 
     expect(aiService.generateQuestions).toHaveBeenCalledTimes(2);
     expect(result.questionCount).toBe(50);
@@ -118,7 +123,7 @@ describe('LearningService document quiz generation', () => {
       buffer, originalname: 'lesson.docx',
       mimetype: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       size: buffer.length,
-    }, { count: '1' });
+    }, { count: '1' }, { topicId: 'document-worker-docx', _quotaReceipt: { allowed: true } });
 
     expect(aiService.generateQuestions).toHaveBeenCalledWith(expect.objectContaining({
       topicDescription: expect.stringContaining('DOCX_TEST_TEXT'),
@@ -129,7 +134,7 @@ describe('LearningService document quiz generation', () => {
     const result = await service.createDocumentQuiz('user-1', {
       buffer: Buffer.from('%PDF-1.4 fake test pdf content'),
       originalname: 'lesson.pdf', mimetype: 'application/pdf', size: 30,
-    }, { count: '1' });
+    }, { count: '1' }, { topicId: 'document-worker-pdf', _quotaReceipt: { allowed: true } });
 
     expect(result.questionCount).toBe(1);
     expect(aiService.generateQuestionsFromPdf).toHaveBeenCalledTimes(1);
@@ -157,7 +162,7 @@ describe('LearningService document quiz generation', () => {
     const result = await service.createDocumentQuiz('user-1', {
       buffer: Buffer.from(sourceText),
       originalname: 'science.txt', mimetype: 'text/plain', size: sourceText.length,
-    }, { count: '3', difficulty: 'medium', language: 'en' });
+    }, { count: '3', difficulty: 'medium', language: 'en' }, { topicId: 'document-worker-fallback', _quotaReceipt: { allowed: true } });
 
     expect(result.source).toBe('rule-based');
     expect(result.questionCount).toBe(3);
@@ -166,13 +171,13 @@ describe('LearningService document quiz generation', () => {
     expect(featureUsageService.refund).not.toHaveBeenCalled();
   });
 
-  it('refunds quota when AI fails and the text is insufficient for deterministic fallback', async () => {
+  it('leaves terminal worker quota refunds to the queue coordinator', async () => {
     aiService.generateQuestions.mockRejectedValue(new Error('AI unavailable'));
     await expect(service.createDocumentQuiz('user-1', {
       buffer: Buffer.from('Ushbu hujjat test yaratish uchun yetarli bo‘lgan matnni o‘z ichiga oladi.'),
       originalname: 'lesson.txt', mimetype: 'text/plain', size: 80,
-    }, { count: '1' })).rejects.toThrow('kamida 4 ta turli atama');
-    expect(featureUsageService.refund).toHaveBeenCalledWith('user-1', 'documentQuiz');
+    }, { count: '1' }, { topicId: 'document-worker-failure', _quotaReceipt: { allowed: true } })).rejects.toThrow('kamida 4 ta turli atama');
+    expect(featureUsageService.refund).not.toHaveBeenCalled();
   });
 
 
@@ -211,13 +216,13 @@ describe('LearningService document quiz generation', () => {
 
     const result = await service.createSmartPractice('user-1', { language: 'uz' });
 
-    expect(result.personalized).toBe(true);
-    expect(aiService.generateQuestions).toHaveBeenCalledTimes(1);
-    expect(aiService.generateQuestions).toHaveBeenCalledWith(expect.objectContaining({
-      subjectId: 'smart-practice',
-      count: 1,
-      language: 'uz',
+    expect(result.personalized).toBeUndefined();
+    expect(result.status).toBe('queued');
+    expect(aiQueue.enqueue).toHaveBeenCalledWith(expect.objectContaining({
+      jobType: 'smart_practice',
+      quotaFeature: 'smartPractice',
     }));
+    expect(aiService.generateQuestions).not.toHaveBeenCalled();
   });
 
   it('does not consume a daily quota when there are no saved mistakes', async () => {
@@ -236,11 +241,12 @@ describe('LearningService document quiz generation', () => {
         correctAnswer: 0, isCorrect: false, explanation: 'Surat va maxrajni 2 ga bo‘ling.',
       }],
     }]);
-    aiService.generateQuestions.mockRejectedValue(new Error('AI unavailable'));
+    aiQueue.enqueue.mockRejectedValue(new Error('AI queue unavailable'));
 
     await expect(service.createSmartPractice('user-1', { language: 'uz' }))
-      .rejects.toThrow('AI unavailable');
-    expect(featureUsageService.refund).toHaveBeenCalledWith('user-1', 'smartPractice');
+      .rejects.toThrow('AI queue unavailable');
+    expect(aiService.generateQuestions).not.toHaveBeenCalled();
+    expect(featureUsageService.refund).not.toHaveBeenCalled();
   });
 
   it('enforces the active tier file-size limit', async () => {
