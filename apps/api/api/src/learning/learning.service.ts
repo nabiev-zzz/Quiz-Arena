@@ -356,7 +356,8 @@ export class LearningService {
       };
     }
 
-    return this.aiQueue!.enqueue({
+    if (!this.aiQueue) throw new HttpException('AI navbati sozlanmagan.', HttpStatus.SERVICE_UNAVAILABLE);
+    return this.aiQueue.enqueue({
       userId,
       jobType: 'smart_practice',
       quotaFeature: 'smartPractice',
@@ -438,7 +439,8 @@ export class LearningService {
       };
     }
 
-    if (!fromWorker && this.questionsRepository && this.aiQueue) {
+    if (!fromWorker && this.questionsRepository) {
+      if (!this.aiQueue) throw new HttpException('AI navbati sozlanmagan.', HttpStatus.SERVICE_UNAVAILABLE);
       const bankCount = await this.questionsRepository.count({
         where: { subjectId, topicId, language: input.language, difficulty: input.difficulty, isActive: true },
       });
