@@ -39,7 +39,7 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['sparkle', 'crown', 'laurel'])
+  @IsIn(['sparkle', 'crown', 'laurel', 'star'])
   avatarDecoration?: string | null;
 
   @IsOptional()
