@@ -2,12 +2,14 @@ import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { BattleService, BattleQuestionResult } from './battle.service';
 import { BattleMatch } from './entities/battle-match.entity';
 import { User } from '../users/entities/user.entity';
+import { ZcTransaction } from '../users/entities/zc-transaction.entity';
 
 describe('BattleService — Rank tizimi', () => {
   let service: BattleService;
   let match: any;
   let users: Map<string, any>;
   let manager: any;
+  let zcEntries: any[];
   let questionRepository: any;
 
   const playerOneId = 'user-1';
@@ -52,6 +54,7 @@ describe('BattleService — Rank tizimi', () => {
       finishedAt: null,
     };
 
+    zcEntries = [];
     users = new Map([
       [
         playerOneId,
@@ -84,10 +87,24 @@ describe('BattleService — Rank tizimi', () => {
       }),
     };
 
+    const zcRepo: any = {
+      create: jest.fn((input: any) => ({ id: `zc-${zcEntries.length + 1}`, ...input })),
+      save: jest.fn(async (entry: any) => {
+        zcEntries.push(entry);
+        return entry;
+      }),
+      find: jest.fn(async (options: any) => zcEntries.filter((entry) =>
+        options?.where?.idempotencyKey?.value?.includes?.(entry.idempotencyKey) ||
+        options?.where?.idempotencyKey?.[Symbol.for('In') as any]?.includes?.(entry.idempotencyKey) ||
+        (Array.isArray(options?.where?.idempotencyKey) && options.where.idempotencyKey.includes(entry.idempotencyKey))
+      )),
+    };
+
     manager = {
       getRepository: jest.fn((entity: any) => {
         if (entity === BattleMatch) return matchRepo;
         if (entity === User) return userRepo;
+        if (entity === ZcTransaction) return zcRepo;
         throw new Error('Unknown repository');
       }),
     };
@@ -148,6 +165,11 @@ describe('BattleService — Rank tizimi', () => {
     expect(change.rankTier).toBe('Bronze');
 
     expect(users.get(playerOneId).rankPoints).toBe(127);
+    expect(users.get(playerOneId).zcBalance).toBe(20);
+    expect(users.get(playerTwoId).zcBalance).toBe(5);
+    expect(response.zcChanges[playerOneId].amount).toBe(20);
+    expect(response.zcChanges[playerTwoId].amount).toBe(5);
+    expect(zcEntries).toHaveLength(2);
   });
 
   it('Durangda RP beriladi', async () => {
