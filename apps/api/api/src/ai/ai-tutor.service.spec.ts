@@ -4,7 +4,7 @@ import { AiTutorService } from './ai-tutor.service';
 
 describe('AiTutorService tier-aware progress context', () => {
   const config = { get: jest.fn() };
-  const messages = { find: jest.fn(), create: jest.fn(), save: jest.fn() };
+  const messages = { find: jest.fn(), create: jest.fn(), save: jest.fn(), delete: jest.fn(), findOne: jest.fn() };
   const users = { findOne: jest.fn() };
   const battles = { find: jest.fn() };
   const attempts = { find: jest.fn() };
@@ -73,15 +73,35 @@ describe('AiTutorService tier-aware progress context', () => {
     expect(progress.entitlements.detailedErrorAnalysis).toBe(true);
   });
 
-  it('blocks AI Tutor messages when the daily quota is exhausted', async () => {
-    usage.consume.mockResolvedValue({
-      allowed: false, featureKey: 'aiTutor', tier: 'free',
-      period: 'daily', limit: 3, used: 3, remaining: 0,
-    });
+  it('routes Tutor messages through BullMQ and removes the pending message when quota is rejected', async () => {
+    messages.create.mockReturnValue({ id: 'message-1', userId: 'user-1', role: 'user', content: 'Menga yordam bering' });
+    messages.save.mockResolvedValue({ id: 'message-1', userId: 'user-1', role: 'user', content: 'Menga yordam bering' });
+    messages.delete.mockResolvedValue({ affected: 1 });
+    aiQueue.enqueue.mockRejectedValue(new Error('kunlik xabar limiti tugagan'));
 
     await expect(service.sendMessage('user-1', 'Menga yordam bering', 'uz'))
       .rejects.toThrow('kunlik xabar limiti tugagan');
-    expect(messages.save).not.toHaveBeenCalled();
+    expect(aiQueue.enqueue).toHaveBeenCalledWith(expect.objectContaining({
+      jobType: 'ai_tutor',
+      quotaFeature: 'aiTutor',
+    }));
+    expect(messages.delete).toHaveBeenCalledWith({ id: 'message-1', userId: 'user-1' });
+  });
+
+  it('queues a Tutor message and returns a job identifier immediately', async () => {
+    messages.create.mockReturnValue({ id: 'message-2', userId: 'user-1', role: 'user', content: 'Kasrlarni tushuntiring' });
+    messages.save.mockResolvedValue({ id: 'message-2', userId: 'user-1', role: 'user', content: 'Kasrlarni tushuntiring' });
+    aiQueue.enqueue.mockResolvedValue({
+      status: 'queued',
+      jobId: 'job-tutor-1',
+      message: 'Test tayyorlanmoqda',
+      usage: { allowed: true, remaining: 2 },
+    });
+
+    const result = await service.sendMessage('user-1', 'Kasrlarni tushuntiring', 'uz');
+
+    expect(result).toMatchObject({ status: 'queued', jobId: 'job-tutor-1' });
+    expect(aiQueue.enqueue).toHaveBeenCalledTimes(1);
   });
 
   it('limits basic AI Tutor history to 20 messages and returns the newest messages in order', async () => {
