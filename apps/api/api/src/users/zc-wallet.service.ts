@@ -20,7 +20,14 @@ export class ZcWalletService {
       take: safeLimit,
       skip: safeOffset,
     });
-    return { items, total, limit: safeLimit, offset: safeOffset };
+    return {
+      items: items.map(({ id, type, amount, balanceAfter, reason, createdAt }) => ({
+        id, type, amount, balanceAfter, reason, createdAt,
+      })),
+      total,
+      limit: safeLimit,
+      offset: safeOffset,
+    };
   }
 
   async credit(userId: string, amount: number, reason: string, idempotencyKey?: string) {
