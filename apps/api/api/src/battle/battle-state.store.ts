@@ -331,7 +331,8 @@ export class BattleStateStore implements OnModuleInit, OnModuleDestroy {
     return this.withMatchLock(`private-owner:${invite.hostUserId}`, async () => {
       const ownerKey = this.privateRoomOwnerKey(invite.hostUserId);
       if (await this.redis.exists(ownerKey)) return false;
-      const ttlSeconds = Math.max(1, Math.ceil((invite.expiresAt - Date.now()) / 1000));
+      // Keep the record briefly after logical expiry so a replica can refund the host quota.
+      const ttlSeconds = Math.max(1, Math.ceil((invite.expiresAt - Date.now()) / 1000) + 60);
       const created = await this.redis.eval(
         `
           if redis.call('EXISTS', KEYS[1]) == 1 or redis.call('EXISTS', KEYS[2]) == 1 then
