@@ -20,7 +20,8 @@
     "test:cov": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage",
     "test:debug": "node --inspect-brk --experimental-vm-modules -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config ./test/jest-e2e.json",
-    "start:worker:prod": "node dist/ai/queue/ai-generation.worker.js"
+    "start:worker:prod": "node dist/ai/queue/ai-generation.worker.js",
+    "start:combined:prod": "node start-api-with-ai-worker.cjs"
   },
   "dependencies": {
     "@google/genai": "^3.6.1",
