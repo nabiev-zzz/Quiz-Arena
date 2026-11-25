@@ -174,7 +174,10 @@ export class BattleGateway
     // Every API node discovers matches created after it booted. Timers may be
     // scheduled on several nodes; Redis claims ensure only one node resolves.
     this.reconciliationTimer = setInterval(() => {
-      void this.reconcileActiveBattles().catch((error) =>
+      void Promise.all([
+        this.reconcileActiveBattles(),
+        this.reconcilePrivateInvites(),
+      ]).catch((error) =>
         this.logger.error('Battle Redis reconciliation xatosi:', error),
       );
     }, 2_000);
@@ -184,6 +187,16 @@ export class BattleGateway
     if (this.reconciliationTimer) clearInterval(this.reconciliationTimer);
     this.reconciliationTimer = null;
     for (const battle of this.activeBattles.values()) this.clearBattleTimers(battle);
+  }
+
+  private async reconcilePrivateInvites(): Promise<void> {
+    if (!this.battleStateStore.isReady()) return;
+    const invites = await this.battleStateStore.listPrivateInvites();
+    for (const invite of invites) {
+      if (invite.expiresAt <= Date.now()) {
+        await this.expirePrivateRoom(invite.roomCode);
+      }
+    }
   }
 
   private async reconcileActiveBattles(): Promise<void> {
