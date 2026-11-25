@@ -236,7 +236,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
       local member = ARGV[1] .. ':' .. ARGV[2]
       redis.call('ZADD', KEYS[1], ARGV[3], member)
       redis.call('EXPIRE', KEYS[1], 300)
-      redis.call('SET', KEYS[2], KEYS[1] and ARGV[5] or '', 'EX', 300)
+      redis.call('SET', KEYS[2], ARGV[5], 'EX', 300)
 
       return ''
     `;
