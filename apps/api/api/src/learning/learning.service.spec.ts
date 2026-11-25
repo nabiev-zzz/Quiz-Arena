@@ -134,7 +134,7 @@ describe('LearningService document quiz generation', () => {
     const result = await service.createDocumentQuiz('user-1', {
       buffer: Buffer.from('%PDF-1.4 fake test pdf content'),
       originalname: 'lesson.pdf', mimetype: 'application/pdf', size: 30,
-    }, { count: '1' }, { topicId: 'document-worker-pdf', _quotaReceipt: { allowed: true } });
+    }, { count: '1' }, { topicId: 'document-worker-pdf', _quotaReceipt: { allowed: true } }) as any;
 
     expect(result.questionCount).toBe(1);
     expect(aiService.generateQuestionsFromPdf).toHaveBeenCalledTimes(1);
@@ -162,7 +162,7 @@ describe('LearningService document quiz generation', () => {
     const result = await service.createDocumentQuiz('user-1', {
       buffer: Buffer.from(sourceText),
       originalname: 'science.txt', mimetype: 'text/plain', size: sourceText.length,
-    }, { count: '3', difficulty: 'medium', language: 'en' }, { topicId: 'document-worker-fallback', _quotaReceipt: { allowed: true } });
+    }, { count: '3', difficulty: 'medium', language: 'en' }, { topicId: 'document-worker-fallback', _quotaReceipt: { allowed: true } }) as any;
 
     expect(result.source).toBe('rule-based');
     expect(result.questionCount).toBe(3);
@@ -319,7 +319,7 @@ describe('LearningService shared Redis question cache', () => {
       count: 10,
       difficulty: 'medium',
       language: 'uz',
-    });
+    }) as any;
 
     expect(result.questions).toHaveLength(10);
     expect(result.source).toBe('database');
