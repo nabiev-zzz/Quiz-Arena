@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable, NotFoundException, Inject, Optional } from '@nestjs/common';
 import { inflateRawSync } from 'node:zlib';
 import { DataSource } from 'typeorm';
 import { AiService } from '../ai/ai.service';
@@ -13,7 +13,6 @@ import { FeatureUsageService } from '../subscriptions/feature-usage.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { generateDocumentQuizFallback } from './document-quiz-fallback';
 import { createHash } from 'node:crypto';
-import { Inject, Optional } from '@nestjs/common';
 import { LearningQuestionCache } from './learning-question-cache.service';
 
 export interface CreateLearningAttemptInput {
