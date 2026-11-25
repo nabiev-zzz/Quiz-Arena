@@ -8,7 +8,8 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "uz.quizarena.app"
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
@@ -19,7 +20,12 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "uz.quizarena.app"
+      "package": "uz.quizarena.app",
+      "versionCode": 3,
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -27,7 +33,12 @@
     "plugins": [
       "expo-secure-store",
       "expo-font",
-      "expo-iap"
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0B0B14"
+        }
+      ]
     ],
     "extra": {
       "eas": {
@@ -35,11 +46,17 @@
       }
     },
     "owner": "faxriyorkk",
-    "splash": {
-      "backgroundColor": "#0B0B14"
-    },
     "experiments": {
       "baseUrl": "/app"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/001475e3-4cec-4e58-8eda-d11da02f66c9",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     }
   }
 }

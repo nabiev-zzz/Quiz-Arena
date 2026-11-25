@@ -16,7 +16,7 @@ export class AuthEmailCode {
   email: string;
 
   @Column({ type: 'varchar', length: 24 })
-  purpose: 'verify_email' | 'password_reset';
+  purpose: 'verify_email' | 'password_reset' | 'delete_account';
 
   @Column({ type: 'varchar', length: 64, select: false })
   codeHash: string;

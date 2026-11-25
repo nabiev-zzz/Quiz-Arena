@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
@@ -14,6 +15,7 @@ import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { EmailAuthService } from './email-auth.service';
 import { EmailCodeDto, EmailPasswordResetDto, EmailRequestDto } from './dto/email-auth.dto';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -167,6 +169,23 @@ export class AuthController {
   @Post('google')
   loginWithGoogle(@Body() dto: GoogleAuthDto) {
     return this.authService.loginWithGoogle(dto.idToken);
+  }
+
+  @Post('account/deletion/request')
+  requestAccountDeletion(@Body() dto: EmailRequestDto) {
+    return this.emailAuthService.requestAccountDeletion(dto.email);
+  }
+
+  @Post('account/deletion/confirm')
+  async confirmAccountDeletion(@Body() dto: EmailCodeDto) {
+    const { userId } = await this.emailAuthService.confirmAccountDeletion(dto.email, dto.code);
+    return this.authService.deleteAccountAfterEmailVerification(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('account')
+  deleteAccount(@Request() request: AuthenticatedRequest, @Body() body: { password: string }) {
+    return this.authService.deleteAccount(request.user.id, body.password);
   }
 
   @UseGuards(JwtAuthGuard)

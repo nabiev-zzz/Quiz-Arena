@@ -8,7 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { createHash, createPublicKey, randomBytes, randomInt, verify as verifySignature } from 'node:crypto';
 
@@ -38,6 +38,7 @@ export class AuthService {
     private readonly config: ConfigService,
     @InjectRepository(AuthOAuthCode)
     private readonly oauthCodeRepository: Repository<AuthOAuthCode>,
+    private readonly dataSource: DataSource,
   ) {}
 
   private getRankTier(points: number): string {
@@ -71,6 +72,44 @@ export class AuthService {
       avatarDecoration: user.avatarDecoration,
       createdAt: user.createdAt,
     };
+  }
+
+  async deleteAccount(userId: string, password?: string) {
+    if (password !== undefined && (typeof password !== 'string' || password.length > 128)) {
+      throw new BadRequestException('Parol formati noto‘g‘ri');
+    }
+    const user = await this.userRepository.createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.id = :userId', { userId })
+      .andWhere("user.status = 'active'")
+      .getOne();
+    const passwordMatches = Boolean(user && password && await bcrypt.compare(password, user.passwordHash));
+    const socialSession = Boolean(user?.googleSubject || user?.telegramSubject);
+    if (!user || (!passwordMatches && !socialSession)) {
+      throw new UnauthorizedException('Parol noto‘g‘ri yoki hisobni tasdiqlash usuli topilmadi');
+    }
+    return this.removeAccountData(userId);
+  }
+
+  async deleteAccountAfterEmailVerification(userId: string) {
+    return this.removeAccountData(userId);
+  }
+
+  private async removeAccountData(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId, status: 'active' } });
+    if (!user) throw new UnauthorizedException('Hisob topilmadi yoki allaqachon o‘chirilgan');
+    await this.dataSource.transaction(async (manager) => {
+      await manager.query('DELETE FROM auth_oauth_codes WHERE "userId" = $1', [userId]);
+      await manager.query('DELETE FROM battle_matches WHERE "playerOneId" = $1 OR "playerTwoId" = $1 OR "winnerId" = $1', [userId]);
+      // Keep only a de-linked payment ledger; clear payloads that may contain personal data.
+      await manager.query(`UPDATE subscription_payments SET "userId" = NULL, "providerPayload" = NULL, status = CASE WHEN status = 'pending' THEN 'cancelled' ELSE status END WHERE "userId" = $1`, [userId]);
+      if (user.email) await manager.query('DELETE FROM auth_email_codes WHERE lower(email) = lower($1)', [user.email]);
+      if (user.phoneNumber) await manager.query('DELETE FROM auth_otps WHERE "phoneNumber" = $1', [user.phoneNumber]);
+      await manager.query('DELETE FROM learning_web_sessions WHERE "userId" = $1', [userId]);
+      // FK cascades remove AI tutor messages, learning attempts, subscriptions and follows.
+      await manager.query('DELETE FROM users WHERE id = $1', [userId]);
+    });
+    return { deleted: true, message: 'QUIZ ARENA hisobingiz va unga bog‘langan shaxsiy ma’lumotlar o‘chirildi.' };
   }
 
   async getProfile(userId: string) {

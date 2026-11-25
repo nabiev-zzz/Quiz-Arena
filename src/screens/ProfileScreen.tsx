@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
+import { RankBadge3D } from '../components/RankBadge3D';
 import { getLearningHistory, getLearningHistoryItem, type LearningHistoryItem, type LearningHistorySummary } from '../services/learningService';
 
 interface ProfileScreenProps {
@@ -290,9 +291,11 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
             <Ionicons name="copy-outline" size={13} color={C.subtle} />
           </Pressable>
           <View style={styles.badges}>
-            <Ionicons name="trophy" size={17} color="#A78BFA" />
-            <Ionicons name="star" size={17} color="#A78BFA" />
-            <Ionicons name="shield-checkmark" size={17} color="#A78BFA" />
+            <RankBadge3D tier={rankInfo.name} />
+            <View style={styles.rankBadgeCaption}>
+              <LocalizedText style={styles.rankBadgeTitle}>{rankInfo.name} ligasi</LocalizedText>
+              <LocalizedText style={styles.rankBadgeSubtitle}>Reyting nishoni</LocalizedText>
+            </View>
           </View>
         </View>
 
@@ -628,6 +631,9 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     handleRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 5 },
     handle: { color: C.muted, fontSize: 13 },
     badges: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 11 },
+    rankBadgeCaption: { alignItems: 'flex-start', gap: 3 },
+    rankBadgeTitle: { color: C.text, fontSize: 13, fontWeight: '900' },
+    rankBadgeSubtitle: { color: C.muted, fontSize: 10, fontWeight: '600' },
     editButton: { height: 49, borderRadius: 15, backgroundColor: C.purple, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 21 },
     editButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
     tabs: { height: 49, flexDirection: 'row', alignItems: 'stretch', borderBottomWidth: 1, borderBottomColor: C.border, marginBottom: 17 },

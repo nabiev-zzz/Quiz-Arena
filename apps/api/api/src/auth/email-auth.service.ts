@@ -30,17 +30,19 @@ export class EmailAuthService {
     return createHash('sha256').update(code).digest('hex');
   }
 
-  private async sendEmail(to: string, subject: string, code: string, purpose: 'verify_email' | 'password_reset') {
+  private async sendEmail(to: string, subject: string, code: string, purpose: 'verify_email' | 'password_reset' | 'delete_account') {
     const apiKey = this.config.get<string>('RESEND_API_KEY');
     const from = this.config.get<string>('EMAIL_FROM');
     if (!apiKey || !from) {
       throw new ServiceUnavailableException('Email xizmati hali sozlanmagan');
     }
 
-    const heading = purpose === 'verify_email' ? 'Email manzilingizni tasdiqlang' : 'QUIZ ARENA parolini tiklash';
+    const heading = purpose === 'verify_email' ? 'Email manzilingizni tasdiqlang' : purpose === 'delete_account' ? 'QUIZ ARENA hisobini o‘chirish' : 'QUIZ ARENA parolini tiklash';
     const explanation = purpose === 'verify_email'
       ? 'Ro‘yxatdan o‘tishni yakunlash uchun quyidagi kodni ilovaga kiriting.'
-      : 'Parolingizni yangilash uchun quyidagi kodni ilovaga kiriting.';
+      : purpose === 'delete_account'
+        ? 'Hisobni o‘chirishni tasdiqlash uchun quyidagi kodni hisob o‘chirish sahifasiga kiriting. Agar bu so‘rovni siz yubormagan bo‘lsangiz, xatni e’tiborsiz qoldiring.'
+        : 'Parolingizni yangilash uchun quyidagi kodni ilovaga kiriting.';
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -61,7 +63,7 @@ export class EmailAuthService {
     }
   }
 
-  private async issueCode(email: string, purpose: 'verify_email' | 'password_reset') {
+  private async issueCode(email: string, purpose: 'verify_email' | 'password_reset' | 'delete_account') {
     const now = new Date();
     const recent = await this.codes.find({
       where: { email, purpose, createdAt: MoreThan(new Date(now.getTime() - 60 * 60 * 1000)) },
@@ -77,7 +79,7 @@ export class EmailAuthService {
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
     await this.sendEmail(
       email,
-      purpose === 'verify_email' ? 'QUIZ ARENA — email tasdiqlash kodi' : 'QUIZ ARENA — parolni tiklash kodi',
+      purpose === 'verify_email' ? 'QUIZ ARENA — email tasdiqlash kodi' : purpose === 'delete_account' ? 'QUIZ ARENA — hisobni o‘chirish kodi' : 'QUIZ ARENA — parolni tiklash kodi',
       code,
       purpose,
     );
@@ -91,7 +93,7 @@ export class EmailAuthService {
     }));
   }
 
-  private async consumeCode(emailInput: string, purpose: 'verify_email' | 'password_reset', code: string) {
+  private async consumeCode(emailInput: string, purpose: 'verify_email' | 'password_reset' | 'delete_account', code: string) {
     const email = emailInput.trim().toLowerCase();
     const record = await this.codes.createQueryBuilder('item')
       .addSelect('item.codeHash')
@@ -197,6 +199,28 @@ export class EmailAuthService {
     user.emailVerifiedAt = new Date();
     const saved = await this.users.save(user);
     return this.createSession(saved);
+  }
+
+  async requestAccountDeletion(emailInput: string) {
+    const email = emailInput.trim().toLowerCase();
+    const user = await this.users.findOne({ where: { email } });
+    if (user?.emailVerifiedAt && user.status === 'active') {
+      try {
+        await this.issueCode(email, 'delete_account');
+      } catch {
+        // Keep the public response generic to prevent account enumeration.
+      }
+    }
+    return { message: 'Agar tasdiqlangan email QUIZ ARENA hisobiga bog‘langan bo‘lsa, o‘chirish kodi yuboriladi.' };
+  }
+
+  async confirmAccountDeletion(emailInput: string, code: string): Promise<{ userId: string }> {
+    const email = await this.consumeCode(emailInput, 'delete_account', code);
+    const user = await this.users.findOne({ where: { email } });
+    if (!user || !user.emailVerifiedAt || user.status !== 'active') {
+      throw new UnauthorizedException('Kod noto‘g‘ri yoki muddati tugagan');
+    }
+    return { userId: user.id };
   }
 
   async requestPasswordReset(emailInput: string) {

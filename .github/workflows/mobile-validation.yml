@@ -9,6 +9,7 @@ on:
       - feature/liquid-glass-dock
       - feat/education-statistics-dashboard
       - feat/free-web-app-launch
+      - feat/google-play-release
 
 permissions:
   contents: read
@@ -35,8 +36,40 @@ jobs:
       - name: Export browser-ready web app
         run: npx expo export --platform web --output-dir "$RUNNER_TEMP/expo-web-export"
 
+      - name: Export native Android app bundle
+        run: npx expo export --platform android --output-dir "$RUNNER_TEMP/expo-android-export"
+
+      - name: Export Google Play Android app bundle source
+        env:
+          GOOGLE_PLAY_RELEASE: 'true'
+        run: npx expo export --platform android --output-dir "$RUNNER_TEMP/expo-google-play-export"
+
+      - name: Export native iOS app bundle
+        run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-ios-export"
+
+      - name: Validate mobile release and EAS Update configuration
+        run: |
+          node - <<'NODE'
+          const app = require('./app.json').expo;
+          const eas = require('./eas.json');
+          const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+          };
+          assert(app.android?.package === 'uz.quizarena.app', 'Android package is missing');
+          assert(app.ios?.bundleIdentifier === 'uz.quizarena.app', 'iOS bundle identifier is missing');
+          assert(app.updates?.url === `https://u.expo.dev/${app.extra?.eas?.projectId}`, 'EAS Update URL/project ID mismatch');
+          assert(app.runtimeVersion?.policy === 'appVersion', 'runtimeVersion appVersion policy is required');
+          assert(require('./package.json').dependencies?.['expo-updates'], 'expo-updates dependency is missing');
+          assert(eas.build?.preview?.distribution === 'internal', 'preview must use internal distribution');
+          assert(eas.build?.preview?.channel === 'preview', 'preview channel is missing');
+          assert(eas.build?.preview?.android?.buildType === 'apk', 'preview Android build must be an APK');
+          assert(eas.build?.production?.channel === 'production', 'production channel is missing');
+          assert(eas.build?.production?.android?.buildType === 'app-bundle', 'production Android build must be an AAB');
+          console.log('Mobile release configuration is valid.');
+          NODE
+
       - name: Build the combined public website image
-        run: docker build --build-arg APP_SOURCE_BRANCH=main -t quiz-arena-website:ci -f website/Dockerfile website
+        run: docker build --build-arg APP_SOURCE_BRANCH="${{ github.head_ref || github.ref_name }}" -t quiz-arena-website:ci -f website/Dockerfile website
 
       - name: Smoke-test landing page and browser app routes
         run: |
@@ -52,7 +85,53 @@ jobs:
           grep -qi "content-type: text/html; charset=utf-8" "$RUNNER_TEMP/landing.headers"
           grep -qi "content-type: text/html; charset=utf-8" "$RUNNER_TEMP/app.headers"
           grep -q "QUIZ ARENA" "$RUNNER_TEMP/landing.html"
+          for page in privacy.html support.html account-deletion.html; do
+            curl --fail --silent "http://127.0.0.1:8080/$page" > "$RUNNER_TEMP/$page"
+            grep -q "QUIZ ARENA" "$RUNNER_TEMP/$page"
+          done
+          grep -q "/account-deletion.html" "$RUNNER_TEMP/privacy.html"
+          grep -q "/api/auth/account/deletion/confirm" "$RUNNER_TEMP/account-deletion.html"
           grep -q "/app/_expo/" "$RUNNER_TEMP/app.html"
+
+      - name: Validate Google Play store-specific configuration
+        env:
+          GOOGLE_PLAY_RELEASE: 'true'
+        run: |
+          npx expo config --type public --json > "$RUNNER_TEMP/google-play-expo-config.json"
+          node - "$RUNNER_TEMP/google-play-expo-config.json" <<'NODE'
+          const fs = require('node:fs');
+          const config = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const eas = require('./eas.json');
+          const pkg = require('./package.json');
+          const assert = (ok, message) => { if (!ok) throw new Error(message); };
+          assert(config.android?.package === 'uz.quizarena.app', 'Android application ID mismatch');
+          assert(config.android?.versionCode >= 1, 'Android versionCode must be positive');
+          assert(config.extra?.distributionStore === 'google-play', 'Google Play store marker missing');
+          assert(config.plugins?.some((plugin) => Array.isArray(plugin) && plugin[0] === 'expo-build-properties' && plugin[1]?.android?.compileSdkVersion === 37 && plugin[1]?.android?.targetSdkVersion === 36), 'Android compile/target SDK must be 37/36');
+          assert(pkg.dependencies?.['expo-iap'], 'Shared package lock must retain expo-iap for non-Play builds');
+          assert(!config.plugins?.some((plugin) => (typeof plugin === 'string' ? plugin : plugin[0]) === 'expo-iap'), 'expo-iap config plugin must not ship');
+          assert(config.autolinking?.android?.exclude?.includes('expo-iap'), 'expo-iap must be excluded from Android autolinking');
+          assert(eas.build?.googlePlay?.android?.buildType === 'app-bundle', 'Google Play profile must produce AAB');
+          assert(eas.build?.googlePlay?.distribution === 'store', 'Google Play profile must use store distribution');
+          assert(eas.build?.googlePlay?.channel === 'google-play', 'Google Play profile must use an isolated update channel');
+          assert(eas.build?.googlePlay?.env?.GOOGLE_PLAY_RELEASE === 'true', 'Google Play build flag missing');
+          console.log('Google Play configuration is valid.');
+          NODE
+
+      - name: Generate Google Play native Android project and verify SDK level
+        env:
+          GOOGLE_PLAY_RELEASE: 'true'
+        run: |
+          npx expo prebuild --platform android --clean --no-install
+          grep -q '^android.compileSdkVersion=37$' android/gradle.properties
+          grep -q '^android.targetSdkVersion=36$' android/gradle.properties
+          grep -q 'android.permission.RECORD_AUDIO.*tools:node="remove"' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.SYSTEM_ALERT_WINDOW.*tools:node="remove"' android/app/src/main/AndroidManifest.xml
+          if grep -q 'expo-iap' android/settings.gradle; then echo 'expo-iap was autolinked'; exit 1; fi
+          echo 'Generated Android project targets API 36 and excludes unwanted modules/permissions.'
+
+      - name: Expo Doctor
+        run: npx expo-doctor
 
       - name: Expo dependency validation
         run: npx expo install --check
@@ -80,4 +159,4 @@ jobs:
         run: npm run build
 
       - name: Test payment security, Battle rank and history
-        run: npm test -- --runInBand src/subscriptions/subscription-payments.service.spec.ts src/battle/battle.service.spec.ts
+        run: npm test -- --runInBand src/auth/auth.service.spec.ts src/auth/email-auth.service.spec.ts src/ai/ai.controller.spec.ts src/ai/ai.service.spec.ts src/subscriptions/subscription-payments.service.spec.ts src/battle/battle.service.spec.ts
