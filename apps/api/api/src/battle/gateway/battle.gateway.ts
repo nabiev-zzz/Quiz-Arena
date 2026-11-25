@@ -123,6 +123,7 @@ export class BattleGateway
         readyPlayers: new Set(saved.readyPlayers || []),
         disconnectedAt: { ...(saved.disconnectedAt || {}) },
         resolving: false,
+        finishing: false,
       };
 
       this.activeBattles.set(battle.matchId, battle);
@@ -983,6 +984,7 @@ export class BattleGateway
       }
 
       battle.resolving = false;
+      await this.persistBattle(battle).catch(() => undefined);
 
       this.logger.error(
         'Battle natijasini saqlashda xato:',
@@ -1132,6 +1134,11 @@ export class BattleGateway
       battle.nextTimer = null;
     }
 
+    const claimed = await this.battleStateStore.claimFinish(battle.matchId);
+    if (!claimed) return;
+    this.applySnapshot(battle, claimed);
+    battle.finishing = true;
+
     try {
       const match = await this.battleService.finishMatch(
         battle.matchId,
@@ -1160,6 +1167,7 @@ export class BattleGateway
       await this.battleStateStore.remove(battle.matchId);
     } catch (error) {
       battle.finishing = false;
+      await this.persistBattle(battle).catch(() => undefined);
 
       this.logger.error(
         'Battle yakunlashda xato:',
@@ -1211,6 +1219,9 @@ export class BattleGateway
       });
       return;
     }
+
+    const latestState = await this.battleStateStore.get(matchId);
+    if (latestState) this.applySnapshot(battle, latestState);
 
     const disconnectTimer = battle.disconnectTimers.get(userId);
 
