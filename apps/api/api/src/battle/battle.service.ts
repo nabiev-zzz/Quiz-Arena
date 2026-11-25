@@ -33,6 +33,8 @@ export interface BattleQuestionResult {
   answers: Record<string, number | null>;
   points: Record<string, number>;
   explanation: string;
+  question?: string;
+  options?: string[];
 }
 
 export interface BattleRankChange {
@@ -810,15 +812,15 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
           const selectedAnswer = item.answers?.[userId] ?? null;
           return {
             index: item.questionIndex + 1,
-            question: question?.question || 'Savol matni mavjud emas',
-            options: question?.options || [],
+            question: item.question || question?.question || 'Savol matni mavjud emas',
+            options: item.options || question?.options || [],
             selectedAnswer,
-            correctAnswer: question?.correctAnswer ?? item.correctAnswer,
+            correctAnswer: item.correctAnswer ?? question?.correctAnswer ?? 0,
             isCorrect:
               selectedAnswer !== null &&
               selectedAnswer === (question?.correctAnswer ?? item.correctAnswer),
             points: item.points?.[userId] || 0,
-            explanation: question?.explanation || item.explanation || '',
+            explanation: item.explanation || question?.explanation || '',
           };
         }),
     };
