@@ -53,6 +53,13 @@ interface PrivateBattleRoom {
   timer: ReturnType<typeof setTimeout>;
 }
 
+interface BattleSocketPeer {
+  id: string;
+  data: Record<string, unknown>;
+  join(room: string): Promise<void> | void;
+  emit(event: string, ...args: unknown[]): boolean;
+}
+
 interface ActiveBattle {
   matchId: string;
   room: string;
@@ -275,6 +282,9 @@ export class BattleGateway
   }
 
   private async getActiveBattle(matchId: string): Promise<ActiveBattle | undefined> {
+    if (!this.battleStateStore.isReady()) {
+      return this.activeBattles.get(matchId);
+    }
     const saved = await this.battleStateStore.get(matchId);
     if (!saved) return undefined;
 
@@ -376,8 +386,16 @@ export class BattleGateway
       this.queuedSockets.delete(client.id);
     }
 
-    for (const battle of this.activeBattles.values()) {
-      if (!battle.playerIds.includes(userId)) {
+    const battles = this.battleStateStore.isReady()
+      ? await Promise.all(
+          (await this.battleStateStore.listActive()).map(({ matchId }) =>
+            this.getActiveBattle(matchId),
+          ),
+        )
+      : [...this.activeBattles.values()];
+
+    for (const battle of battles) {
+      if (!battle || !battle.playerIds.includes(userId)) {
         continue;
       }
 
@@ -510,8 +528,12 @@ export class BattleGateway
       return;
     }
 
-    const hostSocket = this.server.sockets.get(privateRoom.hostSocketId);
-    if (!hostSocket || hostSocket.data.userId !== privateRoom.hostUserId) {
+    const hostSocket = (await this.server.fetchSockets()).find(
+      (socket) =>
+        socket.id === privateRoom.hostSocketId &&
+        socket.data.userId === privateRoom.hostUserId,
+    );
+    if (!hostSocket) {
       await this.expirePrivateRoom(roomCode);
       client.emit('battle:error', { message: 'Xona egasi serverga ulanmagan.' });
       return;
@@ -672,13 +694,15 @@ export class BattleGateway
         );
       }
 
-      const opponentSocket =
-        this.server.sockets.get(opponentSocketId);
+      // The Redis Socket.IO adapter makes fetchSockets() span every API replica.
+      // Namespace.sockets.get() only sees sockets attached to this process.
+      const opponentSocket = (await this.server.fetchSockets()).find(
+        (socket) =>
+          socket.id === opponentSocketId &&
+          socket.data.userId === opponentId,
+      );
 
-      if (
-        !opponentSocket ||
-        opponentSocket.data.userId !== opponentId
-      ) {
+      if (!opponentSocket) {
         const nextOpponent = await this.battleService.joinQueue(
           queueKey,
           userId,
@@ -775,8 +799,8 @@ export class BattleGateway
     mode: string,
     playerOneId: string,
     playerTwoId: string,
-    playerOneSocket: Socket,
-    playerTwoSocket: Socket,
+    playerOneSocket: BattleSocketPeer,
+    playerTwoSocket: BattleSocketPeer,
     categoryId: string,
   ): Promise<boolean> {
     try {
@@ -1261,7 +1285,7 @@ export class BattleGateway
       return;
     }
 
-    const battle = this.activeBattles.get(matchId);
+    const battle = await this.getActiveBattle(matchId);
 
     if (!battle || !battle.playerIds.includes(userId)) {
       client.emit('battle:reconnect:failed', {
@@ -1269,9 +1293,6 @@ export class BattleGateway
       });
       return;
     }
-
-    const latestState = await this.battleStateStore.get(matchId);
-    if (latestState) this.applySnapshot(battle, latestState);
 
     const disconnectTimer = battle.disconnectTimers.get(userId);
 
@@ -1423,7 +1444,7 @@ export class BattleGateway
       return;
     }
 
-    const battle = this.activeBattles.get(matchId);
+    const battle = await this.getActiveBattle(matchId);
 
     if (!battle || !battle.playerIds.includes(userId)) {
       client.emit('battle:error', {
