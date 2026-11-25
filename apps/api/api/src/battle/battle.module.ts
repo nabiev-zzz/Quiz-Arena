@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AiModule } from '../ai/ai.module';
 import { AuthModule } from '../auth/auth.module';
+import { UsersModule } from '../users/users.module';
 import { User } from '../users/entities/user.entity';
 import { ZcTransaction } from '../users/entities/zc-transaction.entity';
 import { BattleController } from './battle.controller';
@@ -15,6 +16,7 @@ import { BattleQuestion } from './entities/battle-question.entity';
     TypeOrmModule.forFeature([BattleMatch, BattleQuestion, User, ZcTransaction]),
     AiModule,
     AuthModule,
+    UsersModule,
   ],
   controllers: [BattleController],
   providers: [BattleService, BattleGateway],
