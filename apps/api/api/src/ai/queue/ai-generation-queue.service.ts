@@ -18,8 +18,8 @@ export const AI_GENERATION_QUEUE = 'ai-generation';
 export const AI_GENERATION_PREFIX = `quiz-arena:${process.env.NODE_ENV || 'development'}:ai-bull`;
 
 export function createAiQueueRedisConnection(): Redis {
-  const url = process.env.REDIS_URL?.trim() || process.env.VALKEY_URL?.trim();
-  const host = process.env.VALKEY_HOST?.trim();
+  const url = process.env.AI_QUEUE_REDIS_URL?.trim() || process.env.REDIS_URL?.trim() || process.env.VALKEY_URL?.trim();
+  const host = process.env.AI_QUEUE_REDIS_HOST?.trim() || process.env.VALKEY_HOST?.trim();
   if (url) {
     return new Redis(url, {
       lazyConnect: true,
@@ -32,8 +32,8 @@ export function createAiQueueRedisConnection(): Redis {
   if (!host) throw new Error('AI queue uchun REDIS_URL, VALKEY_URL yoki VALKEY_HOST sozlanmagan.');
   return new Redis({
     host,
-    port: Number(process.env.VALKEY_PORT || 6379),
-    password: process.env.VALKEY_PASSWORD || undefined,
+    port: Number(process.env.AI_QUEUE_REDIS_PORT || process.env.VALKEY_PORT || 6379),
+    password: process.env.AI_QUEUE_REDIS_PASSWORD || process.env.VALKEY_PASSWORD || undefined,
     lazyConnect: true,
     connectTimeout: 5000,
     maxRetriesPerRequest: null,
@@ -55,7 +55,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    if (!process.env.REDIS_URL?.trim() && !process.env.VALKEY_URL?.trim() && !process.env.VALKEY_HOST?.trim()) {
+    if (!process.env.AI_QUEUE_REDIS_URL?.trim() && !process.env.AI_QUEUE_REDIS_HOST?.trim() && !process.env.REDIS_URL?.trim() && !process.env.VALKEY_URL?.trim() && !process.env.VALKEY_HOST?.trim()) {
       this.logger.warn('AI BullMQ navbati sozlanmagan; AI generation so‘rovlari 503 bilan qaytariladi.');
       return;
     }
