@@ -1076,19 +1076,6 @@ export class BattleGateway
       return;
     }
 
-    const hasAnswered = Object.prototype.hasOwnProperty.call(
-      battle.answers,
-      userId,
-    );
-    const timeExpired = Date.now() >= battle.deadline;
-
-    if (!hasAnswered && !timeExpired && !battle.questionResolved) {
-      client.emit('battle:error', {
-        message: 'Avval javob bering yoki savol vaqtining tugashini kuting.',
-      });
-      return;
-    }
-
     const updated = await this.battleStateStore.markPlayerReady(
       matchId,
       userId,
@@ -1101,6 +1088,7 @@ export class BattleGateway
     }
     this.applySnapshot(battle, updated);
     this.emitNextReadyStatus(battle);
+    const timeExpired = Date.now() >= updated.deadline;
 
     if (timeExpired && !battle.questionResolved && !battle.resolving) {
       await this.resolveQuestion(battle);
