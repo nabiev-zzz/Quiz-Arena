@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { createHash } from 'node:crypto';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { FeatureUsageService } from '../../subscriptions/feature-usage.service';
 import { AiGenerationJob, AiGenerationJobType } from '../entities/ai-generation-job.entity';
 
@@ -83,7 +83,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   async enqueue(input: {
-    userId: string;
+    userId: string | null;
     jobType: AiGenerationJobType;
     payload: Record<string, unknown>;
     fileBuffer?: Buffer;
@@ -98,8 +98,9 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     const idempotencyKey = input.idempotencyKey
       ? createHash('sha256').update(input.idempotencyKey).digest('hex')
       : null;
+    const ownerWhere = input.userId ? { userId: input.userId } : { userId: IsNull() };
     if (idempotencyKey) {
-      const existing = await this.jobs.findOne({ where: { userId: input.userId, idempotencyKey } });
+      const existing = await this.jobs.findOne({ where: { ...ownerWhere, idempotencyKey } });
       if (existing && ['queued', 'active', 'completed'].includes(existing.status)) {
         return {
           status: existing.status as 'queued' | 'active' | 'completed',
@@ -129,7 +130,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       // A concurrent identical request may have won the unique idempotency key.
       if (idempotencyKey) {
-        const existing = await this.jobs.findOne({ where: { userId: input.userId, idempotencyKey } });
+        const existing = await this.jobs.findOne({ where: { ...ownerWhere, idempotencyKey } });
         if (existing) return { status: existing.status as 'queued' | 'active' | 'completed', jobId: existing.id, message: existing.status === 'completed' ? 'Natija tayyor.' : 'Test tayyorlanmoqda', result: existing.result };
       }
       throw error;
@@ -137,6 +138,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
 
     let usage: unknown;
     if (input.quotaFeature) {
+      if (!input.userId) throw new Error('Quota bilan AI job yaratish uchun userId talab qilinadi.');
       usage = await this.featureUsage.consume(input.userId, input.quotaFeature);
       if (!(usage as { allowed?: boolean }).allowed) {
         await this.jobs.update({ id: job.id }, { status: 'failed', error: 'Tarif limitingiz tugagan.', completedAt: new Date() });
@@ -156,7 +158,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
       });
       if (usage && input.quotaFeature) {
         try {
-          await this.featureUsage.refund(input.userId, input.quotaFeature as never);
+          if (input.userId) await this.featureUsage.refund(input.userId, input.quotaFeature as never);
           await this.jobs.update({ id: job.id }, { quotaRefunded: true });
         } catch { /* Preserve the queue error; refund can be retried operationally. */ }
       }
@@ -232,6 +234,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     });
     if (job.quotaConsumed && job.quotaFeature && !job.quotaRefunded) {
       try {
+        if (!job.userId) throw new Error('Quota job owner is missing');
         await this.featureUsage.refund(job.userId, job.quotaFeature as never);
         await this.jobs.update({ id: jobId }, { quotaRefunded: true });
       } catch (refundError) {
