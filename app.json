@@ -37,6 +37,9 @@
     "owner": "faxriyorkk",
     "splash": {
       "backgroundColor": "#0B0B14"
+    },
+    "experiments": {
+      "baseUrl": "/app"
     }
   }
 }
