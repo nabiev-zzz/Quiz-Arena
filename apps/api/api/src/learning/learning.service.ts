@@ -323,7 +323,8 @@ export class LearningService {
     const topic = await this.topics.findOne({ where: { subjectId, topicId, isActive: true } });
     if (!topic) throw new NotFoundException('Bu mavzu topilmadi yoki vaqtincha faol emas.');
 
-    // Bir mavzu/til/qiyinlik kombinatsiyasi uchun parallel so‘rovlar faqat bir marta AI chaqiradi.
+    // Database-first: yetarli savol bazada bo‘lsa, test AI provayderisiz ham ishlaydi.
+    // Parallel so‘rovlar bir xil mavzu uchun takroriy AI generatsiyasini advisory lock bilan cheklaydi.
     const lockKey = [subjectId, topicId, input.language, input.difficulty].join(':');
     return this.dataSource.transaction(async (manager) => {
       await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [lockKey]);
@@ -334,7 +335,9 @@ export class LearningService {
         take: 20,
       });
 
-      if (cached.length < 20) {
+      // 20 ta savolni majburan to‘ldirmaymiz: foydalanuvchi so‘ragan count yetarli.
+      // AI faqat bazada testni boshlash uchun savollar yetishmaganda chaqiriladi.
+      if (cached.length < count) {
         const generated = await this.aiService.generateQuestions({
           subjectId,
           topicId,
