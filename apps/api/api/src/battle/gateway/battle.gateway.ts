@@ -123,8 +123,8 @@ export class BattleGateway
         disconnectTimers: new Map<string, ReturnType<typeof setTimeout>>(),
         readyPlayers: new Set(saved.readyPlayers || []),
         disconnectedAt: { ...(saved.disconnectedAt || {}) },
-        resolving: false,
-        finishing: false,
+        resolving: saved.resolving && Date.now() - saved.updatedAt > 60_000 ? false : saved.resolving,
+        finishing: saved.finishing && Date.now() - saved.updatedAt > 60_000 ? false : saved.finishing,
       };
 
       this.activeBattles.set(battle.matchId, battle);
@@ -133,11 +133,16 @@ export class BattleGateway
       // client replaces its socket through battle:reconnect; clearing every
       // socket ID here would disconnect players served by a different replica.
       const now = Date.now();
-      if (!battle.questionResolved) {
+      if (!battle.questionResolved && !battle.resolving) {
         const delay = Math.max(0, battle.deadline - now);
         battle.timer = setTimeout(() => {
           void this.resolveQuestion(battle);
         }, delay);
+      } else if (
+        battle.questionResolved &&
+        battle.readyPlayers.size === battle.playerIds.length
+      ) {
+        void this.advanceIfReady(battle);
       }
 
       await this.persistBattle(battle);
@@ -175,6 +180,11 @@ export class BattleGateway
         battle.timer = setTimeout(() => {
           void this.resolveQuestion(battle!);
         }, delay);
+      } else if (
+        saved.questionResolved &&
+        saved.readyPlayers.length === saved.playerIds.length
+      ) {
+        void this.advanceIfReady(battle);
       }
     }
   }
