@@ -117,7 +117,7 @@ export class BattleGateway
     for (const saved of savedBattles) {
       const battle: ActiveBattle = {
         ...saved,
-        socketIds: {},
+        socketIds: { ...saved.socketIds },
         timer: null,
         nextTimer: null,
         disconnectTimers: new Map<string, ReturnType<typeof setTimeout>>(),
@@ -129,17 +129,10 @@ export class BattleGateway
 
       this.activeBattles.set(battle.matchId, battle);
 
-      // A process restart invalidates old socket IDs. Give both players the
-      // normal reconnect grace period and resume the saved question deadline.
+      // Keep socket ownership from other live API replicas intact. A restarted
+      // client replaces its socket through battle:reconnect; clearing every
+      // socket ID here would disconnect players served by a different replica.
       const now = Date.now();
-      for (const playerId of battle.playerIds) {
-        battle.disconnectedAt[playerId] = now;
-        const timer = setTimeout(() => {
-          void this.handleReconnectTimeout(battle.matchId, playerId);
-        }, this.reconnectGracePeriod);
-        battle.disconnectTimers.set(playerId, timer);
-      }
-
       if (!battle.questionResolved) {
         const delay = Math.max(0, battle.deadline - now);
         battle.timer = setTimeout(() => {
