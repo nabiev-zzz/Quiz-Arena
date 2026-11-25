@@ -133,7 +133,7 @@ Important limitations:
 The Redis lock uses `SET NX PX` with a random ownership token and compare-and-delete release script. Current critical-section TTL is 10 seconds; operations protected by it must remain short and must not perform AI generation or long database work while holding the lock.
 
 Remaining engineering gates:
-- Add continuous active-state reconciliation so an already-running second API instance notices matches created by the first and can take over timer work after a process crash.
+- Basic two-second active-state discovery/timer reconciliation is now in the gateway. Every API node discovers matches created after its boot and may schedule a question timer; Redis resolution claims prevent duplicate scoring. Abandoned `resolving` / `finishing` flags are recoverable after a 60-second stale window. This still needs full two-API Socket.IO end-to-end validation and careful failure-window review.
 - Move private invite rooms, matchmaking ownership, reconnect metadata and join-attempt limits fully to shared storage; remove reliance on local-only socket lookup.
 - Make completion and rank/reward application idempotent across Redis and PostgreSQL failure windows, and reconcile Redis snapshots from the PostgreSQL match record after restart.
 - Add a real two-API end-to-end test with two Socket.IO servers connected to the same Redis and PostgreSQL test services. Exercise simultaneous answers, duplicate answer attempts, timer races, restart during a question, reconnect on the other node, finish races and exactly-once rank updates.
