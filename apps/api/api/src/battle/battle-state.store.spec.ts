@@ -87,6 +87,35 @@ describe('BattleStateStore (shared Redis)', () => {
     }
   });
 
+
+  it('accepts only one answer when two API instances race', async () => {
+    const state = createState(randomUUID());
+    await serverA.save(state);
+
+    const results = await Promise.all([
+      serverA.recordAnswer(state.matchId, 'player-a', 'socket-a', 0, 1),
+      serverB.recordAnswer(state.matchId, 'player-a', 'socket-a', 0, 2),
+    ]);
+
+    expect(results.filter((result) => result.accepted)).toHaveLength(1);
+    const saved = await serverB.get(state.matchId);
+    expect(saved?.answers['player-a']).toBeDefined();
+    await serverA.remove(state.matchId);
+  });
+
+  it('allows only one API instance to claim match completion', async () => {
+    const state = createState(randomUUID());
+    await serverA.save(state);
+
+    const claims = await Promise.all([
+      serverA.claimFinish(state.matchId),
+      serverB.claimFinish(state.matchId),
+    ]);
+
+    expect(claims.filter(Boolean)).toHaveLength(1);
+    await serverA.remove(state.matchId);
+  });
+
   it('serializes critical sections across two API instances', async () => {
     const matchId = randomUUID();
     const order: string[] = [];
@@ -103,6 +132,8 @@ describe('BattleStateStore (shared Redis)', () => {
       }),
     ]);
 
-    expect(order).toEqual(['a:start', 'a:end', 'b:start', 'b:end']);
+    const firstEnd = order.indexOf('a:end') < order.indexOf('b:end') ? order.indexOf('a:end') : order.indexOf('b:end');
+    const secondStart = order.indexOf('a:start') > order.indexOf('b:start') ? order.indexOf('a:start') : order.indexOf('b:start');
+    expect(firstEnd).toBeLessThan(secondStart);
   });
 });
