@@ -496,11 +496,11 @@ export class BattleGateway
       client.emit('battle:error', { message: 'Avval raqib qidirish navbatidan chiqing.' });
       return;
     }
-    if ([...this.activeBattles.values()].some((battle) => battle.playerIds.includes(userId))) {
+    if (await this.hasActiveBattleForUser(userId)) {
       client.emit('battle:error', { message: 'Avval joriy Battle ni yakunlang.' });
       return;
     }
-    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId)) {
+    if (await this.getPrivateInviteForHost(userId)) {
       client.emit('battle:error', { message: 'Sizda allaqachon faol taklif xonasi bor.' });
       return;
     }
@@ -515,8 +515,27 @@ export class BattleGateway
 
       const roomCode = randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase();
       const expiresAt = Date.now() + 10 * 60 * 1000;
-      const timer = setTimeout(() => { void this.expirePrivateRoom(roomCode); }, 10 * 60 * 1000);
-      this.privateRooms.set(roomCode, { roomCode, hostUserId: userId, hostSocketId: client.id, expiresAt, timer });
+      const invite: PrivateBattleInviteSnapshot = {
+        roomCode,
+        hostUserId: userId,
+        hostSocketId: client.id,
+        expiresAt,
+      };
+      if (this.battleStateStore.isReady()) {
+        const created = await this.battleStateStore.createPrivateInvite(invite);
+        if (!created) {
+          throw new BadRequestException('Sizda allaqachon faol taklif xonasi bor.');
+        }
+      } else {
+        if (this.privateRooms.has(roomCode)) {
+          throw new BadRequestException('Xona kodi band. Qayta urinib ko‘ring.');
+        }
+      }
+
+      const timer = setTimeout(() => {
+        void this.expirePrivateRoom(roomCode);
+      }, Math.max(0, expiresAt - Date.now()));
+      this.privateRooms.set(roomCode, { ...invite, timer });
 
       client.emit('battle:private:created', {
         roomCode,
@@ -528,7 +547,11 @@ export class BattleGateway
       });
     } catch (error) {
       if (quotaConsumed) {
-        try { await this.featureUsageService.refund(userId, 'privateBattle'); } catch { /* Preserve the original room error. */ }
+        try {
+          await this.featureUsageService.refund(userId, 'privateBattle');
+        } catch {
+          // Preserve the original room error.
+        }
       }
       client.emit('battle:error', {
         message: error instanceof Error ? error.message : 'Xususiy Battle xonasi yaratilmadi.',
