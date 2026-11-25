@@ -410,7 +410,20 @@ export class BattleGateway
         continue;
       }
 
-      delete battle.socketIds[userId];
+      const disconnectedAt = Date.now();
+      if (this.battleStateStore.isReady()) {
+        const updated = await this.battleStateStore.markPlayerDisconnected(
+          battle.matchId,
+          userId,
+          client.id,
+          disconnectedAt,
+        );
+        if (!updated) continue;
+        this.applySnapshot(battle, updated);
+      } else {
+        delete battle.socketIds[userId];
+        battle.disconnectedAt[userId] = disconnectedAt;
+      }
 
       this.logger.warn(
         `${userId} Battle xonasidan uzildi: ${battle.roomCode}`,
@@ -418,12 +431,6 @@ export class BattleGateway
 
       const oldTimer = battle.disconnectTimers.get(userId);
       if (oldTimer) clearTimeout(oldTimer);
-
-      const disconnectedAt = Date.now();
-      battle.disconnectedAt[userId] = disconnectedAt;
-      await this.persistBattle(battle).catch((error) =>
-        this.logger.error('Battle uzilish holati saqlanmadi:', error),
-      );
       this.scheduleDisconnectTimeout(battle, userId, disconnectedAt);
     }
   }
@@ -1297,16 +1304,30 @@ export class BattleGateway
       return;
     }
 
-    const disconnectTimer = battle.disconnectTimers.get(userId);
+    if (this.battleStateStore.isReady()) {
+      const updated = await this.battleStateStore.reconnectPlayer(
+        matchId,
+        userId,
+        client.id,
+      );
+      if (!updated) {
+        client.emit('battle:reconnect:failed', {
+          message: 'Battle holati yangilanmoqda. Qayta urinib ko‘ring.',
+        });
+        return;
+      }
+      this.applySnapshot(battle, updated);
+    } else {
+      battle.socketIds[userId] = client.id;
+      delete battle.disconnectedAt[userId];
+      await this.persistBattle(battle);
+    }
 
+    const disconnectTimer = battle.disconnectTimers.get(userId);
     if (disconnectTimer) {
       clearTimeout(disconnectTimer);
       battle.disconnectTimers.delete(userId);
     }
-
-    battle.socketIds[userId] = client.id;
-    delete battle.disconnectedAt[userId];
-    await this.persistBattle(battle);
 
     await client.join(battle.room);
 
