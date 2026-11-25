@@ -28,6 +28,12 @@
     "plugins": [
       "expo-secure-store",
       "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0B0B14"
+        }
+      ],
       "expo-iap"
     ],
     "extra": {
@@ -36,9 +42,6 @@
       }
     },
     "owner": "faxriyorkk",
-    "splash": {
-      "backgroundColor": "#0B0B14"
-    },
     "experiments": {
       "baseUrl": "/app"
     },
