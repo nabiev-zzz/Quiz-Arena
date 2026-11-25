@@ -645,7 +645,7 @@ export class BattleGateway
       return;
     }
 
-    const hostSocket = (await this.server.fetchSockets()).find(
+    const hostSocket = (await this.server.in(privateRoom.hostSocketId).fetchSockets()).find(
       (socket) =>
         socket.id === privateRoom.hostSocketId &&
         socket.data.userId === privateRoom.hostUserId,
@@ -763,7 +763,7 @@ export class BattleGateway
     this.privateRooms.delete(roomCode);
     if (!room) return;
 
-    const hostSocket = (await this.server.fetchSockets()).find(
+    const hostSocket = (await this.server.in(room.hostSocketId).fetchSockets()).find(
       (socket) =>
         socket.id === room.hostSocketId &&
         socket.data.userId === room.hostUserId,
@@ -870,7 +870,7 @@ export class BattleGateway
 
       // The Redis Socket.IO adapter makes fetchSockets() span every API replica.
       // Namespace.sockets.get() only sees sockets attached to this process.
-      const opponentSocket = (await this.server.fetchSockets()).find(
+      const opponentSocket = (await this.server.in(opponentSocketId).fetchSockets()).find(
         (socket) =>
           socket.id === opponentSocketId &&
           socket.data.userId === opponentId,
