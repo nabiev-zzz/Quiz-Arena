@@ -25,6 +25,7 @@ import LeaderboardScreen from './leaderboard/LeaderboardScreen';
 import {
   BattleFinished,
   BattleHistoryItem,
+  BattleHistoryDetail,
   BattleLeaderboardEntry,
   BattleMatched,
   BattleMode,
@@ -36,6 +37,7 @@ import {
   BattleStats,
   createBattleSocket,
   getBattleHistory,
+  getBattleHistoryDetail,
   getBattleLeaderboard,
   getBattleStats,
 } from '../services/battleService';
@@ -95,6 +97,8 @@ export default function BattleScreen({
   const [history, setHistory] = useState<BattleHistoryItem[]>([]);
   const [historyFilter, setHistoryFilter] = useState<'all' | 'win' | 'loss' | 'draw' | 'ranked' | 'casual'>('all');
   const [historySearch, setHistorySearch] = useState('');
+  const [historyDetail, setHistoryDetail] = useState<BattleHistoryDetail | null>(null);
+  const [historyDetailLoading, setHistoryDetailLoading] = useState<string | null>(null);
   const [stats, setStats] = useState<BattleStats | null>(null);
   const [learningStats, setLearningStats] = useState<LearningStats | null>(null);
   const [statsView, setStatsView] = useState<StatsView>('overview');
@@ -880,6 +884,28 @@ export default function BattleScreen({
     );
   }
 
+  async function openHistoryDetail(matchId: string) {
+    if (historyDetail?.id === matchId) {
+      setHistoryDetail(null);
+      return;
+    }
+    setHistoryDetailLoading(matchId);
+    setHistoryDetail(null);
+    try {
+      const detail = await getBattleHistoryDetail(matchId);
+      setHistoryDetail(detail);
+    } catch (detailError) {
+      showLocalizedAlert(
+        'Xatolik',
+        detailError instanceof Error
+          ? detailError.message
+          : 'Jang tafsilotlarini yuklab bo‘lmadi.',
+      );
+    } finally {
+      setHistoryDetailLoading(null);
+    }
+  }
+
   function renderHistory() {
     const filteredHistory = history.filter((item) => {
       const result = item.result || 'unfinished';
@@ -1019,6 +1045,58 @@ export default function BattleScreen({
                 </LocalizedText>
                 <LocalizedText style={{ color: colors.muted, fontSize: 10 }}>{item.mode === 'ranked' ? 'RP reyting jangi' : 'Oddiy jang'}</LocalizedText>
               </View>
+              {item.result !== 'cancelled' && item.result !== 'unfinished' ? (
+                <Pressable
+                  onPress={() => openHistoryDetail(item.id)}
+                  style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7 }}
+                >
+                  {historyDetailLoading === item.id
+                    ? <ActivityIndicator size="small" color={colors.primary} />
+                    : <Ionicons name={historyDetail?.id === item.id ? 'chevron-up' : 'analytics-outline'} size={16} color={colors.primary} />}
+                  <LocalizedText style={{ color: colors.primary, fontSize: 11, fontWeight: '900' }}>
+                    {historyDetailLoading === item.id ? 'Tafsilotlar yuklanmoqda...' : historyDetail?.id === item.id ? 'Tafsilotlarni yopish' : 'Jang tafsilotlari'}
+                  </LocalizedText>
+                </Pressable>
+              ) : null}
+              {historyDetail?.id === item.id ? (
+                <View style={{ marginTop: 13, gap: 10 }}>
+                  {historyDetail.rankChange ? (
+                    <View style={{ padding: 12, borderRadius: 14, backgroundColor: dark ? 'rgba(117,104,245,0.13)' : '#F0EDFF' }}>
+                      <LocalizedText style={{ color: colors.text, fontSize: 11, fontWeight: '900' }}>Rank o‘zgarishi · {historyDetail.rankChange.rankTier}</LocalizedText>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
+                        <LocalizedText style={{ color: colors.muted, fontSize: 10 }}>{historyDetail.rankChange.previousPoints} RP → {historyDetail.rankChange.rankPoints} RP</LocalizedText>
+                        <LocalizedText style={{ color: historyDetail.rankChange.delta >= 0 ? colors.success : colors.danger, fontSize: 11, fontWeight: '900' }}>
+                          {historyDetail.rankChange.delta > 0 ? '+' : ''}{historyDetail.rankChange.delta} RP
+                        </LocalizedText>
+                      </View>
+                    </View>
+                  ) : null}
+                  <LocalizedText style={{ color: colors.text, fontSize: 13, fontWeight: '900' }}>
+                    Savollar tahlili · {historyDetail.questions.length}/10
+                  </LocalizedText>
+                  {historyDetail.questions.map((question) => (
+                    <View key={question.index} style={{ padding: 12, borderRadius: 14, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, gap: 7 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <LocalizedText style={{ color: colors.muted, fontSize: 10, fontWeight: '900' }}>SAVOL {question.index}</LocalizedText>
+                        <LocalizedText style={{ color: question.isCorrect ? colors.success : colors.danger, fontSize: 10, fontWeight: '900' }}>
+                          {question.isCorrect ? 'TO‘G‘RI' : 'NOTO‘G‘RI'} · +{question.points}
+                        </LocalizedText>
+                      </View>
+                      <LocalizedText style={{ color: colors.text, fontSize: 12, fontWeight: '800', lineHeight: 18 }}>{question.question}</LocalizedText>
+                      {question.options.map((option, optionIndex) => (
+                        <View key={optionIndex} style={{ padding: 9, borderRadius: 10, backgroundColor: optionIndex === question.correctAnswer ? (dark ? 'rgba(32,185,129,0.15)' : '#E5F8F0') : optionIndex === question.selectedAnswer ? (dark ? 'rgba(227,91,115,0.15)' : '#FCECEF') : colors.card, borderWidth: 1, borderColor: optionIndex === question.correctAnswer ? colors.success : optionIndex === question.selectedAnswer ? colors.danger : colors.border }}>
+                          <LocalizedText style={{ color: colors.text, fontSize: 11 }}>
+                            {String.fromCharCode(65 + optionIndex)}. {option}
+                            {optionIndex === question.correctAnswer ? '  ✓' : optionIndex === question.selectedAnswer ? '  ← Sizning javobingiz' : ''}
+                          </LocalizedText>
+                        </View>
+                      ))}
+                      {question.explanation ? <LocalizedText style={{ color: colors.muted, fontSize: 10, lineHeight: 16 }}>Izoh: {question.explanation}</LocalizedText> : null}
+                    </View>
+                  ))}
+                  {!historyDetail.questions.length ? <LocalizedText style={{ color: colors.muted, fontSize: 11 }}>Bu jang uchun savollar tahlili saqlanmagan.</LocalizedText> : null}
+                </View>
+              ) : null}
             </View>
           );
         }) : (
