@@ -14,7 +14,7 @@ function rethrowWithRetryPolicy(error: unknown): never {
       throw new UnrecoverableError(error.message);
     }
   }
-  if (error instanceof Error && /topilmadi|noma.?lum|kamida \\d+ ta|invalid document/i.test(error.message)) {
+  if (error instanceof Error && /topilmadi|noma.?lum|kamida \d+ ta|invalid document/i.test(error.message)) {
     throw new UnrecoverableError(error.message);
   }
   throw error;
