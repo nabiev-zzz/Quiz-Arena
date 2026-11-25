@@ -21,13 +21,17 @@ Status: two-process Battle E2E, API replica-loss timer failover, reconnect, 10-q
 
 `BattleGateway` keeps an in-memory working cache for active matches and local timer handles. Authoritative active-match snapshots, queue-to-socket ownership, private invite records, and private-join rate limits are stored in Redis. Timer callbacks are reconciled across replicas and protected by Redis claims; core multi-node behavior now passes the CI two-process end-to-end test, while the additional release gates are listed below.
 
-Before enabling multiple API replicas:
-- Move authoritative Battle room/match/queue state to Redis or another shared, atomic state store.
-- Use Redis-backed Socket.IO adapter so room broadcasts reach sockets connected to every API replica.
-- Make match transitions atomic/idempotent (answer, timeout, reconnect, finish, rewards).
-- Persist durable match results in PostgreSQL; Redis should hold short-lived live state, not replace durable history.
-- Add cross-replica tests with two API instances and multiple Socket.IO clients.
-- Keep a single API replica until these checks pass.
+Verified in isolated two-process CI (run #22; details in section 2d):
+- Redis stores authoritative active-match snapshots, queue/socket ownership, private invites and rate limits; PostgreSQL stores durable match results.
+- Redis-backed Socket.IO adapter forwards broadcasts and scoped remote socket lookups across API processes.
+- Answer, timeout, reconnect, question advancement and completion paths use shared-state claims/locks and database transactions.
+- Cross-replica matchmaking, reconnect, answer/result delivery, duplicate-answer rejection, cancellation, replica-loss timer failover and 10-question ranked completion passed.
+
+Remaining before a Railway multi-replica rollout:
+- Validate the same topology with separate Railway API containers and Railway-managed Redis/PostgreSQL.
+- Test restart of the surviving API during an active question and Redis/PostgreSQL outage/recovery windows.
+- Exercise duplicate finish/reward retries and failure injection before claiming complete exactly-once guarantees.
+- Complete physical Android/iOS WebSocket, background/foreground and network-transition QA.
 
 ### 2. Health checks — initial API implementation added
 
@@ -63,7 +67,7 @@ Keep latency-sensitive HTTP and Battle Socket.IO traffic responsive. Move heavy 
 
 ### 2d. Verified two-process Battle E2E, replica failover and CI load test — 2026-11-25
 
-Latest GitHub Actions run [#22](https://github.com/nabiev-zzz/Quiz-Arena/actions/runs/45574308977) passed on commit `97529d8c278db9eae62364175e7bf94c2974a1b6). It used two independently running NestJS API processes, one isolated PostgreSQL 16 service and one Redis 7 service. Each API process listened on a separate port; Socket.IO clients used WebSocket-only transport and were distributed across both API processes.
+Latest GitHub Actions run [#22](https://github.com/nabiev-zzz/Quiz-Arena/actions/runs/45574308977) passed on commit `97529d8c278db9eae62364175e7bf94c2974a1b6`. It used two independently running NestJS API processes, one isolated PostgreSQL 16 service and one Redis 7 service. Each API process listened on a separate port; Socket.IO clients used WebSocket-only transport and were distributed across both API processes.
 
 Verified cross-replica Battle flow:
 - Matchmaking across API-1 and API-2; both players received the same match and first question.
@@ -156,8 +160,8 @@ Important limitations:
 - Railway does not provide sticky sessions. The mobile Battle client has therefore been changed to WebSocket-only transport for horizontal scaling; this removes polling's session-affinity requirement but also removes the polling fallback. Ship and validate the updated mobile client before raising API replicas. Socket.IO connection-state recovery is not supported by this adapter.
 - `BattleStateStore` now persists active match snapshots in Redis (players, questions, answers, scores, current question, deadline, results, ready state and reconnect metadata). The gateway restores snapshots at API startup and reconstructs timers; stale socket IDs are invalidated and players receive a reconnect grace period.
 - Answer submission, question-resolution claims, ready markers and question advancement use token-owned Redis locks/atomic read-modify-write operations. PostgreSQL remains the durable record for match progress and completed results.
-- The gateway still keeps a process-local working cache for active matches and timer handles. Queue-to-socket ownership, private invite records, host ownership, invite claiming and private-join throttling use Redis; remote opponent/host discovery uses the Redis adapter's socket-ID room-scoped lookup (`this.server.in(socketId).fetchSockets()`), avoiding a namespace-wide scan. The core two-node matchmaking, reconnect, answer and cancellation paths now pass the CI process-level E2E test below. Timer failover, process restart, and exactly-once completion/rewards remain unverified.
-- CI now starts PostgreSQL 16 and Redis 7, launches two independent NestJS API processes with separate ports and the same shared services, then connects real Socket.IO clients across both processes. The test verifies cross-node matchmaking, room/question delivery, reconnect through the opposite API, accepted and duplicate answers, result broadcast and cancellation.
+- The gateway still keeps a process-local working cache for active matches and timer handles. Queue-to-socket ownership, private invite records, host ownership, invite claiming and private-join throttling use Redis; remote opponent/host discovery uses the Redis adapter's socket-ID room-scoped lookup (`this.server.in(socketId).fetchSockets()`), avoiding a namespace-wide scan. The core two-node matchmaking, reconnect, answer, cancellation, replica-loss timer failover and 10-question ranked completion paths passed the CI process-level E2E test below. Restart during an active question and exactly-once reward behavior under deliberate fault injection remain unverified.
+- CI now starts PostgreSQL 16 and Redis 7, launches two independent NestJS API processes with separate ports and the same shared services, then connects real Socket.IO clients across both processes. The tests verify cross-node matchmaking, reconnect through the opposite API, accepted and duplicate answers, result broadcast, cancellation, timer failover after one API process is killed, reconnect to the surviving API and 10-question ranked completion with persisted rewards.
 - Keep Battle at one Production API replica until Railway-container validation, restart-during-active-question and Redis-outage recovery, reward retry/fault-injection checks, and physical-device QA pass.
 - Redis Pub/Sub must remain private and protected with authentication, TLS/private networking and least-privilege credentials. Never expose the Redis endpoint publicly.
 
@@ -180,4 +184,4 @@ The Battle gateway resolves matchmaking opponents and private-room hosts with th
 
 Gateway unit tests cover remote matchmaking-opponent and private-room-host discovery through the target socket-ID room. The two-process 100/300/500-client CI load test also exercises the optimized lookup.
 
-This is a limited correction, not the multi-replica release gate. Private invite-room records, host ownership, invite claiming, and private-join rate-limit counters now use shared Redis state. Queue cancellation ownership is now stored in Redis with a five-minute TTL and is removed atomically when a player leaves or is matched. Disconnect/reconnect transitions and grace-timeout claims are serialized in Redis, and each replica rebuilds disconnect timers from shared snapshots. These changes now pass a two-process NestJS/Socket.IO E2E run and the 100/300/500-client CI load test. Queue ownership and private-invite failover are covered by Redis integration tests. Production must remain at one replica until the same topology is validated across separate Railway containers and the remaining timer, restart, reward-idempotency and device-QA gates pass.
+This is a limited correction, not the multi-replica release gate. Private invite-room records, host ownership, invite claiming, and private-join rate-limit counters now use shared Redis state. Queue cancellation ownership is now stored in Redis with a five-minute TTL and is removed atomically when a player leaves or is matched. Disconnect/reconnect transitions and grace-timeout claims are serialized in Redis, and each replica rebuilds disconnect timers from shared snapshots. These changes now pass a two-process NestJS/Socket.IO E2E run and the 100/300/500-client CI load test. Queue ownership and private-invite failover are covered by Redis integration tests. Production must remain at one replica until the same topology is validated across separate Railway containers and restart-recovery, reward retry/fault-injection and physical-device QA gates pass.
