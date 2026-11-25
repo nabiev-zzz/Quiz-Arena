@@ -56,12 +56,18 @@ const PLAN_ENTITLEMENTS: Record<SubscriptionTier, PlanEntitlements> = {
   },
 };
 
+const VALID_PLAN_KEYS: Record<string, SubscriptionTier> = {
+  premium_monthly: 'premium',
+  premium_yearly: 'premium',
+  premium_pro_monthly: 'premium_pro',
+  premium_pro_yearly: 'premium_pro',
+  legenda_plus_monthly: 'legenda_plus',
+  legenda_plus_yearly: 'legenda_plus',
+};
+
 export function resolveSubscriptionTier(planKey?: string | null): SubscriptionTier {
   if (!planKey) return 'free';
-  if (planKey.startsWith('legenda_plus_')) return 'legenda_plus';
-  if (planKey.startsWith('premium_pro_')) return 'premium_pro';
-  if (planKey.startsWith('premium_')) return 'premium';
-  return 'free';
+  return VALID_PLAN_KEYS[planKey] ?? 'free';
 }
 
 export function getPlanEntitlements(planKey?: string | null): PlanEntitlements {
