@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { HealthController } from './health/health.controller';
 import { AiModule } from './ai/ai.module';
 import { AuthModule } from './auth/auth.module';
 import { BattleModule } from './battle/battle.module';
@@ -78,7 +79,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
     LearningModule,
     SubscriptionsModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {}
