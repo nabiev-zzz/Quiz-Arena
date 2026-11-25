@@ -178,7 +178,7 @@ function AppContent() {
           <View style={styles.homeBrand}>
             <View style={styles.homeBrandIcon}><LocalizedText style={styles.homeBrandLetter}>Q</LocalizedText></View>
             <View style={styles.homeBrandText}>
-              <LocalizedText style={[styles.homeEyebrow, { color: mutedColor }]}>QUIZ ARENA</LocalizedText>
+              <LocalizedText style={[styles.homeEyebrow, { color: mutedColor }]}>ZELQEN CORE</LocalizedText>
               <LocalizedText style={[styles.homeGreeting, { color: textColor }]}>Salom, {user?.displayName || 'Bilimdon'}!</LocalizedText>
             </View>
           </View>
@@ -350,7 +350,7 @@ function AppContent() {
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <ActivityIndicator size="large" color="#A88FFF" />
         <LocalizedText style={[styles.loadingText, { color: mutedColor }]}>
-          QUIZ ARENA yuklanmoqda...
+          ZELQEN CORE yuklanmoqda...
         </LocalizedText>
       </SafeAreaView>
     );
