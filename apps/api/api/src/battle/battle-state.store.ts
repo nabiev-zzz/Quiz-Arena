@@ -332,22 +332,26 @@ export class BattleStateStore implements OnModuleInit, OnModuleDestroy {
       const ownerKey = this.privateRoomOwnerKey(invite.hostUserId);
       if (await this.redis.exists(ownerKey)) return false;
       const ttlSeconds = Math.max(1, Math.ceil((invite.expiresAt - Date.now()) / 1000));
-      const pipeline = this.redis.pipeline();
-      pipeline.set(
+      const created = await this.redis.eval(
+        `
+          if redis.call('EXISTS', KEYS[1]) == 1 or redis.call('EXISTS', KEYS[2]) == 1 then
+            return 0
+          end
+          redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2])
+          redis.call('SET', KEYS[2], ARGV[3], 'EX', ARGV[2])
+          redis.call('SADD', KEYS[3], ARGV[3])
+          redis.call('EXPIRE', KEYS[3], ARGV[2])
+          return 1
+        `,
+        3,
         this.privateRoomKey(invite.roomCode),
+        ownerKey,
+        this.privateRoomIndexKey(),
         JSON.stringify(invite),
-        'EX',
         ttlSeconds,
-        'NX',
-      );
-      pipeline.set(ownerKey, invite.roomCode, 'EX', ttlSeconds);
-      pipeline.sadd(this.privateRoomIndexKey(), invite.roomCode);
-      pipeline.expire(this.privateRoomIndexKey(), ttlSeconds);
-      const result = await pipeline.exec();
-      if (!result || result.some(([error]) => error)) {
-        throw new Error('Xususiy Battle taklifini Redisga saqlash muvaffaqiyatsiz.');
-      }
-      return result[0]?.[1] === 'OK';
+        invite.roomCode,
+      ) as number;
+      return created === 1;
     });
   }
 
