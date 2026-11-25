@@ -255,3 +255,56 @@ describe('LearningService document quiz generation', () => {
     expect(featureUsageService.consume).not.toHaveBeenCalled();
   });
 });
+
+
+describe('LearningService shared Redis question cache', () => {
+  it('returns a cached question pool without opening a database transaction or calling AI', async () => {
+    const cachedQuestions = Array.from({ length: 20 }, (_, index) => ({
+      id: 'cached-' + index,
+      subjectId: 'algebra',
+      topicId: 'equations',
+      question: 'Cached question ' + index,
+      options: ['A', 'B', 'C', 'D'],
+      correctAnswer: index % 4,
+      explanation: 'Cached explanation',
+      difficulty: 'medium',
+    }));
+    const cache = { get: jest.fn().mockResolvedValue(cachedQuestions), set: jest.fn() };
+    const topicsRepository = {
+      findOne: jest.fn().mockResolvedValue({
+        subjectId: 'algebra',
+        topicId: 'equations',
+        subjectName: 'Algebra',
+        topicName: 'Tenglamalar',
+        description: 'Tenglamalar',
+        isActive: true,
+      }),
+    };
+    const dataSource = { transaction: jest.fn() };
+    const ai = { generateQuestions: jest.fn() };
+    const cachedService = new LearningService(
+      {} as never,
+      topicsRepository as never,
+      {} as never,
+      dataSource as never,
+      ai as never,
+      {} as never,
+      {} as never,
+      cache as never,
+    );
+
+    const result = await cachedService.getTopicQuestions({
+      subjectId: 'algebra',
+      topicId: 'equations',
+      count: 10,
+      difficulty: 'medium',
+      language: 'uz',
+    });
+
+    expect(result.questions).toHaveLength(10);
+    expect(result.source).toBe('database');
+    expect(cache.get).toHaveBeenCalledTimes(1);
+    expect(dataSource.transaction).not.toHaveBeenCalled();
+    expect(ai.generateQuestions).not.toHaveBeenCalled();
+  });
+});
