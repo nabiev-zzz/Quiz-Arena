@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
 import { AiTutorService } from './ai-tutor.service';
+import { AiGenerationQueueService } from './queue/ai-generation-queue.service';
 
 describe('AiController', () => {
   let controller: AiController;
@@ -19,10 +20,11 @@ describe('AiController', () => {
         {
           provide: AiTutorService,
           useValue: {
-            sendMessage: jest.fn(),
+            enqueueMessage: jest.fn(),
             getHistory: jest.fn(),
           },
         },
+        { provide: AiGenerationQueueService, useValue: { enqueue: jest.fn(), getStatus: jest.fn() } },
       ],
     }).compile();
 
