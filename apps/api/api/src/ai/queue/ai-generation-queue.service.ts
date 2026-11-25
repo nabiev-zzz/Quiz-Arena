@@ -75,6 +75,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
       });
       await this.queue.waitUntilReady();
       this.logger.log('AI BullMQ navbati tayyor (Battle navbatidan alohida namespace).');
+      if (process.env.AI_WORKER_PROCESS === 'true') await this.reconcilePendingJobs();
     } catch (error) {
       this.queue = null;
       if (this.redis) this.redis.disconnect();
@@ -152,6 +153,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
       quotaRefunded: false,
       idempotencyKey,
       attempts: 0,
+      priority: 50,
     });
     try {
       await this.jobs.save(job);
@@ -195,6 +197,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
         : input.jobType === 'document_quiz' ? 4
         : 0;
       const priority = input.userId ? tierPriority + taskOffset : 100;
+      await this.jobs.update({ id: job.id }, { priority });
       await this.queue.add(input.jobType, { jobId: job.id }, { jobId: job.id, priority });
     } catch (error) {
       await this.jobs.update({ id: job.id }, {
@@ -213,6 +216,50 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     }
 
     return { status: 'queued', jobId: job.id, message: 'Test tayyorlanmoqda', usage };
+  }
+
+  private async reconcilePendingJobs(): Promise<void> {
+    if (!this.queue) return;
+    const batchSize = boundedInteger(process.env.AI_QUEUE_RECONCILE_BATCH_SIZE, 500, 1, 5000);
+    const pending = await this.jobs.find({
+      where: { status: In(['queued', 'active']) },
+      order: { createdAt: 'ASC' },
+      take: batchSize,
+    });
+    let requeued = 0;
+    let completed = 0;
+    let failed = 0;
+
+    for (const job of pending) {
+      try {
+        const bullJob = await this.queue.getJob(job.id);
+        if (!bullJob) {
+          await this.queue.add(job.jobType, { jobId: job.id }, {
+            jobId: job.id,
+            priority: job.priority ?? (job.userId ? 20 : 100),
+          });
+          requeued += 1;
+          continue;
+        }
+
+        const state = await bullJob.getState();
+        if (state === 'completed' && job.status !== 'completed') {
+          const value = bullJob.returnvalue;
+          const result = value && typeof value === 'object'
+            ? value as Record<string, unknown>
+            : { value };
+          await this.markCompleted(job.id, result);
+          completed += 1;
+        } else if (state === 'failed' && bullJob.attemptsMade >= Number(bullJob.opts.attempts || 1)) {
+          await this.markFailedAndRefund(job.id, new Error(bullJob.failedReason || 'AI worker failed'));
+          failed += 1;
+        }
+      } catch (error) {
+        this.logger.warn(`AI job recovery skipped for ${job.id}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    this.logger.log(`AI job recovery: ${requeued} requeued, ${completed} reconciled, ${failed} failed`);
   }
 
   async getOwnedJob(userId: string, jobId: string): Promise<AiGenerationJob> {
@@ -246,6 +293,9 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   async markActive(jobId: string): Promise<AiGenerationJob> {
+    const existing = await this.jobs.findOne({ where: { id: jobId } });
+    if (!existing) throw new Error('AI generation job not found');
+    if (existing.status === 'completed' || existing.status === 'failed') return existing;
     await this.jobs.increment({ id: jobId }, 'attempts', 1);
     await this.jobs.update({ id: jobId, status: 'queued' }, { status: 'active', error: null });
     const job = await this.jobs.findOne({ where: { id: jobId } });
