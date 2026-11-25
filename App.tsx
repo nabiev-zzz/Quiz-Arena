@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
   discordBrandCopy: { flex: 1, minWidth: 0 },
   discordEyebrow: { color: '#AAB0BC', fontSize: 9, fontWeight: '900', letterSpacing: 1.8 },
   discordBrandTitle: { color: '#F2F3F5', fontSize: 17, fontWeight: '800', marginTop: 3 },
-  discordHeaderAction: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#2B2D31', alignItems: 'center', justifyContent: 'center' },
+  discordHeaderAction: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#2B2D31', alignItems: 'center', justifyContent: 'center' },
   discordAvatar: { width: 39, height: 39, borderRadius: 14, backgroundColor: '#5865F2', alignItems: 'center', justifyContent: 'center' },
   discordAvatarText: { color: '#FFFFFF', fontSize: 17, fontWeight: '800' },
   discordOnlineDot: { position: 'absolute', right: -2, bottom: -2, width: 12, height: 12, borderRadius: 6, backgroundColor: '#23A559', borderWidth: 2, borderColor: '#313338' },
