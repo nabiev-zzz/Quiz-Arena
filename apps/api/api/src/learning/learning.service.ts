@@ -612,7 +612,7 @@ export class LearningService {
     language: 'uz' | 'ru' | 'en';
   }) {
     const result = await this.getTopicQuestions(input, false, userId);
-    if ('status' in result && result.status === 'queued') return result;
+    if (!('questions' in result)) return result;
     const session = this.webSessions.create({
       userId,
       subjectId: input.subjectId,
