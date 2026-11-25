@@ -201,6 +201,15 @@ export class BattleGateway
   private async reconcileActiveBattles(): Promise<void> {
     if (!this.battleStateStore.isReady()) return;
     const snapshots = await this.battleStateStore.listActive();
+    const activeMatchIds = new Set(snapshots.map((snapshot) => snapshot.matchId));
+
+    // Drop local working copies removed by another replica after finish/cancel.
+    for (const [matchId, battle] of this.activeBattles) {
+      if (!activeMatchIds.has(matchId)) {
+        this.clearBattleTimers(battle);
+        this.activeBattles.delete(matchId);
+      }
+    }
 
     for (const snapshot of snapshots) {
       let saved = snapshot;
