@@ -313,6 +313,20 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
         {activeTab === 'main' ? (
           <>
             {renderCard(
+              <View style={styles.row}>
+                <View style={[styles.iconTile, { backgroundColor: 'rgba(232, 190, 92, 0.14)' }]}>
+                  <Ionicons name="wallet-outline" size={21} color="#D9B65B" />
+                </View>
+                <View style={styles.rowBody}>
+                  <LocalizedText style={styles.cardTitle}>Zelqen Credits</LocalizedText>
+                  <LocalizedText style={styles.cardSubtitle}>Ilova ichidagi virtual valyuta</LocalizedText>
+                </View>
+                <NativeText style={{ color: '#D9B65B', fontSize: 16, fontWeight: '900' }}>
+                  {Math.max(0, Number(user.zcBalance ?? 0)).toLocaleString('en-US')} ZC
+                </NativeText>
+              </View>,
+            )}
+            {renderCard(
               <Pressable style={styles.row} onPress={onPremiumPress}>
                 <View style={styles.iconTile}><Ionicons name="diamond-outline" size={21} color={C.purple} /></View>
                 <View style={styles.rowBody}>
