@@ -38,6 +38,7 @@ jobs:
           git add package-lock.json
           if ! git diff --cached --quiet; then
             git commit -m "chore(api): update lockfile for BullMQ"
+            git pull --rebase origin feat/premium-entitlements-feature-roadmap
             git push origin HEAD:feat/premium-entitlements-feature-roadmap
           fi
       - name: Build API
