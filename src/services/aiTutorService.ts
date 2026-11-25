@@ -52,8 +52,8 @@ async function tutorRequest<T>(
 }
 
 async function waitForTutorJob(jobId: string): Promise<AiTutorChatResponse> {
-  for (let attempt = 0; attempt < 240; attempt += 1) {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
     const status = await tutorRequest<{
       status: 'queued' | 'active' | 'completed' | 'failed';
       result?: AiTutorChatResponse;
