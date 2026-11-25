@@ -8,6 +8,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { OnModuleInit } from '@nestjs/common';
 import { BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -22,6 +23,7 @@ import {
   BattleService,
 } from '../battle.service';
 import { BattleQuestion } from '../entities/battle-question.entity';
+import { BattleStateSnapshot, BattleStateStore } from '../battle-state.store';
 
 interface QueueJoinPayload {
   mode?: 'casual' | 'ranked';
@@ -73,6 +75,7 @@ interface ActiveBattle {
   finishing?: boolean;
   finishAttempts?: number;
   readyPlayers: Set<string>;
+  disconnectedAt: Record<string, number>;
 }
 
 @WebSocketGateway({
@@ -83,7 +86,7 @@ interface ActiveBattle {
   },
 })
 export class BattleGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit
 {
   private readonly logger = new Logger(BattleGateway.name);
   private readonly activeBattles = new Map<string, ActiveBattle>();
@@ -102,7 +105,80 @@ export class BattleGateway
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly featureUsageService: FeatureUsageService,
+    private readonly battleStateStore: BattleStateStore,
   ) {}
+
+
+  async onModuleInit(): Promise<void> {
+    if (!this.battleStateStore.isReady()) return;
+
+    const savedBattles = await this.battleStateStore.listActive();
+    for (const saved of savedBattles) {
+      const battle: ActiveBattle = {
+        ...saved,
+        socketIds: {},
+        timer: null,
+        nextTimer: null,
+        disconnectTimers: new Map<string, ReturnType<typeof setTimeout>>(),
+        readyPlayers: new Set(saved.readyPlayers || []),
+        disconnectedAt: { ...(saved.disconnectedAt || {}) },
+        resolving: false,
+      };
+
+      this.activeBattles.set(battle.matchId, battle);
+
+      // A process restart invalidates old socket IDs. Give both players the
+      // normal reconnect grace period and resume the saved question deadline.
+      const now = Date.now();
+      for (const playerId of battle.playerIds) {
+        battle.disconnectedAt[playerId] = now;
+        const timer = setTimeout(() => {
+          void this.handleReconnectTimeout(battle.matchId, playerId);
+        }, this.reconnectGracePeriod);
+        battle.disconnectTimers.set(playerId, timer);
+      }
+
+      if (!battle.questionResolved) {
+        const delay = Math.max(0, battle.deadline - now);
+        battle.timer = setTimeout(() => {
+          void this.resolveQuestion(battle);
+        }, delay);
+      }
+
+      await this.persistBattle(battle);
+      this.logger.warn(`Battle Redisdan tiklandi: ${battle.roomCode}`);
+    }
+  }
+
+  private toSnapshot(battle: ActiveBattle): BattleStateSnapshot {
+    return {
+      version: 1,
+      matchId: battle.matchId,
+      room: battle.room,
+      roomCode: battle.roomCode,
+      mode: battle.mode,
+      playerIds: [...battle.playerIds],
+      usernames: { ...battle.usernames },
+      socketIds: { ...battle.socketIds },
+      questions: battle.questions,
+      scores: { ...battle.scores },
+      questionIndex: battle.questionIndex,
+      answers: { ...battle.answers },
+      results: [...battle.results],
+      deadline: battle.deadline,
+      resolving: battle.resolving,
+      questionResolved: battle.questionResolved,
+      finishing: Boolean(battle.finishing),
+      finishAttempts: battle.finishAttempts || 0,
+      readyPlayers: [...battle.readyPlayers],
+      disconnectedAt: { ...battle.disconnectedAt },
+      updatedAt: Date.now(),
+    };
+  }
+
+  private async persistBattle(battle: ActiveBattle): Promise<void> {
+    await this.battleStateStore.save(this.toSnapshot(battle));
+  }
 
   async handleConnection(client: Socket): Promise<void> {
     try {
@@ -217,6 +293,8 @@ export class BattleGateway
       }, this.reconnectGracePeriod);
 
       battle.disconnectTimers.set(userId, timer);
+      battle.disconnectedAt[userId] = Date.now();
+      await this.persistBattle(battle).catch((error) => this.logger.error('Battle uzilish holati saqlanmadi:', error));
     }
   }
 
@@ -637,8 +715,10 @@ export class BattleGateway
         resolving: false,
         questionResolved: false,
         readyPlayers: new Set<string>(),
+        disconnectedAt: {},
       };
 
+      await this.persistBattle(battle);
       this.activeBattles.set(matchId, battle);
 
       this.server.to(room).emit('battle:started', {
@@ -704,6 +784,8 @@ export class BattleGateway
       duration: this.questionDuration / 1000,
       endsAt: battle.deadline,
     };
+
+    await this.persistBattle(battle);
 
     this.server.to(battle.room).emit(
       'battle:question',
@@ -787,6 +869,7 @@ export class BattleGateway
     }
 
     battle.answers[userId] = payload.answerIndex!;
+    await this.persistBattle(battle);
 
     client.emit('battle:answer:accepted', {
       matchId: battle.matchId,
@@ -900,6 +983,7 @@ export class BattleGateway
     });
 
     battle.questionResolved = true;
+    await this.persistBattle(battle);
     this.emitNextReadyStatus(battle);
     this.advanceIfReady(battle);
   }
@@ -954,6 +1038,7 @@ export class BattleGateway
     }
 
     battle.readyPlayers.add(userId);
+    await this.persistBattle(battle);
     this.emitNextReadyStatus(battle);
 
     if (timeExpired && !battle.questionResolved && !battle.resolving) {
@@ -1040,6 +1125,7 @@ export class BattleGateway
 
       this.clearBattleTimers(battle);
       this.activeBattles.delete(battle.matchId);
+      await this.battleStateStore.remove(battle.matchId);
     } catch (error) {
       battle.finishing = false;
 
@@ -1102,6 +1188,8 @@ export class BattleGateway
     }
 
     battle.socketIds[userId] = client.id;
+    delete battle.disconnectedAt[userId];
+    await this.persistBattle(battle);
 
     await client.join(battle.room);
 
@@ -1191,6 +1279,7 @@ export class BattleGateway
 
     this.clearBattleTimers(battle);
     this.activeBattles.delete(matchId);
+    await this.battleStateStore.remove(matchId);
   }
 
   @SubscribeMessage('battle:queue:cancel')
@@ -1267,6 +1356,7 @@ export class BattleGateway
     } finally {
       this.clearBattleTimers(battle);
       this.activeBattles.delete(matchId);
+      await this.battleStateStore.remove(matchId);
     }
   }
 
