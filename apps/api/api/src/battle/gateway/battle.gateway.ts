@@ -23,7 +23,11 @@ import {
   BattleService,
 } from '../battle.service';
 import { BattleQuestion } from '../entities/battle-question.entity';
-import { BattleStateSnapshot, BattleStateStore } from '../battle-state.store';
+import {
+  BattleStateSnapshot,
+  BattleStateStore,
+  PrivateBattleInviteSnapshot,
+} from '../battle-state.store';
 
 interface QueueJoinPayload {
   mode?: 'casual' | 'ranked';
@@ -304,6 +308,52 @@ export class BattleGateway
     const battle = this.fromSnapshot(saved);
     this.activeBattles.set(matchId, battle);
     return battle;
+  }
+
+  private async getPrivateInvite(
+    roomCode: string,
+  ): Promise<PrivateBattleInviteSnapshot | PrivateBattleRoom | null> {
+    if (this.battleStateStore.isReady()) {
+      return this.battleStateStore.getPrivateInvite(roomCode);
+    }
+    return this.privateRooms.get(roomCode) || null;
+  }
+
+  private async getPrivateInviteForHost(
+    userId: string,
+  ): Promise<PrivateBattleInviteSnapshot | PrivateBattleRoom | null> {
+    if (this.battleStateStore.isReady()) {
+      return this.battleStateStore.getPrivateInviteForHost(userId);
+    }
+    return [...this.privateRooms.values()].find((room) => room.hostUserId === userId) || null;
+  }
+
+  private async listPrivateInvites(): Promise<Array<PrivateBattleInviteSnapshot | PrivateBattleRoom>> {
+    if (this.battleStateStore.isReady()) {
+      return this.battleStateStore.listPrivateInvites();
+    }
+    return [...this.privateRooms.values()];
+  }
+
+  private async hasActiveBattleForUser(userId: string): Promise<boolean> {
+    if (this.battleStateStore.isReady()) {
+      const active = await this.battleStateStore.listActive();
+      return active.some((battle) => battle.playerIds.includes(userId));
+    }
+    return [...this.activeBattles.values()].some((battle) => battle.playerIds.includes(userId));
+  }
+
+  private async removePrivateInvite(
+    roomCode: string,
+    hostUserId?: string,
+  ): Promise<PrivateBattleInviteSnapshot | PrivateBattleRoom | null> {
+    if (this.battleStateStore.isReady()) {
+      return this.battleStateStore.removePrivateInvite(roomCode, hostUserId);
+    }
+    const room = this.privateRooms.get(roomCode);
+    if (!room || (hostUserId && room.hostUserId !== hostUserId)) return null;
+    this.privateRooms.delete(roomCode);
+    return room;
   }
 
   async handleConnection(client: Socket): Promise<void> {
