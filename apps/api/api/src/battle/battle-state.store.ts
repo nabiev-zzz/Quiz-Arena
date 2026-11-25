@@ -315,6 +315,26 @@ export class BattleStateStore implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+
+  async recoverStaleTransition(
+    matchId: string,
+    staleAfterMs = 60_000,
+  ): Promise<BattleStateSnapshot | null> {
+    return this.withMatchLock(matchId, async () => {
+      const state = await this.get(matchId);
+      if (!state) return null;
+      if (
+        Date.now() - state.updatedAt >= staleAfterMs &&
+        (state.resolving || state.finishing)
+      ) {
+        state.resolving = false;
+        state.finishing = false;
+        await this.save(state);
+      }
+      return state;
+    });
+  }
+
   async remove(matchId: string): Promise<void> {
     this.assertReady();
     const pipeline = this.redis.pipeline();
