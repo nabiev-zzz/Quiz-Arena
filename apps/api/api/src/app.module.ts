@@ -35,6 +35,7 @@ import { CreateAiGenerationJobs20261125100000 } from './database/migrations/Crea
 import { AddAiTutorGenerationJobLink20261125101000 } from './database/migrations/AddAiTutorGenerationJobLink';
 import { AllowSystemAiGenerationJobs20261125102000 } from './database/migrations/AllowSystemAiGenerationJobs';
 import { AddAiGenerationJobPriority20261125103000 } from './database/migrations/AddAiGenerationJobPriority';
+import { AddAiQueueEnqueuedAt20261125104000 } from './database/migrations/AddAiQueueEnqueuedAt';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
 
@@ -76,6 +77,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         AddAiTutorGenerationJobLink20261125101000,
         AllowSystemAiGenerationJobs20261125102000,
         AddAiGenerationJobPriority20261125103000,
+        AddAiQueueEnqueuedAt20261125104000,
       ],
       migrationsRun: process.env.AI_WORKER_PROCESS !== 'true',
       migrationsTableName: 'typeorm_migrations',
