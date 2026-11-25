@@ -262,29 +262,6 @@ export class AuthService {
   }
 
 
-
-  private getWebAppUrl(): string {
-    const configured = this.config.get<string>('WEB_APP_URL')?.trim();
-    return (configured || 'https://quiz-arena-website-production.up.railway.app').replace(/\/+$/, '');
-  }
-
-  async getOAuthErrorRedirect(provider: 'google' | 'telegram', state: string): Promise<string> {
-    try {
-      const payload = await this.jwtService.verifyAsync<{ purpose?: string; client?: string }>(state);
-      if (
-        payload.client === 'web' &&
-        payload.purpose === `${provider}_oauth`
-      ) {
-        return `${this.getWebAppUrl()}/app?provider=${provider}&error=${provider}_sign_in_failed`;
-      }
-    } catch {
-      // Invalid state must never influence the redirect destination.
-    }
-    return provider === 'google'
-      ? 'quizarena://auth?error=google_sign_in_failed'
-      : 'quizarena://auth?error=telegram_sign_in_failed';
-  }
-
   private getTelegramConfig() {
     const clientId = this.config.get<string>('TELEGRAM_CLIENT_ID');
     const clientSecret = this.config.get<string>('TELEGRAM_CLIENT_SECRET');
@@ -295,13 +272,13 @@ export class AuthService {
     return { clientId, clientSecret, redirectUri };
   }
 
-  async getTelegramAuthorizationUrl(forWeb = false): Promise<string> {
+  async getTelegramAuthorizationUrl(): Promise<string> {
     const { clientId, redirectUri } = this.getTelegramConfig();
     const nonce = randomBytes(24).toString('base64url');
     const codeVerifier = randomBytes(48).toString('base64url');
     const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
     const state = await this.jwtService.signAsync(
-      { purpose: 'telegram_oauth', nonce, codeVerifier, client: forWeb ? 'web' : 'native' },
+      { purpose: 'telegram_oauth', nonce, codeVerifier },
       { expiresIn: 600 },
     );
     const url = new URL('https://oauth.telegram.org/auth');
@@ -317,7 +294,7 @@ export class AuthService {
   }
 
   async handleTelegramCallback(code: string, state: string): Promise<string> {
-    let statePayload: { purpose?: string; nonce?: string; codeVerifier?: string; client?: string };
+    let statePayload: { purpose?: string; nonce?: string; codeVerifier?: string };
     try {
       statePayload = await this.jwtService.verifyAsync(state);
     } catch {
@@ -368,9 +345,7 @@ export class AuthService {
       expiresAt: new Date(Date.now() + 90_000),
       consumedAt: null,
     }));
-    return statePayload.client === 'web'
-      ? `${this.getWebAppUrl()}/app?provider=telegram&code=${encodeURIComponent(rawCode)}`
-      : `quizarena://auth?provider=telegram&code=${encodeURIComponent(rawCode)}`;
+    return `quizarena://auth?provider=telegram&code=${encodeURIComponent(rawCode)}`;
   }
 
   async loginWithTelegram(idToken: string, expectedNonce: string) {
@@ -479,12 +454,12 @@ export class AuthService {
     return redirectUri;
   }
 
-  async getGoogleAuthorizationUrl(forWeb = false): Promise<string> {
+  async getGoogleAuthorizationUrl(): Promise<string> {
     const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
     if (!clientId) throw new ServiceUnavailableException('Google orqali kirish hali sozlanmagan');
     const nonce = randomBytes(18).toString('hex');
     const state = await this.jwtService.signAsync(
-      { purpose: 'google_oauth', nonce, client: forWeb ? 'web' : 'native' },
+      { purpose: 'google_oauth', nonce },
       { expiresIn: 600 },
     );
     const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
@@ -499,7 +474,7 @@ export class AuthService {
   }
 
   async handleGoogleCallback(code: string, state: string): Promise<string> {
-    let statePayload: { purpose?: string; nonce?: string; client?: string };
+    let statePayload: { purpose?: string; nonce?: string };
     try {
       statePayload = await this.jwtService.verifyAsync(state);
     } catch {
@@ -544,9 +519,7 @@ export class AuthService {
       expiresAt: new Date(Date.now() + 90_000),
       consumedAt: null,
     }));
-    return statePayload.client === 'web'
-      ? `${this.getWebAppUrl()}/app?provider=google&code=${encodeURIComponent(rawCode)}`
-      : `quizarena://auth?code=${encodeURIComponent(rawCode)}`;
+    return `quizarena://auth?code=${encodeURIComponent(rawCode)}`;
   }
 
   async exchangeGoogleCode(rawCode: string) {
