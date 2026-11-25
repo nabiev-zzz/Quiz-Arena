@@ -36,7 +36,7 @@ jobs:
         run: npx expo export --platform web --output-dir "$RUNNER_TEMP/expo-web-export"
 
       - name: Build the combined public website image
-        run: docker build -f website/Dockerfile .
+        run: docker build --build-arg APP_SOURCE_BRANCH=feat/free-web-app-launch -f Dockerfile website
 
       - name: Expo dependency validation
         run: npx expo install --check
