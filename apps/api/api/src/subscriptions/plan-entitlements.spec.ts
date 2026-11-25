@@ -12,9 +12,13 @@ describe('subscription plan entitlements', () => {
     expect(resolveSubscriptionTier(planKey)).toBe(expected);
   });
 
-  it('falls back to FREE for missing or unknown plans', () => {
+  it('falls back to FREE for missing, unknown and malformed paid-looking plans', () => {
     expect(resolveSubscriptionTier(null)).toBe('free');
     expect(resolveSubscriptionTier('unknown_plan')).toBe('free');
+    expect(resolveSubscriptionTier('premium_fake')).toBe('free');
+    expect(resolveSubscriptionTier('premium_pro_hacked')).toBe('free');
+    expect(resolveSubscriptionTier('legenda_plus_trial')).toBe('free');
+    expect(resolveSubscriptionTier('premium_monthly_extra')).toBe('free');
   });
 
   it('provides tiered AI Tutor quotas and advanced analysis to PREMIUM PRO+', () => {
