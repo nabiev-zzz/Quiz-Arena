@@ -9,6 +9,7 @@ import { LearningWebSession } from './entities/learning-web-session.entity';
 import { LearningController } from './learning.controller';
 import { LearningService } from './learning.service';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { LearningQuestionCache } from './learning-question-cache.service';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
     SubscriptionsModule,
   ],
   controllers: [LearningController],
-  providers: [LearningService],
+  providers: [LearningService, LearningQuestionCache],
+  exports: [LearningService],
 })
 export class LearningModule {}
