@@ -180,6 +180,44 @@ export class BattleGateway
     await this.battleStateStore.save(this.toSnapshot(battle));
   }
 
+
+  private fromSnapshot(saved: BattleStateSnapshot): ActiveBattle {
+    return {
+      ...saved,
+      timer: null,
+      nextTimer: null,
+      disconnectTimers: new Map<string, ReturnType<typeof setTimeout>>(),
+      readyPlayers: new Set(saved.readyPlayers || []),
+      disconnectedAt: { ...(saved.disconnectedAt || {}) },
+    };
+  }
+
+  private applySnapshot(battle: ActiveBattle, saved: BattleStateSnapshot): void {
+    battle.socketIds = { ...saved.socketIds };
+    battle.questions = saved.questions;
+    battle.scores = { ...saved.scores };
+    battle.questionIndex = saved.questionIndex;
+    battle.answers = { ...saved.answers };
+    battle.results = [...saved.results];
+    battle.deadline = saved.deadline;
+    battle.resolving = saved.resolving;
+    battle.questionResolved = saved.questionResolved;
+    battle.finishing = saved.finishing;
+    battle.finishAttempts = saved.finishAttempts;
+    battle.readyPlayers = new Set(saved.readyPlayers);
+    battle.disconnectedAt = { ...saved.disconnectedAt };
+  }
+
+  private async getActiveBattle(matchId: string): Promise<ActiveBattle | undefined> {
+    const local = this.activeBattles.get(matchId);
+    if (local) return local;
+    const saved = await this.battleStateStore.get(matchId);
+    if (!saved) return undefined;
+    const battle = this.fromSnapshot(saved);
+    this.activeBattles.set(matchId, battle);
+    return battle;
+  }
+
   async handleConnection(client: Socket): Promise<void> {
     try {
       const authToken = client.handshake.auth?.token;
@@ -811,7 +849,7 @@ export class BattleGateway
       return;
     }
 
-    const battle = this.activeBattles.get(payload.matchId);
+    const battle = await this.getActiveBattle(payload.matchId);
 
     if (!battle || !battle.playerIds.includes(userId)) {
       client.emit('battle:error', {
@@ -827,20 +865,6 @@ export class BattleGateway
       return;
     }
 
-    if (battle.resolving) {
-      client.emit('battle:error', {
-        message: 'Savol natijasi hisoblanmoqda.',
-      });
-      return;
-    }
-
-    if (payload.questionIndex !== battle.questionIndex) {
-      client.emit('battle:error', {
-        message: 'Bu savolning vaqti tugagan yoki savol eskirgan.',
-      });
-      return;
-    }
-
     if (
       !Number.isInteger(payload.answerIndex) ||
       payload.answerIndex! < 0 ||
@@ -852,38 +876,37 @@ export class BattleGateway
       return;
     }
 
-    if (Date.now() > battle.deadline) {
-      client.emit('battle:error', {
-        message: 'Javob berish vaqti tugadi.',
-      });
+    const recorded = await this.battleStateStore.recordAnswer(
+      payload.matchId,
+      userId,
+      client.id,
+      payload.questionIndex!,
+      payload.answerIndex!,
+    );
 
-      await this.resolveQuestion(battle);
-      return;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(battle.answers, userId)) {
+    if (!recorded.accepted) {
+      const messages: Record<string, string> = {
+        missing: 'Faol Battle topilmadi.',
+        socket: 'Bu Battle uchun faol ulanish emas.',
+        resolving: 'Savol natijasi hisoblanmoqda.',
+        expired: 'Bu savolning vaqti tugagan yoki savol eskirgan.',
+        duplicate: 'Bu savolga javob berib bo‘lgansiz.',
+      };
       client.emit('battle:error', {
-        message: 'Bu savolga javob berib bo‘lgansiz.',
+        message: messages[recorded.reason || ''] || 'Javob qabul qilinmadi.',
       });
+      if (recorded.reason === 'expired') await this.resolveQuestion(battle);
       return;
     }
 
     battle.answers[userId] = payload.answerIndex!;
-    await this.persistBattle(battle);
-
     client.emit('battle:answer:accepted', {
       matchId: battle.matchId,
-      questionIndex: battle.questionIndex,
+      questionIndex: payload.questionIndex,
       accepted: true,
     });
 
-    const allAnswered = battle.playerIds.every((id) =>
-      Object.prototype.hasOwnProperty.call(battle.answers, id),
-    );
-
-    if (allAnswered) {
-      await this.resolveQuestion(battle);
-    }
+    if (recorded.allAnswered) await this.resolveQuestion(battle);
   }
 
   private async resolveQuestion(battle: ActiveBattle): Promise<void> {
@@ -894,6 +917,12 @@ export class BattleGateway
       return;
     }
 
+    const claimed = await this.battleStateStore.claimQuestionResolution(
+      battle.matchId,
+      battle.questionIndex,
+    );
+    if (!claimed) return;
+    this.applySnapshot(battle, claimed);
     battle.resolving = true;
 
     if (battle.timer) {
@@ -1003,7 +1032,7 @@ export class BattleGateway
       return;
     }
 
-    const battle = this.activeBattles.get(matchId);
+    const battle = await this.getActiveBattle(matchId);
 
     if (!battle || !battle.playerIds.includes(userId)) {
       client.emit('battle:error', { message: 'Faol Battle topilmadi.' });
@@ -1037,8 +1066,16 @@ export class BattleGateway
       return;
     }
 
-    battle.readyPlayers.add(userId);
-    await this.persistBattle(battle);
+    const updated = await this.battleStateStore.markPlayerReady(
+      matchId,
+      userId,
+      payload.questionIndex!,
+    );
+    if (!updated) {
+      client.emit('battle:error', { message: 'Keyingi savolga tayyorlanish ma’lumoti eskirgan.' });
+      return;
+    }
+    this.applySnapshot(battle, updated);
     this.emitNextReadyStatus(battle);
 
     if (timeExpired && !battle.questionResolved && !battle.resolving) {
@@ -1060,22 +1097,17 @@ export class BattleGateway
   }
 
   private async advanceIfReady(battle: ActiveBattle): Promise<void> {
-    if (
-      !this.activeBattles.has(battle.matchId) ||
-      !battle.questionResolved ||
-      battle.readyPlayers.size !== battle.playerIds.length
-    ) {
-      return;
-    }
+    if (!this.activeBattles.has(battle.matchId)) return;
+
+    const advanced = await this.battleStateStore.claimAdvance(battle.matchId);
+    if (!advanced) return;
+    this.applySnapshot(battle, advanced);
 
     if (battle.nextTimer) {
       clearTimeout(battle.nextTimer);
       battle.nextTimer = null;
     }
 
-    battle.questionIndex += 1;
-    battle.readyPlayers.clear();
-    battle.questionResolved = false;
     await this.sendQuestion(battle);
   }
 
