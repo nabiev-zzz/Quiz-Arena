@@ -734,7 +734,7 @@ export class BattleGateway
         message: 'Battle boshlandi!',
       });
 
-      this.sendQuestion(battle);
+      await this.sendQuestion(battle);
       return true;
     } catch (error) {
       this.logger.error(
@@ -756,7 +756,7 @@ export class BattleGateway
     }
   }
 
-  private sendQuestion(battle: ActiveBattle): void {
+  private async sendQuestion(battle: ActiveBattle): Promise<void> {
     if (battle.questionIndex >= battle.questions.length) {
       void this.completeBattle(battle);
       return;
@@ -985,7 +985,7 @@ export class BattleGateway
     battle.questionResolved = true;
     await this.persistBattle(battle);
     this.emitNextReadyStatus(battle);
-    this.advanceIfReady(battle);
+    await this.advanceIfReady(battle);
   }
 
   @SubscribeMessage('battle:next:ready')
@@ -1046,7 +1046,7 @@ export class BattleGateway
       return;
     }
 
-    this.advanceIfReady(battle);
+    await this.advanceIfReady(battle);
   }
 
   private emitNextReadyStatus(battle: ActiveBattle): void {
@@ -1059,7 +1059,7 @@ export class BattleGateway
     });
   }
 
-  private advanceIfReady(battle: ActiveBattle): void {
+  private async advanceIfReady(battle: ActiveBattle): Promise<void> {
     if (
       !this.activeBattles.has(battle.matchId) ||
       !battle.questionResolved ||
@@ -1076,7 +1076,7 @@ export class BattleGateway
     battle.questionIndex += 1;
     battle.readyPlayers.clear();
     battle.questionResolved = false;
-    this.sendQuestion(battle);
+    await this.sendQuestion(battle);
   }
 
   private async completeBattle(battle: ActiveBattle): Promise<void> {
