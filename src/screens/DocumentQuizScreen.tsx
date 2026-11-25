@@ -249,8 +249,8 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
           <View style={s.loadingCard}>
             <View style={s.loadingIcon}><Ionicons name="sparkles" size={30} color="#FFFFFF" /></View>
             <ActivityIndicator size="large" color={colors.primary} />
-            <LocalizedText style={s.loadingTitle}>AI hujjatni tahlil qilmoqda</LocalizedText>
-            <LocalizedText style={s.muted}>Matn o‘qilmoqda, savollar va javoblar tayyorlanmoqda. Bu biroz vaqt olishi mumkin.</LocalizedText>
+            <LocalizedText style={s.loadingTitle}>Test tayyorlanmoqda</LocalizedText>
+            <LocalizedText style={s.muted}>Hujjat tahlil qilinmoqda. Tayyor bo‘lgach test avtomatik ochiladi.</LocalizedText>
           </View>
         ) : null}
 
