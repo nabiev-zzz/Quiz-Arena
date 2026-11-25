@@ -57,7 +57,7 @@ function shutdown(reason) {
   process.stderr.write(`[supervisor] Shutting down: ${reason}\n`);
 
   for (const processInfo of [api, worker]) {
-    if (processInfo.child && !processInfo.child.killed) {
+    if (processInfo.child) {
       processInfo.child.kill('SIGTERM');
     }
   }
