@@ -93,11 +93,7 @@ describe('BattleService — Rank tizimi', () => {
         zcEntries.push(entry);
         return entry;
       }),
-      find: jest.fn(async (options: any) => zcEntries.filter((entry) =>
-        options?.where?.idempotencyKey?.value?.includes?.(entry.idempotencyKey) ||
-        options?.where?.idempotencyKey?.[Symbol.for('In') as any]?.includes?.(entry.idempotencyKey) ||
-        (Array.isArray(options?.where?.idempotencyKey) && options.where.idempotencyKey.includes(entry.idempotencyKey))
-      )),
+      find: jest.fn(async () => zcEntries),
     };
 
     manager = {
@@ -252,6 +248,9 @@ describe('BattleService — Rank tizimi', () => {
     expect(response.rankChanges).toEqual({});
     expect(users.get(playerOneId).rankPoints).toBe(100);
     expect(users.get(playerTwoId).rankPoints).toBe(100);
+    expect(users.get(playerOneId).zcBalance ?? 0).toBe(0);
+    expect(users.get(playerTwoId).zcBalance ?? 0).toBe(0);
+    expect(zcEntries).toHaveLength(0);
   });
 
   it('Bir jangni takroran yakunlash RPni ikkinchi marta bermaydi', async () => {
@@ -285,6 +284,9 @@ describe('BattleService — Rank tizimi', () => {
     expect(secondResponse.rankChanges[playerTwoId].rankPoints).toBe(85);
     expect(users.get(playerOneId).rankPoints).toBe(127);
     expect(users.get(playerTwoId).rankPoints).toBe(85);
+    expect(secondResponse.zcChanges[playerOneId].amount).toBe(20);
+    expect(secondResponse.zcChanges[playerTwoId].amount).toBe(5);
+    expect(zcEntries).toHaveLength(2);
   });
   it('Jang tafsilotlari faqat ishtirokchiga ochiladi va savol tahlilini qaytaradi', async () => {
     setup('ranked');
