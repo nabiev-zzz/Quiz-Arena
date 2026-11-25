@@ -732,13 +732,13 @@ export class BattleGateway
       return;
     }
 
+    const localRoom = this.privateRooms.get(roomCode);
+    if (localRoom) clearTimeout(localRoom.timer);
     const removed = await this.removePrivateInvite(roomCode, userId);
     if (!removed) {
       client.emit('battle:error', { message: 'Xona allaqachon bekor qilingan.' });
       return;
     }
-    const localRoom = this.privateRooms.get(roomCode);
-    if (localRoom) clearTimeout(localRoom.timer);
     this.privateRooms.delete(roomCode);
     try {
       await this.featureUsageService.refund(userId, 'privateBattle');
@@ -749,11 +749,10 @@ export class BattleGateway
   }
 
   private async expirePrivateRoom(roomCode: string): Promise<void> {
-    const room = await this.removePrivateInvite(roomCode);
-    if (!room) return;
-
     const localRoom = this.privateRooms.get(roomCode);
     if (localRoom) clearTimeout(localRoom.timer);
+    const room = await this.removePrivateInvite(roomCode);
+    if (!room) return;
     this.privateRooms.delete(roomCode);
 
     const hostSocket = (await this.server.fetchSockets()).find(
@@ -774,10 +773,10 @@ export class BattleGateway
       (room) => room.hostSocketId === socketId,
     );
     for (const room of ownedRooms) {
-      const removed = await this.removePrivateInvite(room.roomCode, room.hostUserId);
-      if (!removed) continue;
       const localRoom = this.privateRooms.get(room.roomCode);
       if (localRoom) clearTimeout(localRoom.timer);
+      const removed = await this.removePrivateInvite(room.roomCode, room.hostUserId);
+      if (!removed) continue;
       this.privateRooms.delete(room.roomCode);
       try {
         await this.featureUsageService.refund(room.hostUserId, 'privateBattle');
