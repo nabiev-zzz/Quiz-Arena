@@ -566,23 +566,26 @@ export class LearningService {
       { subjectId: 'physics', topicId: 'mechanics', difficulty: 'medium' as const },
       { subjectId: 'informatics', topicId: 'algorithms', difficulty: 'medium' as const },
     ];
-    const results: Array<{ subjectId: string; topicId: string; status: 'ready' | 'failed'; questionCount?: number; error?: string }> = [];
+    if (!this.aiQueue) throw new HttpException('AI navbati sozlanmagan.', HttpStatus.SERVICE_UNAVAILABLE);
+    const results: Array<{ subjectId: string; topicId: string; status: 'queued' | 'failed'; jobId?: string; error?: string }> = [];
 
-    // Sequential warming protects AI-provider rate limits and database capacity.
+    // Warmups are system jobs; the dedicated BullMQ worker performs all provider calls.
     for (const topic of popular) {
       try {
-        const result = await this.getTopicQuestions({
-          ...topic,
-          count: 20,
-          language: 'uz',
-        }, true);
+        const cacheKey = createHash('sha256').update(JSON.stringify({
+          version: 1, ...topic, language: 'uz',
+        })).digest('hex');
+        const queued = await this.aiQueue.enqueue({
+          userId: null,
+          jobType: 'topic_questions',
+          payload: { ...topic, count: 20, language: 'uz', prewarm: true },
+          idempotencyKey: `prewarm:${cacheKey}`,
+        });
         results.push({
           subjectId: topic.subjectId,
           topicId: topic.topicId,
-          status: 'ready',
-          questionCount: Array.isArray((result as { questions?: unknown[] }).questions)
-            ? (result as { questions: unknown[] }).questions.length
-            : 0,
+          status: 'queued',
+          jobId: queued.jobId,
         });
       } catch (error) {
         results.push({
@@ -595,7 +598,7 @@ export class LearningService {
     }
 
     return {
-      warmed: results.filter((item) => item.status === 'ready').length,
+      queued: results.filter((item) => item.status === 'queued').length,
       failed: results.filter((item) => item.status === 'failed').length,
       results,
     };
