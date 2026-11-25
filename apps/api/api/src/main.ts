@@ -1,4 +1,3 @@
-
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { json, urlencoded } from 'express';
@@ -20,6 +19,9 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // Allow Railway and other orchestrators to close HTTP and Socket.IO cleanly.
+  app.enableShutdownHooks();
 
   const port = Number(process.env.PORT) || 3000;
 
