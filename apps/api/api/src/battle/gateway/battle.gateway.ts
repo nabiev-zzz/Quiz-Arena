@@ -57,7 +57,7 @@ interface BattleSocketPeer {
   id: string;
   data: Record<string, unknown>;
   join(room: string): Promise<void> | void;
-  emit(event: string, ...args: unknown[]): boolean;
+  emit(event: string, ...args: unknown[]): unknown;
 }
 
 interface ActiveBattle {
