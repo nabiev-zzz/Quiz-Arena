@@ -59,4 +59,4 @@ jobs:
       - name: Build API
         run: npm run build
       - name: Run AI queue and learning regression tests
-        run: npm test -- --runInBand src/ai/ai-tutor.service.spec.ts src/ai/queue/ai-generation-queue.service.spec.ts src/learning/learning.service.spec.ts
+        run: npm test -- --runInBand src/ai/ai-tutor.service.spec.ts src/ai/queue/ai-generation-queue.service.spec.ts src/ai/queue/ai-generation.queue.integration.spec.ts src/learning/learning.service.spec.ts
