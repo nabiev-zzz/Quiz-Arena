@@ -14,6 +14,7 @@ import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { generateDocumentQuizFallback } from './document-quiz-fallback';
 import { createHash } from 'node:crypto';
 import { LearningQuestionCache } from './learning-question-cache.service';
+import { AiGenerationQueueService } from '../ai/queue/ai-generation-queue.service';
 
 export interface CreateLearningAttemptInput {
   subjectId: string;
@@ -87,6 +88,9 @@ export class LearningService {
     private readonly subscriptionsService: SubscriptionsService,
     @Optional() @Inject(LearningQuestionCache)
     private readonly questionCache?: LearningQuestionCache,
+    @Optional() @InjectRepository(LearningQuestion)
+    private readonly questionsRepository?: Repository<LearningQuestion>,
+    @Optional() private readonly aiQueue?: AiGenerationQueueService,
   ) {}
 
   getCatalog() {
@@ -350,7 +354,7 @@ export class LearningService {
     count: number;
     difficulty: 'easy' | 'medium' | 'hard' | 'expert';
     language: 'uz' | 'ru' | 'en';
-  }) {
+  }, fromWorker = false) {
     const subjectId = String(input?.subjectId ?? '').trim();
     const topicId = String(input?.topicId ?? '').trim();
     const count = Number(input?.count);
@@ -381,6 +385,23 @@ export class LearningService {
         source: 'database',
         cachedQuestionCount: redisPool.length,
       };
+    }
+
+    if (!fromWorker && this.questionsRepository && this.aiQueue) {
+      const bankCount = await this.questionsRepository.count({
+        where: { subjectId, topicId, language: input.language, difficulty: input.difficulty, isActive: true },
+      });
+      if (bankCount < count) {
+        const queued = await this.aiQueue.enqueue({
+          userId: input.userId || '00000000-0000-0000-0000-000000000000',
+          jobType: 'topic_questions',
+          payload: {
+            subjectId, topicId, count, difficulty: input.difficulty, language: input.language,
+          },
+          idempotencyKey: `topic:${cacheKey}`,
+        });
+        return queued;
+      }
     }
 
     // Database-first: PostgreSQL question bank is authoritative and survives Redis loss.
@@ -494,7 +515,9 @@ export class LearningService {
           subjectId: topic.subjectId,
           topicId: topic.topicId,
           status: 'ready',
-          questionCount: result.questions.length,
+          questionCount: Array.isArray((result as { questions?: unknown[] }).questions)
+            ? (result as { questions: unknown[] }).questions.length
+            : 0,
         });
       } catch (error) {
         results.push({
@@ -521,6 +544,7 @@ export class LearningService {
     language: 'uz' | 'ru' | 'en';
   }) {
     const result = await this.getTopicQuestions(input);
+    if ('status' in result && result.status === 'queued') return result;
     const session = this.webSessions.create({
       userId,
       subjectId: input.subjectId,
