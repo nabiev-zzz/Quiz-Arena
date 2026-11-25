@@ -28,12 +28,14 @@ Before enabling multiple API replicas:
 - Add cross-replica tests with two API instances and multiple Socket.IO clients.
 - Keep a single API replica until these checks pass.
 
-### 2. Health checks are not yet production-grade
+### 2. Health checks — initial API implementation added
 
-The current root GET handler returns a greeting, not a readiness check. Before production rollout add:
-- `/health/live`: process is alive; no dependency checks.
-- `/health/ready`: verifies required dependencies (PostgreSQL and Redis) are reachable with short timeouts.
-- Configure Railway health checks against readiness, and graceful shutdown for HTTP and Socket.IO connections.
+The feature branch now exposes:
+- `/health/live`: process liveness only; no dependency checks.
+- `/health/ready`: checks TypeORM initialization and executes `SELECT 1` against PostgreSQL; returns HTTP 503 with a generic dependency status when unavailable.
+- NestJS shutdown hooks are enabled so the application can participate in orchestrator shutdown.
+
+This is an initial PostgreSQL readiness check, not the final production health contract. Add a bounded Redis ping check once the shared Redis client/module is implemented, then configure Railway readiness checks against `/health/ready`. Verify shutdown behavior with active Socket.IO clients before production rollout.
 
 ### 3. Database migrations run during API startup
 
