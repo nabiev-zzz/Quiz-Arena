@@ -565,7 +565,7 @@ export class LearningService {
       { subjectId: 'informatics', topicId: 'algorithms', difficulty: 'medium' as const },
     ];
     if (!this.aiQueue) throw new HttpException('AI navbati sozlanmagan.', HttpStatus.SERVICE_UNAVAILABLE);
-    const results: Array<{ subjectId: string; topicId: string; status: 'queued' | 'failed'; jobId?: string; error?: string }> = [];
+    const results: Array<{ subjectId: string; topicId: string; status: 'queued' | 'completed' | 'failed'; jobId?: string; error?: string }> = [];
 
     // Warmups are system jobs; the dedicated BullMQ worker performs all provider calls.
     for (const topic of popular) {
@@ -582,7 +582,7 @@ export class LearningService {
         results.push({
           subjectId: topic.subjectId,
           topicId: topic.topicId,
-          status: 'queued',
+          status: queued.status === 'completed' ? 'completed' : 'queued',
           jobId: queued.jobId,
         });
       } catch (error) {
@@ -597,6 +597,7 @@ export class LearningService {
 
     return {
       queued: results.filter((item) => item.status === 'queued').length,
+      completed: results.filter((item) => item.status === 'completed').length,
       failed: results.filter((item) => item.status === 'failed').length,
       results,
     };
