@@ -60,7 +60,10 @@ async function main(): Promise<void> {
       connection,
       prefix: AI_GENERATION_PREFIX,
       concurrency: Math.max(1, Math.min(8, Number(process.env.AI_WORKER_CONCURRENCY || 3))),
-      limiter: { max: 20, duration: 60_000 },
+      limiter: {
+        max: Math.max(1, Math.min(1000, Number(process.env.AI_WORKER_RATE_LIMIT_MAX || 120))),
+        duration: Math.max(1000, Number(process.env.AI_WORKER_RATE_LIMIT_DURATION_MS || 60_000)),
+      },
       lockDuration: 120_000,
       stalledInterval: 30_000,
       maxStalledCount: 2,
