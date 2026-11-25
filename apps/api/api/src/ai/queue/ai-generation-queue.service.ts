@@ -164,7 +164,16 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      await this.queue.add(input.jobType, { jobId: job.id }, { jobId: job.id });
+      const tier = (usage as { tier?: string } | undefined)?.tier;
+      const tierPriority = tier === 'premium_pro' ? 1 : tier === 'premium' ? 10 : 20;
+      const taskOffset = input.jobType === 'ai_tutor' ? 0
+        : input.jobType === 'topic_questions' ? 1
+        : input.jobType === 'smart_practice' ? 2
+        : input.jobType === 'ai_generate' ? 3
+        : input.jobType === 'document_quiz' ? 4
+        : 0;
+      const priority = input.userId ? tierPriority + taskOffset : 100;
+      await this.queue.add(input.jobType, { jobId: job.id }, { jobId: job.id, priority });
     } catch (error) {
       await this.jobs.update({ id: job.id }, {
         status: 'failed',
