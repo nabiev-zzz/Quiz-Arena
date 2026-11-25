@@ -1,11 +1,24 @@
-import { Logger } from '@nestjs/common';
+import { HttpException, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { Job, Worker } from 'bullmq';
+import { Job, UnrecoverableError, Worker } from 'bullmq';
 import { AppModule } from '../../app.module';
 import { AiService } from '../ai.service';
 import { AiTutorService } from '../ai-tutor.service';
 import { AiGenerationQueueService, AI_GENERATION_PREFIX, AI_GENERATION_QUEUE, createAiQueueRedisConnection } from './ai-generation-queue.service';
 import { LearningService } from '../../learning/learning.service';
+
+function rethrowWithRetryPolicy(error: unknown): never {
+  if (error instanceof HttpException) {
+    const status = error.getStatus();
+    if (status >= 400 && status < 500 && status !== 429) {
+      throw new UnrecoverableError(error.message);
+    }
+  }
+  if (error instanceof Error && /topilmadi|noma.?lum|kamida \\d+ ta|invalid document/i.test(error.message)) {
+    throw new UnrecoverableError(error.message);
+  }
+  throw error;
+}
 
 function boundedInteger(value: string | undefined, fallback: number, min: number, max: number): number {
   const parsed = Number(value);
@@ -37,30 +50,34 @@ async function main(): Promise<void> {
       if (stored.status === 'failed') throw new Error(stored.error || 'AI generation job already failed');
       let result: Record<string, unknown>;
 
-      switch (stored.jobType) {
-        case 'topic_questions':
-          result = await learning.generateTopicQuestionsForQueue(stored.payload as never);
-          break;
-        case 'document_quiz':
-          if (!stored.userId) throw new Error('Hujjat job egasi topilmadi.');
-          if (!stored.fileBuffer) throw new Error('Hujjat fayli navbat yozuvida topilmadi.');
-          result = await learning.generateDocumentQuizForQueue({
-            userId: stored.userId,
-            payload: stored.payload,
-            fileBuffer: stored.fileBuffer,
-          });
-          break;
-        case 'smart_practice':
-          result = await learning.generateSmartPracticeForQueue(stored.payload as never);
-          break;
-        case 'ai_tutor':
-          result = await tutor.processQueuedMessage(stored.payload as never);
-          break;
-        case 'ai_generate':
-          result = { questions: await ai.generateQuestions(stored.payload as never) };
-          break;
-        default:
-          throw new Error('Noma’lum AI navbat vazifasi.');
+      try {
+        switch (stored.jobType) {
+          case 'topic_questions':
+            result = await learning.generateTopicQuestionsForQueue(stored.payload as never);
+            break;
+          case 'document_quiz':
+            if (!stored.userId) throw new UnrecoverableError('Hujjat job egasi topilmadi.');
+            if (!stored.fileBuffer) throw new UnrecoverableError('Hujjat fayli navbat yozuvida topilmadi.');
+            result = await learning.generateDocumentQuizForQueue({
+              userId: stored.userId,
+              payload: stored.payload,
+              fileBuffer: stored.fileBuffer,
+            });
+            break;
+          case 'smart_practice':
+            result = await learning.generateSmartPracticeForQueue(stored.payload as never);
+            break;
+          case 'ai_tutor':
+            result = await tutor.processQueuedMessage(stored.payload as never);
+            break;
+          case 'ai_generate':
+            result = { questions: await ai.generateQuestions(stored.payload as never) };
+            break;
+          default:
+            throw new UnrecoverableError('Noma’lum AI navbat vazifasi.');
+        }
+      } catch (error) {
+        rethrowWithRetryPolicy(error);
       }
 
       await queueService.markCompleted(job.id, result);
@@ -90,7 +107,7 @@ async function main(): Promise<void> {
   worker.on('failed', (job, error) => {
     if (!job) return;
     const maxAttempts = Number(job.opts.attempts || 1);
-    if (job.attemptsMade >= maxAttempts) {
+    if (error instanceof UnrecoverableError || job.attemptsMade >= maxAttempts) {
       void queueService.markFailedAndRefund(job.data.jobId, error);
     } else {
       void queueService.markRetrying(job.data.jobId, error);
