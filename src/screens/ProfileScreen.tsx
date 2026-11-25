@@ -130,6 +130,17 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   }, [activeTab, user?.id]);
 
   useEffect(() => {
+    if (activeTab !== 'missions' || !user) return;
+    let active = true;
+    setDailyTasksLoading(true);
+    getDailyTasks()
+      .then((result) => { if (active) setDailyTasks(result.tasks); })
+      .catch((error) => { if (active) showLocalizedAlert('Vazifalar xatosi', error instanceof Error ? error.message : 'Vazifalar yuklanmadi'); })
+      .finally(() => { if (active) setDailyTasksLoading(false); });
+    return () => { active = false; };
+  }, [activeTab, user?.id]);
+
+  useEffect(() => {
     if (activeTab !== 'wishlist' || !user) return;
     let active = true;
     setStoreLoading(true);
@@ -259,7 +270,22 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     }
   };
 
-  const claimTaskReward = async (task: DailyTask) => {\n    if (!task.completed || task.claimed || claimingTaskId) return;\n    setClaimingTaskId(task.id);\n    try {\n      const result = await claimDailyTask(task.id);\n      setDailyTasks((current) => current.map((item) => item.id === task.id ? { ...item, claimed: true } : item));\n      await updateProfile({});\n      showLocalizedAlert('Mukofot olindi', `+${result.reward} ZC balansingizga qo‘shildi.`);\n    } catch (error) {\n      showLocalizedAlert('Mukofot olinmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring.');\n    } finally {\n      setClaimingTaskId(null);\n    }\n  };\n\n  const saveCosmetic = async (value: string | null) => {
+  const claimTaskReward = async (task: DailyTask) => {
+    if (!task.completed || task.claimed || claimingTaskId) return;
+    setClaimingTaskId(task.id);
+    try {
+      const result = await claimDailyTask(task.id);
+      setDailyTasks((current) => current.map((item) => item.id === task.id ? { ...item, claimed: true } : item));
+      await updateProfile({});
+      showLocalizedAlert('Mukofot olindi', `+${result.reward} ZC balansingizga qo‘shildi.`);
+    } catch (error) {
+      showLocalizedAlert('Mukofot olinmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring.');
+    } finally {
+      setClaimingTaskId(null);
+    }
+  };
+
+  const saveCosmetic = async (value: string | null) => {
     if (!cosmeticType || cosmeticSaving) return;
     setCosmeticSaving(true);
     try {
@@ -301,7 +327,8 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     { key: 'main', label: 'Main' },
     { key: 'board', label: 'Board' },
     { key: 'activity', label: 'Tarix' },
-    { key: 'wishlist', label: 'Wishlist' },
+    { key: 'missions', label: 'Vazifalar' },
+    { key: 'wishlist', label: 'Do‘kon' },
   ];
 
   const renderCard = (children: React.ReactNode, extraStyle?: object, key?: string) => (
