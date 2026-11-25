@@ -13,6 +13,7 @@ import { getProfileAchievements } from '../utils/profileAchievements';
 import { getLearningHistory, getLearningHistoryItem, type LearningHistoryItem, type LearningHistorySummary } from '../services/learningService';
 import { getZcHistory, type ZcTransactionItem } from '../services/zcWalletService';
 import { getZcStoreCatalog, purchaseZcStoreItem, type ZcStoreProduct } from '../services/zcStoreService';
+import { getDailyTasks, claimDailyTask, type DailyTask } from '../services/dailyTasksService';
 
 interface ProfileScreenProps {
   onClosePress?: () => void;
@@ -22,7 +23,7 @@ interface ProfileScreenProps {
   dockStretch?: SharedValue<number>;
 }
 
-type ProfileTab = 'main' | 'board' | 'activity' | 'wishlist';
+type ProfileTab = 'main' | 'board' | 'activity' | 'missions' | 'wishlist';
 
 const AVATAR_CATEGORIES = [
   { id: 'anime', label: 'Anime', style: 'lorelei', seeds: ['Aiko', 'Hana', 'Akira', 'Yuki', 'Ren', 'Sora', 'Mika', 'Kai'] },
@@ -94,6 +95,9 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const [storeProducts, setStoreProducts] = useState<ZcStoreProduct[]>([]);
   const [storeLoading, setStoreLoading] = useState(false);
   const [purchasingItemId, setPurchasingItemId] = useState<string | null>(null);
+  const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([]);
+  const [dailyTasksLoading, setDailyTasksLoading] = useState(false);
+  const [claimingTaskId, setClaimingTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -255,7 +259,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     }
   };
 
-  const saveCosmetic = async (value: string | null) => {
+  const claimTaskReward = async (task: DailyTask) => {\n    if (!task.completed || task.claimed || claimingTaskId) return;\n    setClaimingTaskId(task.id);\n    try {\n      const result = await claimDailyTask(task.id);\n      setDailyTasks((current) => current.map((item) => item.id === task.id ? { ...item, claimed: true } : item));\n      await updateProfile({});\n      showLocalizedAlert('Mukofot olindi', `+${result.reward} ZC balansingizga qo‘shildi.`);\n    } catch (error) {\n      showLocalizedAlert('Mukofot olinmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring.');\n    } finally {\n      setClaimingTaskId(null);\n    }\n  };\n\n  const saveCosmetic = async (value: string | null) => {
     if (!cosmeticType || cosmeticSaving) return;
     setCosmeticSaving(true);
     try {
@@ -576,6 +580,45 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
                 </View>
               ))}
             </View>
+          </>
+        ) : null}
+
+        {activeTab === 'missions' ? (
+          <>
+            <View style={styles.sectionHeader}>
+              <View style={styles.rowBody}>
+                <LocalizedText style={styles.sectionTitle}>Kunlik vazifalar</LocalizedText>
+                <LocalizedText style={styles.cardSubtitle}>Har kuni Toshkent vaqti bilan yangilanadi. Vazifalarni bajaring va ZC oling.</LocalizedText>
+              </View>
+              <LocalizedText style={styles.linkText}>ZC</LocalizedText>
+            </View>
+            {dailyTasksLoading ? <ActivityIndicator color={C.purple} style={{ marginVertical: 24 }} /> : dailyTasks.map((task) => (
+              renderCard(
+                <View style={{ gap: 10 }}>
+                  <View style={styles.row}>
+                    <View style={styles.iconTile}><Ionicons name="trophy-outline" size={21} color={C.purple} /></View>
+                    <View style={styles.rowBody}>
+                      <LocalizedText style={styles.cardTitle}>{task.title}</LocalizedText>
+                      <LocalizedText style={styles.cardSubtitle}>{task.description}</LocalizedText>
+                    </View>
+                    <NativeText style={{ color: '#D9B65B', fontWeight: '900' }}>+{task.reward} ZC</NativeText>
+                  </View>
+                  <View style={{ height: 7, borderRadius: 6, backgroundColor: C.surfaceRaised, overflow: 'hidden' }}>
+                    <View style={{ height: 7, width: `${Math.min(100, (task.progress / task.target) * 100)}%`, borderRadius: 6, backgroundColor: '#65C99A' }} />
+                  </View>
+                  <View style={[styles.row, { minHeight: 34 }]}>
+                    <LocalizedText style={styles.cardSubtitle}>{task.progress}/{task.target} bajarildi</LocalizedText>
+                    <Pressable style={[styles.followButton, (!task.completed || task.claimed || claimingTaskId !== null) && { opacity: 0.5 }]} disabled={!task.completed || task.claimed || claimingTaskId !== null} onPress={() => void claimTaskReward(task)}>
+                      {claimingTaskId === task.id ? <ActivityIndicator size="small" color="#FFFFFF" /> : <LocalizedText style={styles.followButtonText}>{task.claimed ? 'Olingan' : task.completed ? 'Mukofotni olish' : 'Davom eting'}</LocalizedText>}
+                    </Pressable>
+                  </View>
+                </View>,
+                undefined,
+                task.id,
+              )
+            ))}
+            {!dailyTasksLoading && dailyTasks.length === 0 ? renderCard(<LocalizedText style={styles.cardSubtitle}>Hozircha kunlik vazifalar mavjud emas.</LocalizedText>) : null}
+            <LocalizedText style={[styles.cardSubtitle, { marginTop: 8 }]}>Eslatma: ZC — ilova ichidagi virtual ball. Uni hozircha naqd pulga yechib bo‘lmaydi.</LocalizedText>
           </>
         ) : null}
 
