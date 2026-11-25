@@ -894,13 +894,6 @@ export class BattleGateway
       return;
     }
 
-    if (battle.socketIds[userId] !== client.id) {
-      client.emit('battle:error', {
-        message: 'Bu Battle uchun faol ulanish emas.',
-      });
-      return;
-    }
-
     if (
       !Number.isInteger(payload.answerIndex) ||
       payload.answerIndex! < 0 ||
@@ -1076,13 +1069,6 @@ export class BattleGateway
       return;
     }
 
-    if (battle.socketIds[userId] !== client.id) {
-      client.emit('battle:error', {
-        message: 'Bu Battle uchun faol ulanish emas.',
-      });
-      return;
-    }
-
     if (payload.questionIndex !== battle.questionIndex) {
       client.emit('battle:error', {
         message: 'Bu savol uchun tayyorlanish muddati tugagan.',
@@ -1106,6 +1092,7 @@ export class BattleGateway
     const updated = await this.battleStateStore.markPlayerReady(
       matchId,
       userId,
+      client.id,
       payload.questionIndex!,
     );
     if (!updated) {
