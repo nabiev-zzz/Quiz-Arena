@@ -32,6 +32,7 @@ async function main(): Promise<void> {
           result = await learning.generateTopicQuestionsForQueue(stored.payload as never);
           break;
         case 'document_quiz':
+          if (!stored.userId) throw new Error('Hujjat job egasi topilmadi.');
           if (!stored.fileBuffer) throw new Error('Hujjat fayli navbat yozuvida topilmadi.');
           result = await learning.generateDocumentQuizForQueue({
             userId: stored.userId,
