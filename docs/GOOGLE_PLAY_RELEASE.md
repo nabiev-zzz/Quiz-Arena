@@ -39,7 +39,7 @@ Click and Payme checkout remain in the existing web/direct-distribution product 
 - [ ] Complete Data safety form from an audited inventory of all app, API, hosting, payment and authentication data flows
 - [ ] Complete Data deletion questions and provide the external account-deletion URL
 - [ ] Complete app access instructions/test account for reviewers, if any feature requires sign-in
-- [ ] Complete target audience, content rating (IARC), ads declaration, app category, contact details and store listing
+- [ ] Complete target audience, content rating (IARC), ads declaration, app category, developer contact details (use `zelqencoresupport@gmail.com`) and store listing
 - [ ] Provide accurate phone/tablet screenshots and feature graphic; do not use mock UI that differs from the release app
 - [ ] Confirm all third-party SDK/data disclosures and permission declarations
 - [ ] If the Play Console account is a new personal developer account created after 13 Nov 2023, complete closed testing with at least 12 opted-in testers continuously for 14 days before applying for production access
@@ -48,7 +48,7 @@ Click and Payme checkout remain in the existing web/direct-distribution product 
 ## Current known release blockers
 
 1. The privacy, support and account-deletion pages are in the source tree but have not yet been deployed and verified at their public URLs.
-2. A real, monitored developer support email address has not yet been supplied or configured.
+2. The support email `zelqencoresupport@gmail.com` is now published on the privacy and support pages. Add it to Google Play Console developer contact details and verify the inbox is monitored before submission.
 3. The two account-deletion migrations must be applied by the API deployment and the full deletion flow must be tested against a disposable account and real database.
 4. The generated project targets compile SDK 37 and target SDK 36; verify these values again in the exact EAS build.
 5. No AAB artifact has yet been produced or physically device-tested from the final Google Play release commit.
