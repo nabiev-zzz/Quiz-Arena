@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FeatureUsageService } from './feature-usage.service';
 import { SubscriptionsService } from './subscriptions.service';
@@ -22,6 +22,18 @@ export class SubscriptionsController {
   current(@Request() request: AuthRequest) {
     return this.subscriptionsService.current(request.user.id);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('admin/users')
+  adminSearchUsers(@Request() request: AuthRequest, @Query('q') query = '') { return this.subscriptionsService.adminSearchUsers(request.user.id, query); }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('admin/grant')
+  adminGrant(@Request() request: AuthRequest, @Body() body: { username: string; zcAmount?: number; planKey?: string; durationDays?: number }) { return this.subscriptionsService.adminGrant(request.user.id, body); }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('admin/revoke')
+  adminRevoke(@Request() request: AuthRequest, @Body() body: { username: string; zcAmount?: number; premium?: boolean }) { return this.subscriptionsService.adminRevoke(request.user.id, body); }
 
   @UseGuards(JwtAuthGuard)
   @Post('admin/qa-tester/grant')

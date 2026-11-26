@@ -30,7 +30,7 @@ export interface PremiumStatus {
   entitlements: PremiumEntitlements;
   subscription: null | {
     planKey: string;
-    provider: 'google_play' | 'click' | 'payme' | 'owner';
+    provider: 'google_play' | 'click' | 'payme' | 'owner' | 'admin_grant';
     status: string;
     startsAt: string | null;
     expiresAt: string | null;
@@ -102,3 +102,10 @@ export interface QaTesterGrantResult {
 
 export const grantQaTester = () =>
   request<QaTesterGrantResult>('/api/subscriptions/admin/qa-tester/grant', { method: 'POST' });
+
+export interface AdminTargetUser { id: string; username: string; displayName: string; role: string; zcBalance: number }
+export const searchAdminUsers = (query: string) => request<AdminTargetUser[]>(`/api/subscriptions/admin/users?q=${encodeURIComponent(query)}`);
+export const adminGrantAccount = (input: { username: string; zcAmount: number; planKey: 'none' | 'premium' | 'premium_pro' | 'legenda_plus'; durationDays: number }) =>
+  request<{ username: string; zcBalance: number; zcGranted: number; planKey: string; expiresAt: string | null }>('/api/subscriptions/admin/grant', { method: 'POST', body: JSON.stringify(input) });
+export const adminRevokeAccount = (input: { username: string; zcAmount: number; premium: boolean }) =>
+  request<{ username: string; zcBalance: number; zcRemoved: number; premiumRevoked: boolean }>('/api/subscriptions/admin/revoke', { method: 'POST', body: JSON.stringify(input) });

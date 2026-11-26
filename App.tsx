@@ -28,6 +28,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { subjects as learningSubjects } from './src/data/subjects';
 import { getDailyTasks, claimDailyTask, type DailyTask } from './src/services/dailyTasksService';
+import { getNotifications, markNotificationRead } from './src/services/notificationsService';
 
 import LearnScreen from './src/screens/LearnScreen';
 import DailyTasksScreen from './src/screens/DailyTasksScreen';
@@ -95,6 +96,7 @@ function AppContent() {
 
   const dockStretch = useSharedValue(0);
   const lastDockScrollY = useSharedValue(0);
+  const seenAdminNoticeIds = useRef<Set<string>>(new Set());
   const dockScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       const nextY = event.contentOffset.y;
@@ -162,6 +164,28 @@ function AppContent() {
     }, 60_000);
     return () => clearInterval(refreshAtDayChange);
   }, [tab, user?.id]);
+
+
+  useEffect(() => {
+    if (!user) { seenAdminNoticeIds.current.clear(); return; }
+    let active = true;
+    const pollNotifications = async () => {
+      try {
+        const result = await getNotifications();
+        if (!active) return;
+        const fresh = result.items.filter(item => !item.isRead && !seenAdminNoticeIds.current.has(item.id));
+        fresh.forEach(item => seenAdminNoticeIds.current.add(item.id));
+        if (fresh.length) {
+          const latest = fresh.slice(0, 3);
+          Alert.alert(latest.length === 1 ? latest[0].title : 'Yangi bildirishnomalar', latest.map(item => `${item.title}\n${item.body}`).join('\n\n'));
+          await Promise.all(latest.map(item => markNotificationRead(item.id).catch(() => undefined)));
+        }
+      } catch { /* Notification polling must never block normal app use. */ }
+    };
+    void pollNotifications();
+    const timer = setInterval(() => { void pollNotifications(); }, 25000);
+    return () => { active = false; clearInterval(timer); };
+  }, [user?.id]);
 
   const backgroundColor = tokens.colors.background;
   const textColor = tokens.colors.text;

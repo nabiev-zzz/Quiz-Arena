@@ -1,89 +1,71 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
-import { grantQaTester } from '../services/subscriptionService';
+import { adminGrantAccount, adminRevokeAccount, searchAdminUsers, type AdminTargetUser } from '../services/subscriptionService';
 
+const plans = [{ key: 'none', label: 'Faqat ZC' }, { key: 'premium', label: 'PREMIUM' }, { key: 'premium_pro', label: 'PREMIUM PRO' }, { key: 'legenda_plus', label: 'LEGENDA+' }] as const;
 export default function QaAdminScreen({ onBack }: { onBack: () => void }) {
   const { tokens } = useTheme();
+  const [query, setQuery] = useState('');
+  const [users, setUsers] = useState<AdminTargetUser[]>([]);
+  const [target, setTarget] = useState<AdminTargetUser | null>(null);
+  const [zc, setZc] = useState('0');
+  const [plan, setPlan] = useState<typeof plans[number]['key']>('premium');
+  const [days, setDays] = useState('30');
+  const [removeZc, setRemoveZc] = useState('0');
+  const [removePremium, setRemovePremium] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<Awaited<ReturnType<typeof grantQaTester>> | null>(null);
-  const runGrant = async () => {
-    if (loading) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await grantQaTester();
-      setResult(data);
-      setConfirming(false);
-    } catch (grantError) {
-      setError(grantError instanceof Error ? grantError.message : 'So‘rov bajarilmadi');
-    } finally {
-      setLoading(false);
-    }
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const search = async () => {
+    if (query.trim().replace(/^@/, '').length < 2) { setError('Kamida 2 ta username harfi kiriting'); return; }
+    setLoading(true); setError(''); setMessage('');
+    try { setUsers(await searchAdminUsers(query)); setTarget(null); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Qidiruv bajarilmadi'); }
+    finally { setLoading(false); }
   };
-  return (
-    <View style={[styles.container, { backgroundColor: tokens.colors.background }]}>
-      <View style={styles.header}>
-        <Pressable onPress={onBack} style={[styles.back, { backgroundColor: tokens.colors.surface }]}><Ionicons name="arrow-back" size={21} color={tokens.colors.text} /></Pressable>
-        <Text style={[styles.title, { color: tokens.colors.text }]}>QA boshqaruvi</Text>
-      </View>
-      <View style={[styles.card, { backgroundColor: tokens.colors.surface, borderColor: tokens.colors.glassBorder }]}>
-        <View style={styles.icon}><Ionicons name="flask" size={26} color="#A78BFA" /></View>
-        <Text style={[styles.heading, { color: tokens.colors.text }]}>QA tester akkaunti</Text>
-        <Text style={[styles.username, { color: tokens.colors.primary }]}>@qa_tester_zelqen</Text>
-        <View style={styles.detail}><Text style={[styles.label, { color: tokens.colors.textMuted }]}>ZC balansi uchun qo‘shimcha</Text><Text style={[styles.value, { color: tokens.colors.text }]}>100 000 ZC</Text></View>
-        <View style={styles.detail}><Text style={[styles.label, { color: tokens.colors.textMuted }]}>Obuna</Text><Text style={[styles.value, { color: tokens.colors.text }]}>LEGENDA+ · 365 kun</Text></View>
-        <View style={styles.detail}><Text style={[styles.label, { color: tokens.colors.textMuted }]}>Huquq</Text><Text style={[styles.value, { color: tokens.colors.text }]}>Oddiy foydalanuvchi (user)</Text></View>
-        {!confirming && !result && <Pressable disabled={loading} onPress={() => { setError(null); setConfirming(true); }} style={[styles.button, { backgroundColor: tokens.colors.primary }]}>
-          <Ionicons name="gift-outline" size={18} color="#fff" />
-          <Text style={styles.buttonText}>QA akkauntini sozlash</Text>
-        </Pressable>}
-        {confirming && !result && <View style={styles.confirmBox}>
-          <Text style={[styles.confirmTitle, { color: tokens.colors.text }]}>Amalni tasdiqlang</Text>
-          <Text style={[styles.confirmText, { color: tokens.colors.textMuted }]}>@qa_tester_zelqen hisobiga 100 000 ZC va 365 kunlik LEGENDA+ beriladi. Akkaunt oddiy user bo‘lib qoladi.</Text>
-          <View style={styles.confirmActions}>
-            <Pressable disabled={loading} onPress={() => setConfirming(false)} style={[styles.cancelButton, { borderColor: tokens.colors.glassBorder }]}><Text style={[styles.cancelText, { color: tokens.colors.text }]}>Bekor qilish</Text></Pressable>
-            <Pressable disabled={loading} onPress={() => { void runGrant(); }} style={[styles.button, styles.confirmButton, { backgroundColor: tokens.colors.primary, opacity: loading ? 0.7 : 1 }]}>
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Tasdiqlash</Text>}
-            </Pressable>
-          </View>
-        </View>}
-        {error && <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View>}
-        {result && <View style={styles.success}><Text style={styles.successTitle}>Sozlandi</Text><Text style={styles.successText}>@{result.username} · {Number(result.zcBalance).toLocaleString('uz-UZ')} ZC</Text><Text style={styles.successText}>LEGENDA+ faol · {new Date(result.expiresAt).toLocaleDateString('uz-UZ')} gacha</Text><Text style={styles.successText}>Role: {result.role}</Text></View>}
-      </View>
-      <Text style={[styles.note, { color: tokens.colors.textMuted }]}>Bu amal faqat faol administrator uchun ochiq. Qayta bosish takroriy ZC yoki obuna bermaydi.</Text>
+  const grant = async () => {
+    if (!target) return;
+    setLoading(true); setError(''); setMessage('');
+    try {
+      const result = await adminGrantAccount({ username: target.username, zcAmount: Number(zc), planKey: plan, durationDays: Number(days) });
+      setMessage(`@${result.username} hisobiga ${result.zcGranted.toLocaleString('uz-UZ')} ZC berildi. Yangi balans: ${result.zcBalance.toLocaleString('uz-UZ')} ZC. ${result.planKey !== 'none' ? `Premium muddati: ${result.expiresAt ? new Date(result.expiresAt).toLocaleDateString('uz-UZ') : ''}` : ''}`);
+      setTarget({ ...target, zcBalance: result.zcBalance });
+    } catch (e) { setError(e instanceof Error ? e.message : 'Grant bajarilmadi'); }
+    finally { setLoading(false); }
+  };
+  const revoke = async () => {
+    if (!target) return;
+    setLoading(true); setError(''); setMessage('');
+    try {
+      const result = await adminRevokeAccount({ username: target.username, zcAmount: Number(removeZc), premium: removePremium });
+      setMessage(`@${result.username}: ${result.zcRemoved.toLocaleString('uz-UZ')} ZC olib tashlandi. Qoldiq: ${result.zcBalance.toLocaleString('uz-UZ')} ZC. ${result.premiumRevoked ? 'Admin bergan Premium bekor qilindi.' : ''}`);
+      setTarget({ ...target, zcBalance: result.zcBalance });
+    } catch (e) { setError(e instanceof Error ? e.message : 'Bekor qilish bajarilmadi'); }
+    finally { setLoading(false); }
+  };
+  const field = (label: string, value: string, set: (v: string) => void, placeholder: string) => <View style={styles.field}><Text style={[styles.label,{color:tokens.colors.textMuted}]}>{label}</Text><TextInput value={value} onChangeText={set} keyboardType="numeric" placeholder={placeholder} placeholderTextColor={tokens.colors.textMuted} style={[styles.input,{color:tokens.colors.text,borderColor:tokens.colors.glassBorder,backgroundColor:tokens.colors.surface}]} /></View>;
+  return <ScrollView style={{flex:1,backgroundColor:tokens.colors.background}} contentContainerStyle={styles.container}>
+    <View style={styles.header}><Pressable onPress={onBack} style={[styles.back,{backgroundColor:tokens.colors.surface}]}><Ionicons name="arrow-back" size={21} color={tokens.colors.text}/></Pressable><Text style={[styles.title,{color:tokens.colors.text}]}>Admin boshqaruvi</Text></View>
+    <View style={[styles.card,{backgroundColor:tokens.colors.surface,borderColor:tokens.colors.glassBorder}]}>
+      <Text style={[styles.heading,{color:tokens.colors.text}]}>Akkauntni topish</Text>
+      <TextInput value={query} onChangeText={setQuery} autoCapitalize="none" placeholder="@username yoki ism" placeholderTextColor={tokens.colors.textMuted} style={[styles.input,{color:tokens.colors.text,borderColor:tokens.colors.glassBorder,backgroundColor:tokens.colors.background}]} />
+      <Pressable disabled={loading} onPress={() => void search()} style={[styles.primary,{backgroundColor:tokens.colors.primary}]}>{loading?<ActivityIndicator color="#fff"/>:<Text style={styles.buttonText}>Qidirish</Text>}</Pressable>
+      {users.map(item=><Pressable key={item.id} onPress={()=>setTarget(item)} style={[styles.user,{borderColor:tokens.colors.glassBorder,backgroundColor:target?.id===item.id?'rgba(124,92,240,0.18)':'transparent'}]}><View style={{flex:1}}><Text style={[styles.userName,{color:tokens.colors.text}]}>{item.displayName}</Text><Text style={[styles.label,{color:tokens.colors.textMuted}]}>@{item.username} · {item.zcBalance.toLocaleString('uz-UZ')} ZC</Text></View><Ionicons name={target?.id===item.id?'checkmark-circle':'chevron-forward'} size={20} color={tokens.colors.primary}/></Pressable>)}
     </View>
-  );
+    {target && <><View style={[styles.card,{backgroundColor:tokens.colors.surface,borderColor:tokens.colors.glassBorder}]}><Text style={[styles.heading,{color:tokens.colors.text}]}>Mukofot berish</Text><Text style={[styles.label,{color:tokens.colors.textMuted}]}>Tanlangan: @{target.username} · Balans {target.zcBalance.toLocaleString('uz-UZ')} ZC</Text>
+      {field('Beriladigan ZC miqdori',''+zc,setZc,'Masalan: 50000')}
+      <Text style={[styles.label,{color:tokens.colors.textMuted,marginTop:10}]}>Premium turi</Text><View style={styles.wrap}>{plans.map(p=><Pressable key={p.key} onPress={()=>setPlan(p.key)} style={[styles.chip,{borderColor:plan===p.key?tokens.colors.primary:tokens.colors.glassBorder,backgroundColor:plan===p.key?'rgba(124,92,240,0.18)':tokens.colors.background}]}><Text style={[styles.chipText,{color:tokens.colors.text}]}>{p.label}</Text></Pressable>)}</View>
+      {plan!=='none' && field('Obuna muddati (kun)',''+days,setDays,'30')}
+      <Pressable disabled={loading} onPress={()=>void grant()} style={[styles.primary,{backgroundColor:'#269D78'}]}>{loading?<ActivityIndicator color="#fff"/>:<Text style={styles.buttonText}>ZC / Premium berish</Text>}</Pressable>
+    </View><View style={[styles.card,{backgroundColor:tokens.colors.surface,borderColor:tokens.colors.glassBorder}]}><Text style={[styles.heading,{color:tokens.colors.text}]}>Huquqni olib tashlash</Text>
+      {field('Olib tashlanadigan ZC',''+removeZc,setRemoveZc,'Masalan: 10000')}
+      <Pressable onPress={()=>setRemovePremium(!removePremium)} style={styles.toggle}><Ionicons name={removePremium?'checkbox':'square-outline'} size={21} color={tokens.colors.primary}/><Text style={[styles.label,{color:tokens.colors.text}]}>Administrator bergan Premium obunani bekor qilish</Text></Pressable>
+      <Pressable disabled={loading} onPress={()=>void revoke()} style={[styles.primary,{backgroundColor:'#C44B59'}]}>{loading?<ActivityIndicator color="#fff"/>:<Text style={styles.buttonText}>Tanlangan huquqlarni olib tashlash</Text>}</Pressable>
+    </View></>}
+    {!!error && <Text style={styles.error}>{error}</Text>}{!!message && <Text style={styles.success}>{message}</Text>}
+    <Text style={[styles.note,{color:tokens.colors.textMuted}]}>Faqat faol administrator ishlata oladi. Berish va olib tashlash tarixi ZC hamyonida saqlanadi. Foydalanuvchiga ilova ichida bildirishnoma yuboriladi. To‘lov orqali olingan obunalar admin orqali bekor qilinmaydi.</Text>
+  </ScrollView>;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 18, paddingTop: 16 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 22 },
-  back: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 19, fontWeight: '900' },
-  card: { borderWidth: 1, borderRadius: 20, padding: 18 },
-  icon: { width: 48, height: 48, borderRadius: 15, backgroundColor: 'rgba(167,139,250,0.14)', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  heading: { fontSize: 17, fontWeight: '900' },
-  username: { fontSize: 13, fontWeight: '800', marginTop: 4, marginBottom: 18 },
-  detail: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(140,130,170,0.25)', gap: 10 },
-  label: { fontSize: 11, flex: 1 },
-  value: { fontSize: 12, fontWeight: '800', textAlign: 'right' },
-  button: { minHeight: 48, borderRadius: 13, marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
-  buttonText: { color: '#fff', fontSize: 13, fontWeight: '900' },
-  confirmBox: { marginTop: 16, padding: 14, borderRadius: 13, backgroundColor: 'rgba(167,139,250,0.10)', gap: 9 },
-  confirmTitle: { fontSize: 14, fontWeight: '900' },
-  confirmText: { fontSize: 11, lineHeight: 17 },
-  confirmActions: { flexDirection: 'row', gap: 9, marginTop: 3 },
-  cancelButton: { minHeight: 44, flex: 1, borderWidth: 1, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { fontSize: 12, fontWeight: '800' },
-  confirmButton: { flex: 1, minHeight: 44, marginTop: 0 },
-  errorBox: { marginTop: 12, padding: 11, borderRadius: 10, backgroundColor: 'rgba(220,70,70,0.12)' },
-  errorText: { color: '#E05A5A', fontSize: 11, fontWeight: '700' },
-  success: { marginTop: 16, padding: 13, borderRadius: 12, backgroundColor: 'rgba(39,185,138,0.12)', gap: 4 },
-  successTitle: { color: '#27B98A', fontSize: 13, fontWeight: '900', marginBottom: 3 },
-  successText: { color: '#27B98A', fontSize: 11, fontWeight: '700' },
-  note: { fontSize: 11, lineHeight: 17, marginTop: 14 },
-});
+const styles=StyleSheet.create({container:{padding:18,paddingBottom:50,gap:13},header:{flexDirection:'row',alignItems:'center',gap:12,marginBottom:4},back:{width:40,height:40,borderRadius:12,alignItems:'center',justifyContent:'center'},title:{fontSize:20,fontWeight:'900'},card:{borderWidth:1,borderRadius:18,padding:16,gap:10},heading:{fontSize:16,fontWeight:'900'},input:{borderWidth:1,borderRadius:12,minHeight:46,paddingHorizontal:13,fontSize:14},primary:{minHeight:46,borderRadius:12,alignItems:'center',justifyContent:'center',paddingHorizontal:14},buttonText:{color:'#fff',fontWeight:'900',fontSize:13},user:{borderWidth:1,borderRadius:12,padding:12,flexDirection:'row',alignItems:'center',gap:8},userName:{fontSize:14,fontWeight:'800'},label:{fontSize:12,lineHeight:18},field:{gap:6},wrap:{flexDirection:'row',flexWrap:'wrap',gap:7},chip:{borderWidth:1,borderRadius:10,paddingHorizontal:11,paddingVertical:9},chipText:{fontSize:11,fontWeight:'800'},toggle:{flexDirection:'row',alignItems:'center',gap:9,paddingVertical:8},error:{color:'#E05A5A',fontWeight:'800'},success:{color:'#24A879',fontWeight:'800',lineHeight:20},note:{fontSize:11,lineHeight:17}});
