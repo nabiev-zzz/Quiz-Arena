@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,7 +9,6 @@ import { User } from './entities/user.entity';
 @WebSocketGateway({ namespace: '/direct', cors: { origin: true, credentials: true } })
 @Injectable()
 export class DirectMessagesGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  private readonly logger = new Logger(DirectMessagesGateway.name);
   @WebSocketServer() server: Namespace;
   constructor(private readonly jwt: JwtService, @InjectRepository(User) private readonly users: Repository<User>) {}
 
