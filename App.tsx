@@ -710,7 +710,6 @@ function AppContent() {
         <SettingsScreen
           onBack={() => setShowSettings(false)}
           onHelp={() => { setShowSettings(false); setSupportScreen('home'); }}
-          onCollectionPress={() => { setShowSettings(false); setShowCosmeticCollection(true); }}
           dockStretch={dockStretch}
         />
       ) : showSmartPractice ? (
