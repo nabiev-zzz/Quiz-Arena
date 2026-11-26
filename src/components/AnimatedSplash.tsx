@@ -138,7 +138,8 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
   }));
 
   return (
-    <View style={styles.container}>
+    // The splash is decorative only. It must never intercept taps on web or mobile.
+    <View pointerEvents="none" style={styles.container}>
       <StatusBar style="light" />
       <Animated.View style={[styles.content, exitStyle]}>
         <View style={styles.logoStage}>
