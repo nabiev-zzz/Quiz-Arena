@@ -37,7 +37,7 @@ async function bootstrap() {
 
   await app.listen(port, '0.0.0.0');
 
-  console.log(`QUIZ ARENA API: http://0.0.0.0:${port}`);
+  console.log(`ZELQEN CORE API: http://0.0.0.0:${port}`);
 }
 
 void bootstrap();
