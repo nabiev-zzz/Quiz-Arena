@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AiService } from './ai.service';
 import { AiTutorService } from './ai-tutor.service';
+import { SupportAiService } from './support-ai.service';
 import { AiController } from './ai.controller';
 import { AiTutorMessage } from './entities/ai-tutor-message.entity';
 import { BattleMatch } from '../battle/entities/battle-match.entity';
@@ -23,6 +24,7 @@ import { AiJobsModule } from './queue/ai-jobs.module';
   providers: [
     AiService,
     AiTutorService,
+    SupportAiService,
   ],
   controllers: [
     AiController,

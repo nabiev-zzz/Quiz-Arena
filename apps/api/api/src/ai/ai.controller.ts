@@ -12,6 +12,8 @@ import {
 } from '@nestjs/common';
 
 import { AiTutorService } from './ai-tutor.service';
+import { SupportAiService } from './support-ai.service';
+import { SupportAiMessageDto } from './dto/support-ai-message.dto';
 import { GenerateQuestionsDto } from './dto/generate-questions.dto';
 import { AiTutorMessageDto } from './dto/ai-tutor-message.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -27,6 +29,7 @@ interface AuthenticatedRequest {
 export class AiController {
   constructor(
     private readonly aiTutorService: AiTutorService,
+    private readonly supportAiService: SupportAiService,
     private readonly aiQueue: AiGenerationQueueService,
   ) {}
 
@@ -46,6 +49,13 @@ export class AiController {
   @Get('jobs/:jobId')
   getAiJobStatus(@Request() request: AuthenticatedRequest, @Param('jobId') jobId: string) {
     return this.aiQueue.getStatus(request.user.id, jobId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('support/chat')
+  async sendSupportMessage(@Request() request: AuthenticatedRequest, @Body() body: SupportAiMessageDto) {
+    return this.supportAiService.reply(request.user.id, body.message, body.language ?? 'uz', body.history ?? []);
   }
 
   @UseGuards(JwtAuthGuard)
