@@ -538,7 +538,7 @@ function AppContent() {
       </View>
 
       {showSupportAssistant ? (
-        <SupportAssistantScreen onBack={() => { setShowSupportAssistant(false); setShowSettings(true); }} bottomDockSpace={96} dockStretch={dockStretch} />
+        <SupportAssistantScreen onBack={() => { setShowSupportAssistant(false); setShowSettings(true); }} bottomDockSpace={96} dockStretch={dockStretch} language={language} />
       ) : showSmartPractice ? (
         <SmartPracticeScreen
           onBack={() => setShowSmartPractice(false)}
