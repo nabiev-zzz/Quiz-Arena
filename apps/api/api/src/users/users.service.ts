@@ -24,6 +24,7 @@ export class UsersService {
       rankTier: this.rankTier(user.rankPoints),
       profileFrame: user.profileFrame,
       avatarDecoration: user.avatarDecoration,
+      profileBadge: user.profileBadge,
       createdAt: user.createdAt,
     };
   }
