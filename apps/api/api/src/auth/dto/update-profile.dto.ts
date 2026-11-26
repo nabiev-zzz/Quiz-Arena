@@ -48,6 +48,6 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['legend', 'champion', 'scholar', 'streak'])
+  @IsIn(['legend', 'champion', 'scholar', 'streak', 'mythic', 'phoenix', 'cyber', 'celestial'])
   profileBadge?: string | null;
 }

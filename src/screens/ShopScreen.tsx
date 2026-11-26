@@ -4,6 +4,7 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } fro
 import { Ionicons } from '@expo/vector-icons';
 import BookWingsAvatar from '../components/BookWingsAvatar';
 import LaurelWreathAvatar from '../components/LaurelWreathAvatar';
+import AnimatedBadge from '../components/AnimatedBadge';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
@@ -136,7 +137,9 @@ export default function ShopScreen({ onBack }: Props) {
               return (
                 <View key={item.id} style={styles.product}>
                   <View style={styles.previewStage}>
-                    {item.kind === 'decoration' && item.value === 'laurel_wreath' ? (
+                    {item.kind === 'badge' ? (
+                      <AnimatedBadge value={item.value} size={82} />
+                    ) : item.kind === 'decoration' && item.value === 'laurel_wreath' ? (
                       <LaurelWreathAvatar size={110} imageUri={user.avatarUrl} initials={user.displayName.trim().split(/\\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'U'} />
                     ) : item.kind === 'decoration' && item.value === 'book_wings' ? (
                       <BookWingsAvatar size={100} imageUri={user.avatarUrl} initials={user.displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'U'} />
@@ -145,8 +148,8 @@ export default function ShopScreen({ onBack }: Props) {
                         {user.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} /> : <Ionicons name="person" size={32} color="#FFFFFF" />}
                       </View>
                     ) : (
-                      <View style={[styles.symbolPreview, item.kind === 'badge' && styles.badgePreview]}>
-                        <Ionicons name={previewIcon(item)} size={32} color={item.kind === 'badge' ? '#F5D27A' : '#C5B4FF'} />
+                      <View style={styles.symbolPreview}>
+                        <Ionicons name={previewIcon(item)} size={32} color="#C5B4FF" />
                       </View>
                     )}
                     {item.value.endsWith('3d') ? <View style={styles.threeDPill}><LocalizedText style={styles.threeDText}>3D EFFECT</LocalizedText></View> : null}

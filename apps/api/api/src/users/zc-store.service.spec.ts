@@ -57,6 +57,16 @@ describe('ZcStoreService', () => {
     }));
   });
 
+  it('purchases and equips the new premium mythic badge', async () => {
+    const result = await service.purchase('user-1', 'badge_mythic');
+
+    expect(result.purchased).toBe(true);
+    expect(result.item).toEqual(expect.objectContaining({ id: 'badge_mythic', kind: 'badge', value: 'mythic', price: 950 }));
+    expect(user.zcBalance).toBe(50);
+    expect(user.profileBadge).toBe('mythic');
+    expect(itemRepository.save).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user-1', itemId: 'badge_mythic', kind: 'badge', price: 950 }));
+  });
+
   it('purchases and equips the animated book wings avatar', async () => {
     const result = await service.purchase('user-1', 'decoration_book_wings');
 
