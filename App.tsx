@@ -31,6 +31,7 @@ import LearnScreen from './src/screens/LearnScreen';
 import QuizScreen from './src/screens/QuizScreen';
 import AiTutorScreen from './src/screens/AiTutorScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import ShopScreen from './src/screens/ShopScreen';
 import PublicProfileScreen from './src/screens/PublicProfileScreen';
 import DiscoverUsersScreen from './src/screens/DiscoverUsersScreen';
 import BattleScreen from './src/screens/BattleScreen';
@@ -142,6 +143,7 @@ function AppContent() {
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
+  const [showShop, setShowShop] = useState(false);
   const [selectedPublicUsername, setSelectedPublicUsername] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -166,6 +168,7 @@ function AppContent() {
     setTab(nextTab);
     setShowSettings(false);
     setShowPremium(false);
+    setShowShop(false);
     setSelectedPublicUsername(null);
     setSelectedTopic(null);
     setSelectedSubject(null);
@@ -387,6 +390,10 @@ function AppContent() {
         );
       }
 
+      if (showShop) {
+        return <ShopScreen onBack={() => setShowShop(false)} />;
+      }
+
       if (showPremium) {
         return <PremiumScreen onBack={() => setShowPremium(false)} />;
       }
@@ -405,6 +412,7 @@ function AppContent() {
           onClosePress={() => openTab('home')}
           onSettingsPress={() => setShowSettings(true)}
           onPremiumPress={() => setShowPremium(true)}
+          onShopPress={() => setShowShop(true)}
           onUserPress={(username) => setSelectedPublicUsername(username === 'discover' ? '__discover__' : username)}
           dockStretch={dockStretch}
         />
