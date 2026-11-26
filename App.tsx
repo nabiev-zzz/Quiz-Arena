@@ -40,6 +40,7 @@ import SupportChatScreen from './src/screens/SupportChatScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ShopScreen from './src/screens/ShopScreen';
 import CosmeticCollectionScreen from './src/screens/CosmeticCollectionScreen';
+import ProfileEditScreen from './src/screens/ProfileEditScreen';
 import PublicProfileScreen from './src/screens/PublicProfileScreen';
 import DiscoverUsersScreen from './src/screens/DiscoverUsersScreen';
 import BattleScreen from './src/screens/BattleScreen';
@@ -137,6 +138,7 @@ function AppContent() {
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showCosmeticCollection, setShowCosmeticCollection] = useState(false);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [showNavigationDrawer, setShowNavigationDrawer] = useState(false);
   const [showDailyTasks, setShowDailyTasks] = useState(false);
   const [supportScreen, setSupportScreen] = useState<'home' | 'chat' | null>(null);
@@ -176,6 +178,7 @@ function AppContent() {
     setTab(nextTab);
     setShowSettings(false);
     setShowCosmeticCollection(false);
+    setShowProfileEdit(false);
     setShowPremium(false);
     setShowDocumentQuiz(false);
     setShowSmartPractice(false);
@@ -404,7 +407,11 @@ function AppContent() {
       }
 
       if (showCosmeticCollection) {
-        return <CosmeticCollectionScreen onBack={() => { setShowCosmeticCollection(false); setShowSettings(true); }} />;
+        return <CosmeticCollectionScreen onBack={() => { setShowCosmeticCollection(false); setShowProfileEdit(true); }} />;
+      }
+
+      if (showProfileEdit) {
+        return <ProfileEditScreen onBack={() => setShowProfileEdit(false)} onCollectionPress={() => { setShowProfileEdit(false); setShowCosmeticCollection(true); }} />;
       }
 
       if (showShop) {
@@ -420,7 +427,6 @@ function AppContent() {
           <SettingsScreen
             onBack={() => setShowSettings(false)}
             onHelp={() => { setShowSettings(false); setSupportScreen('home'); }}
-            onCollectionPress={() => { setShowSettings(false); setShowCosmeticCollection(true); }}
             dockStretch={dockStretch}
           />
         );
@@ -430,6 +436,7 @@ function AppContent() {
         <ProfileScreen
           onClosePress={() => openTab('home')}
           onSettingsPress={() => setShowSettings(true)}
+          onEditPress={() => setShowProfileEdit(true)}
           onPremiumPress={() => setShowPremium(true)}
           onShopPress={() => setShowShop(true)}
           onUserPress={(username) => setSelectedPublicUsername(username === 'discover' ? '__discover__' : username)}
@@ -696,7 +703,9 @@ function AppContent() {
           }}
         />
       ) : showCosmeticCollection ? (
-        <CosmeticCollectionScreen onBack={() => { setShowCosmeticCollection(false); setShowSettings(true); }} />
+        <CosmeticCollectionScreen onBack={() => { setShowCosmeticCollection(false); setShowProfileEdit(true); }} />
+      ) : showProfileEdit ? (
+        <ProfileEditScreen onBack={() => setShowProfileEdit(false)} onCollectionPress={() => { setShowProfileEdit(false); setShowCosmeticCollection(true); }} />
       ) : showSettings ? (
         <SettingsScreen
           onBack={() => setShowSettings(false)}
