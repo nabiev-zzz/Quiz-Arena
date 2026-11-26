@@ -684,7 +684,7 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     header: { height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
     headerButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { color: C.muted, fontSize: 11, fontWeight: '800', letterSpacing: 2 },
-    identity: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingTop: 8, paddingBottom: 19, marginLeft: 0 },
+    identity: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 8, paddingTop: 8, paddingBottom: 19, marginHorizontal: -8, width: 'auto' },
     avatarEffectStage: { width: 142, height: 142, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     identityInfo: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 2 },
     avatarWrap: { width: 116, height: 116, alignItems: 'center', justifyContent: 'center' },
