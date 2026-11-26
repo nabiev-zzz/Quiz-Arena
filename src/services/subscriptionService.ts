@@ -1,5 +1,20 @@
 import { API_BASE_URL, getToken } from './authService';
 
+export type SubscriptionTier = 'free' | 'premium' | 'premium_pro' | 'legenda_plus';
+
+export interface PremiumEntitlements {
+  tier: SubscriptionTier;
+  label: string;
+  statsPdf: { monthlyLimit: number | null; includeAiInsights: boolean };
+  documentQuiz: { monthlyLimit: number; maxQuestionsPerDocument: number; maxFileSizeMb: number };
+  privateBattle: { dailyLimit: number; maxPlayers: number };
+  smartPractice: { dailyLimit: number | null; aiPersonalized: boolean };
+  aiTutor: { available: boolean; dailyMessages: number | null; errorAnalysis: boolean; fullHistory: boolean };
+  cosmetics: { premiumBadge: boolean; exclusiveItems: boolean; rareItems: boolean; animatedGoldFrame: boolean };
+  tournaments: { special: boolean; elite: boolean };
+  rank: { legendStatus: boolean };
+}
+
 export interface PremiumPlan {
   key: string;
   name: string;
@@ -10,9 +25,12 @@ export interface PremiumPlan {
 }
 export interface PremiumStatus {
   isPremium: boolean;
+  isOwner?: boolean;
+  tier: SubscriptionTier;
+  entitlements: PremiumEntitlements;
   subscription: null | {
     planKey: string;
-    provider: 'google_play' | 'click' | 'payme';
+    provider: 'google_play' | 'click' | 'payme' | 'owner';
     status: string;
     startsAt: string | null;
     expiresAt: string | null;
@@ -55,3 +73,18 @@ export const verifyGooglePlayPurchase = (purchaseToken: string) =>
     method: 'POST',
     body: JSON.stringify({ purchaseToken }),
   });
+
+export type MeteredFeature = 'statsPdf' | 'documentQuiz' | 'privateBattle' | 'smartPractice' | 'aiTutor';
+
+export interface FeatureUsageResult {
+  allowed: boolean;
+  featureKey: MeteredFeature;
+  tier: SubscriptionTier;
+  period: 'daily' | 'monthly' | 'unlimited';
+  limit: number | null;
+  used: number | null;
+  remaining: number | null;
+}
+
+export const consumePremiumFeature = (featureKey: MeteredFeature) =>
+  request<FeatureUsageResult>(`/api/subscriptions/usage/${featureKey}`, { method: 'POST' });

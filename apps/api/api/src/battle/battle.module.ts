@@ -8,18 +8,21 @@ import { ZcTransaction } from '../users/entities/zc-transaction.entity';
 import { BattleController } from './battle.controller';
 import { BattleGateway } from './gateway/battle.gateway';
 import { BattleService } from './battle.service';
+import { BattleStateStore } from './battle-state.store';
 import { BattleMatch } from './entities/battle-match.entity';
 import { BattleQuestion } from './entities/battle-question.entity';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([BattleMatch, BattleQuestion, User, ZcTransaction]),
     AiModule,
     AuthModule,
+    SubscriptionsModule,
     UsersModule,
   ],
   controllers: [BattleController],
-  providers: [BattleService, BattleGateway],
-  exports: [BattleService],
+  providers: [BattleService, BattleStateStore, BattleGateway],
+  exports: [BattleService, BattleStateStore],
 })
 export class BattleModule {}

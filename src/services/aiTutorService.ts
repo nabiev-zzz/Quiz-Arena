@@ -12,6 +12,7 @@ export interface AiTutorMessage {
 interface AiTutorChatResponse {
   userMessage: AiTutorMessage;
   assistantMessage: AiTutorMessage;
+  usage?: { limit: number | null; remaining: number | null; used: number | null };
 }
 
 interface AiTutorHistoryResponse {
@@ -50,11 +51,25 @@ async function tutorRequest<T>(
   return data as T;
 }
 
+async function waitForTutorJob(jobId: string): Promise<AiTutorChatResponse> {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    const status = await tutorRequest<{
+      status: 'queued' | 'active' | 'completed' | 'failed';
+      result?: AiTutorChatResponse;
+      error?: string;
+    }>(`/api/ai/jobs/${encodeURIComponent(jobId)}`);
+    if (status.status === 'completed' && status.result) return status.result;
+    if (status.status === 'failed') throw new Error(status.error || 'AI Ustoz javob bera olmadi.');
+  }
+  throw new Error('AI Ustoz navbatida kutish vaqti tugadi. Qayta urinib ko‘ring.');
+}
+
 export async function sendTutorMessage(
   message: string,
   signal?: AbortSignal,
 ): Promise<AiTutorChatResponse> {
-  return tutorRequest<AiTutorChatResponse>('/api/ai/tutor/chat', {
+  const queued = await tutorRequest<AiTutorChatResponse & { status?: 'queued' | 'active' | 'completed'; jobId?: string; result?: AiTutorChatResponse }>('/api/ai/tutor/chat', {
     method: 'POST',
     signal,
     body: JSON.stringify({
@@ -62,6 +77,11 @@ export async function sendTutorMessage(
       language: 'uz',
     }),
   });
+  if (queued.status === 'queued' || queued.status === 'active') {
+    return waitForTutorJob(String(queued.jobId));
+  }
+  if (queued.status === 'completed' && queued.result) return queued.result;
+  return queued;
 }
 
 export async function getTutorHistory(

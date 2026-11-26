@@ -8,11 +8,14 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Namespace, Socket } from 'socket.io';
+import { randomUUID } from 'node:crypto';
+import { FeatureUsageService } from '../../subscriptions/feature-usage.service';
 
 import { User } from '../../users/entities/user.entity';
 import {
@@ -20,6 +23,7 @@ import {
   BattleService,
 } from '../battle.service';
 import { BattleQuestion } from '../entities/battle-question.entity';
+import { BattleStateSnapshot, BattleStateStore } from '../battle-state.store';
 
 interface QueueJoinPayload {
   mode?: 'casual' | 'ranked';
@@ -41,6 +45,14 @@ interface NextReadyPayload {
   questionIndex?: number;
 }
 
+interface PrivateBattleRoom {
+  roomCode: string;
+  hostUserId: string;
+  hostSocketId: string;
+  expiresAt: number;
+  timer: ReturnType<typeof setTimeout>;
+}
+
 interface ActiveBattle {
   matchId: string;
   room: string;
@@ -56,6 +68,7 @@ interface ActiveBattle {
   results: BattleQuestionResult[];
   deadline: number;
   timer: ReturnType<typeof setTimeout> | null;
+  timerQuestionIndex?: number;
   nextTimer: ReturnType<typeof setTimeout> | null;
   disconnectTimers: Map<string, ReturnType<typeof setTimeout>>;
   resolving: boolean;
@@ -63,6 +76,7 @@ interface ActiveBattle {
   finishing?: boolean;
   finishAttempts?: number;
   readyPlayers: Set<string>;
+  disconnectedAt: Record<string, number>;
 }
 
 @WebSocketGateway({
@@ -73,13 +87,16 @@ interface ActiveBattle {
   },
 })
 export class BattleGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(BattleGateway.name);
   private readonly activeBattles = new Map<string, ActiveBattle>();
   private readonly queuedSockets = new Map<string, string>();
+  private readonly privateRooms = new Map<string, PrivateBattleRoom>();
+  private readonly privateJoinAttempts = new Map<string, { count: number; windowStartedAt: number }>();
   private readonly questionDuration = 20_000;
   private readonly reconnectGracePeriod = 30_000;
+  private reconciliationTimer: ReturnType<typeof setInterval> | null = null;
 
   @WebSocketServer()
   server: Namespace;
@@ -89,7 +106,188 @@ export class BattleGateway
     private readonly battleService: BattleService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly featureUsageService: FeatureUsageService,
+    private readonly battleStateStore: BattleStateStore,
   ) {}
+
+
+  async onModuleInit(): Promise<void> {
+    if (!this.battleStateStore.isReady()) return;
+
+    const savedBattles = await this.battleStateStore.listActive();
+    for (const snapshot of savedBattles) {
+      let saved = snapshot;
+      if (
+        (saved.resolving || saved.finishing) &&
+        Date.now() - saved.updatedAt >= 60_000
+      ) {
+        saved = (await this.battleStateStore.recoverStaleTransition(saved.matchId)) || saved;
+      }
+
+      const battle: ActiveBattle = {
+        ...saved,
+        socketIds: { ...saved.socketIds },
+        timer: null,
+        nextTimer: null,
+        disconnectTimers: new Map<string, ReturnType<typeof setTimeout>>(),
+        readyPlayers: new Set(saved.readyPlayers || []),
+        disconnectedAt: { ...(saved.disconnectedAt || {}) },
+        resolving: saved.resolving,
+        finishing: saved.finishing,
+      };
+
+      this.activeBattles.set(battle.matchId, battle);
+
+      // Keep socket ownership from other live API replicas intact. A restarted
+      // client replaces its socket through battle:reconnect; clearing every
+      // socket ID here would disconnect players served by a different replica.
+      const now = Date.now();
+      const shouldAdvance =
+        battle.questionResolved &&
+        battle.readyPlayers.size === battle.playerIds.length;
+
+      if (!battle.questionResolved && !battle.resolving) {
+        const delay = Math.max(0, battle.deadline - now);
+        battle.timerQuestionIndex = battle.questionIndex;
+        battle.timer = setTimeout(() => {
+          battle.timer = null;
+          battle.timerQuestionIndex = undefined;
+          void this.resolveQuestion(battle);
+        }, delay);
+      }
+
+      if (shouldAdvance) await this.advanceIfReady(battle);
+      this.logger.warn(`Battle Redisdan tiklandi: ${battle.roomCode}`);
+    }
+
+    // Every API node discovers matches created after it booted. Timers may be
+    // scheduled on several nodes; Redis claims ensure only one node resolves.
+    this.reconciliationTimer = setInterval(() => {
+      void this.reconcileActiveBattles().catch((error) =>
+        this.logger.error('Battle Redis reconciliation xatosi:', error),
+      );
+    }, 2_000);
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    if (this.reconciliationTimer) clearInterval(this.reconciliationTimer);
+    this.reconciliationTimer = null;
+    for (const battle of this.activeBattles.values()) this.clearBattleTimers(battle);
+  }
+
+  private async reconcileActiveBattles(): Promise<void> {
+    if (!this.battleStateStore.isReady()) return;
+    const snapshots = await this.battleStateStore.listActive();
+
+    for (const snapshot of snapshots) {
+      let saved = snapshot;
+      if (
+        (saved.resolving || saved.finishing) &&
+        Date.now() - saved.updatedAt >= 60_000
+      ) {
+        saved = (await this.battleStateStore.recoverStaleTransition(saved.matchId)) || saved;
+      }
+
+      let battle = this.activeBattles.get(saved.matchId);
+      if (!battle) {
+        battle = this.fromSnapshot(saved);
+        this.activeBattles.set(saved.matchId, battle);
+      }
+
+      if (
+        (!battle.timer || battle.timerQuestionIndex !== saved.questionIndex) &&
+        !saved.questionResolved &&
+        !saved.resolving
+      ) {
+        if (battle.timer) clearTimeout(battle.timer);
+        const delay = Math.max(0, saved.deadline - Date.now());
+        battle.timerQuestionIndex = saved.questionIndex;
+        battle.timer = setTimeout(() => {
+          battle!.timer = null;
+          battle!.timerQuestionIndex = undefined;
+          void this.resolveQuestion(battle!);
+        }, delay);
+      } else if (
+        saved.questionResolved &&
+        saved.readyPlayers.length === saved.playerIds.length
+      ) {
+        void this.advanceIfReady(battle);
+      }
+    }
+  }
+
+  private toSnapshot(battle: ActiveBattle): BattleStateSnapshot {
+    return {
+      version: 1,
+      matchId: battle.matchId,
+      room: battle.room,
+      roomCode: battle.roomCode,
+      mode: battle.mode,
+      playerIds: [...battle.playerIds],
+      usernames: { ...battle.usernames },
+      socketIds: { ...battle.socketIds },
+      questions: battle.questions,
+      scores: { ...battle.scores },
+      questionIndex: battle.questionIndex,
+      answers: { ...battle.answers },
+      results: [...battle.results],
+      deadline: battle.deadline,
+      resolving: battle.resolving,
+      questionResolved: battle.questionResolved,
+      finishing: Boolean(battle.finishing),
+      finishAttempts: battle.finishAttempts || 0,
+      readyPlayers: [...battle.readyPlayers],
+      disconnectedAt: { ...battle.disconnectedAt },
+      updatedAt: Date.now(),
+    };
+  }
+
+  private async persistBattle(battle: ActiveBattle): Promise<void> {
+    await this.battleStateStore.save(this.toSnapshot(battle));
+  }
+
+
+  private fromSnapshot(saved: BattleStateSnapshot): ActiveBattle {
+    return {
+      ...saved,
+      timer: null,
+      nextTimer: null,
+      disconnectTimers: new Map<string, ReturnType<typeof setTimeout>>(),
+      readyPlayers: new Set(saved.readyPlayers || []),
+      disconnectedAt: { ...(saved.disconnectedAt || {}) },
+    };
+  }
+
+  private applySnapshot(battle: ActiveBattle, saved: BattleStateSnapshot): void {
+    battle.socketIds = { ...saved.socketIds };
+    battle.questions = saved.questions;
+    battle.scores = { ...saved.scores };
+    battle.questionIndex = saved.questionIndex;
+    battle.answers = { ...saved.answers };
+    battle.results = [...saved.results];
+    battle.deadline = saved.deadline;
+    battle.resolving = saved.resolving;
+    battle.questionResolved = saved.questionResolved;
+    battle.finishing = saved.finishing;
+    battle.finishAttempts = saved.finishAttempts;
+    battle.readyPlayers = new Set(saved.readyPlayers);
+    battle.disconnectedAt = { ...saved.disconnectedAt };
+  }
+
+  private async getActiveBattle(matchId: string): Promise<ActiveBattle | undefined> {
+    const saved = await this.battleStateStore.get(matchId);
+    if (!saved) return undefined;
+
+    const local = this.activeBattles.get(matchId);
+    if (local) {
+      this.applySnapshot(local, saved);
+      return local;
+    }
+
+    const battle = this.fromSnapshot(saved);
+    this.activeBattles.set(matchId, battle);
+    return battle;
+  }
 
   async handleConnection(client: Socket): Promise<void> {
     try {
@@ -166,6 +364,8 @@ export class BattleGateway
       return;
     }
 
+    await this.cleanupPrivateRoomsForSocket(client.id);
+
     const queueKey = this.queuedSockets.get(client.id);
 
     if (queueKey) {
@@ -202,6 +402,199 @@ export class BattleGateway
       }, this.reconnectGracePeriod);
 
       battle.disconnectTimers.set(userId, timer);
+      battle.disconnectedAt[userId] = Date.now();
+      await this.persistBattle(battle).catch((error) => this.logger.error('Battle uzilish holati saqlanmadi:', error));
+    }
+  }
+
+  @SubscribeMessage('battle:private:create')
+  async createPrivateRoom(@ConnectedSocket() client: Socket): Promise<void> {
+    const userId = client.data.userId as string | undefined;
+    if (!userId) {
+      client.emit('battle:error', { message: 'Avval tizimga kiring.' });
+      return;
+    }
+    if (this.queuedSockets.has(client.id)) {
+      client.emit('battle:error', { message: 'Avval raqib qidirish navbatidan chiqing.' });
+      return;
+    }
+    if ([...this.activeBattles.values()].some((battle) => battle.playerIds.includes(userId))) {
+      client.emit('battle:error', { message: 'Avval joriy Battle ni yakunlang.' });
+      return;
+    }
+    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId)) {
+      client.emit('battle:error', { message: 'Sizda allaqachon faol taklif xonasi bor.' });
+      return;
+    }
+
+    let quotaConsumed = false;
+    try {
+      const quota = await this.featureUsageService.consume(userId, 'privateBattle');
+      if (!quota.allowed) {
+        throw new BadRequestException('Do‘stlar Battle uchun kunlik tarif limiti tugagan.');
+      }
+      quotaConsumed = true;
+
+      const roomCode = randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase();
+      const expiresAt = Date.now() + 10 * 60 * 1000;
+      const timer = setTimeout(() => { void this.expirePrivateRoom(roomCode); }, 10 * 60 * 1000);
+      this.privateRooms.set(roomCode, { roomCode, hostUserId: userId, hostSocketId: client.id, expiresAt, timer });
+
+      client.emit('battle:private:created', {
+        roomCode,
+        status: 'waiting',
+        maxPlayers: 2,
+        expiresInSeconds: 600,
+        quota,
+        message: 'Xona yaratildi. Kodni do‘stingizga yuboring.',
+      });
+    } catch (error) {
+      if (quotaConsumed) {
+        try { await this.featureUsageService.refund(userId, 'privateBattle'); } catch { /* Preserve the original room error. */ }
+      }
+      client.emit('battle:error', {
+        message: error instanceof Error ? error.message : 'Xususiy Battle xonasi yaratilmadi.',
+      });
+    }
+  }
+
+  @SubscribeMessage('battle:private:join')
+  async joinPrivateRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload?: { roomCode?: string; code?: string },
+  ): Promise<void> {
+    const userId = client.data.userId as string | undefined;
+    const roomCode = String(payload?.roomCode || payload?.code || '').trim().toUpperCase();
+    if (!userId) {
+      client.emit('battle:error', { message: 'Avval tizimga kiring.' });
+      return;
+    }
+
+    const now = Date.now();
+    const previousAttempts = this.privateJoinAttempts.get(userId);
+    const attempts = !previousAttempts || now - previousAttempts.windowStartedAt >= 60_000
+      ? { count: 0, windowStartedAt: now }
+      : previousAttempts;
+    if (attempts.count >= 8) {
+      client.emit('battle:error', { message: 'Xona kodini tekshirish limiti tugadi. Bir daqiqadan so‘ng qayta urinib ko‘ring.' });
+      return;
+    }
+    attempts.count += 1;
+    this.privateJoinAttempts.set(userId, attempts);
+
+    if (!/^[A-F0-9]{12}$/.test(roomCode)) {
+      client.emit('battle:error', { message: '12 belgili xona kodi noto‘g‘ri.' });
+      return;
+    }
+    if (this.queuedSockets.has(client.id)) {
+      client.emit('battle:error', { message: 'Avval raqib qidirish navbatidan chiqing.' });
+      return;
+    }
+    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId && room.roomCode !== roomCode)) {
+      client.emit('battle:error', { message: 'Avval o‘zingiz yaratgan taklif xonasini bekor qiling.' });
+      return;
+    }
+    if ([...this.activeBattles.values()].some((battle) => battle.playerIds.includes(userId))) {
+      client.emit('battle:error', { message: 'Avval joriy Battle ni yakunlang.' });
+      return;
+    }
+
+    const privateRoom = this.privateRooms.get(roomCode);
+    if (!privateRoom || privateRoom.expiresAt <= Date.now()) {
+      if (privateRoom) await this.expirePrivateRoom(roomCode);
+      client.emit('battle:error', { message: 'Xona topilmadi yoki uning muddati tugagan.' });
+      return;
+    }
+    if (privateRoom.hostUserId === userId) {
+      client.emit('battle:error', { message: 'O‘z xonangizga raqib sifatida qo‘shila olmaysiz.' });
+      return;
+    }
+
+    const hostSocket = this.server.sockets.get(privateRoom.hostSocketId);
+    if (!hostSocket || hostSocket.data.userId !== privateRoom.hostUserId) {
+      await this.expirePrivateRoom(roomCode);
+      client.emit('battle:error', { message: 'Xona egasi serverga ulanmagan.' });
+      return;
+    }
+
+    clearTimeout(privateRoom.timer);
+    this.privateRooms.delete(roomCode);
+
+    try {
+      const match = await this.battleService.createMatch(privateRoom.hostUserId, userId, 'private');
+      const room = `battle:${match.roomCode}`;
+      await Promise.all([hostSocket.join(room), client.join(room)]);
+
+      const matchInfo = {
+        matchId: match.id,
+        roomCode: match.roomCode,
+        mode: 'private',
+        status: 'matched',
+        players: [
+          { id: privateRoom.hostUserId, username: hostSocket.data.username },
+          { id: userId, username: client.data.username },
+        ],
+        message: 'Do‘stingiz qo‘shildi. Battle boshlanmoqda.',
+      };
+
+      hostSocket.emit('battle:matched', matchInfo);
+      client.emit('battle:matched', matchInfo);
+      this.logger.log(`Xususiy Battle boshlandi: ${match.roomCode}`);
+
+      const started = await this.startBattle(
+        match.id,
+        match.roomCode,
+        'private',
+        privateRoom.hostUserId,
+        userId,
+        hostSocket,
+        client,
+        'general',
+      );
+      if (!started) {
+        try { await this.featureUsageService.refund(privateRoom.hostUserId, 'privateBattle'); } catch { /* Preserve the original match error. */ }
+      }
+    } catch (error) {
+      try { await this.featureUsageService.refund(privateRoom.hostUserId, 'privateBattle'); } catch { /* Preserve the original match error. */ }
+      const message = error instanceof Error ? error.message : 'Xususiy Battle boshlanmadi.';
+      hostSocket.emit('battle:error', { message });
+      client.emit('battle:error', { message });
+    }
+  }
+
+  @SubscribeMessage('battle:private:cancel')
+  async cancelPrivateRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload?: { roomCode?: string },
+  ): Promise<void> {
+    const userId = client.data.userId as string | undefined;
+    const roomCode = String(payload?.roomCode || '').trim().toUpperCase();
+    const room = this.privateRooms.get(roomCode);
+    if (!userId || !room || room.hostUserId !== userId || room.hostSocketId !== client.id) {
+      client.emit('battle:error', { message: 'Xonani bekor qilish huquqi topilmadi.' });
+      return;
+    }
+    clearTimeout(room.timer);
+    this.privateRooms.delete(roomCode);
+    try { await this.featureUsageService.refund(userId, 'privateBattle'); } catch { /* Preserve the original room error. */ }
+    client.emit('battle:private:cancelled', { roomCode });
+  }
+
+  private async expirePrivateRoom(roomCode: string): Promise<void> {
+    const room = this.privateRooms.get(roomCode);
+    if (!room) return;
+    clearTimeout(room.timer);
+    this.privateRooms.delete(roomCode);
+    this.server.sockets.get(room.hostSocketId)?.emit('battle:private:expired', { roomCode });
+    try { await this.featureUsageService.refund(room.hostUserId, 'privateBattle'); } catch { /* Preserve room cleanup even if quota refund fails. */ }
+  }
+
+  private async cleanupPrivateRoomsForSocket(socketId: string): Promise<void> {
+    const ownedRooms = [...this.privateRooms.values()].filter((room) => room.hostSocketId === socketId);
+    for (const room of ownedRooms) {
+      clearTimeout(room.timer);
+      this.privateRooms.delete(room.roomCode);
+      try { await this.featureUsageService.refund(room.hostUserId, 'privateBattle'); } catch { /* Preserve room cleanup even if quota refund fails. */ }
     }
   }
 
@@ -216,6 +609,11 @@ export class BattleGateway
       client.emit('battle:error', {
         message: 'Avval tizimga kiring.',
       });
+      return;
+    }
+
+    if ([...this.privateRooms.values()].some((room) => room.hostUserId === userId)) {
+      client.emit('battle:error', { message: 'Avval xususiy taklif xonasini bekor qiling.' });
       return;
     }
 
@@ -380,7 +778,7 @@ export class BattleGateway
     playerOneSocket: Socket,
     playerTwoSocket: Socket,
     categoryId: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       const questions = await this.battleService.prepareQuestions(
         matchId,
@@ -426,8 +824,10 @@ export class BattleGateway
         resolving: false,
         questionResolved: false,
         readyPlayers: new Set<string>(),
+        disconnectedAt: {},
       };
 
+      await this.persistBattle(battle);
       this.activeBattles.set(matchId, battle);
 
       this.server.to(room).emit('battle:started', {
@@ -443,7 +843,8 @@ export class BattleGateway
         message: 'Battle boshlandi!',
       });
 
-      this.sendQuestion(battle);
+      await this.sendQuestion(battle);
+      return true;
     } catch (error) {
       this.logger.error(
         `Battle boshlashda xato (${roomCode}):`,
@@ -460,10 +861,11 @@ export class BattleGateway
         matchId,
         reason: 'Savollarni tayyorlashda xatolik.',
       });
+      return false;
     }
   }
 
-  private sendQuestion(battle: ActiveBattle): void {
+  private async sendQuestion(battle: ActiveBattle): Promise<void> {
     if (battle.questionIndex >= battle.questions.length) {
       void this.completeBattle(battle);
       return;
@@ -492,12 +894,17 @@ export class BattleGateway
       endsAt: battle.deadline,
     };
 
+    await this.persistBattle(battle);
+
     this.server.to(battle.room).emit(
       'battle:question',
       publicQuestion,
     );
 
+    battle.timerQuestionIndex = battle.questionIndex;
     battle.timer = setTimeout(() => {
+      battle.timer = null;
+      battle.timerQuestionIndex = undefined;
       void this.resolveQuestion(battle);
     }, this.questionDuration);
   }
@@ -516,32 +923,11 @@ export class BattleGateway
       return;
     }
 
-    const battle = this.activeBattles.get(payload.matchId);
+    const battle = await this.getActiveBattle(payload.matchId);
 
     if (!battle || !battle.playerIds.includes(userId)) {
       client.emit('battle:error', {
         message: 'Faol Battle topilmadi.',
-      });
-      return;
-    }
-
-    if (battle.socketIds[userId] !== client.id) {
-      client.emit('battle:error', {
-        message: 'Bu Battle uchun faol ulanish emas.',
-      });
-      return;
-    }
-
-    if (battle.resolving) {
-      client.emit('battle:error', {
-        message: 'Savol natijasi hisoblanmoqda.',
-      });
-      return;
-    }
-
-    if (payload.questionIndex !== battle.questionIndex) {
-      client.emit('battle:error', {
-        message: 'Bu savolning vaqti tugagan yoki savol eskirgan.',
       });
       return;
     }
@@ -557,37 +943,37 @@ export class BattleGateway
       return;
     }
 
-    if (Date.now() > battle.deadline) {
-      client.emit('battle:error', {
-        message: 'Javob berish vaqti tugadi.',
-      });
+    const recorded = await this.battleStateStore.recordAnswer(
+      payload.matchId,
+      userId,
+      client.id,
+      payload.questionIndex!,
+      payload.answerIndex!,
+    );
 
-      await this.resolveQuestion(battle);
-      return;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(battle.answers, userId)) {
+    if (!recorded.accepted) {
+      const messages: Record<string, string> = {
+        missing: 'Faol Battle topilmadi.',
+        socket: 'Bu Battle uchun faol ulanish emas.',
+        resolving: 'Savol natijasi hisoblanmoqda.',
+        expired: 'Bu savolning vaqti tugagan yoki savol eskirgan.',
+        duplicate: 'Bu savolga javob berib bo‘lgansiz.',
+      };
       client.emit('battle:error', {
-        message: 'Bu savolga javob berib bo‘lgansiz.',
+        message: messages[recorded.reason || ''] || 'Javob qabul qilinmadi.',
       });
+      if (recorded.reason === 'expired') await this.resolveQuestion(battle);
       return;
     }
 
     battle.answers[userId] = payload.answerIndex!;
-
     client.emit('battle:answer:accepted', {
       matchId: battle.matchId,
-      questionIndex: battle.questionIndex,
+      questionIndex: payload.questionIndex,
       accepted: true,
     });
 
-    const allAnswered = battle.playerIds.every((id) =>
-      Object.prototype.hasOwnProperty.call(battle.answers, id),
-    );
-
-    if (allAnswered) {
-      await this.resolveQuestion(battle);
-    }
+    if (recorded.allAnswered) await this.resolveQuestion(battle);
   }
 
   private async resolveQuestion(battle: ActiveBattle): Promise<void> {
@@ -598,12 +984,19 @@ export class BattleGateway
       return;
     }
 
+    const claimed = await this.battleStateStore.claimQuestionResolution(
+      battle.matchId,
+      battle.questionIndex,
+    );
+    if (!claimed) return;
+    this.applySnapshot(battle, claimed);
     battle.resolving = true;
 
     if (battle.timer) {
       clearTimeout(battle.timer);
       battle.timer = null;
     }
+    battle.timerQuestionIndex = undefined;
 
     const question = battle.questions[battle.questionIndex];
 
@@ -660,6 +1053,7 @@ export class BattleGateway
       }
 
       battle.resolving = false;
+      await this.persistBattle(battle).catch(() => undefined);
 
       this.logger.error(
         'Battle natijasini saqlashda xato:',
@@ -689,8 +1083,9 @@ export class BattleGateway
     });
 
     battle.questionResolved = true;
+    await this.persistBattle(battle);
     this.emitNextReadyStatus(battle);
-    this.advanceIfReady(battle);
+    await this.advanceIfReady(battle);
   }
 
   @SubscribeMessage('battle:next:ready')
@@ -708,17 +1103,10 @@ export class BattleGateway
       return;
     }
 
-    const battle = this.activeBattles.get(matchId);
+    const battle = await this.getActiveBattle(matchId);
 
     if (!battle || !battle.playerIds.includes(userId)) {
       client.emit('battle:error', { message: 'Faol Battle topilmadi.' });
-      return;
-    }
-
-    if (battle.socketIds[userId] !== client.id) {
-      client.emit('battle:error', {
-        message: 'Bu Battle uchun faol ulanish emas.',
-      });
       return;
     }
 
@@ -729,28 +1117,26 @@ export class BattleGateway
       return;
     }
 
-    const hasAnswered = Object.prototype.hasOwnProperty.call(
-      battle.answers,
+    const updated = await this.battleStateStore.markPlayerReady(
+      matchId,
       userId,
+      client.id,
+      payload.questionIndex!,
     );
-    const timeExpired = Date.now() >= battle.deadline;
-
-    if (!hasAnswered && !timeExpired && !battle.questionResolved) {
-      client.emit('battle:error', {
-        message: 'Avval javob bering yoki savol vaqtining tugashini kuting.',
-      });
+    if (!updated) {
+      client.emit('battle:error', { message: 'Keyingi savolga tayyorlanish ma’lumoti eskirgan.' });
       return;
     }
-
-    battle.readyPlayers.add(userId);
+    this.applySnapshot(battle, updated);
     this.emitNextReadyStatus(battle);
+    const timeExpired = Date.now() >= updated.deadline;
 
     if (timeExpired && !battle.questionResolved && !battle.resolving) {
       await this.resolveQuestion(battle);
       return;
     }
 
-    this.advanceIfReady(battle);
+    await this.advanceIfReady(battle);
   }
 
   private emitNextReadyStatus(battle: ActiveBattle): void {
@@ -763,24 +1149,19 @@ export class BattleGateway
     });
   }
 
-  private advanceIfReady(battle: ActiveBattle): void {
-    if (
-      !this.activeBattles.has(battle.matchId) ||
-      !battle.questionResolved ||
-      battle.readyPlayers.size !== battle.playerIds.length
-    ) {
-      return;
-    }
+  private async advanceIfReady(battle: ActiveBattle): Promise<void> {
+    if (!this.activeBattles.has(battle.matchId)) return;
+
+    const advanced = await this.battleStateStore.claimAdvance(battle.matchId);
+    if (!advanced) return;
+    this.applySnapshot(battle, advanced);
 
     if (battle.nextTimer) {
       clearTimeout(battle.nextTimer);
       battle.nextTimer = null;
     }
 
-    battle.questionIndex += 1;
-    battle.readyPlayers.clear();
-    battle.questionResolved = false;
-    this.sendQuestion(battle);
+    await this.sendQuestion(battle);
   }
 
   private async completeBattle(battle: ActiveBattle): Promise<void> {
@@ -798,11 +1179,17 @@ export class BattleGateway
       clearTimeout(battle.timer);
       battle.timer = null;
     }
+    battle.timerQuestionIndex = undefined;
 
     if (battle.nextTimer) {
       clearTimeout(battle.nextTimer);
       battle.nextTimer = null;
     }
+
+    const claimed = await this.battleStateStore.claimFinish(battle.matchId);
+    if (!claimed) return;
+    this.applySnapshot(battle, claimed);
+    battle.finishing = true;
 
     try {
       const match = await this.battleService.finishMatch(
@@ -830,8 +1217,10 @@ export class BattleGateway
 
       this.clearBattleTimers(battle);
       this.activeBattles.delete(battle.matchId);
+      await this.battleStateStore.remove(battle.matchId);
     } catch (error) {
       battle.finishing = false;
+      await this.persistBattle(battle).catch(() => undefined);
 
       this.logger.error(
         'Battle yakunlashda xato:',
@@ -884,6 +1273,9 @@ export class BattleGateway
       return;
     }
 
+    const latestState = await this.battleStateStore.get(matchId);
+    if (latestState) this.applySnapshot(battle, latestState);
+
     const disconnectTimer = battle.disconnectTimers.get(userId);
 
     if (disconnectTimer) {
@@ -892,6 +1284,8 @@ export class BattleGateway
     }
 
     battle.socketIds[userId] = client.id;
+    delete battle.disconnectedAt[userId];
+    await this.persistBattle(battle);
 
     await client.join(battle.room);
 
@@ -981,6 +1375,7 @@ export class BattleGateway
 
     this.clearBattleTimers(battle);
     this.activeBattles.delete(matchId);
+    await this.battleStateStore.remove(matchId);
   }
 
   @SubscribeMessage('battle:queue:cancel')
@@ -1057,6 +1452,7 @@ export class BattleGateway
     } finally {
       this.clearBattleTimers(battle);
       this.activeBattles.delete(matchId);
+      await this.battleStateStore.remove(matchId);
     }
   }
 
@@ -1065,6 +1461,7 @@ export class BattleGateway
       clearTimeout(battle.timer);
       battle.timer = null;
     }
+    battle.timerQuestionIndex = undefined;
 
     if (battle.nextTimer) {
       clearTimeout(battle.nextTimer);

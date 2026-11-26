@@ -66,7 +66,8 @@ The app uses `expo-iap`; Google Play Billing is not available in Expo Go. Build 
 ## API routes
 
 - `GET /api/subscriptions/plans` — public plan list.
-- `GET /api/subscriptions/me` — JWT-protected current entitlement.
+- `GET /api/subscriptions/me` — JWT-protected current entitlement and server-owned feature limits.
+- `POST /api/subscriptions/usage/:featureKey` — JWT-protected atomic quota consumption for `statsPdf`, `documentQuiz`, `privateBattle`, `smartPractice`, or `aiTutor`.
 - `GET /api/subscriptions/google-play/account-id` — JWT-protected obfuscated account identifier for the Play Billing purchase request.
 - `POST /api/subscriptions/checkout` — JWT-protected Click/Payme order creation. Body: `{ "provider": "click" | "payme", "planKey": "premium_monthly" | "premium_yearly" | "premium_pro_monthly" | "premium_pro_yearly" | "legenda_plus_monthly" | "legenda_plus_yearly" }`.
 - `POST /api/subscriptions/google-play/verify` — JWT-protected server verification. Body: `{ "purchaseToken": "..." }`.

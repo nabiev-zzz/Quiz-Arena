@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - feat/premium-entitlements-feature-roadmap
   push:
     branches:
       - feature/liquid-glass-dock
@@ -60,6 +61,21 @@ jobs:
 
   validate-api:
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      VALKEY_HOST: 127.0.0.1
+      VALKEY_PORT: 6379
+      BATTLE_REDIS_PREFIX: quiz-arena:ci
+      BATTLE_SHARED_STATE_REQUIRED: 'true'
     defaults:
       run:
         working-directory: apps/api/api
@@ -80,5 +96,8 @@ jobs:
       - name: Build NestJS API
         run: npm run build
 
-      - name: Test payment security, Battle rank and history
-        run: npm test -- --runInBand src/subscriptions/subscription-payments.service.spec.ts src/battle/battle.service.spec.ts
+      - name: Validate Railway process supervisor
+        run: node --check start-api-with-ai-worker.cjs
+
+      - name: Test payment security, plan entitlements, AI Tutor quotas, document quiz and private Battle
+        run: npm test -- --runInBand src/subscriptions/subscription-payments.service.spec.ts src/subscriptions/plan-entitlements.spec.ts src/subscriptions/feature-usage.service.spec.ts src/learning/learning.service.spec.ts src/battle/gateway/battle.gateway.spec.ts src/battle/redis-io.adapter.spec.ts src/battle/battle-state.store.spec.ts src/ai/ai-tutor.service.spec.ts src/ai/queue/ai-generation-queue.service.spec.ts src/ai/queue/ai-generation.queue.integration.spec.ts src/battle/battle.service.spec.ts

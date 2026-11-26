@@ -74,6 +74,7 @@ export default function AiTutorScreen({
   const [error, setError] = useState('');
   const [historyFailed, setHistoryFailed] = useState(false);
   const [failedMessageIds, setFailedMessageIds] = useState<string[]>([]);
+  const [quotaInfo, setQuotaInfo] = useState<{ limit: number | null; remaining: number | null; used: number | null } | null>(null);
 
   const listRef = useRef<FlatList<AiTutorMessage>>(null);
 
@@ -106,7 +107,7 @@ export default function AiTutorScreen({
     if (sending) return;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    const timeout = setTimeout(() => controller.abort(), 45000);
 
     setSending(true);
     setError('');
@@ -119,6 +120,7 @@ export default function AiTutorScreen({
         result.userMessage,
         result.assistantMessage,
       ]);
+      setQuotaInfo(result.usage ?? null);
 
       setFailedMessageIds((previous) =>
         previous.filter((id) => id !== temporaryId),
@@ -132,7 +134,7 @@ export default function AiTutorScreen({
           : [...previous, temporaryId],
       );
 
-      setError(CONNECTION_ERROR);
+      setError(err instanceof Error && err.message ? err.message : CONNECTION_ERROR);
     } finally {
       clearTimeout(timeout);
       setSending(false);
@@ -236,6 +238,11 @@ export default function AiTutorScreen({
               <View style={styles.onlineDot} />
               <LocalizedText style={styles.onlineText}>O‘qishga tayyor</LocalizedText>
             </View>
+            {quotaInfo ? (
+              <LocalizedText style={styles.quotaText}>
+                {quotaInfo.limit === null ? 'AI Ustoz: cheksiz' : `Bugun ${quotaInfo.remaining ?? 0}/${quotaInfo.limit} ta xabar qoldi`}
+              </LocalizedText>
+            ) : null}
           </View>
 
           <View style={styles.headerAvatar}>
@@ -512,6 +519,12 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     borderRadius: 4,
     backgroundColor: '#25B879',
     marginRight: 6,
+  },
+  quotaText: {
+    color: colors.primary,
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 3,
   },
   onlineText: {
     fontSize: 12,

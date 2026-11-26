@@ -1,4 +1,4 @@
-import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
+import { LocalizedText, LocalizedTextInput, showLocalizedAlert } from '../i18n/LocalizedText';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
+  Share,
   StyleSheet,
   TextInput,
   View,
@@ -20,6 +21,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { subjects } from '../data/subjects';
 import { getLearningStats, type LearningStats } from '../services/learningService';
+import { consumePremiumFeature } from '../services/subscriptionService';
+import { shareStatisticsPdf } from '../services/statisticsReportService';
 import LeaderboardScreen from './leaderboard/LeaderboardScreen';
 
 import {
@@ -77,6 +80,9 @@ export default function BattleScreen({
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [privateRoomCode, setPrivateRoomCode] = useState<string | null>(null);
+  const [privateJoinCode, setPrivateJoinCode] = useState('');
+  const [creatingPrivate, setCreatingPrivate] = useState(false);
 
   const [match, setMatch] = useState<BattleMatched | null>(null);
   const [started, setStarted] = useState<BattleStarted | null>(null);
@@ -104,6 +110,7 @@ export default function BattleScreen({
   const [statsView, setStatsView] = useState<StatsView>('overview');
   const [leaderboard, setLeaderboard] = useState<BattleLeaderboardEntry[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const socketRef = useRef<BattleSocket | null>(null);
   const matchIdRef = useRef<string | null>(null);
@@ -163,6 +170,45 @@ export default function BattleScreen({
     setScores({});
     setRemaining(20);
   }, []);
+
+  const exportStatisticsPdf = async () => {
+    if (!stats && !learningStats) {
+      showLocalizedAlert('Statistika mavjud emas', 'Avval statistika ma’lumotlarini yuklang.');
+      return;
+    }
+
+    setExportingPdf(true);
+    try {
+      const usage = await consumePremiumFeature('statsPdf');
+      if (!usage.allowed) {
+        showLocalizedAlert(
+          'PDF limiti tugadi',
+          `Sizning ${usage.tier.toUpperCase().replace('_', ' ')} tarifingizda bu davr uchun PDF hisobot limiti tugagan. Ko‘proq hisobot uchun tarifni yangilang.`,
+        );
+        return;
+      }
+
+      await shareStatisticsPdf({
+        user: {
+          displayName: user?.displayName,
+          username: user?.username,
+          level: user?.level,
+          xp: user?.xp,
+          rankPoints: user?.rankPoints,
+        },
+        learning: learningStats,
+        battle: stats,
+        tier: usage.tier,
+      });
+    } catch (err) {
+      showLocalizedAlert(
+        'PDF yaratilmadi',
+        err instanceof Error ? err.message : 'Hisobotni yaratish yoki ulashishda xatolik yuz berdi.',
+      );
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
   const loadSectionData = useCallback(async (target: Section) => {
     if (target === 'battle') return;
@@ -237,6 +283,8 @@ export default function BattleScreen({
 
         socket.on('disconnect', () => {
           setConnected(false);
+          setPrivateRoomCode(null);
+          setCreatingPrivate(false);
         });
 
         socket.on('connect_error', (err: Error) => {
@@ -259,9 +307,23 @@ export default function BattleScreen({
           setSearching(false);
         });
 
+        socket.on('battle:private:created', (data: { roomCode: string }) => {
+          setPrivateRoomCode(data.roomCode);
+          setCreatingPrivate(false);
+          setSearching(false);
+          setError('');
+        });
+
+        socket.on('battle:private:cancelled', () => setPrivateRoomCode(null));
+        socket.on('battle:private:expired', () => {
+          setPrivateRoomCode(null);
+          setError('Do‘stni kutish muddati tugadi. Yangi xona yarating.');
+        });
+
         socket.on('battle:matched', (data: BattleMatched) => {
           matchIdRef.current = data.matchId;
           setMatch(data);
+          setPrivateRoomCode(null);
           setSearching(false);
           setFinished(null);
           setError('');
@@ -374,6 +436,8 @@ export default function BattleScreen({
 
         socket.on('battle:error', (data: { message?: string }) => {
           setError(data.message || 'Battle xatoligi yuz berdi.');
+          setCreatingPrivate(false);
+          setSearching(false);
         });
       } catch (err) {
         if (!disposed) {
@@ -441,6 +505,47 @@ export default function BattleScreen({
       mode: modeRef.current,
     });
     setSearching(false);
+  }
+
+  function createPrivateBattleRoom() {
+    const socket = socketRef.current;
+    if (!socket?.connected) {
+      setError('Battle serveriga ulanish kutilmoqda.');
+      return;
+    }
+    if (searching || matchIdRef.current || creatingPrivate) return;
+    setCreatingPrivate(true);
+    setError('');
+    socket.emit('battle:private:create');
+  }
+
+  function joinPrivateBattleRoom() {
+    const socket = socketRef.current;
+    const code = privateJoinCode.trim().toUpperCase();
+    if (!socket?.connected) {
+      setError('Battle serveriga ulanish kutilmoqda.');
+      return;
+    }
+    if (!/^[A-F0-9]{12}$/.test(code)) {
+      showLocalizedAlert('Xona kodi noto‘g‘ri', 'Do‘stingiz yuborgan 12 belgili kodni kiriting.');
+      return;
+    }
+    if (searching || matchIdRef.current) return;
+    setError('');
+    socket.emit('battle:private:join', { roomCode: code });
+  }
+
+  function cancelPrivateBattleRoom() {
+    if (!privateRoomCode) return;
+    socketRef.current?.emit('battle:private:cancel', { roomCode: privateRoomCode });
+    setPrivateRoomCode(null);
+  }
+
+  function sharePrivateBattleCode() {
+    if (!privateRoomCode) return;
+    void Share.share({
+      message: `QUIZ ARENA'da sizni Battle'ga taklif qilaman! Ilovada Battle → Do‘st bilan o‘ynash bo‘limiga kiring va ushbu kodni kiriting: ${privateRoomCode}`,
+    });
   }
 
   function submitAnswer(answerIndex: number) {
@@ -830,6 +935,54 @@ export default function BattleScreen({
           </Pressable>
         </View>
 
+        <View style={styles.privateBattleCard}>
+          <View style={styles.privateBattleHeading}>
+            <View style={styles.privateBattleIcon}><Ionicons name="people" size={20} color="#FFFFFF" /></View>
+            <View style={styles.privateBattleCopy}>
+              <LocalizedText style={styles.privateBattleTitle}>Do‘st bilan o‘ynash</LocalizedText>
+              <LocalizedText style={styles.privateBattleDescription}>Xususiy xona yarating yoki do‘stingiz kodiga qo‘shiling · 1 ga 1</LocalizedText>
+            </View>
+          </View>
+          {privateRoomCode ? (
+            <View style={styles.privateRoomBox}>
+              <LocalizedText style={styles.privateRoomLabel}>DO‘STINGIZGA YUBORILADIGAN KOD</LocalizedText>
+              <LocalizedText style={styles.privateRoomCode}>{privateRoomCode}</LocalizedText>
+              <LocalizedText style={styles.privateBattleDescription}>Xona 10 daqiqa davomida faol bo‘ladi.</LocalizedText>
+              <View style={styles.privateRoomActions}>
+                <Pressable onPress={sharePrivateBattleCode} style={styles.privateShareButton}>
+                  <Ionicons name="share-social-outline" size={16} color="#FFFFFF" />
+                  <LocalizedText style={styles.privateShareText}>Kodni ulashish</LocalizedText>
+                </Pressable>
+                <Pressable onPress={cancelPrivateBattleRoom} style={styles.privateCancelButton}>
+                  <LocalizedText style={styles.privateCancelText}>Bekor qilish</LocalizedText>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <>
+              <Pressable onPress={createPrivateBattleRoom} disabled={!canStart || creatingPrivate || searching} style={[styles.privateCreateButton, (!canStart || creatingPrivate || searching) && styles.disabledButton]}>
+                {creatingPrivate ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />}
+                <LocalizedText style={styles.privateCreateText}>{creatingPrivate ? 'Xona yaratilmoqda...' : 'Xususiy xona yaratish'}</LocalizedText>
+              </Pressable>
+              <View style={styles.privateJoinRow}>
+                <LocalizedTextInput
+                  value={privateJoinCode}
+                  onChangeText={(value) => setPrivateJoinCode(value.toUpperCase().replace(/[^A-F0-9]/g, '').slice(0, 12))}
+                  placeholder="12 belgili xona kodi"
+                  placeholderTextColor={colors.muted}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  maxLength={12}
+                  style={styles.privateCodeInput}
+                />
+                <Pressable onPress={joinPrivateBattleRoom} disabled={!canStart || searching || privateJoinCode.length !== 12} style={[styles.privateJoinButton, (!canStart || searching || privateJoinCode.length !== 12) && styles.disabledButton]}>
+                  <LocalizedText style={styles.privateJoinText}>Qo‘shilish</LocalizedText>
+                </Pressable>
+              </View>
+            </>
+          )}
+        </View>
+
         {stats ? (
           <View style={styles.quickStatsCard}>
             <View style={styles.quickStatsHeader}>
@@ -877,7 +1030,7 @@ export default function BattleScreen({
               </View>
               <View style={styles.latestMatchCopy}>
                 <LocalizedText style={styles.latestMatchName}>1 ga 1 Battle</LocalizedText>
-                <LocalizedText style={styles.modeMeta}>{latestMatch.mode === 'ranked' ? 'Ranked' : 'Casual'}</LocalizedText>
+                <LocalizedText style={styles.modeMeta}>{latestMatch.mode === 'private' ? 'Do‘stlar Battle' : latestMatch.mode === 'ranked' ? 'Ranked' : 'Casual'}</LocalizedText>
               </View>
               <LocalizedText style={[styles.latestMatchResult, { color: latestMatch.result === 'win' ? '#35D99A' : latestMatch.result === 'loss' ? '#FF7D91' : '#AEB8D0' }]}>
                 {latestMatch.result === 'win' ? 'G‘alaba' : latestMatch.result === 'loss' ? 'Mag‘lubiyat' : 'Durang'}
@@ -1335,7 +1488,7 @@ export default function BattleScreen({
                 <View style={styles.recentMatchCopy}>
                   <LocalizedText style={styles.recentMatchTitle}>{meta.label}</LocalizedText>
                   <LocalizedText style={styles.recentMatchMeta}>
-                    {item.mode === 'ranked' ? 'Ranked' : 'Casual'} · {dateLabel}
+                    {item.mode === 'private' ? 'Do‘stlar Battle' : item.mode === 'ranked' ? 'Ranked' : 'Casual'} · {dateLabel}
                   </LocalizedText>
                 </View>
                 <LocalizedText style={styles.recentMatchScore}>{Number(item.myScore) || 0} ball</LocalizedText>
@@ -1627,6 +1780,16 @@ export default function BattleScreen({
           <LocalizedText style={styles.statsIntroTitle}>Statistika markazi</LocalizedText>
           <LocalizedText style={styles.statsIntroSubtitle}>Ta’limdagi o‘sish va Battle natijalaringiz</LocalizedText>
         </View>
+        <Pressable
+          onPress={() => void exportStatisticsPdf()}
+          disabled={exportingPdf || loadingData || (!stats && !learningStats)}
+          style={[styles.statsRefresh, (exportingPdf || loadingData || (!stats && !learningStats)) && { opacity: 0.55 }]}
+        >
+          {exportingPdf ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="document-text-outline" size={16} color={colors.primary} />}
+          <LocalizedText style={styles.statsRefreshText}>
+            {exportingPdf ? 'PDF tayyorlanmoqda...' : 'PDF hisobotni ulashish'}
+          </LocalizedText>
+        </Pressable>
         <View style={styles.statsViewSwitch}>
           {([
             ['overview', 'Umumiy'],
@@ -1872,6 +2035,26 @@ function makeStyles(colors: typeof COLORS, dark: boolean) {
     modeSubtitle: { color: colors.muted, fontSize: 11, marginTop: 3 },
     modeBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 13 },
     modeMeta: { color: colors.muted, fontSize: 10, fontWeight: '700' },
+    privateBattleCard: { padding: 16, borderRadius: 22, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, gap: 13 },
+    privateBattleHeading: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+    privateBattleIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#7059D6' },
+    privateBattleCopy: { flex: 1, gap: 4 },
+    privateBattleTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
+    privateBattleDescription: { color: colors.muted, fontSize: 10, lineHeight: 15 },
+    privateCreateButton: { minHeight: 45, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 13, backgroundColor: '#6653D8' },
+    privateCreateText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+    privateJoinRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    privateCodeInput: { flex: 1, minWidth: 0, minHeight: 44, borderRadius: 12, paddingHorizontal: 12, color: colors.text, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, fontSize: 12, letterSpacing: 1.2 },
+    privateJoinButton: { minHeight: 44, paddingHorizontal: 15, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: dark ? '#3A315F' : '#EDE9FF', borderWidth: 1, borderColor: colors.border },
+    privateJoinText: { color: dark ? '#E4DDFF' : '#5B49B6', fontSize: 11, fontWeight: '900' },
+    privateRoomBox: { borderRadius: 16, padding: 14, backgroundColor: dark ? 'rgba(117,104,245,0.12)' : '#F2EEFF', borderWidth: 1, borderColor: colors.border, alignItems: 'center', gap: 8 },
+    privateRoomLabel: { color: colors.muted, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
+    privateRoomCode: { color: colors.primary, fontSize: 30, fontWeight: '900', letterSpacing: 5 },
+    privateRoomActions: { flexDirection: 'row', gap: 8, width: '100%', marginTop: 5 },
+    privateShareButton: { flex: 1, minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, backgroundColor: '#6653D8' },
+    privateShareText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
+    privateCancelButton: { minHeight: 42, paddingHorizontal: 13, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: dark ? 'rgba(220,76,100,0.13)' : '#FFF0F2' },
+    privateCancelText: { color: colors.danger, fontSize: 11, fontWeight: '800' },
     quickStatsCard: {
       padding: 16, borderRadius: 24, backgroundColor: dark ? 'rgba(27,24,59,0.88)' : 'rgba(255,255,255,0.9)',
       borderWidth: 1, borderColor: dark ? 'rgba(160,135,255,0.36)' : 'rgba(117,104,245,0.18)',

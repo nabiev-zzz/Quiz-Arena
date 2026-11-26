@@ -28,6 +28,8 @@ import { subjects as learningSubjects } from './src/data/subjects';
 import { getDailyTasks, claimDailyTask, type DailyTask } from './src/services/dailyTasksService';
 
 import LearnScreen from './src/screens/LearnScreen';
+import DocumentQuizScreen from './src/screens/DocumentQuizScreen';
+import SmartPracticeScreen from './src/screens/SmartPracticeScreen';
 import QuizScreen from './src/screens/QuizScreen';
 import AiTutorScreen from './src/screens/AiTutorScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -143,6 +145,8 @@ function AppContent() {
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
+  const [showDocumentQuiz, setShowDocumentQuiz] = useState(false);
+  const [showSmartPractice, setShowSmartPractice] = useState(false);
   const [showShop, setShowShop] = useState(false);
   const [selectedPublicUsername, setSelectedPublicUsername] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -168,6 +172,8 @@ function AppContent() {
     setTab(nextTab);
     setShowSettings(false);
     setShowPremium(false);
+    setShowDocumentQuiz(false);
+    setShowSmartPractice(false);
     setShowShop(false);
     setSelectedPublicUsername(null);
     setSelectedTopic(null);
@@ -362,6 +368,8 @@ function AppContent() {
       return (
         <LearnScreen
           dockStretch={dockStretch}
+          onDocumentQuiz={() => setShowDocumentQuiz(true)}
+          onSmartPractice={() => setShowSmartPractice(true)}
           initialSubject={selectedSubject}
           onTopicSelect={(subject, topic) => {
             setSelectedSubject(subject);
@@ -526,7 +534,17 @@ function AppContent() {
         />
       </View>
 
-      {selectedTopic && selectedSubject ? (
+      {showSmartPractice ? (
+        <SmartPracticeScreen
+          onBack={() => setShowSmartPractice(false)}
+          language={language}
+        />
+      ) : showDocumentQuiz ? (
+        <DocumentQuizScreen
+          onBack={() => setShowDocumentQuiz(false)}
+          language={language}
+        />
+      ) : selectedTopic && selectedSubject ? (
         <QuizScreen
           subject={selectedSubject}
           topic={selectedTopic}

@@ -1,8 +1,8 @@
-
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
+import { RedisIoAdapter } from './battle/redis-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
@@ -20,6 +20,18 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  const socketAdapter = new RedisIoAdapter(app);
+  await socketAdapter.connectToRedis();
+  app.useWebSocketAdapter(socketAdapter);
+
+  // Close the dedicated Redis Pub/Sub connections during graceful shutdown.
+  app.getHttpServer().once('close', () => {
+    void socketAdapter.closeRedisConnections();
+  });
+
+  // Allow Railway and other orchestrators to close HTTP and Socket.IO cleanly.
+  app.enableShutdownHooks();
 
   const port = Number(process.env.PORT) || 3000;
 

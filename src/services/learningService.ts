@@ -105,6 +105,20 @@ async function learningRequest<T>(
   return data as T;
 }
 
+async function waitForLearningJob<T>(jobId: string): Promise<T> {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    const status = await learningRequest<{
+      status: 'queued' | 'active' | 'completed' | 'failed';
+      result?: T;
+      error?: string;
+    }>(`/api/learning/jobs/${encodeURIComponent(jobId)}`);
+    if (status.status === 'completed' && status.result) return status.result;
+    if (status.status === 'failed') throw new Error(status.error || 'AI test yaratishda xatolik yuz berdi.');
+  }
+  throw new Error('AI navbatida kutish vaqti tugadi. Keyinroq test tarixidan tekshirib ko‘ring.');
+}
+
 export function saveLearningAttempt(input: LearningAttemptInput): Promise<LearningHistoryItem> {
   return learningRequest('/api/learning/attempts', {
     method: 'POST',
@@ -139,9 +153,94 @@ export async function getTopicQuestions(input: {
   difficulty: Difficulty;
   language: 'uz' | 'ru' | 'en';
 }): Promise<Question[]> {
-  const result = await learningRequest<{ questions: Question[]; source: 'database'; cachedQuestionCount: number }>(
-    '/api/learning/questions',
-    { method: 'POST', body: JSON.stringify(input) },
-  );
-  return result.questions;
+  const result = await learningRequest<{
+    questions?: Question[];
+    source?: 'database';
+    cachedQuestionCount?: number;
+    status?: 'queued' | 'active' | 'completed';
+    jobId?: string;
+    result?: { questions: Question[] };
+  }>('/api/learning/questions', { method: 'POST', body: JSON.stringify(input) });
+  if (result.status === 'queued' || result.status === 'active') {
+    const completed = await waitForLearningJob<{ questions: Question[] }>(String(result.jobId));
+    return completed.questions;
+  }
+  if (result.status === 'completed' && result.result) return result.result.questions;
+  return result.questions || [];
 }
+
+export interface DocumentQuizQuestion {
+  id: string;
+  subjectId: string;
+  topicId: string;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation: string;
+  difficulty: Difficulty;
+}
+
+export interface DocumentQuizResult {
+  title: string;
+  topicId: string;
+  sourceFileName: string;
+  questionCount: number;
+  questions: DocumentQuizQuestion[];
+}
+
+export async function createDocumentQuiz(
+  file: { uri: string; name: string; mimeType?: string | null; file?: Blob },
+  options: { count: number; difficulty: Difficulty; language: 'uz' | 'ru' | 'en' },
+): Promise<DocumentQuizResult> {
+  const token = await getToken();
+  if (!token) throw new Error('Tizimga qayta kirishingiz kerak.');
+
+  const form = new FormData();
+  if (file.file) {
+    form.append('file', file.file, file.name);
+  } else {
+    form.append('file', {
+      uri: file.uri,
+      name: file.name,
+      type: file.mimeType || 'application/octet-stream',
+    } as unknown as Blob);
+  }
+  form.append('count', String(options.count));
+  form.append('difficulty', options.difficulty);
+  form.append('language', options.language);
+
+  const response = await fetch(`${API_BASE_URL}/api/learning/document-quiz`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(typeof data.message === 'string' ? data.message : 'Hujjatdan test yaratib bo‘lmadi.');
+  }
+  if (data.status === 'queued' || data.status === 'active') {
+    return waitForLearningJob<DocumentQuizResult>(String(data.jobId));
+  }
+  if (data.status === 'completed' && data.result) return data.result as DocumentQuizResult;
+  return data as DocumentQuizResult;
+}
+
+export interface SmartPracticeResult {
+  title: string;
+  topicId: string;
+  personalized: boolean;
+  questionCount: number;
+  questions: DocumentQuizQuestion[];
+}
+
+export const createSmartPractice = async (count: number, language: 'uz' | 'ru' | 'en') => {
+  const result = await learningRequest<SmartPracticeResult & { status?: 'queued' | 'active' | 'completed'; jobId?: string; result?: SmartPracticeResult }>(
+    '/api/learning/smart-practice',
+    { method: 'POST', body: JSON.stringify({ count, language }) },
+  );
+  if (result.status === 'queued' || result.status === 'active') {
+    return waitForLearningJob<SmartPracticeResult>(String(result.jobId));
+  }
+  if (result.status === 'completed' && result.result) return result.result as SmartPracticeResult;
+  return result;
+};

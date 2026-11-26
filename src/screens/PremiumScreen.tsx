@@ -10,6 +10,29 @@ import { createPremiumCheckout, getGooglePlayAccountId, getPremiumPlans, getPrem
 
 interface Props { onBack?: () => void }
 const money = (value: number | null) => value === null ? 'Narx sozlanmagan' : new Intl.NumberFormat('uz-UZ').format(value) + ' so‘m';
+const planBenefits = (planKey: string): string[] => {
+  if (planKey.startsWith('legenda_plus_')) return [
+    'Cheksiz kengaytirilgan PDF hisobotlar',
+    'Oyiga 100 ta hujjatdan 100 tagacha savol · 15 MB gacha',
+    'Kuniga 30 ta do‘stlar Battle, elita turnirlar va Legend maqomi',
+    'Cheksiz AI Ustoz va shaxsiy rivojlanish rejasi',
+    'Noyob bezaklar va animatsiyali oltin ramka',
+  ];
+  if (planKey.startsWith('premium_pro_')) return [
+    'Cheksiz kengaytirilgan PDF hisobotlar',
+    'Oyiga 30 ta hujjatdan 50 tagacha savol · 12 MB gacha',
+    'Kuniga 20 ta xususiy Friends Battle',
+    'AI Ustoz · kuniga 100 xabar, xatolar tahlili va to‘liq tarix',
+    'Cheksiz AI Smart Practice va maxsus turnirlar',
+  ];
+  return [
+    'Oyiga 10 ta kengaytirilgan PDF hisobot',
+    'Oyiga 5 ta hujjatdan 25 tagacha savol · 8 MB gacha',
+    'Kuniga 10 ta xususiy Friends Battle (1 ga 1)',
+    'AI Ustoz · kuniga 10 xabar, premium profil nishoni va eksklyuziv bezaklar',
+    'Kengaytirilgan statistika va maxsus Battle sozlamalari',
+  ];
+};
 const GOOGLE_PLAY_SKUS: Record<string, string | undefined> = {
   premium_monthly: process.env.EXPO_PUBLIC_GOOGLE_PLAY_MONTHLY_PRODUCT_ID?.trim(),
   premium_yearly: process.env.EXPO_PUBLIC_GOOGLE_PLAY_YEARLY_PRODUCT_ID?.trim(),
@@ -66,16 +89,14 @@ export default function PremiumScreen({ onBack }: Props) {
         <Ionicons name="diamond" size={34} color="#F3CE75" />
         <LocalizedText style={s.heroTitle}>Bilimingga ko‘proq imkoniyat</LocalizedText>
         <LocalizedText style={s.heroText}>Premium bilan o‘qish, musobaqa va profilingni yangi darajaga olib chiq.</LocalizedText>
-        {status?.isPremium ? <LocalizedText style={s.active}>PREMIUM FAOL · {status.subscription?.expiresAt ? new Date(status.subscription.expiresAt).toLocaleDateString('uz-UZ') + ' gacha' : ''}</LocalizedText> : <LocalizedText style={s.inactive}>Hozirgi tarif: FREE</LocalizedText>}
+        {status?.isPremium ? <LocalizedText style={s.active}>{status.tier.replace('_', ' ').toUpperCase()} FAOL · {status.subscription?.expiresAt ? new Date(status.subscription.expiresAt).toLocaleDateString('uz-UZ') + ' gacha' : ''}</LocalizedText> : <LocalizedText style={s.inactive}>Hozirgi tarif: FREE</LocalizedText>}
         <Pressable onPress={() => void load()} style={s.refresh}><Ionicons name="refresh" size={15} color="#E8E0FF" /><LocalizedText style={s.refreshText}>Obuna holatini yangilash</LocalizedText></Pressable>
       </GlassSurface>
       <LocalizedText style={[s.section, { color: c.text }]}>Obuna tariflari</LocalizedText>
       {loading ? <ActivityIndicator color={c.primary} style={{ marginTop: 24 }} /> : error ? <GlassSurface intensity={30} style={s.notice}><LocalizedText style={[s.noticeText, { color: c.text }]}>{error}</LocalizedText><Pressable onPress={() => void load()}><LocalizedText style={s.retry}>Qayta urinish</LocalizedText></Pressable></GlassSurface> : plans.map((plan, index) => (
         <GlassSurface key={plan.key} intensity={isDark ? 34 : 42} style={[s.plan, index === 1 && s.featured]}>
           <View style={s.planTop}><View><LocalizedText style={[s.planName, { color: c.text }]}>{plan.name} {plan.durationDays === 365 ? 'Yillik' : 'Oylik'}</LocalizedText><LocalizedText style={[s.planDuration, { color: c.textMuted }]}>{plan.durationDays} kunlik obuna</LocalizedText>{plan.durationDays === 365 && plan.price !== null ? (() => { const monthlyPlan = plans.find((item) => item.key === plan.key.replace(/_yearly$/, '_monthly')); if (!monthlyPlan?.price) return null; const saving = Math.round((1 - plan.price / (monthlyPlan.price * 12)) * 100); return <LocalizedText style={[s.planDuration, { color: '#70D7B4' }]}>Oyiga taxminan {money(Math.round(plan.price / 12))} · {saving}% chegirma</LocalizedText>; })() : null}</View><LocalizedText style={s.price}>{money(plan.price)}</LocalizedText></View>
-          <View style={s.benefit}><Ionicons name="checkmark-circle" size={17} color="#70D7B4" /><LocalizedText style={[s.benefitText, { color: c.text }]}>Eksklyuziv profil bezaklari va Premium nishoni</LocalizedText></View>
-          <View style={s.benefit}><Ionicons name="checkmark-circle" size={17} color="#70D7B4" /><LocalizedText style={[s.benefitText, { color: c.text }]}>Kengaytirilgan statistika va maxsus imkoniyatlar</LocalizedText></View>
-          <View style={s.benefit}><Ionicons name="checkmark-circle" size={17} color="#70D7B4" /><LocalizedText style={[s.benefitText, { color: c.text }]}>Yangi Premium funksiyalari qo‘shilganda foydalanish</LocalizedText></View>
+          {planBenefits(plan.key).map((benefit) => <View key={benefit} style={s.benefit}><Ionicons name="checkmark-circle" size={17} color="#70D7B4" /><LocalizedText style={[s.benefitText, { color: c.text }]}>{benefit}</LocalizedText></View>)}
           <View style={s.checkoutRow}>
             <Pressable disabled={!plan.available || busy !== null} onPress={() => void startCheckout('click', plan.key)} style={[s.checkoutButton, s.clickButton, (!plan.available || busy !== null) && s.dim]}>
               {busy === 'click:' + plan.key ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="card" size={17} color="#FFFFFF" /><LocalizedText style={s.checkoutText}>Click</LocalizedText></>}

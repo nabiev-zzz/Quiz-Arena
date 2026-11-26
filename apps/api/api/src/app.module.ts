@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { HealthController } from './health/health.controller';
 import { AiModule } from './ai/ai.module';
 import { AuthModule } from './auth/auth.module';
 import { BattleModule } from './battle/battle.module';
@@ -34,6 +35,12 @@ import { CreateAuthOAuthCodes20261124151000 } from './database/migrations/Create
 import { CreateAuthEmailCodes20261124170000 } from './database/migrations/CreateAuthEmailCodes';
 import { AddTelegramIdentity20261124190000 } from './database/migrations/AddTelegramIdentity';
 import { AddAvatarImageSupport20261124230000 } from './database/migrations/AddAvatarImageSupport';
+import { CreateFeatureUsage20261124203000 } from './database/migrations/CreateFeatureUsage';
+import { CreateAiGenerationJobs20261125100000 } from './database/migrations/CreateAiGenerationJobs';
+import { AddAiTutorGenerationJobLink20261125101000 } from './database/migrations/AddAiTutorGenerationJobLink';
+import { AllowSystemAiGenerationJobs20261125102000 } from './database/migrations/AllowSystemAiGenerationJobs';
+import { AddAiGenerationJobPriority20261125103000 } from './database/migrations/AddAiGenerationJobPriority';
+import { AddAiQueueEnqueuedAt20261125104000 } from './database/migrations/AddAiQueueEnqueuedAt';
 import { CreateBattleMatches20261122210000 } from './battle/database/CreateBattleMatches';
 import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBattleQuestions';
 
@@ -75,8 +82,14 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         CreateAuthEmailCodes20261124170000,
         AddTelegramIdentity20261124190000,
         AddAvatarImageSupport20261124230000,
+        CreateFeatureUsage20261124203000,
+        CreateAiGenerationJobs20261125100000,
+        AddAiTutorGenerationJobLink20261125101000,
+        AllowSystemAiGenerationJobs20261125102000,
+        AddAiGenerationJobPriority20261125103000,
+        AddAiQueueEnqueuedAt20261125104000,
       ],
-      migrationsRun: true,
+      migrationsRun: process.env.AI_WORKER_PROCESS !== 'true',
       migrationsTableName: 'typeorm_migrations',
     }),
     AiModule,
@@ -86,7 +99,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
     LearningModule,
     SubscriptionsModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {}

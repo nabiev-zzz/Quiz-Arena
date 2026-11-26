@@ -2,17 +2,23 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Post,
   Patch,
   Param,
   Request,
   UseGuards,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { LearningService } from './learning.service';
 import type { CreateLearningAttemptInput } from './learning.service';
 import { GetTopicQuestionsDto } from './dto/get-topic-questions.dto';
 import { SubmitWebLearningAttemptDto } from './dto/submit-web-learning-attempt.dto';
+import { AiGenerationQueueService } from '../ai/queue/ai-generation-queue.service';
 
 interface AuthenticatedRequest {
   user: { id: string };
@@ -21,11 +27,32 @@ interface AuthenticatedRequest {
 @Controller('api/learning')
 @UseGuards(JwtAuthGuard)
 export class LearningController {
-  constructor(private readonly learningService: LearningService) {}
+  constructor(
+    private readonly learningService: LearningService,
+    private readonly aiQueue: AiGenerationQueueService,
+  ) {}
 
   @Get('catalog')
   getCatalog() {
     return this.learningService.getCatalog();
+  }
+
+  @Post('smart-practice')
+  createSmartPractice(
+    @Request() request: AuthenticatedRequest,
+    @Body() body: { count?: string; language?: string },
+  ) {
+    return this.learningService.createSmartPractice(request.user.id, body);
+  }
+
+  @Post('document-quiz')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 15 * 1024 * 1024 } }))
+  createDocumentQuiz(
+    @Request() request: AuthenticatedRequest,
+    @UploadedFile() file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
+    @Body() body: { count?: string; difficulty?: string; language?: string },
+  ) {
+    return this.learningService.createDocumentQuiz(request.user.id, file, body);
   }
 
   @Post('web/questions')
@@ -45,8 +72,13 @@ export class LearningController {
   }
 
   @Post('questions')
-  getTopicQuestions(@Body() body: GetTopicQuestionsDto) {
-    return this.learningService.getTopicQuestions(body);
+  getTopicQuestions(@Request() request: AuthenticatedRequest, @Body() body: GetTopicQuestionsDto) {
+    return this.learningService.getTopicQuestions(body, false, request.user.id);
+  }
+
+  @Get('jobs/:jobId')
+  getAiJobStatus(@Request() request: AuthenticatedRequest, @Param('jobId') jobId: string) {
+    return this.aiQueue.getStatus(request.user.id, jobId);
   }
 
   @Get('attempts')

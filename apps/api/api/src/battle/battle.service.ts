@@ -101,16 +101,28 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {
-    this.redis = new Redis({
-      host: this.configService.get<string>('VALKEY_HOST') || '127.0.0.1',
-      port: Number(this.configService.get<string>('VALKEY_PORT') || 6379),
-      password:
-        this.configService.get<string>('VALKEY_PASSWORD') || undefined,
+    const redisUrl =
+      this.configService.get<string>('REDIS_URL') ||
+      this.configService.get<string>('VALKEY_URL');
+
+    const redisOptions = {
       lazyConnect: true,
       maxRetriesPerRequest: 2,
-      retryStrategy: (times) => Math.min(times * 1000, 5000),
+      retryStrategy: (times: number) => Math.min(times * 1000, 5000),
       enableReadyCheck: true,
-    });
+    };
+
+    // Railway and managed Redis providers commonly expose a single REDIS_URL.
+    // Keep host/port support for existing self-hosted deployments.
+    this.redis = redisUrl
+      ? new Redis(redisUrl, redisOptions)
+      : new Redis({
+          host: this.configService.get<string>('VALKEY_HOST') || '127.0.0.1',
+          port: Number(this.configService.get<string>('VALKEY_PORT') || 6379),
+          password:
+            this.configService.get<string>('VALKEY_PASSWORD') || undefined,
+          ...redisOptions,
+        });
 
     this.redis.on('error', (error) => {
       this.logger.error(`Valkey xatosi: ${error.message}`);
@@ -159,7 +171,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
       status: 'initialized',
       valkey,
       database: 'configured',
-      testSystem: 'independent',
+      testSystem: 'database-first-ai-assisted',
     };
   }
 

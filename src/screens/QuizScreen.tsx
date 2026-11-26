@@ -249,9 +249,9 @@ export default function QuizScreen({
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary} />
         <LocalizedText style={styles.loadingText}>
-          Mavzuning testlari yuklanmoqda...
+          Test tayyorlanmoqda...
         </LocalizedText>
-        <LocalizedText style={styles.muted}>Savollar umumiy testlar bazasidan olinadi</LocalizedText>
+        <LocalizedText style={styles.muted}>Tayyor savollar bazadan olinadi, yangi savollar esa AI navbatida yaratiladi.</LocalizedText>
       </View>
     );
   }

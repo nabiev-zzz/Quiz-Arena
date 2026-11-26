@@ -1,0 +1,62 @@
+name: Generate BullMQ lockfile
+
+on:
+  push:
+    branches:
+      - feat/premium-entitlements-feature-roadmap
+    paths:
+      - apps/api/api/package.json
+      - .github/workflows/generate-bullmq-lockfile.yml
+
+permissions:
+  contents: write
+
+jobs:
+  lock-and-validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api/api
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/premium-entitlements-feature-roadmap
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/api/api/package-lock.json
+      - name: Resolve BullMQ and update lockfile
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify clean install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Commit generated lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          if git diff --cached --quiet; then
+            echo "Lockfile already current."
+            exit 0
+          fi
+          git commit -m "chore(api): update lockfile for BullMQ"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin feat/premium-entitlements-feature-roadmap
+            git rebase origin/feat/premium-entitlements-feature-roadmap || {
+              git rebase --abort
+              echo "Rebase conflict while updating package lock."
+              exit 1
+            }
+            if git push origin HEAD:feat/premium-entitlements-feature-roadmap; then
+              exit 0
+            fi
+            echo "Branch advanced during push; retrying lockfile update ($attempt/5)."
+            sleep 2
+          done
+          echo "Could not push generated lockfile after five attempts."
+          exit 1
+      - name: Build API
+        run: npm run build
+      - name: Run AI queue and learning regression tests
+        run: npm test -- --runInBand src/ai/ai-tutor.service.spec.ts src/ai/queue/ai-generation-queue.service.spec.ts src/ai/queue/ai-generation.queue.integration.spec.ts src/learning/learning.service.spec.ts

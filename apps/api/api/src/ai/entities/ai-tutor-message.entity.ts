@@ -43,6 +43,9 @@ export class AiTutorMessage {
   })
   content: string;
 
+  @Column({ type: 'uuid', nullable: true })
+  generationJobId: string | null;
+
   @CreateDateColumn({
     type: 'timestamptz',
   })

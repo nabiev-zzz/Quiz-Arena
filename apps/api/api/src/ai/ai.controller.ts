@@ -3,16 +3,19 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Post,
+  Param,
   Request,
   UseGuards,
 } from '@nestjs/common';
 
-import { AiService } from './ai.service';
 import { AiTutorService } from './ai-tutor.service';
 import { GenerateQuestionsDto } from './dto/generate-questions.dto';
 import { AiTutorMessageDto } from './dto/ai-tutor-message.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AiGenerationQueueService } from './queue/ai-generation-queue.service';
 
 interface AuthenticatedRequest {
   user: {
@@ -23,15 +26,26 @@ interface AuthenticatedRequest {
 @Controller('api/ai')
 export class AiController {
   constructor(
-    private readonly aiService: AiService,
     private readonly aiTutorService: AiTutorService,
+    private readonly aiQueue: AiGenerationQueueService,
   ) {}
 
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.ACCEPTED)
   @Post('generate')
-  async generateQuestions(@Body() body: GenerateQuestionsDto) {
-    return {
-      questions: await this.aiService.generateQuestions(body),
-    };
+  async generateQuestions(@Request() request: AuthenticatedRequest, @Body() body: GenerateQuestionsDto) {
+    return this.aiQueue.enqueue({
+      userId: request.user.id,
+      jobType: 'ai_generate',
+      payload: body as unknown as Record<string, unknown>,
+      idempotencyKey: `generate:${JSON.stringify(body)}`,
+    });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('jobs/:jobId')
+  getAiJobStatus(@Request() request: AuthenticatedRequest, @Param('jobId') jobId: string) {
+    return this.aiQueue.getStatus(request.user.id, jobId);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -41,12 +55,13 @@ export class AiController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.ACCEPTED)
   @Post('tutor/chat')
   async sendTutorMessage(
     @Request() request: AuthenticatedRequest,
     @Body() body: AiTutorMessageDto,
   ) {
-    return this.aiTutorService.sendMessage(
+    return this.aiTutorService.enqueueMessage(
       request.user.id,
       body.message,
       body.language ?? 'uz',
