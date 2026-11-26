@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Socket } from 'socket.io-client';
@@ -36,7 +36,6 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
   const [chatLoading, setChatLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const socketRef = useRef<Socket | null>(null);
-  const messageListRef = useRef<ScrollView | null>(null);
 
   const loadConversations = useCallback(async () => {
     try { setConversations(await getDirectConversations()); }
@@ -167,11 +166,9 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
           </View>
           {chatLoading && messages.length === 0 ? <ActivityIndicator color={c.primary} style={{ flex: 1 }} /> : (
             <ScrollView
-              ref={messageListRef}
               style={styles.messageList}
               contentContainerStyle={styles.messageContent}
               keyboardShouldPersistTaps="handled"
-              onContentSizeChange={() => messageListRef.current?.scrollToEnd({ animated: true })}
             >
               {messages.length === 0 && (
                 <View style={styles.firstMessage}>
