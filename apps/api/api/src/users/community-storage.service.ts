@@ -44,11 +44,11 @@ export class CommunityStorageService {
     const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm' };
     const extension = extensions[contentType];
     if (!extension || !new RegExp(`^[a-f0-9-]{36}\\.${extension}$`, 'i').test(fileName)) throw new BadRequestException('Media fayl turi yoki nomi noto‘g‘ri');
-    const maxBytes = contentType.startsWith('video/') ? 50 * 1024 * 1024 : 8 * 1024 * 1024;
-    if (!buffer?.length || buffer.length > maxBytes) throw new BadRequestException(contentType.startsWith('video/') ? 'Video hajmi 50 MB dan oshmasin' : 'Rasm hajmi 8 MB dan oshmasin');
+    const maxBytes = contentType.startsWith('video/') ? 30 * 1024 * 1024 : 8 * 1024 * 1024;
+    if (!buffer?.length || buffer.length > maxBytes) throw new BadRequestException(contentType.startsWith('video/') ? 'Video hajmi 30 MB dan oshmasin' : 'Rasm hajmi 8 MB dan oshmasin');
     const key = `community/${userId}/${fileName}`;
-    const response = await fetch(this.sign('PUT', key, 600), { method: 'PUT', headers: { 'Content-Type': contentType }, body: new Uint8Array(buffer) });
-    if (!response.ok) throw new InternalServerErrorException('Rasmni saqlashda xatolik yuz berdi');
+    const response = await fetch(this.sign('PUT', key, 600), { method: 'PUT', headers: { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=31536000, immutable' }, body: new Uint8Array(buffer) });
+    if (!response.ok) throw new InternalServerErrorException('Media faylni saqlashda xatolik yuz berdi');
     return { mediaKey: key, mediaType: contentType };
   }
 }
