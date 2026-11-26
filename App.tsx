@@ -389,8 +389,6 @@ function AppContent() {
       return (
         <LearnScreen
           dockStretch={dockStretch}
-          onDocumentQuiz={() => setShowDocumentQuiz(true)}
-          onSmartPractice={() => setShowSmartPractice(true)}
           initialSubject={selectedSubject}
           onTopicSelect={(subject, topic) => {
             setSelectedSubject(subject);
