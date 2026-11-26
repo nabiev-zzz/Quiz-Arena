@@ -6,6 +6,7 @@ import { LocalizedText, LocalizedTextInput, showLocalizedAlert } from '../i18n/L
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import BookWingsAvatar from '../components/BookWingsAvatar';
+import LaurelWreathAvatar from '../components/LaurelWreathAvatar';
 
 export default function ProfileEditScreen({ onBack, onCollectionPress }: { onBack: () => void; onCollectionPress: () => void }) {
   const { user, updateProfile, refreshUser } = useAuth();
@@ -73,8 +74,8 @@ export default function ProfileEditScreen({ onBack, onCollectionPress }: { onBac
     </View>
     <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <View style={s.hero}><LocalizedText style={s.heroEyebrow}>ZELQEN CORE · PROFIL</LocalizedText>
-        <View style={[s.avatarWrap, user?.avatarDecoration === 'book_wings' && s.avatarWrapAnimated, frameStyle]}>
-          {user?.avatarDecoration === 'book_wings' ? <BookWingsAvatar size={124} imageUri={avatar} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} /> : <>
+        <View style={[s.avatarWrap, (user?.avatarDecoration === 'book_wings' || user?.avatarDecoration === 'laurel_wreath') && s.avatarWrapAnimated, frameStyle]}>
+          {user?.avatarDecoration === 'laurel_wreath' ? <LaurelWreathAvatar size={148} imageUri={avatar} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} /> : user?.avatarDecoration === 'book_wings' ? <BookWingsAvatar size={124} imageUri={avatar} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} /> : <>
             {avatar ? <Image source={{ uri: avatar }} style={s.avatar} /> : <LocalizedText style={s.initials}>{initials || 'U'}</LocalizedText>}
             {user?.avatarDecoration ? <View style={s.decoration}><Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={15} color="#F5D27A" /></View> : null}
           </>}
