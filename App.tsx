@@ -32,6 +32,7 @@ import DocumentQuizScreen from './src/screens/DocumentQuizScreen';
 import SmartPracticeScreen from './src/screens/SmartPracticeScreen';
 import QuizScreen from './src/screens/QuizScreen';
 import AiTutorScreen from './src/screens/AiTutorScreen';
+import SupportAssistantScreen from './src/screens/SupportAssistantScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ShopScreen from './src/screens/ShopScreen';
 import PublicProfileScreen from './src/screens/PublicProfileScreen';
@@ -144,6 +145,7 @@ function AppContent() {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSupportAssistant, setShowSupportAssistant] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
   const [showDocumentQuiz, setShowDocumentQuiz] = useState(false);
   const [showSmartPractice, setShowSmartPractice] = useState(false);
@@ -410,7 +412,7 @@ function AppContent() {
         return (
           <SettingsScreen
             onBack={() => setShowSettings(false)}
-            onHelp={() => { setShowSettings(false); setTab('tutor'); }}
+            onHelp={() => { setShowSettings(false); setShowSupportAssistant(true); }}
             dockStretch={dockStretch}
           />
         );
@@ -535,7 +537,9 @@ function AppContent() {
         />
       </View>
 
-      {showSmartPractice ? (
+      {showSupportAssistant ? (
+        <SupportAssistantScreen onBack={() => { setShowSupportAssistant(false); setShowSettings(true); }} bottomDockSpace={96} dockStretch={dockStretch} />
+      ) : showSmartPractice ? (
         <SmartPracticeScreen
           onBack={() => setShowSmartPractice(false)}
           language={language}
