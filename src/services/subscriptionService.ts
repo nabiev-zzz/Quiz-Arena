@@ -88,3 +88,17 @@ export interface FeatureUsageResult {
 
 export const consumePremiumFeature = (featureKey: MeteredFeature) =>
   request<FeatureUsageResult>(`/api/subscriptions/usage/${featureKey}`, { method: 'POST' });
+
+
+export interface QaTesterGrantResult {
+  username: string;
+  role: 'user';
+  zcBalance: number;
+  tier: 'legenda_plus';
+  planKey: string;
+  status: string;
+  expiresAt: string;
+}
+
+export const grantQaTester = () =>
+  request<QaTesterGrantResult>('/api/subscriptions/admin/qa-tester/grant', { method: 'POST' });
