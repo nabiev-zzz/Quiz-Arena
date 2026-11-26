@@ -843,4 +843,230 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
     const questions = questionIds.length
       ? await this.questionRepository.find({
           where: { id: In(questionIds) },
-          s
+          select: {
+            id: true,
+            question: true,
+            options: true,
+            correctAnswer: true,
+            explanation: true,
+          },
+        })
+      : [];
+    const questionMap = new Map(questions.map((question) => [question.id, question]));
+    const rankChanges = (match.rankChanges || {}) as Record<
+      string,
+      BattleRankChange
+    >;
+    const myRankChange = rankChanges[userId] || null;
+    const opponentId =
+      match.playerOneId === userId ? match.playerTwoId : match.playerOneId;
+
+    return {
+      id: match.id,
+      roomCode: match.roomCode,
+      mode: match.mode,
+      status: match.status,
+      result: !match.winnerId
+        ? 'draw'
+        : match.winnerId === userId
+          ? 'win'
+          : 'loss',
+      myScore: match.scores?.[userId] || 0,
+      opponentScore: opponentId ? match.scores?.[opponentId] || 0 : 0,
+      winnerId: match.winnerId,
+      startedAt: match.startedAt,
+      finishedAt: match.finishedAt,
+      rankChange: myRankChange,
+      questions: questionResults
+        .slice()
+        .sort((a, b) => a.questionIndex - b.questionIndex)
+        .map((item) => {
+          const question = questionMap.get(item.questionId);
+          const selectedAnswer = item.answers?.[userId] ?? null;
+          return {
+            index: item.questionIndex + 1,
+            question: item.question || question?.question || 'Savol matni mavjud emas',
+            options: item.options || question?.options || [],
+            selectedAnswer,
+            correctAnswer: item.correctAnswer ?? question?.correctAnswer ?? 0,
+            isCorrect:
+              selectedAnswer !== null &&
+              selectedAnswer === (question?.correctAnswer ?? item.correctAnswer),
+            points: item.points?.[userId] || 0,
+            explanation: item.explanation || question?.explanation || '',
+          };
+        }),
+    };
+  }
+
+  // Faqat yakunlangan janglar asosida shaxsiy statistika.
+  async getStats(userId: string) {
+    const matches = await this.matchRepository.find({
+      where: [
+        { playerOneId: userId, status: 'finished' },
+        { playerTwoId: userId, status: 'finished' },
+      ],
+      order: { finishedAt: 'DESC' },
+    });
+
+    let wins = 0;
+    let losses = 0;
+    let draws = 0;
+    let totalPoints = 0;
+
+    for (const match of matches) {
+      totalPoints += match.scores?.[userId] || 0;
+
+      if (!match.winnerId) {
+        draws++;
+      } else if (match.winnerId === userId) {
+        wins++;
+      } else {
+        losses++;
+      }
+    }
+
+    const total = matches.length;
+
+    return {
+      userId,
+      totalMatches: total,
+      wins,
+      losses,
+      draws,
+      totalPoints,
+      averagePoints:
+        total > 0 ? Math.round((totalPoints / total) * 100) / 100 : 0,
+      winRate: total > 0 ? Math.round((wins / total) * 10000) / 100 : 0,
+      recentMatches: matches.slice(0, 5).map((match) => ({
+        id: match.id,
+        mode: match.mode,
+        result: !match.winnerId
+          ? 'draw'
+          : match.winnerId === userId
+            ? 'win'
+            : 'loss',
+        myScore: match.scores?.[userId] || 0,
+        finishedAt: match.finishedAt,
+      })),
+    };
+  }
+
+  // Battle uchun alohida reyting.
+  async getLeaderboard(requestedLimit = 50) {
+    const limit = Math.min(Math.max(Number(requestedLimit) || 50, 1), 100);
+
+    const matches = await this.matchRepository.find({
+      where: {
+  status: 'finished',
+  mode: 'ranked',
+},
+      order: { finishedAt: 'DESC' },
+    });
+
+    const rankingMap = new Map<
+      string,
+      {
+        matches: number;
+        wins: number;
+        losses: number;
+        draws: number;
+        points: number;
+      }
+    >();
+
+    for (const match of matches) {
+      const playerIds = [
+        match.playerOneId,
+        match.playerTwoId,
+      ].filter((id): id is string => Boolean(id));
+
+      for (const playerId of playerIds) {
+        const current = rankingMap.get(playerId) || {
+          matches: 0,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          points: 0,
+        };
+
+        current.matches++;
+        current.points += match.scores?.[playerId] || 0;
+
+        if (!match.winnerId) {
+          current.draws++;
+        } else if (match.winnerId === playerId) {
+          current.wins++;
+        } else {
+          current.losses++;
+        }
+
+        rankingMap.set(playerId, current);
+      }
+    }
+
+    const playerIds = [...rankingMap.keys()];
+
+    if (playerIds.length === 0) {
+      return { total: 0, leaderboard: [] };
+    }
+
+    const users = await this.userRepository.find({
+      where: { id: In(playerIds) },
+      select: {
+        id: true,
+        displayName: true,
+        username: true,
+        avatarUrl: true,
+        rankPoints: true,
+      },
+    });
+
+    const userMap = new Map(users.map((user) => [user.id, user]));
+
+    const leaderboard: BattleRankingEntry[] = playerIds
+      .map((userId) => {
+        const user = userMap.get(userId);
+        const stats = rankingMap.get(userId)!;
+
+        if (!user) {
+          return null;
+        }
+
+        return {
+          userId,
+          displayName: user.displayName,
+          username: user.username,
+          avatarUrl: user.avatarUrl,
+          rankPoints: user.rankPoints ?? 0,
+          rankTier: getBattleRankTier(user.rankPoints ?? 0),
+          matches: stats.matches,
+          wins: stats.wins,
+          losses: stats.losses,
+          draws: stats.draws,
+          points: stats.points,
+          winRate:
+            stats.matches > 0
+              ? Math.round((stats.wins / stats.matches) * 10000) / 100
+              : 0,
+        };
+      })
+      .filter((entry): entry is BattleRankingEntry => entry !== null)
+      .sort(
+        (a, b) =>
+          b.rankPoints - a.rankPoints ||
+          b.wins - a.wins ||
+          b.winRate - a.winRate ||
+          b.points - a.points ||
+          b.matches - a.matches,
+      );
+
+    return {
+      total: leaderboard.length,
+      leaderboard: leaderboard.slice(0, limit).map((entry, index) => ({
+        rank: index + 1,
+        ...entry,
+      })),
+    };
+  }
+}

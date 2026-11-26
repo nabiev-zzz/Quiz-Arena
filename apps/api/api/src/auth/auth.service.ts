@@ -579,4 +579,97 @@ export class AuthService {
     const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
     if (!clientId) throw new ServiceUnavailableException('Google orqali kirish hali sozlanmagan');
 
-    const response = aw
+    const response = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+      { signal: AbortSignal.timeout(10_000) },
+    );
+    const claims = await response.json().catch(() => null) as
+      | { aud?: string; iss?: string; sub?: string; email?: string; email_verified?: string; name?: string; nonce?: string }
+      | null;
+
+    if (
+      !response.ok || !claims?.sub || claims.aud !== clientId ||
+      !['accounts.google.com', 'https://accounts.google.com'].includes(claims.iss ?? '') ||
+      claims.email_verified !== 'true' || !claims.email ||
+      (expectedNonce !== undefined && claims.nonce !== expectedNonce)
+    ) {
+      throw new UnauthorizedException('Google hisobini tasdiqlash amalga oshmadi');
+    }
+
+    const email = claims.email.trim().toLowerCase();
+    let user = await this.userRepository.findOne({ where: { googleSubject: claims.sub } });
+
+    if (!user) {
+      user = await this.userRepository.findOne({ where: { email } });
+      if (user) {
+        if (user.googleSubject && user.googleSubject !== claims.sub) {
+          throw new ConflictException('Bu email boshqa Google hisobiga bog‘langan');
+        }
+        user.googleSubject = claims.sub;
+      } else {
+        const base = (email.split('@')[0] || 'player').toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 20) || 'player';
+        let username = base;
+        while (await this.userRepository.findOne({ where: { username } })) {
+          username = `${base.slice(0, 18)}_${randomInt(10, 99)}`;
+        }
+        user = this.userRepository.create({
+          displayName: (claims.name || base).slice(0, 100),
+          username,
+          email,
+          googleSubject: claims.sub,
+          passwordHash: await bcrypt.hash(randomBytes(32).toString('hex'), 12),
+          role: 'user',
+          status: 'active',
+        });
+      }
+      user = await this.userRepository.save(user);
+    }
+
+    if (user.email && !user.emailVerifiedAt) {
+      user.emailVerifiedAt = new Date();
+      user = await this.userRepository.save(user);
+    }
+    if (user.status !== 'active') throw new UnauthorizedException('Hisobingiz bloklangan');
+    return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
+  }
+
+  private async ensureOwnerAccount(username: string) {
+    const configuredUsername = this.config.get<string>('OWNER_ACCOUNT_USERNAME')?.trim().toLowerCase();
+    const configuredPassword = this.config.get<string>('OWNER_ACCOUNT_PASSWORD');
+
+    if (!configuredUsername || !configuredPassword || username !== configuredUsername) return;
+    if (!/^[a-z0-9_]{3,30}$/.test(configuredUsername) || configuredPassword.length < 20) {
+      throw new ServiceUnavailableException('Owner account configuration is invalid');
+    }
+
+    const existing = await this.userRepository.findOne({ where: { username: configuredUsername } });
+    if (existing) return;
+
+    const passwordHash = await bcrypt.hash(configuredPassword, 12);
+    const owner = this.userRepository.create({
+      displayName: 'ZELQEN CORE Owner',
+      username: configuredUsername,
+      email: null,
+      passwordHash,
+      role: 'admin',
+      status: 'active',
+    });
+    await this.userRepository.save(owner);
+  }
+
+  async login(dto: LoginDto) {
+    const username = dto.username.trim().toLowerCase();
+    await this.ensureOwnerAccount(username);
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.username = :username', { username })
+      .getOne();
+
+    if (!user) throw new UnauthorizedException('Username yoki parol noto‘g‘ri');
+    const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!passwordMatches) throw new UnauthorizedException('Username yoki parol noto‘g‘ri');
+    if (user.status !== 'active') throw new UnauthorizedException('Hisobingiz bloklangan');
+    return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
+  }
+}
