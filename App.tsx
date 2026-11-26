@@ -442,6 +442,9 @@ function AppContent() {
               setDirectMessageReturnTo('__community__');
               setSelectedPublicUsername('__community_messages__');
             }}
+            onChallenges={() => { setSelectedPublicUsername(null); openTab('battle'); }}
+            onDailyTasks={() => { setSelectedPublicUsername(null); setShowDailyTasks(true); }}
+            onTutor={() => { setSelectedPublicUsername(null); openTab('tutor'); }}
             onUserPress={(username) => setSelectedPublicUsername(username)}
           />
         );

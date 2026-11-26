@@ -16,9 +16,15 @@ export class CommunityController {
   @Get('clips')
   clips(@Request() request: AuthRequest, @Query('limit') limit?: string) { return this.community.clips(request.user.id, Number(limit) || 30); }
   @Post('clips')
-  createClip(@Request() request: AuthRequest, @Body() body: { content?: string; mediaKey?: string; mediaType?: string }) {
-    return this.community.createClip(request.user.id, body?.content ?? '', body?.mediaKey ?? '', body?.mediaType ?? '');
+  createClip(@Request() request: AuthRequest, @Body() body: { content?: string; mediaKey?: string; mediaType?: string; subject?: string }) {
+    return this.community.createClip(request.user.id, body?.content ?? '', body?.mediaKey ?? '', body?.mediaType ?? '', body?.subject);
   }
+  @Get('clips/:id/quiz')
+  getClipQuiz(@Request() request: AuthRequest, @Param('id') id: string) { return this.community.getClipQuiz(request.user.id,id); }
+  @Post('clips/:id/quiz')
+  createClipQuiz(@Request() request: AuthRequest, @Param('id') id: string, @Body() body: { question?: string; options?: string[]; correctOption?: number }) { return this.community.createClipQuiz(request.user.id,id,body); }
+  @Post('clips/:id/quiz/answer')
+  answerClipQuiz(@Request() request: AuthRequest, @Param('id') id: string, @Body() body: { selectedOption?: number }) { return this.community.answerClipQuiz(request.user.id,id,body?.selectedOption); }
   @Get('posts')
   feed(@Request() request: AuthRequest, @Query('limit') limit?: string) { return this.community.feed(request.user.id, Number(limit) || 30); }
   @Post('posts')

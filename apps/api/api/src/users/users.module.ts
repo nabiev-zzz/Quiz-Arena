@@ -7,6 +7,8 @@ import { ZcTransaction } from './entities/zc-transaction.entity';
 import { ZcStoreItem } from './entities/zc-store-item.entity';
 import { UsersController } from './users.controller';
 import { CommunityController } from './community.controller';
+import { CommunityLearningController } from './community-learning.controller';
+import { CommunityLearningService } from './community-learning.service';
 import { CommunityService } from './community.service';
 import { CommunityPost } from './entities/community-post.entity';
 import { CommunityPostLike } from './entities/community-post-like.entity';
@@ -33,8 +35,8 @@ import { DirectMessagesGateway } from './direct-messages.gateway';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, UserFollow, ZcTransaction, ZcStoreItem, DailyTaskProgress, UserNotification, CommunityPost, CommunityPostLike, CommunityPostComment, CommunityStory, CommunityStoryView, DirectConversation, DirectMessage]), AuthModule],
-  controllers: [DirectMessagesController, CommunityController, UsersController, ZcWalletController, ZcStoreController, DailyTasksController, NotificationsController],
-  providers: [CommunityStorageService, CommunityService, UsersService, ZcWalletService, ZcStoreService, DailyTasksService, NotificationsService, DirectMessagesService, DirectMessagesGateway],
+  controllers: [DirectMessagesController, CommunityLearningController, CommunityController, UsersController, ZcWalletController, ZcStoreController, DailyTasksController, NotificationsController],
+  providers: [CommunityStorageService, CommunityLearningService, CommunityService, UsersService, ZcWalletService, ZcStoreService, DailyTasksService, NotificationsService, DirectMessagesService, DirectMessagesGateway],
   exports: [UsersService, ZcWalletService, ZcStoreService, DailyTasksService],
 })
 export class UsersModule {}

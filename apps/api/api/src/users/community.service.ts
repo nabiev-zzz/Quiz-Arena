@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CommunityPost } from './entities/community-post.entity';
 import { CommunityPostLike } from './entities/community-post-like.entity';
@@ -8,6 +8,7 @@ import { CommunityPostComment } from './entities/community-post-comment.entity';
 import { CommunityStory } from './entities/community-story.entity';
 import { CommunityStoryView } from './entities/community-story-view.entity';
 import { CommunityStorageService } from './community-storage.service';
+import { ZcWalletService } from './zc-wallet.service';
 
 @Injectable()
 export class CommunityService {
@@ -19,6 +20,8 @@ export class CommunityService {
     @InjectRepository(CommunityStory) private readonly stories: Repository<CommunityStory>,
     @InjectRepository(CommunityStoryView) private readonly storyViews: Repository<CommunityStoryView>,
     private readonly storage: CommunityStorageService,
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly wallet: ZcWalletService,
   ) {}
 
   private safePerson(user: User) {
@@ -33,9 +36,9 @@ export class CommunityService {
   }
 
   createUploadFileName(userId: string, contentType: string) {
-    const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm' };
+    const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm', 'application/pdf': 'pdf', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
     const extension = extensions[contentType];
-    if (!extension) throw new BadRequestException('JPG, PNG, WEBP rasmlari yoki MP4, MOV, WEBM videolar qabul qilinadi');
+    if (!extension) throw new BadRequestException('JPG, PNG, WEBP, PDF, Word, MP4, MOV yoki WEBM fayllar qabul qilinadi');
     const mediaKey = this.storage.createKey(userId, extension);
     return { fileName: mediaKey.split('/').pop(), mediaType: contentType, mediaKey, uploadUrl: this.storage.sign('PUT', mediaKey, 900) };
   }
@@ -113,13 +116,13 @@ export class CommunityService {
         this.mediaUrl(post.mediaKey),
       ]);
       return {
-        id: post.id, content: post.content, createdAt: post.createdAt, mediaUrl, mediaType: post.mediaType,
+        id: post.id, content: post.content, createdAt: post.createdAt, mediaUrl, mediaType: post.mediaType, subject: post.subject,
         author: this.safePerson(post.author), likesCount, commentsCount, isLiked: liked, isOwn: post.authorId === viewerId,
       };
     }));
   }
 
-  async createClip(authorId: string, rawContent: string, mediaKey: string, mediaType: string) {
+  async createClip(authorId: string, rawContent: string, mediaKey: string, mediaType: string, rawSubject?: string) {
     if (!mediaKey?.startsWith(`community/${authorId}/`) || !['video/mp4', 'video/quicktime', 'video/webm'].includes(mediaType)) {
       throw new BadRequestException('Faqat MP4, MOV yoki WEBM videolar qabul qilinadi');
     }
@@ -127,9 +130,10 @@ export class CommunityService {
     if (content.length > 2000) throw new BadRequestException('Video izohi 2000 belgidan oshmasin');
     const author = await this.users.findOne({ where: { id: authorId, status: 'active' } });
     if (!author) throw new NotFoundException('Foydalanuvchi topilmadi');
-    const post = await this.posts.save(this.posts.create({ authorId, content, mediaKey, mediaType }));
+    const subject = typeof rawSubject === 'string' ? rawSubject.trim().slice(0,60) : '';
+    const post = await this.posts.save(this.posts.create({ authorId, content, mediaKey, mediaType, subject: subject || null }));
     return {
-      id: post.id, content, createdAt: post.createdAt, mediaUrl: await this.mediaUrl(mediaKey), mediaType,
+      id: post.id, content, createdAt: post.createdAt, mediaUrl: await this.mediaUrl(mediaKey), mediaType, subject: post.subject,
       author: this.safePerson(author), likesCount: 0, commentsCount: 0, isLiked: false, isOwn: true,
     };
   }
@@ -220,5 +224,56 @@ export class CommunityService {
     if (!author) throw new NotFoundException('Foydalanuvchi topilmadi');
     const comment = await this.comments.save(this.comments.create({ postId, authorId, content }));
     return { id: comment.id, content: comment.content, createdAt: comment.createdAt, author: this.safePerson(author) };
+  }
+
+  async getClipQuiz(viewerId:string,postId:string) {
+    const [quiz]=await this.dataSource.query(`SELECT q.id,q.author_id,q.correct_option,q.question,q.option_a,q.option_b,q.option_c,q.option_d FROM community_clip_quizzes q JOIN community_posts p ON p.id=q.post_id WHERE q.post_id=$1 AND p.status='active' AND p."mediaType" LIKE 'video/%'`,[postId]);
+    if(!quiz) return null;
+    const [attempt]=await this.dataSource.query('SELECT selected_option,is_correct FROM community_clip_quiz_attempts WHERE quiz_id=$1 AND user_id=$2',[quiz.id,viewerId]);
+    const [count]=await this.dataSource.query('SELECT COUNT(*)::int AS attempts_count FROM community_clip_quiz_attempts WHERE quiz_id=$1',[quiz.id]);
+    const isOwner=quiz.author_id===viewerId;
+    return {id:quiz.id,question:quiz.question,options:[quiz.option_a,quiz.option_b,quiz.option_c,quiz.option_d],attempted:Boolean(attempt),selectedOption:attempt?Number(attempt.selected_option):null,isCorrect:attempt?Boolean(attempt.is_correct):null,isOwner,canEdit:isOwner&&Number(count.attempts_count)===0,correctOption:isOwner?Number(quiz.correct_option):undefined};
+  }
+
+  async createClipQuiz(authorId:string,postId:string,input:{question?:string;options?:string[];correctOption?:number}) {
+    const question=typeof input.question==='string'?input.question.trim():'';
+    const options=Array.isArray(input.options)?input.options.map(value=>typeof value==='string'?value.trim():''):[];
+    const correct=Number(input.correctOption);
+    if(!question||question.length>400||options.length!==4||options.some(value=>!value||value.length>240)||!Number.isInteger(correct)||correct<0||correct>3) throw new BadRequestException('Savol va 4 ta javob variantini to‘liq kiriting');
+    return this.dataSource.transaction(async manager=>{
+      const [post]=await manager.query(`SELECT id FROM community_posts WHERE id=$1 AND "authorId"=$2 AND status='active' AND "mediaType" LIKE 'video/%' FOR UPDATE`,[postId,authorId]);
+      if(!post) throw new NotFoundException('Video topilmadi yoki sizga tegishli emas');
+      const [existing]=await manager.query('SELECT id FROM community_clip_quizzes WHERE post_id=$1 FOR UPDATE',[postId]);
+      let quiz:any;
+      if(existing){
+        const [attempts]=await manager.query('SELECT COUNT(*)::int AS total FROM community_clip_quiz_attempts WHERE quiz_id=$1',[existing.id]);
+        if(Number(attempts.total)>0) throw new BadRequestException('Birinchi javob yuborilgach mini-testni o‘zgartirib bo‘lmaydi');
+        [quiz]=await manager.query('UPDATE community_clip_quizzes SET question=$1,option_a=$2,option_b=$3,option_c=$4,option_d=$5,correct_option=$6 WHERE id=$7 RETURNING id,question,option_a,option_b,option_c,option_d',[question,...options,correct,existing.id]);
+      } else {
+        [quiz]=await manager.query('INSERT INTO community_clip_quizzes(post_id,author_id,question,option_a,option_b,option_c,option_d,correct_option) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,question,option_a,option_b,option_c,option_d',[postId,authorId,question,...options,correct]);
+      }
+      return {id:quiz.id,question:quiz.question,options:[quiz.option_a,quiz.option_b,quiz.option_c,quiz.option_d]};
+    });
+  }
+
+  async answerClipQuiz(userId:string,postId:string,selectedValue:unknown) {
+    const selected=Number(selectedValue);
+    if(!Number.isInteger(selected)||selected<0||selected>3) throw new BadRequestException('Javob variantini tanlang');
+    const result=await this.dataSource.transaction(async manager=>{
+      const [quiz]=await manager.query('SELECT id,author_id,correct_option FROM community_clip_quizzes WHERE post_id=$1 FOR UPDATE',[postId]);
+      if(!quiz) throw new NotFoundException('Bu videoda mini-test yo‘q');
+      if(quiz.author_id===userId) throw new BadRequestException('O‘zingiz yaratgan mini-testni yecha olmaysiz');
+      const isCorrect=Number(quiz.correct_option)===selected;
+      const [attempt]=await manager.query('INSERT INTO community_clip_quiz_attempts(quiz_id,user_id,selected_option,is_correct) VALUES($1,$2,$3,$4) ON CONFLICT(quiz_id,user_id) DO NOTHING RETURNING id',[quiz.id,userId,selected,isCorrect]);
+      if(!attempt){
+        const [previous]=await manager.query('SELECT is_correct FROM community_clip_quiz_attempts WHERE quiz_id=$1 AND user_id=$2',[quiz.id,userId]);
+        if(!previous) throw new BadRequestException('Bu mini-testga javob qabul qilinmadi');
+        return {quizId:quiz.id,isCorrect:Boolean(previous.is_correct),awarded:Boolean(previous.is_correct),newAttempt:false};
+      }
+      if(isCorrect) await manager.query('UPDATE users SET xp=xp+5,level=GREATEST(1,FLOOR((xp+5)/100.0)::int+1) WHERE id=$1',[userId]);
+      return {quizId:quiz.id,isCorrect,awarded:isCorrect,newAttempt:true};
+    });
+    if(result.awarded) await this.wallet.credit(userId,2,'Lavha mini-testini to‘g‘ri yechish',`community-clip-quiz:${result.quizId}:${userId}`);
+    return {isCorrect:result.isCorrect,xpAwarded:result.newAttempt&&result.awarded?5:0,zcAwarded:result.awarded?2:0};
   }
 }

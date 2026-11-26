@@ -20,6 +20,7 @@ import { AddUserZcBalance20261125230000 } from './database/migrations/AddUserZcB
 import { CreateZcTransactions20261126010000 } from './database/migrations/CreateZcTransactions';
 import { CreateUserNotifications20261126150000 } from './database/migrations/CreateUserNotifications';
 import { CreateCommunitySocial20261126180000 } from './database/migrations/CreateCommunitySocial';
+import { CreateCommunityLearningHub20261126210000 } from './database/migrations/CreateCommunityLearningHub';
 import { AddCommunityMediaAndStories20261126190000 } from './database/migrations/AddCommunityMediaAndStories';
 import { CreateDirectMessages20261126200000 } from './database/migrations/CreateDirectMessages';
 import { CreateZcStoreItems20261126020000 } from './database/migrations/CreateZcStoreItems';
@@ -70,6 +71,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         CreateZcTransactions20261126010000,
         CreateUserNotifications20261126150000,
         CreateCommunitySocial20261126180000,
+        CreateCommunityLearningHub20261126210000,
         AddCommunityMediaAndStories20261126190000,
         CreateDirectMessages20261126200000,
         CreateZcStoreItems20261126020000,

@@ -6,7 +6,7 @@ import { RedisIoAdapter } from './battle/redis-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
-  app.use(raw({ type: ['image/*', 'video/*'], limit: '50mb' }));
+  app.use(raw({ type: ['image/*', 'video/*', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'], limit: '50mb' }));
   app.use(json({ limit: '1mb' }));
   app.use(urlencoded({ extended: true, limit: '1mb' }));
 
