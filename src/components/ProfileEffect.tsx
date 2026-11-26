@@ -54,7 +54,7 @@ export default function ProfileEffect({ value, style, children, variant = 'hero'
 }
 const styles = StyleSheet.create({
   root: { position: 'relative', alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
-  avatar: { width: 154, height: 154 },
+  avatar: { width: 218, height: 218 },
   compact: { width: 56, height: 56 },
   effects: { ...StyleSheet.absoluteFill, zIndex: 0, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
   halo: { position: 'absolute', width: '82%', height: '82%', borderRadius: 999, borderWidth: 1.5, shadowOpacity: 0.9, shadowRadius: 25, shadowOffset: { width: 0, height: 0 }, elevation: 10 },
