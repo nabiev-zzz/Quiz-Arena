@@ -28,7 +28,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { subjects as learningSubjects } from './src/data/subjects';
 import { getDailyTasks, claimDailyTask, type DailyTask } from './src/services/dailyTasksService';
-import { getNotifications } from './src/services/notificationsService';
+import { getNotifications, markNotificationRead } from './src/services/notificationsService';
 
 import LearnScreen from './src/screens/LearnScreen';
 import DailyTasksScreen from './src/screens/DailyTasksScreen';
@@ -178,6 +178,7 @@ function AppContent() {
         if (fresh.length) {
           const latest = fresh.slice(0, 3);
           Alert.alert(latest.length === 1 ? latest[0].title : 'Yangi bildirishnomalar', latest.map(item => `${item.title}\n${item.body}`).join('\n\n'));
+          await Promise.all(latest.map(item => markNotificationRead(item.id).catch(() => undefined)));
         }
       } catch { /* Notification polling must never block normal app use. */ }
     };
