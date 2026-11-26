@@ -35,8 +35,8 @@ export class DirectMessagesGateway implements OnGatewayConnection, OnGatewayDisc
 
   notifyMessage(senderId: string, recipientId: string, message: unknown) {
     if (!this.server) return;
-    this.server.to(`user:${senderId}`).emit('direct:message', message);
-    this.server.to(`user:${recipientId}`).emit('direct:message', message);
+    this.server.to(`user:${senderId}`).emit('direct:message', { ...(message as Record<string, unknown>), isMine: true });
+    this.server.to(`user:${recipientId}`).emit('direct:message', { ...(message as Record<string, unknown>), isMine: false });
   }
 
   notifyRead(recipientId: string, conversationId: string) {
