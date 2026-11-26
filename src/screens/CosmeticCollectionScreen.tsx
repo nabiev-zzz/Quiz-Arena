@@ -7,6 +7,7 @@ import { useTheme } from '../theme/ThemeContext';
 import BookWingsAvatar from '../components/BookWingsAvatar';
 import LaurelWreathAvatar from '../components/LaurelWreathAvatar';
 import AnimatedBadge from '../components/AnimatedBadge';
+import ProfileEffect from '../components/ProfileEffect';
 import { getZcStoreCatalog, type ZcStoreProduct } from '../services/zcStoreService';
 
 type Kind = 'frame' | 'badge' | 'decoration';
@@ -93,7 +94,7 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
       <View style={styles.previewCard}>
         <View style={styles.previewGlow} />
         <View style={styles.previewTop}><Ionicons name="eye-outline" size={16} color={c.primary} /><LocalizedText style={styles.previewTitle}>PROFILDA QANDAY KO‘RINADI</LocalizedText><View style={{ flex: 1 }} /><LocalizedText style={styles.live}>JONLI KO‘RINISH</LocalizedText></View>
-        <View style={styles.profilePreview}>
+        <ProfileEffect value={selection.frame} style={styles.profilePreview}>
           {selection.decoration === 'laurel_wreath' ? (
             <LaurelWreathAvatar size={148} imageUri={user?.avatarUrl} initials={initials || 'U'} frameColor={selection.frame === 'aurora' ? '#A78BFA' : selection.frame === 'royal' ? '#F2CE73' : selection.frame === 'ocean' ? '#60A5FA' : selection.frame === 'neon3d' ? '#E9D5FF' : selection.frame === 'inferno3d' ? '#FED7AA' : selection.frame === 'frost3d' ? '#BAE6FD' : selection.frame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
           ) : selection.decoration === 'book_wings' ? (
@@ -107,7 +108,7 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
           <LocalizedText style={styles.displayName}>{user?.displayName ?? 'Foydalanuvchi'}</LocalizedText>
           <LocalizedText style={styles.username}>@{user?.username ?? 'username'}</LocalizedText>
           {selection.badge ? <View style={styles.badge}><AnimatedBadge value={selection.badge} size={46} /><LocalizedText style={styles.badgeText}>{BADGE_NAMES[selection.badge] ?? selection.badge.toUpperCase()}</LocalizedText></View> : null}
-        </View>
+        </ProfileEffect>
         <View style={styles.previewFooter}><LocalizedText style={styles.previewFooterLabel}>Tanlanayotgan: </LocalizedText><LocalizedText style={styles.previewFooterValue}>{selectedLabel}</LocalizedText></View>
       </View>
       <View style={styles.tabs}>{TABS.map((tab) => <Pressable key={tab.id} onPress={() => setKind(tab.id)} style={({ pressed }) => [styles.tab, kind === tab.id && styles.tabActive, pressed && styles.controlPressed]}><Ionicons name={tab.icon} size={16} color={kind === tab.id ? '#FFFFFF' : c.textMuted} /><LocalizedText style={[styles.tabText, kind === tab.id && styles.tabTextActive]}>{tab.label}</LocalizedText></Pressable>)}</View>
