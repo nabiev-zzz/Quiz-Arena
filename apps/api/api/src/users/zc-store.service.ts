@@ -25,6 +25,10 @@ const PRODUCTS: StoreProduct[] = [
   { id: 'badge_champion', name: 'Champion nishoni', description: 'G‘oliblar uchun oltin chempion belgisi', kind: 'badge', value: 'champion', price: 550 },
   { id: 'badge_scholar', name: 'Scholar nishoni', description: 'Bilim va izlanish ramzi', kind: 'badge', value: 'scholar', price: 350 },
   { id: 'badge_streak', name: 'Streak nishoni', description: 'Doimiy faollik uchun olov belgisi', kind: 'badge', value: 'streak', price: 300 },
+  { id: 'badge_mythic', name: 'Mythic kristall nishoni', description: 'Binafsha ametist, hajmli kristall va sirli nur animatsiyasi', kind: 'badge', value: 'mythic', price: 950 },
+  { id: 'badge_phoenix', name: 'Phoenix nishoni', description: 'Olovli feniks kuchi va jonli alangali metall medal', kind: 'badge', value: 'phoenix', price: 1100 },
+  { id: 'badge_cyber', name: 'Cyber core nishoni', description: 'Neon moviy texno medal va aylanuvchi energiya halqasi', kind: 'badge', value: 'cyber', price: 1050 },
+  { id: 'badge_celestial', name: 'Celestial nishoni', description: 'Yulduzli kosmik medal, mayin pushti nur va yaltirash', kind: 'badge', value: 'celestial', price: 1250 },
 ];
 
 @Injectable()
