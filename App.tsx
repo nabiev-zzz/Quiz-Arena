@@ -46,6 +46,7 @@ import ProfileEditScreen from './src/screens/ProfileEditScreen';
 import PublicProfileScreen from './src/screens/PublicProfileScreen';
 import DiscoverUsersScreen from './src/screens/DiscoverUsersScreen';
 import CommunityScreen from './src/screens/CommunityScreen';
+import DirectMessagesScreen from './src/screens/DirectMessagesScreen';
 import BattleScreen from './src/screens/BattleScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import PremiumScreen from './src/screens/PremiumScreen';
@@ -154,6 +155,8 @@ function AppContent() {
   const [showShop, setShowShop] = useState(false);
   const [showQaAdmin, setShowQaAdmin] = useState(false);
   const [selectedPublicUsername, setSelectedPublicUsername] = useState<string | null>(null);
+  const [directMessageTargetId, setDirectMessageTargetId] = useState<string | null>(null);
+  const [directMessageReturnTo, setDirectMessageReturnTo] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -416,11 +419,29 @@ function AppContent() {
     }
 
     if (tab === 'profile') {
+      if (selectedPublicUsername === '__community_messages__') {
+        return (
+          <DirectMessagesScreen
+            initialUserId={directMessageTargetId}
+            onBack={() => {
+              setSelectedPublicUsername(directMessageReturnTo);
+              setDirectMessageTargetId(null);
+              setDirectMessageReturnTo(null);
+            }}
+          />
+        );
+      }
+
       if (selectedPublicUsername === '__community__') {
         return (
           <CommunityScreen
             onBack={() => setSelectedPublicUsername(null)}
             onDiscoverUsers={() => setSelectedPublicUsername('__community_discover__')}
+            onMessages={() => {
+              setDirectMessageTargetId(null);
+              setDirectMessageReturnTo('__community__');
+              setSelectedPublicUsername('__community_messages__');
+            }}
             onUserPress={(username) => setSelectedPublicUsername(username)}
           />
         );
@@ -449,6 +470,11 @@ function AppContent() {
           <PublicProfileScreen
             username={selectedPublicUsername}
             onBack={() => setSelectedPublicUsername(null)}
+            onMessagePress={(userId) => {
+              setDirectMessageTargetId(userId);
+              setDirectMessageReturnTo(selectedPublicUsername);
+              setSelectedPublicUsername('__community_messages__');
+            }}
           />
         );
       }
