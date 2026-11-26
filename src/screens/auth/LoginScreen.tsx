@@ -137,7 +137,7 @@ export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, o
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 22, paddingVertical: 28 },
+    content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 32 },
     brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 30 },
     brandMark: { width: 42, height: 42, borderRadius: 15, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
     brandMarkText: { color: '#FFFFFF', fontSize: 23, fontWeight: '800' },
@@ -147,10 +147,10 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     eyebrow: { color: colors.primary, fontSize: 9, fontWeight: '800', letterSpacing: 1.5, marginBottom: 10 },
     title: { color: colors.text, fontSize: 29, fontWeight: '800', letterSpacing: -0.7 },
     subtitle: { color: colors.textMuted, fontSize: 14, marginTop: 8, lineHeight: 21 },
-    formCard: { backgroundColor: colors.surfaceGlass, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: 26, padding: 18 },
+    formCard: { backgroundColor: colors.surfaceGlass, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: 28, padding: 22 },
     label: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', marginBottom: 8, marginTop: 13 },
-    input: { height: 52, borderRadius: 15, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 15, color: colors.text, fontSize: 15 },
-    button: { height: 52, backgroundColor: colors.primary, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 22 },
+    input: { height: 56, borderRadius: 17, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 15, color: colors.text, fontSize: 15 },
+    button: { height: 56, backgroundColor: colors.primary, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: 22 },
     disabled: { opacity: 0.55 },
     buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
     googleButton: { height: 50, borderRadius: 15, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center', marginTop: 11 },
