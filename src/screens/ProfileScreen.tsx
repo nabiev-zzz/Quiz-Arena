@@ -285,9 +285,9 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
           <ProfileEffect value={user.profileFrame} variant="hero" style={styles.avatarEffectStage}>
           <View style={[styles.avatarWrap, user.avatarDecoration === 'laurel_wreath' && styles.avatarWrapLaurel]}>
             {user.avatarDecoration === 'laurel_wreath' ? (
-              <LaurelWreathAvatar size={200} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
+              <LaurelWreathAvatar size={116} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
             ) : user.avatarDecoration === 'book_wings' ? (
-              <BookWingsAvatar size={180} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
+              <BookWingsAvatar size={116} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
             ) : (
             <View style={[styles.avatarFrame, user.profileFrame === 'aurora' && styles.frameAurora, user.profileFrame === 'royal' && styles.frameRoyal, user.profileFrame === 'ocean' && styles.frameOcean, user.profileFrame === 'neon3d' && styles.frameNeon3d, user.profileFrame === 'inferno3d' && styles.frameInferno3d, user.profileFrame === 'frost3d' && styles.frameFrost3d, user.profileFrame === 'galaxy3d' && styles.frameGalaxy3d]}>
               {avatarUri ? <Image source={{ uri: avatarUri }} style={styles.avatar} /> : <View style={styles.avatarFallback}><LocalizedText style={styles.avatarInitials}>{initials || '?'}</LocalizedText></View>}
@@ -299,16 +299,17 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
             </Pressable>
           </View>
           </ProfileEffect>
-          <View style={styles.nameRow}>
-            <LocalizedText style={styles.displayName} numberOfLines={1}>{user.displayName}</LocalizedText>
-            <Ionicons name="chevron-down" size={17} color={C.muted} />
-          </View>
-          <Pressable style={styles.handleRow} onPress={copyUsername}>
-            <LocalizedText style={styles.handle}>@{user.username}</LocalizedText>
-            <Ionicons name="copy-outline" size={13} color={C.subtle} />
-          </Pressable>
-          <View style={styles.badges}>
-            {user.profileBadge ? <View style={styles.profileBadgeChip}><AnimatedBadge value={user.profileBadge} size={34} /><LocalizedText style={styles.profileBadgeText}>{user.profileBadge.toUpperCase()}</LocalizedText></View> : <LocalizedText style={styles.cardSubtitle}>Profil nishoni hali tanlanmagan</LocalizedText>}
+          <View style={styles.identityInfo}>
+            <View style={styles.nameRow}>
+              <LocalizedText style={styles.displayName} numberOfLines={2}>{user.displayName}</LocalizedText>
+            </View>
+            <Pressable style={styles.handleRow} onPress={copyUsername}>
+              <LocalizedText style={styles.handle}>@{user.username}</LocalizedText>
+              <Ionicons name="copy-outline" size={13} color={C.subtle} />
+            </Pressable>
+            <View style={styles.badges}>
+              {user.profileBadge ? <View style={styles.profileBadgeChip}><AnimatedBadge value={user.profileBadge} size={34} /><LocalizedText style={styles.profileBadgeText}>{user.profileBadge.toUpperCase()}</LocalizedText></View> : <LocalizedText style={styles.cardSubtitle}>Profil nishoni hali tanlanmagan</LocalizedText>}
+            </View>
           </View>
         </View>
 
@@ -680,14 +681,15 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     container: { flex: 1, backgroundColor: 'transparent' },
     content: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 132 },
     loading: { flex: 1, backgroundColor: C.background, justifyContent: 'center', alignItems: 'center' },
-    header: { height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+    header: { height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
     headerButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { color: C.muted, fontSize: 11, fontWeight: '800', letterSpacing: 2 },
-    identity: { alignItems: 'flex-start', paddingTop: 8, paddingBottom: 19, marginLeft: -24 },
-    avatarEffectStage: { width: 236, height: 236, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
-    avatarWrap: { width: 200, height: 200, alignItems: 'center', justifyContent: 'center' },
-    avatarWrapLaurel: { width: 200, height: 200 },
-    avatarFrame: { width: 188, height: 188, borderRadius: 94, padding: 4, backgroundColor: C.purple, borderWidth: 2, borderColor: '#8B68E5' },
+    identity: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingTop: 8, paddingBottom: 19, marginLeft: 0 },
+    avatarEffectStage: { width: 142, height: 142, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    identityInfo: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 2 },
+    avatarWrap: { width: 116, height: 116, alignItems: 'center', justifyContent: 'center' },
+    avatarWrapLaurel: { width: 116, height: 116 },
+    avatarFrame: { width: 108, height: 108, borderRadius: 54, padding: 3, backgroundColor: C.purple, borderWidth: 2, borderColor: '#8B68E5' },
     frameAurora: { backgroundColor: '#8B72E8' },
     frameRoyal: { backgroundColor: '#D7A93F' },
     frameOcean: { backgroundColor: '#4D9FC8' },
@@ -727,22 +729,22 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     cameraButton: { position: 'absolute', right: 4, bottom: 5, width: 39, height: 39, borderRadius: 20, backgroundColor: C.purple, borderWidth: 3, borderColor: C.background, alignItems: 'center', justifyContent: 'center' },
     decoration: { position: 'absolute', top: 2, left: 1, width: 27, height: 27, borderRadius: 14, backgroundColor: C.surfaceRaised, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '100%' },
-    displayName: { color: C.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, maxWidth: '90%' },
+    displayName: { color: C.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.5, maxWidth: '90%' },
     handleRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 5 },
     handle: { color: C.muted, fontSize: 13 },
-    badges: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 11 },
+    badges: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 7 },
     editButton: { height: 48, borderRadius: 14, backgroundColor: C.purple, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 16 },
     editButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-    tabs: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 3, padding: 4, borderRadius: 15, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, marginBottom: 17 },
+    tabs: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 3, padding: 4, borderRadius: 13, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, marginBottom: 17 },
     tab: { flex: 1, minHeight: 38, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderRadius: 11 },
-    tabActive: { backgroundColor: C.purpleSoft },
+    tabActive: { backgroundColor: C.purple, },
     tabText: { color: C.subtle, fontSize: 11, fontWeight: '700' },
-    tabTextActive: { color: C.text, fontWeight: '900' },
+    tabTextActive: { color: '#FFFFFF', fontWeight: '900' },
     tabUnderline: { height: 0, width: 0 },
-    card: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 19, padding: 15, marginBottom: 11 },
+    card: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 17, padding: 15, marginBottom: 9 },
     premiumCard: { borderColor: '#49306F' },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 46 },
-    iconTile: { width: 42, height: 42, borderRadius: 13, backgroundColor: C.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+    iconTile: { width: 42, height: 42, borderRadius: 13, backgroundColor: 'rgba(59,145,245,0.14)', alignItems: 'center', justifyContent: 'center' },
     rowBody: { flex: 1, minWidth: 0 },
     cardTitle: { color: C.text, fontSize: 14, fontWeight: '700' },
     cardSubtitle: { color: C.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
