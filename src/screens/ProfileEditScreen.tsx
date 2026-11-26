@@ -33,7 +33,7 @@ export default function ProfileEditScreen({ onBack, onCollectionPress }: { onBac
     } catch (error) { showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Rasm tanlanmadi.'); }
   };
   const save = async () => {
-    if (!user || saving) return;
+    if (!user || saving || !hasChanges) return;
     if (name.trim().length < 2) { showLocalizedAlert('Xatolik', 'Ism kamida 2 ta belgidan iborat bo‘lsin.'); return; }
     if (!/^[a-zA-Z0-9_]{3,30}$/.test(username.trim())) { showLocalizedAlert('Xatolik', 'Username 3–30 belgi bo‘lsin. Faqat harf, raqam va _ ishlating.'); return; }
     setSaving(true);
@@ -43,19 +43,42 @@ export default function ProfileEditScreen({ onBack, onCollectionPress }: { onBac
     } catch (error) { showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Profilni saqlab bo‘lmadi.'); }
     finally { setSaving(false); }
   };
-  const initials = name.trim().split(/\s+/).slice(0, 2).map(part => part[0]?.toUpperCase()).join('');
+  const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]?.toUpperCase()).join('');
+  const hasChanges = Boolean(user) && (
+    name.trim() !== (user?.displayName ?? '') ||
+    username.trim() !== (user?.username ?? '') ||
+    bio.trim() !== (user?.bio ?? '') ||
+    avatar !== (user?.avatarUrl ?? null)
+  );
+  const frameStyle = user?.profileFrame === 'aurora' ? s.frameAurora
+    : user?.profileFrame === 'royal' ? s.frameRoyal
+    : user?.profileFrame === 'ocean' ? s.frameOcean
+    : user?.profileFrame === 'neon3d' ? s.frameNeon3d
+    : user?.profileFrame === 'inferno3d' ? s.frameInferno3d
+    : user?.profileFrame === 'frost3d' ? s.frameFrost3d
+    : user?.profileFrame === 'galaxy3d' ? s.frameGalaxy3d : null;
+  const requestBack = () => {
+    if (!hasChanges) { onBack(); return; }
+    showLocalizedAlert('Saqlanmagan o‘zgarishlar', 'Kiritgan ma’lumotlaringiz saqlanmagan. Sahifadan chiqishni xohlaysizmi?', [
+      { text: 'Qolish', style: 'cancel' },
+      { text: 'Chiqish', style: 'destructive', onPress: onBack },
+    ]);
+  };
   return <View style={s.screen}>
     <View style={s.header}>
-      <Pressable onPress={onBack} style={s.back}><Ionicons name="arrow-back" size={22} color={c.text} /></Pressable>
+      <Pressable onPress={requestBack} style={({ pressed }) => [s.back, pressed && s.pressed]}><Ionicons name="arrow-back" size={22} color={c.text} /></Pressable>
       <View style={{ flex: 1 }}><LocalizedText style={s.eyebrow}>SHAXSIY MA’LUMOTLAR</LocalizedText><LocalizedText style={s.title}>Profilni tahrirlash</LocalizedText></View>
       <View style={s.headerIcon}><Ionicons name="person-circle-outline" size={23} color={c.primary} /></View>
     </View>
     <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       <View style={s.hero}><LocalizedText style={s.heroEyebrow}>ZELQEN CORE · PROFIL</LocalizedText>
-        <View style={s.avatarWrap}>{avatar ? <Image source={{ uri: avatar }} style={s.avatar} /> : <LocalizedText style={s.initials}>{initials || 'U'}</LocalizedText>}
-          <Pressable onPress={() => void pickAvatar()} style={s.camera}><Ionicons name="camera" size={17} color="#FFFFFF" /></Pressable>
+        <View style={[s.avatarWrap, frameStyle]}>{avatar ? <Image source={{ uri: avatar }} style={s.avatar} /> : <LocalizedText style={s.initials}>{initials || 'U'}</LocalizedText>}
+          {user?.avatarDecoration ? <View style={s.decoration}><Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={15} color="#F5D27A" /></View> : null}
+          <Pressable onPress={() => void pickAvatar()} style={({ pressed }) => [s.camera, pressed && s.pressed]}><Ionicons name="camera" size={17} color="#FFFFFF" /></Pressable>
         </View>
         <LocalizedText style={s.heroName}>{name || 'Ismingiz'}</LocalizedText><LocalizedText style={s.heroUsername}>@{username || 'username'}</LocalizedText>
+        {bio.trim() ? <LocalizedText style={s.heroBio} numberOfLines={2}>{bio.trim()}</LocalizedText> : null}
+        {user?.profileBadge ? <View style={s.profileBadge}><Ionicons name={user.profileBadge === 'legend' ? 'ribbon' : user.profileBadge === 'champion' ? 'trophy' : user.profileBadge === 'scholar' ? 'book' : 'flame'} size={14} color="#F5D27A" /><LocalizedText style={s.profileBadgeText}>{user.profileBadge.toUpperCase()}</LocalizedText></View> : null}
         <LocalizedText style={s.heroHint}>Profilingiz boshqalarga shunday ko‘rinadi</LocalizedText>
       </View>
       <View style={s.sectionHeading}><LocalizedText style={s.sectionTitle}>Asosiy ma’lumotlar</LocalizedText><LocalizedText style={s.caption}>Istalgan vaqtda yangilashingiz mumkin</LocalizedText></View>
@@ -70,13 +93,14 @@ export default function ProfileEditScreen({ onBack, onCollectionPress }: { onBac
         <LocalizedText style={s.counter}>{bio.length}/500</LocalizedText>
       </View>
       <View style={s.sectionHeading}><LocalizedText style={s.sectionTitle}>Profil bezaklari</LocalizedText><LocalizedText style={s.caption}>Sotib olgan buyumlaringizni boshqaring</LocalizedText></View>
-      <Pressable onPress={onCollectionPress} style={s.collection}>
+      <Pressable onPress={onCollectionPress} style={({ pressed }) => [s.collection, pressed && s.pressed]}>
         <View style={s.collectionIcon}><Ionicons name="albums-outline" size={23} color="#FFFFFF" /></View>
         <View style={{ flex: 1 }}><LocalizedText style={s.collectionTitle}>Mening kolleksiyam</LocalizedText><LocalizedText style={s.collectionDescription}>Ramkalar, nishonlar va avatar bezaklarini ko‘rish hamda jihozlash</LocalizedText></View>
         <Ionicons name="chevron-forward" size={20} color={c.textMuted} />
       </Pressable>
-      <Pressable onPress={() => void save()} disabled={saving} style={[s.save, saving && { opacity: 0.6 }]}>
-        {saving ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="checkmark-circle-outline" size={19} color="#FFFFFF" /><LocalizedText style={s.saveText}>O‘zgarishlarni saqlash</LocalizedText></>}
+      {avatar ? <Pressable onPress={() => setAvatar(null)} style={({ pressed }) => [s.removeAvatar, pressed && s.pressed]}><Ionicons name="person-remove-outline" size={16} color={c.textMuted} /><LocalizedText style={s.removeAvatarText}>Avatarni olib tashlash</LocalizedText></Pressable> : null}
+      <Pressable onPress={() => void save()} disabled={saving || !hasChanges} style={({ pressed }) => [s.save, (!hasChanges || saving) && s.disabled, pressed && hasChanges && !saving && s.pressed]}>
+        {saving ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="checkmark-circle-outline" size={19} color="#FFFFFF" /><LocalizedText style={s.saveText}>{hasChanges ? 'O‘zgarishlarni saqlash' : 'Barcha o‘zgarishlar saqlangan'}</LocalizedText></>}
       </Pressable>
       <LocalizedText style={s.footer}>Ma’lumotlaringiz hisobingiz bilan xavfsiz bog‘langan.</LocalizedText>
     </ScrollView>
