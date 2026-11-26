@@ -34,7 +34,7 @@ export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, o
     try {
       setLoading(true);
       await action();
-      if (success) showLocalizedAlert('QUIZ ARENA', success);
+      if (success) showLocalizedAlert('ZELQEN CORE', success);
     } catch (error) {
       showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Xatolik yuz berdi');
     } finally {
@@ -64,8 +64,8 @@ export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, o
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.brandRow}>
-          <View style={styles.brandMark}><LocalizedText style={styles.brandMarkText}>Q</LocalizedText></View>
-          <View><LocalizedText style={styles.logo}>QUIZ ARENA</LocalizedText><LocalizedText style={styles.brandCaption}>BILIM · RAQOBAT · NATIJA</LocalizedText></View>
+          <View style={styles.brandMark}><LocalizedText style={styles.brandMarkText}>Z</LocalizedText></View>
+          <View><LocalizedText style={styles.logo}>ZELQEN CORE</LocalizedText><LocalizedText style={styles.brandCaption}>BILIM · RAQOBAT · NATIJA</LocalizedText></View>
         </View>
         <View style={styles.hero}>
           <LocalizedText style={styles.eyebrow}>SIZNI QAYTA KO‘RGANIMIZDAN XURSANDMIZ</LocalizedText>
@@ -85,12 +85,16 @@ export default function LoginScreen({ onLogin, onRegisterPress, onGoogleLogin, o
             <Pressable style={styles.textButton} onPress={() => { setMode('forgot'); setCodeSent(false); setCode(''); }}>
               <LocalizedText style={styles.link}>Parolni unutdingizmi?</LocalizedText>
             </Pressable>
-            <Pressable style={[styles.googleButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onGoogleLogin)}>
-              <LocalizedText style={styles.googleButtonText}>G  Google orqali kirish</LocalizedText>
-            </Pressable>
-            <Pressable style={[styles.telegramButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onTelegramLogin)}>
-              <LocalizedText style={styles.telegramButtonText}>✈  Telegram orqali kirish</LocalizedText>
-            </Pressable>
+            {Platform.OS !== 'web' && (
+              <>
+                <Pressable style={[styles.googleButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onGoogleLogin)}>
+                  <LocalizedText style={styles.googleButtonText}>G  Google orqali kirish</LocalizedText>
+                </Pressable>
+                <Pressable style={[styles.telegramButton, loading && styles.disabled]} disabled={loading} onPress={() => void run(onTelegramLogin)}>
+                  <LocalizedText style={styles.telegramButtonText}>✈  Telegram orqali kirish</LocalizedText>
+                </Pressable>
+              </>
+            )}
           </>
         ) : (
           <>

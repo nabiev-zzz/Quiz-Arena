@@ -11,16 +11,19 @@ import { useTheme } from '../theme/ThemeContext';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
 import { getLearningHistory, getLearningHistoryItem, type LearningHistoryItem, type LearningHistorySummary } from '../services/learningService';
+import { getZcHistory, type ZcTransactionItem } from '../services/zcWalletService';
+import { getDailyTasks, claimDailyTask, type DailyTask } from '../services/dailyTasksService';
 
 interface ProfileScreenProps {
   onClosePress?: () => void;
   onSettingsPress?: () => void;
   onPremiumPress?: () => void;
+  onShopPress?: () => void;
   onUserPress?: (username: string) => void;
   dockStretch?: SharedValue<number>;
 }
 
-type ProfileTab = 'main' | 'board' | 'activity' | 'wishlist';
+type ProfileTab = 'main' | 'board' | 'activity' | 'missions';
 
 const AVATAR_CATEGORIES = [
   { id: 'anime', label: 'Anime', style: 'lorelei', seeds: ['Aiko', 'Hana', 'Akira', 'Yuki', 'Ren', 'Sora', 'Mika', 'Kai'] },
@@ -39,8 +42,8 @@ function getAvatarUrl(style: string, seed: string) {
   return `https://api.dicebear.com/9.x/${style}/png?seed=${encodeURIComponent(seed)}&size=160`;
 }
 
-export default function ProfileScreen({ onClosePress, onSettingsPress, onPremiumPress, onUserPress, dockStretch }: ProfileScreenProps) {
-  const { user, updateProfile, logout } = useAuth();
+export default function ProfileScreen({ onClosePress, onSettingsPress, onPremiumPress, onShopPress, onUserPress, dockStretch }: ProfileScreenProps) {
+  const { user, updateProfile, refreshUser, logout } = useAuth();
   const { tokens, isDark } = useTheme();
   const C = {
     background: tokens.colors.background,
@@ -87,6 +90,11 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const [historyLoading, setHistoryLoading] = useState(false);
   const [loadingHistoryDetailId, setLoadingHistoryDetailId] = useState<string | null>(null);
   const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
+  const [zcHistory, setZcHistory] = useState<ZcTransactionItem[]>([]);
+  const [zcHistoryLoading, setZcHistoryLoading] = useState(false);
+  const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([]);
+  const [dailyTasksLoading, setDailyTasksLoading] = useState(false);
+  const [claimingTaskId, setClaimingTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -106,6 +114,30 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
       .finally(() => { if (active) setHistoryLoading(false); });
     return () => { active = false; };
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'main' || !user) return;
+    let active = true;
+    setZcHistoryLoading(true);
+    getZcHistory(5)
+      .then((result) => { if (active) setZcHistory(result.items); })
+      .catch(() => { if (active) setZcHistory([]); })
+      .finally(() => { if (active) setZcHistoryLoading(false); });
+    return () => { active = false; };
+  }, [activeTab, user?.id]);
+
+  useEffect(() => {
+    if (activeTab !== 'missions' || !user) return;
+    let active = true;
+    setDailyTasksLoading(true);
+    getDailyTasks()
+      .then((result) => { if (active) setDailyTasks(result.tasks); })
+      .catch((error) => { if (active) showLocalizedAlert('Vazifalar xatosi', error instanceof Error ? error.message : 'Vazifalar yuklanmadi'); })
+      .finally(() => { if (active) setDailyTasksLoading(false); });
+    return () => { active = false; };
+  }, [activeTab, user?.id]);
+
+
 
   useEffect(() => {
     if (!user) return;
@@ -209,6 +241,22 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     }
   };
 
+
+  const claimTaskReward = async (task: DailyTask) => {
+    if (!task.completed || task.claimed || claimingTaskId) return;
+    setClaimingTaskId(task.id);
+    try {
+      const result = await claimDailyTask(task.id);
+      setDailyTasks((current) => current.map((item) => item.id === task.id ? { ...item, claimed: true } : item));
+      await refreshUser();
+      showLocalizedAlert('Mukofot olindi', `+${result.reward} ZC balansingizga qo‘shildi.`);
+    } catch (error) {
+      showLocalizedAlert('Mukofot olinmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring.');
+    } finally {
+      setClaimingTaskId(null);
+    }
+  };
+
   const saveCosmetic = async (value: string | null) => {
     if (!cosmeticType || cosmeticSaving) return;
     setCosmeticSaving(true);
@@ -251,7 +299,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     { key: 'main', label: 'Main' },
     { key: 'board', label: 'Board' },
     { key: 'activity', label: 'Tarix' },
-    { key: 'wishlist', label: 'Wishlist' },
+    { key: 'missions', label: 'Vazifalar' },
   ];
 
   const renderCard = (children: React.ReactNode, extraStyle?: object, key?: string) => (
@@ -273,7 +321,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
 
         <View style={styles.identity}>
           <View style={styles.avatarWrap}>
-            <View style={[styles.avatarFrame, user.profileFrame === 'aurora' && styles.frameAurora, user.profileFrame === 'royal' && styles.frameRoyal, user.profileFrame === 'ocean' && styles.frameOcean]}>
+            <View style={[styles.avatarFrame, user.profileFrame === 'aurora' && styles.frameAurora, user.profileFrame === 'royal' && styles.frameRoyal, user.profileFrame === 'ocean' && styles.frameOcean, user.profileFrame === 'neon3d' && styles.frameNeon3d, user.profileFrame === 'inferno3d' && styles.frameInferno3d, user.profileFrame === 'frost3d' && styles.frameFrost3d, user.profileFrame === 'galaxy3d' && styles.frameGalaxy3d]}>
               {avatarUri ? <Image source={{ uri: avatarUri }} style={styles.avatar} /> : <View style={styles.avatarFallback}><LocalizedText style={styles.avatarInitials}>{initials || '?'}</LocalizedText></View>}
             </View>
             {user.avatarDecoration ? <View style={styles.decoration}><Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={13} color="#F5D78A" /></View> : null}
@@ -290,9 +338,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
             <Ionicons name="copy-outline" size={13} color={C.subtle} />
           </Pressable>
           <View style={styles.badges}>
-            <Ionicons name="trophy" size={17} color="#A78BFA" />
-            <Ionicons name="star" size={17} color="#A78BFA" />
-            <Ionicons name="shield-checkmark" size={17} color="#A78BFA" />
+            {user.profileBadge ? <View style={styles.profileBadgeChip}><Ionicons name={user.profileBadge === 'legend' ? 'ribbon' : user.profileBadge === 'champion' ? 'trophy' : user.profileBadge === 'scholar' ? 'book' : 'flame'} size={16} color="#F5D27A" /><LocalizedText style={styles.profileBadgeText}>{user.profileBadge.toUpperCase()}</LocalizedText></View> : <LocalizedText style={styles.cardSubtitle}>Profil nishoni hali tanlanmagan</LocalizedText>}
           </View>
         </View>
 
@@ -313,6 +359,58 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
         {activeTab === 'main' ? (
           <>
             {renderCard(
+              <View style={styles.row}>
+                <View style={[styles.iconTile, { backgroundColor: 'rgba(232, 190, 92, 0.14)' }]}>
+                  <Ionicons name="wallet-outline" size={21} color="#D9B65B" />
+                </View>
+                <View style={styles.rowBody}>
+                  <LocalizedText style={styles.cardTitle}>Zelqen Credits</LocalizedText>
+                  <LocalizedText style={styles.cardSubtitle}>Ilova ichidagi virtual valyuta</LocalizedText>
+                </View>
+                <NativeText style={{ color: '#D9B65B', fontSize: 16, fontWeight: '900' }}>
+                  {Math.max(0, Number(user.zcBalance ?? 0)).toLocaleString('en-US')} ZC
+                </NativeText>
+              </View>,
+            )}
+            {renderCard(
+              <View style={{ gap: 11 }}>
+                <View style={styles.row}>
+                  <View style={styles.rowBody}>
+                    <LocalizedText style={styles.cardTitle}>ZC tranzaksiyalari</LocalizedText>
+                    <LocalizedText style={styles.cardSubtitle}>Oxirgi kirim va sarflar</LocalizedText>
+                  </View>
+                  {zcHistoryLoading ? <ActivityIndicator size="small" color={C.purple} /> : null}
+                </View>
+                {!zcHistoryLoading && zcHistory.length === 0 ? (
+                  <LocalizedText style={styles.cardSubtitle}>Hozircha tranzaksiyalar yo‘q.</LocalizedText>
+                ) : zcHistory.map((item) => (
+                  <View key={item.id} style={[styles.row, { paddingTop: 8, borderTopWidth: 1, borderTopColor: C.border }]}>
+                    <View style={[styles.iconTile, { backgroundColor: item.type === 'credit' ? 'rgba(76, 175, 125, 0.13)' : 'rgba(226, 140, 155, 0.13)' }]}>
+                      <Ionicons name={item.type === 'credit' ? 'arrow-down' : 'arrow-up'} size={19} color={item.type === 'credit' ? '#55B98A' : '#E28C9B'} />
+                    </View>
+                    <View style={styles.rowBody}>
+                      <LocalizedText style={styles.cardTitle}>{item.reason}</LocalizedText>
+                      <LocalizedText style={styles.cardSubtitle}>{new Date(item.createdAt).toLocaleDateString()}</LocalizedText>
+                    </View>
+                    <NativeText style={{ color: item.type === 'credit' ? '#55B98A' : '#E28C9B', fontSize: 14, fontWeight: '900' }}>
+                      {item.type === 'credit' ? '+' : '−'}{item.amount.toLocaleString('en-US')} ZC
+                    </NativeText>
+                  </View>
+                ))}
+              </View>,
+            )}
+            {renderCard(
+              <Pressable style={styles.row} onPress={onShopPress}>
+                <View style={styles.iconTile}><Ionicons name="bag-handle-outline" size={21} color="#D9B65B" /></View>
+                <View style={styles.rowBody}>
+                  <LocalizedText style={styles.cardTitle}>Shop</LocalizedText>
+                  <LocalizedText style={styles.cardSubtitle}>Profil nishonlari, ramkalar va 3D effektlar</LocalizedText>
+                </View>
+                <Ionicons name="chevron-forward" size={19} color={C.muted} />
+              </Pressable>,
+              styles.premiumCard,
+            )}
+            {renderCard(
               <Pressable style={styles.row} onPress={onPremiumPress}>
                 <View style={styles.iconTile}><Ionicons name="diamond-outline" size={21} color={C.purple} /></View>
                 <View style={styles.rowBody}>
@@ -322,16 +420,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
                 <Ionicons name="chevron-forward" size={19} color={C.muted} />
               </Pressable>,
               styles.premiumCard,
-            )}
-            {renderCard(
-              <Pressable style={styles.row} onPress={onPremiumPress}>
-                <View style={styles.iconTile}><Ionicons name="storefront-outline" size={21} color={C.purple} /></View>
-                <View style={styles.rowBody}>
-                  <LocalizedText style={styles.cardTitle}>Shop</LocalizedText>
-                  <LocalizedText style={styles.cardSubtitle}>Profil uchun qo‘shimcha imkoniyatlar</LocalizedText>
-                </View>
-                <Ionicons name="chevron-forward" size={19} color={C.muted} />
-              </Pressable>,
             )}
             {renderCard(
               <View style={styles.bioRow}>
@@ -371,354 +459,4 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
                   {suggestions.map((person) => (
                     <View key={person.id} style={styles.personCard}>
                       <Pressable onPress={() => onUserPress?.(person.username)} style={styles.personIdentity}>
-                        {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.personAvatar} /> : <View style={styles.friendFallback}><LocalizedText style={styles.friendInitial}>{person.displayName.slice(0, 1).toUpperCase()}</LocalizedText></View>}
-                        <LocalizedText style={styles.personName} numberOfLines={1}>{person.displayName}</LocalizedText>
-                        <LocalizedText style={styles.personMeta}>{person.followersCount} kuzatuvchi</LocalizedText>
-                      </Pressable>
-                      <Pressable style={styles.followButton} disabled={followingUserId === person.id} onPress={async () => {
-                        setFollowingUserId(person.id);
-                        try {
-                          await followUser(person.id);
-                          setSuggestions((current) => current.filter((item) => item.id !== person.id));
-                          setSocialProfile((current) => current ? { ...current, followingCount: (current.followingCount ?? 0) + 1 } : current);
-                        } catch (error) { showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Kuzatib bo‘lmadi'); }
-                        finally { setFollowingUserId(null); }
-                      }}>
-                        <LocalizedText style={styles.followButtonText}>{followingUserId === person.id ? '...' : 'Kuzatish'}</LocalizedText>
-                      </Pressable>
-                    </View>
-                  ))}
-                </ScrollView>
-              </>
-            ) : null}
-          </>
-        ) : null}
-
-        {activeTab === 'board' ? (
-          <>
-            <View style={styles.sectionHeader}><LocalizedText style={styles.sectionTitle}>Natijalar</LocalizedText></View>
-            <View style={styles.statsRow}>
-              {[
-                { icon: 'flash-outline' as const, value: user.xp ?? 0, label: 'Jami XP' },
-                { icon: 'trophy-outline' as const, value: user.level ?? 1, label: 'Daraja' },
-                { icon: 'medal-outline' as const, value: rankPoints, label: 'Reyting RP' },
-              ].map((item) => renderCard(
-                <View style={styles.statContent}>
-                  <Ionicons name={item.icon} size={19} color={C.purple} />
-                  <LocalizedText style={styles.statNumber}>{item.value}</LocalizedText>
-                  <LocalizedText style={styles.cardSubtitle}>{item.label}</LocalizedText>
-                </View>,
-                styles.statCard,
-                item.label,
-              ))}
-            </View>
-            {renderCard(
-              <>
-                <View style={styles.row}>
-                  <View style={styles.iconTile}><Ionicons name="medal-outline" size={21} color={rankInfo.color} /></View>
-                  <View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>{rankInfo.name} ligasi</LocalizedText><LocalizedText style={styles.cardSubtitle}>Battle reytingi</LocalizedText></View>
-                  <LocalizedText style={[styles.rankPoints, { color: rankInfo.color }]}>{rankPoints} RP</LocalizedText>
-                </View>
-                <View style={styles.progressTrack}><View style={[styles.progressFill, { width: rankProgress + '%' }]} /></View>
-                <LocalizedText style={styles.cardSubtitle}>{nextRank ? (nextRank.min - rankPoints) + ' RP dan keyingi liga' : 'Eng yuqori liga'}</LocalizedText>
-              </>,
-            )}
-          </>
-        ) : null}
-
-        {activeTab === 'activity' ? (
-          <>
-            <View style={styles.sectionHeader}>
-              <LocalizedText style={styles.sectionTitle}>Testlar tarixi</LocalizedText>
-              <LocalizedText style={styles.cardSubtitle}>{learningHistory.length} ta urinish</LocalizedText>
-            </View>
-            {historyLoading ? (
-              <ActivityIndicator color={C.purple} style={{ marginVertical: 18 }} />
-            ) : learningHistory.length === 0 ? (
-              <View style={styles.historyEmpty}>
-                <Ionicons name="document-text-outline" size={28} color={C.muted} />
-                <LocalizedText style={styles.cardSubtitle}>Hozircha saqlangan test tarixi yo‘q.</LocalizedText>
-              </View>
-            ) : learningHistory.map((attempt) => {
-              const detail = historyDetails[attempt.id];
-              return (
-              <View key={attempt.id} style={styles.historyCard}>
-                <Pressable style={styles.historyHeader} onPress={() => void toggleHistoryAttempt(attempt.id)}>
-                  <View style={styles.historyIcon}><Ionicons name="document-text-outline" size={19} color={C.purple} /></View>
-                  <View style={styles.rowBody}>
-                    <LocalizedText style={styles.cardTitle} numberOfLines={1}>{attempt.subjectName} · {attempt.topicName}</LocalizedText>
-                    <LocalizedText style={styles.cardSubtitle}>{new Date(attempt.completedAt).toLocaleString()} · {attempt.totalQuestions} ta savol</LocalizedText>
-                  </View>
-                  <View style={styles.historyScore}>
-                    <LocalizedText style={styles.historyPercent}>{Math.round(Number(attempt.accuracy))}%</LocalizedText>
-                    <LocalizedText style={styles.cardSubtitle}>{attempt.correctAnswers}/{attempt.totalQuestions}</LocalizedText>
-                  </View>
-                  <Ionicons name={expandedAttemptId === attempt.id ? 'chevron-up' : 'chevron-down'} size={17} color={C.muted} />
-                </Pressable>
-                {expandedAttemptId === attempt.id ? (
-                  <View style={styles.historyReview}>
-                    <LocalizedText style={styles.historyReviewTitle}>Savollar tahlili</LocalizedText>
-                    {loadingHistoryDetailId === attempt.id ? <ActivityIndicator color={C.purple} /> : detail?.review?.length ? detail.review.map((item, index) => (
-                      <View key={item.id} style={styles.historyQuestion}>
-                        <LocalizedText style={styles.historyQuestionTitle}>{index + 1}. {item.question}</LocalizedText>
-                        <LocalizedText style={styles.cardSubtitle}>Sizning javobingiz: {item.options[item.selectedAnswer] ?? '—'}</LocalizedText>
-                        <LocalizedText style={[styles.cardSubtitle, { color: item.isCorrect ? '#35C995' : '#E47786', fontWeight: '800' }]}>To‘g‘ri javob: {item.options[item.correctAnswer] ?? '—'}</LocalizedText>
-                        {!!item.explanation && <LocalizedText style={styles.cardSubtitle}>{item.explanation}</LocalizedText>}
-                        {!!item.aiExplanation && (
-                          <View style={styles.historyAiBox}>
-                            <LocalizedText style={styles.historyAiTitle}>AI Ustoz tahlili</LocalizedText>
-                            <LocalizedText style={styles.cardSubtitle}>{item.aiExplanation}</LocalizedText>
-                          </View>
-                        )}
-                      </View>
-                    )) : (
-                      <LocalizedText style={styles.cardSubtitle}>Bu test natijasi eski formatda saqlangan. Batafsil savollar tahlili mavjud emas.</LocalizedText>
-                    )}
-                  </View>
-                ) : null}
-              </View>
-              );
-            })}
-            <View style={styles.sectionHeader}><LocalizedText style={styles.sectionTitle}>Erishilgan yutuqlar</LocalizedText></View>
-            <View style={styles.achievementList}>
-              {getProfileAchievements(user.xp ?? 0, user.level ?? 1, rankPoints).map((achievement) => (
-                <View key={achievement.id} style={[styles.achievement, !achievement.unlocked && styles.achievementLocked]}>
-                  <Ionicons name={achievement.icon} size={21} color={achievement.unlocked ? C.purple : C.subtle} />
-                  <View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>{achievement.title}</LocalizedText><LocalizedText style={styles.cardSubtitle}>{achievement.description}</LocalizedText></View>
-                  <Ionicons name={achievement.unlocked ? 'checkmark-circle' : 'lock-closed'} size={17} color={achievement.unlocked ? C.purple : C.subtle} />
-                </View>
-              ))}
-            </View>
-          </>
-        ) : null}
-
-        {activeTab === 'wishlist' ? (
-          <>
-            <View style={styles.sectionHeader}><LocalizedText style={styles.sectionTitle}>Mukofotlar va bezaklar</LocalizedText></View>
-            {renderCard(
-              <View style={styles.row}>
-                <View style={styles.iconTile}><Ionicons name="medal-outline" size={21} color={C.purple} /></View>
-                <View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>Mening mukofotlarim</LocalizedText><LocalizedText style={styles.cardSubtitle}>Yutuqlar va medallar</LocalizedText></View>
-              </View>,
-            )}
-            <Pressable onPress={() => setCosmeticType('decoration')}>
-              {renderCard(<View style={styles.row}><View style={styles.iconTile}><Ionicons name="color-palette-outline" size={21} color={C.purple} /></View><View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>Avatar bezaklari</LocalizedText><LocalizedText style={styles.cardSubtitle}>{user.avatarDecoration || 'Hozircha bezak tanlanmagan'}</LocalizedText></View><LocalizedText style={styles.linkText}>Sozlash</LocalizedText></View>)}
-            </Pressable>
-            <Pressable onPress={() => setCosmeticType('frame')}>
-              {renderCard(<View style={styles.row}><View style={styles.iconTile}><Ionicons name="albums-outline" size={21} color={C.purple} /></View><View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>Profil ramkasi</LocalizedText><LocalizedText style={styles.cardSubtitle}>{user.profileFrame || 'Standart ramka'}</LocalizedText></View><LocalizedText style={styles.linkText}>Sozlash</LocalizedText></View>)}
-            </Pressable>
-          </>
-        ) : null}
-
-        <Pressable style={styles.logoutButton} onPress={() => showLocalizedAlert('Hisobdan chiqish', 'Haqiqatan ham chiqmoqchimisiz?', [
-          { text: 'Bekor qilish', style: 'cancel' },
-          { text: 'Chiqish', style: 'destructive', onPress: () => { void logout(); } },
-        ])}>
-          <Ionicons name="log-out-outline" size={18} color="#E28C9B" />
-          <LocalizedText style={styles.logoutText}>Hisobdan chiqish</LocalizedText>
-        </Pressable>
-      </Animated.ScrollView>
-
-      <Modal visible={editVisible} transparent animationType="fade" onRequestClose={() => setEditVisible(false)}>
-        <View style={styles.modalBackground}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}><LocalizedText style={styles.modalTitle}>Edit profile</LocalizedText><Pressable onPress={() => setEditVisible(false)}><Ionicons name="close" size={22} color={C.text} /></Pressable></View>
-            <LocalizedText style={styles.inputLabel}>Ismingiz</LocalizedText>
-            <LocalizedTextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="Ismingiz" placeholderTextColor={C.subtle} maxLength={100} />
-            <LocalizedText style={styles.inputLabel}>Username</LocalizedText>
-            <LocalizedTextInput style={styles.input} value={username} onChangeText={setUsername} placeholder="username" placeholderTextColor={C.subtle} autoCapitalize="none" maxLength={30} />
-            <LocalizedText style={styles.inputLabel}>Bio</LocalizedText>
-            <LocalizedTextInput style={[styles.input, styles.bioInput]} value={bio} onChangeText={setBio} placeholder="O‘zingiz haqingizda..." placeholderTextColor={C.subtle} multiline maxLength={500} />
-            <Pressable style={[styles.saveButton, saving && styles.disabled]} onPress={() => void saveProfile()} disabled={saving}>
-              {saving ? <ActivityIndicator color="#FFFFFF" /> : <LocalizedText style={styles.saveButtonText}>O‘zgarishlarni saqlash</LocalizedText>}
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={avatarPickerVisible} transparent animationType="slide" onRequestClose={() => setAvatarPickerVisible(false)}>
-        <View style={styles.modalBackground}>
-          <View style={[styles.modalCard, styles.avatarModalCard]}>
-            <View style={styles.modalHeader}>
-              <View style={styles.avatarModalHeading}>
-                <LocalizedText style={styles.modalTitle}>Avatar tanlash</LocalizedText>
-                <LocalizedText style={styles.avatarModalSubtitle}>O‘zingizga mos uslubni tanlang</LocalizedText>
-              </View>
-              <Pressable onPress={() => setAvatarPickerVisible(false)} hitSlop={12}><Ionicons name="close" size={22} color={C.text} /></Pressable>
-            </View>
-            <Pressable style={styles.galleryButton} onPress={() => void chooseFromGallery()} disabled={avatarSaving}>
-              <Ionicons name="images-outline" size={21} color="#FFFFFF" />
-              <View style={styles.galleryButtonText}>
-                <LocalizedText style={styles.galleryButtonTitle}>Galereyadan rasm tanlash</LocalizedText>
-                <LocalizedText style={styles.galleryButtonHint}>O‘zingizning rasmingizni yuklang</LocalizedText>
-              </View>
-              <Ionicons name="chevron-forward" size={19} color="#FFFFFF" />
-            </Pressable>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.avatarCategories}>
-              {AVATAR_CATEGORIES.map((category) => (
-                <Pressable key={category.id} onPress={() => setAvatarCategory(category.id)} style={[styles.avatarCategoryChip, avatarCategory === category.id && styles.avatarCategoryChipActive]}>
-                  <LocalizedText style={[styles.avatarCategoryText, avatarCategory === category.id && styles.avatarCategoryTextActive]}>{category.label}</LocalizedText>
-                </Pressable>
-              ))}
-            </ScrollView>
-            <ScrollView style={styles.avatarGridScroll} contentContainerStyle={styles.avatarGrid} showsVerticalScrollIndicator={false}>
-              {AVATAR_CATEGORIES.find((item) => item.id === avatarCategory)!.seeds.map((seed) => {
-                const uri = getAvatarUrl(AVATAR_CATEGORIES.find((item) => item.id === avatarCategory)!.style, seed);
-                return (
-                  <Pressable key={seed} style={styles.avatarOption} disabled={avatarSaving} onPress={() => void applyAvatar(uri)}>
-                    <Image source={{ uri }} style={styles.avatarOptionImage} />
-                    <LocalizedText style={styles.avatarOptionName}>{seed}</LocalizedText>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            <Pressable style={styles.removeAvatarButton} disabled={avatarSaving || !user.avatarUrl} onPress={() => void applyAvatar(null)}>
-              <Ionicons name="person-remove-outline" size={17} color={C.muted} />
-              <LocalizedText style={styles.removeAvatarText}>Standart avatarni ishlatish</LocalizedText>
-            </Pressable>
-            {avatarSaving ? <ActivityIndicator color={C.purple} style={{ marginTop: 10 }} /> : null}
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={cosmeticType !== null} transparent animationType="fade" onRequestClose={() => setCosmeticType(null)}>
-        <View style={styles.modalBackground}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}><LocalizedText style={styles.modalTitle}>{cosmeticType === 'decoration' ? 'Avatar bezagini tanlang' : 'Profil ramkasini tanlang'}</LocalizedText><Pressable onPress={() => setCosmeticType(null)}><Ionicons name="close" size={22} color={C.text} /></Pressable></View>
-            {(cosmeticType === 'decoration'
-              ? [{ value: null, label: 'Standart bezak' }, { value: 'sparkle', label: 'Yulduzcha' }, { value: 'crown', label: 'Toj' }, { value: 'laurel', label: 'Laurel' }]
-              : [{ value: null, label: 'Standart ramka' }, { value: 'aurora', label: 'Aurora' }, { value: 'royal', label: 'Royal' }, { value: 'ocean', label: 'Ocean' }]
-            ).map((option) => {
-              const selected = cosmeticType === 'decoration' ? user.avatarDecoration === option.value : user.profileFrame === option.value;
-              return <Pressable key={option.label} style={[styles.cosmeticOption, selected && styles.cosmeticSelected]} disabled={cosmeticSaving} onPress={() => void saveCosmetic(option.value)}>
-                <LocalizedText style={styles.cardTitle}>{option.label}</LocalizedText>
-                {selected ? <Ionicons name="checkmark-circle" size={19} color={C.purple} /> : <Ionicons name="ellipse-outline" size={18} color={C.muted} />}
-              </Pressable>;
-            })}
-            {cosmeticSaving ? <ActivityIndicator color={C.purple} style={{ marginTop: 12 }} /> : null}
-          </View>
-        </View>
-      </Modal>
-    </View>
-  );
-}
-
-function makeStyles(C: { background: string; surface: string; surfaceRaised: string; border: string; purple: string; purpleSoft: string; text: string; muted: string; subtle: string }) {
-  return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: C.background },
-    container: { flex: 1, backgroundColor: C.background },
-    content: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 132 },
-    loading: { flex: 1, backgroundColor: C.background, justifyContent: 'center', alignItems: 'center' },
-    header: { height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-    headerButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { color: C.muted, fontSize: 11, fontWeight: '800', letterSpacing: 2 },
-    identity: { alignItems: 'center', paddingTop: 8, paddingBottom: 19 },
-    avatarWrap: { width: 122, height: 122, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-    avatarFrame: { width: 112, height: 112, borderRadius: 56, padding: 3, backgroundColor: C.purple, borderWidth: 2, borderColor: '#8B68E5' },
-    frameAurora: { backgroundColor: '#8B72E8' },
-    frameRoyal: { backgroundColor: '#D7A93F' },
-    frameOcean: { backgroundColor: '#4D9FC8' },
-    avatar: { width: '100%', height: '100%', borderRadius: 54 },
-    avatarFallback: { flex: 1, borderRadius: 54, backgroundColor: C.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
-    avatarInitials: { color: C.text, fontSize: 29, fontWeight: '800' },
-    cameraButton: { position: 'absolute', right: 2, bottom: 3, width: 33, height: 33, borderRadius: 17, backgroundColor: C.purple, borderWidth: 3, borderColor: C.background, alignItems: 'center', justifyContent: 'center' },
-    decoration: { position: 'absolute', top: 2, left: 1, width: 27, height: 27, borderRadius: 14, backgroundColor: C.surfaceRaised, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '100%' },
-    displayName: { color: C.text, fontSize: 25, fontWeight: '800', letterSpacing: -0.5, maxWidth: '90%' },
-    handleRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 5 },
-    handle: { color: C.muted, fontSize: 13 },
-    badges: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 11 },
-    editButton: { height: 49, borderRadius: 15, backgroundColor: C.purple, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 21 },
-    editButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-    tabs: { height: 49, flexDirection: 'row', alignItems: 'stretch', borderBottomWidth: 1, borderBottomColor: C.border, marginBottom: 17 },
-    tab: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingTop: 8 },
-    tabText: { color: C.subtle, fontSize: 12, fontWeight: '700' },
-    tabTextActive: { color: C.text },
-    tabUnderline: { height: 3, width: '70%', borderRadius: 3, backgroundColor: C.purple },
-    card: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 19, padding: 15, marginBottom: 11 },
-    premiumCard: { borderColor: '#49306F' },
-    row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 46 },
-    iconTile: { width: 42, height: 42, borderRadius: 13, backgroundColor: C.purpleSoft, alignItems: 'center', justifyContent: 'center' },
-    rowBody: { flex: 1, minWidth: 0 },
-    cardTitle: { color: C.text, fontSize: 14, fontWeight: '700' },
-    cardSubtitle: { color: C.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
-    bioRow: { flexDirection: 'row', gap: 12, minHeight: 49 },
-    bioAccent: { width: 3, borderRadius: 3, backgroundColor: C.purple },
-    bioText: { color: C.muted, fontSize: 12, lineHeight: 18, marginTop: 6 },
-    sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 13, marginBottom: 10 },
-    sectionTitle: { color: C.text, fontSize: 16, fontWeight: '800' },
-    linkText: { color: '#A98BEF', fontSize: 11, fontWeight: '700' },
-    friendsHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    avatarStack: { flexDirection: 'row', alignItems: 'center', minHeight: 38 },
-    friendAvatarWrap: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: C.surface },
-    friendAvatar: { width: 34, height: 34, borderRadius: 17 },
-    friendFallback: { width: 34, height: 34, borderRadius: 17, backgroundColor: C.purpleSoft, alignItems: 'center', justifyContent: 'center' },
-    friendInitial: { color: C.text, fontSize: 13, fontWeight: '800' },
-    memberRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 7, marginBottom: 8, paddingHorizontal: 3 },
-    memberText: { color: C.muted, fontSize: 11, flex: 1 },
-    memberDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#70C9A5' },
-    suggestions: { gap: 10, paddingBottom: 3 },
-    personCard: { width: 124, alignItems: 'center', padding: 12, borderRadius: 17, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
-    personIdentity: { alignItems: 'center', width: '100%' },
-    personAvatar: { width: 47, height: 47, borderRadius: 24, marginBottom: 8 },
-    personName: { color: C.text, fontSize: 11, fontWeight: '800', maxWidth: '100%' },
-    personMeta: { color: C.muted, fontSize: 9, marginTop: 4 },
-    followButton: { marginTop: 9, paddingHorizontal: 13, paddingVertical: 7, borderRadius: 10, backgroundColor: C.purpleSoft },
-    followButtonText: { color: '#BCA8F4', fontSize: 10, fontWeight: '800' },
-    statsRow: { flexDirection: 'row', gap: 8, marginBottom: 11 },
-    statCard: { flex: 1, paddingHorizontal: 10, paddingVertical: 14, marginBottom: 0 },
-    statContent: { alignItems: 'flex-start', gap: 7 },
-    statNumber: { color: C.text, fontSize: 20, fontWeight: '800' },
-    rankPoints: { fontSize: 13, fontWeight: '800' },
-    progressTrack: { height: 6, borderRadius: 4, backgroundColor: C.surfaceRaised, overflow: 'hidden', marginTop: 16, marginBottom: 8 },
-    progressFill: { height: 6, borderRadius: 4, backgroundColor: C.purple },
-    achievementList: { gap: 9 },
-    historyCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 17, padding: 13, marginBottom: 9 },
-    historyHeader: { minHeight: 55, flexDirection: 'row', alignItems: 'center', gap: 10 },
-    historyIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: C.purpleSoft, alignItems: 'center', justifyContent: 'center' },
-    historyScore: { alignItems: 'flex-end', marginRight: 2 },
-    historyPercent: { color: C.purple, fontSize: 15, fontWeight: '900' },
-    historyReview: { borderTopWidth: 1, borderTopColor: C.border, marginTop: 10, paddingTop: 12, gap: 10 },
-    historyReviewTitle: { color: C.text, fontSize: 14, fontWeight: '900' },
-    historyQuestion: { padding: 12, borderRadius: 13, backgroundColor: C.background, borderWidth: 1, borderColor: C.border, gap: 6 },
-    historyQuestionTitle: { color: C.text, fontSize: 13, fontWeight: '800', lineHeight: 19 },
-    historyAiBox: { padding: 10, borderRadius: 11, backgroundColor: C.purpleSoft, gap: 5 },
-    historyAiTitle: { color: C.purple, fontSize: 11, fontWeight: '900' },
-    historyEmpty: { alignItems: 'center', justifyContent: 'center', gap: 8, padding: 22, borderRadius: 16, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
-    achievement: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
-    achievementLocked: { opacity: 0.55 },
-    logoutButton: { minHeight: 47, borderRadius: 15, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginTop: 17 },
-    logoutText: { color: '#E28C9B', fontSize: 12, fontWeight: '700' },
-    modalBackground: { flex: 1, backgroundColor: 'rgba(5,3,12,0.78)', justifyContent: 'center', padding: 18 },
-    modalCard: { backgroundColor: C.surface, borderRadius: 22, borderWidth: 1, borderColor: C.border, padding: 20 },
-    modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-    modalTitle: { color: C.text, fontSize: 18, fontWeight: '800', flex: 1, paddingRight: 12 },
-    inputLabel: { color: C.muted, fontSize: 12, fontWeight: '700', marginTop: 13, marginBottom: 7 },
-    input: { minHeight: 46, borderRadius: 13, backgroundColor: C.background, borderWidth: 1, borderColor: C.border, color: C.text, paddingHorizontal: 13, fontSize: 14 },
-    bioInput: { height: 82, textAlignVertical: 'top', paddingTop: 12 },
-    saveButton: { minHeight: 48, backgroundColor: C.purple, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
-    disabled: { opacity: 0.65 },
-    saveButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
-    avatarModalCard: { maxHeight: '88%', paddingBottom: 14 },
-    avatarModalHeading: { flex: 1, gap: 3 },
-    avatarModalSubtitle: { color: C.muted, fontSize: 11 },
-    galleryButton: { minHeight: 66, borderRadius: 15, backgroundColor: C.purple, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, marginTop: 12 },
-    galleryButtonText: { flex: 1, gap: 3 },
-    galleryButtonTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
-    galleryButtonHint: { color: 'rgba(255,255,255,0.76)', fontSize: 10 },
-    avatarCategories: { gap: 8, paddingVertical: 14 },
-    avatarCategoryChip: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 20, borderWidth: 1, borderColor: C.border, backgroundColor: C.background },
-    avatarCategoryChipActive: { borderColor: C.purple, backgroundColor: C.purpleSoft },
-    avatarCategoryText: { color: C.muted, fontSize: 11, fontWeight: '700' },
-    avatarCategoryTextActive: { color: C.purple },
-    avatarGridScroll: { flexGrow: 0, minHeight: 180 },
-    avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 8 },
-    avatarOption: { width: '23%', alignItems: 'center', paddingVertical: 8, marginBottom: 7, borderRadius: 13, backgroundColor: C.background, borderWidth: 1, borderColor: C.border },
-    avatarOptionImage: { width: 62, height: 62, borderRadius: 31, backgroundColor: C.surfaceRaised },
-    avatarOptionName: { color: C.muted, fontSize: 9, marginTop: 5, fontWeight: '700' },
-    removeAvatarButton: { minHeight: 42, borderRadius: 12, backgroundColor: C.background, borderWidth: 1, borderColor: C.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 9 },
-    removeAvatarText: { color: C.muted, fontSize: 11, fontWeight: '700' },
-    cosmeticOption: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 13, borderRadius: 13, borderWidth: 1, borderColor: C.border, backgroundColor: C.background, marginTop: 8 },
-    cosmeticSelected: { borderColor: C.purple, backgroundColor: C.purpleSoft },
-  });
-}
+                        {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.personAvatar} /> : <View style={styles.friendFallback}><LocalizedText style={styles.friendInitial}>{person.displayName.slice(0, 1).toUpperCase()}</LocalizedText></View>
