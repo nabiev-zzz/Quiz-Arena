@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
+import { LocalizedText } from '../i18n/LocalizedText';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { getZcStoreCatalog, type ZcStoreProduct } from '../services/zcStoreService';
@@ -72,7 +72,7 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
       showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Tanlovni saqlab bo‘lmadi.');
     } finally { setSaving(false); }
   };
-  const initials = (user?.displayName ?? 'U').trim().split(/\\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('');
+  const initials = (user?.displayName ?? 'U').trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('');
   const selectedLabel = kind === 'frame'
     ? (selection.frame ? (FRAME_NAMES[selection.frame] ?? selection.frame) : 'Standart ramka')
     : kind === 'badge'
