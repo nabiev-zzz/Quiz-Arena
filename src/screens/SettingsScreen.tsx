@@ -22,11 +22,13 @@ import {
 
 interface SettingsScreenProps {
   onBack?: () => void;
+  onHelp?: () => void;
   dockStretch?: SharedValue<number>;
 }
 
 export default function SettingsScreen({
   onBack,
+  onHelp,
   dockStretch,
 }: SettingsScreenProps) {
   const { user } = useAuth();
@@ -114,13 +116,6 @@ export default function SettingsScreen({
     showLocalizedAlert(
       'Maxfiylik va xavfsizlik',
       'Hisobingiz xavfsizligi va shaxsiy ma’lumotlaringizni himoya qilish bo‘limi.',
-    );
-  };
-
-  const showHelp = () => {
-    showLocalizedAlert(
-      'Yordam',
-      'Yordam xizmati bilan bog‘lanish imkoniyatini keyingi bosqichda qo‘shamiz.',
     );
   };
 
@@ -439,7 +434,7 @@ export default function SettingsScreen({
       <SettingRow
         icon="help-circle-outline"
         title="Savol berish va yordam"
-        description="Yordam xizmatiga murojaat"
+        description="AI yordamchi bilan suhbatlashing"
         right={
           <Ionicons
             name="chevron-forward"
@@ -447,7 +442,7 @@ export default function SettingsScreen({
             color={colors.muted}
           />
         }
-        onPress={showHelp}
+        onPress={onHelp}
       />
 
       <LocalizedText style={[styles.version, { color: colors.muted }]}>
