@@ -279,7 +279,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
           </Pressable>
         </View>
 
-        <ProfileEffect value={user.profileFrame} style={styles.identity}>
+        <ProfileEffect value={user.profileFrame} variant="hero" style={styles.identity}>
           <View style={[styles.avatarWrap, user.avatarDecoration === 'laurel_wreath' && styles.avatarWrapLaurel]}>
             {user.avatarDecoration === 'laurel_wreath' ? (
               <LaurelWreathAvatar size={148} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />

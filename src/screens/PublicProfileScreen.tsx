@@ -55,7 +55,7 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><LocalizedText style={styles.backText}>Orqaga</LocalizedText></Pressable>
-      <ProfileEffect value={profile.profileFrame} style={{ marginBottom: 0 }}>
+      <ProfileEffect value={profile.profileFrame} variant="hero" style={{ marginBottom: 0 }}>
       <GlassSurface intensity={isDark ? 34 : 42} style={styles.hero}>
         <View style={styles.identityRow}>
           <View style={[styles.avatarRing, profile.profileFrame === 'aurora' ? styles.frameAurora : profile.profileFrame === 'royal' ? styles.frameRoyal : profile.profileFrame === 'ocean' ? styles.frameOcean : profile.profileFrame === 'neon3d' ? styles.frameNeon3d : profile.profileFrame === 'inferno3d' ? styles.frameInferno3d : profile.profileFrame === 'frost3d' ? styles.frameFrost3d : profile.profileFrame === 'galaxy3d' ? styles.frameGalaxy3d : null]}>

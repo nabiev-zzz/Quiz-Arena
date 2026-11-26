@@ -72,6 +72,7 @@ interface BattleRankingEntry {
   displayName: string;
   username: string;
   avatarUrl: string | null;
+  profileFrame: string | null;
   matches: number;
   wins: number;
   losses: number;
@@ -1018,6 +1019,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
         displayName: true,
         username: true,
         avatarUrl: true,
+        profileFrame: true,
         rankPoints: true,
       },
     });
@@ -1038,6 +1040,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
           displayName: user.displayName,
           username: user.username,
           avatarUrl: user.avatarUrl,
+          profileFrame: user.profileFrame ?? null,
           rankPoints: user.rankPoints ?? 0,
           rankTier: getBattleRankTier(user.rankPoints ?? 0),
           matches: stats.matches,

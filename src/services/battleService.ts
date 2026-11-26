@@ -144,6 +144,7 @@ export interface BattleLeaderboardEntry {
   username: string;
   displayName?: string;
   avatarUrl?: string | null;
+  profileFrame?: string | null;
   rank?: number;
   rankPoints: number;
   rankTier: string;
