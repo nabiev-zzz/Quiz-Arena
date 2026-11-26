@@ -52,7 +52,7 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
   }, [user?.profileFrame, user?.profileBadge, user?.avatarDecoration]);
 
   const visibleItems = useMemo(() => items.filter((item) => kind === 'effect' ? item.kind === 'frame' && item.value.endsWith('3d') : kind === 'frame' ? item.kind === 'frame' && !item.value.endsWith('3d') : item.kind === kind), [items, kind]);
-  const currentValue = kind === 'effect' ? selection.frame : selection[kind];
+  const currentValue = kind === 'effect' ? (selection.frame?.endsWith('3d') ? selection.frame : null) : selection[kind];
   const frameStyle = (value: string | null) => {
     if (value === 'aurora') return styles.frameAurora;
     if (value === 'royal') return styles.frameRoyal;
@@ -142,7 +142,7 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
       </View> : <View style={styles.empty}><Ionicons name="albums-outline" size={38} color={c.textMuted} /><LocalizedText style={styles.emptyTitle}>Bu turdagi buyumlar hali yo‘q</LocalizedText><LocalizedText style={styles.emptyText}>ZC Shop’dan sotib olgan buyumlaringiz shu yerda paydo bo‘ladi.</LocalizedText></View>}
       {showActions ? <View style={styles.actionRow}>
         <Pressable style={({ pressed }) => [styles.resetButton, (!currentValue || saving) && styles.buttonDisabled, pressed && styles.controlPressed]} onPress={() => choose(null)} disabled={saving || !currentValue}><Ionicons name="close-circle-outline" size={17} color={c.textMuted} /><LocalizedText style={styles.resetText}>Olib tashlash</LocalizedText></Pressable>
-        <Pressable style={({ pressed }) => [styles.applyButton, (saving || currentValue === (kind === 'frame' ? user?.profileFrame : kind === 'badge' ? user?.profileBadge : user?.avatarDecoration)) && styles.buttonDisabled, pressed && styles.controlPressed]} onPress={() => void apply()} disabled={saving || currentValue === (kind === 'frame' || kind === 'effect' ? user?.profileFrame : kind === 'badge' ? user?.profileBadge : user?.avatarDecoration)}>{saving ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="checkmark-done" size={18} color="#FFFFFF" /><LocalizedText style={styles.applyText}>Profilga qo‘llash</LocalizedText></>}</Pressable>
+        <Pressable style={({ pressed }) => [styles.applyButton, (saving || currentValue === (kind === 'frame' ? user?.profileFrame : kind === 'badge' ? user?.profileBadge : user?.avatarDecoration)) && styles.buttonDisabled, pressed && styles.controlPressed]} onPress={() => void apply()} disabled={saving || currentValue === (kind === 'frame' ? (user?.profileFrame && !user.profileFrame.endsWith('3d') ? user.profileFrame : null) : kind === 'effect' ? (user?.profileFrame?.endsWith('3d') ? user.profileFrame : null) : kind === 'badge' ? user?.profileBadge : user?.avatarDecoration)}>{saving ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="checkmark-done" size={18} color="#FFFFFF" /><LocalizedText style={styles.applyText}>Profilga qo‘llash</LocalizedText></>}</Pressable>
       </View> : null}
       <View style={styles.infoNote}><Ionicons name="shield-checkmark-outline" size={15} color={c.primary} /><LocalizedText style={styles.note}>Tanlovni avval jonli ko‘rinishda tekshiring. “Profilga qo‘llash” bosilgandagina o‘zgarish saqlanadi. Xaridlaringiz kolleksiyada qoladi.</LocalizedText></View>
     </ScrollView>
