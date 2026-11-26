@@ -222,7 +222,7 @@ export class SubscriptionsService {
         const startAt = active?.expiresAt && active.expiresAt > now ? active.expiresAt : now;
         expiresAt = new Date(startAt.getTime() + durationDays * 86400000);
         if (active && active.provider === 'admin_grant') {
-          active.planKey = `${planKey}_admin`;
+          active.planKey = `${planKey}_${durationDays >= 180 ? 'yearly' : 'monthly'}`;
           active.startsAt = active.startsAt ?? now;
           active.expiresAt = expiresAt;
           active.providerReference = `admin-grant:${target.id}:${Date.now()}`;
@@ -232,7 +232,7 @@ export class SubscriptionsService {
             throw new BadRequestException('Akkauntda boshqa faol obuna bor. Avval uning muddati tugashini kuting yoki qo‘llab-quvvatlashga murojaat qiling');
           }
           await manager.save(UserSubscription, manager.create(UserSubscription, {
-            userId: target.id, planKey: `${planKey}_admin`, provider: 'admin_grant', status: 'active',
+            userId: target.id, planKey: `${planKey}_${durationDays >= 180 ? 'yearly' : 'monthly'}`, provider: 'admin_grant', status: 'active',
             providerReference: `admin-grant:${target.id}:${Date.now()}`, startsAt: now, expiresAt, autoRenew: false,
           }));
         }
