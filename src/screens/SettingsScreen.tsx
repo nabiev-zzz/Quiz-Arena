@@ -23,14 +23,12 @@ import {
 interface SettingsScreenProps {
   onBack?: () => void;
   onHelp?: () => void;
-  onCollectionPress?: () => void;
   dockStretch?: SharedValue<number>;
 }
 
 export default function SettingsScreen({
   onBack,
   onHelp,
-  onCollectionPress,
   dockStretch,
 }: SettingsScreenProps) {
   const { user } = useAuth();
@@ -188,17 +186,6 @@ export default function SettingsScreen({
           Sozlamalar
         </LocalizedText>
       </View>
-
-      <LocalizedText style={[styles.sectionTitle, { color: colors.muted }]}>
-        PROFIL KO‘RINISHI
-      </LocalizedText>
-      <SettingRow
-        icon="albums-outline"
-        title="Mening kolleksiyam"
-        description="Sotib olingan ramka, nishon va bezaklarni ko‘rish hamda jihozlash"
-        right={<Ionicons name="chevron-forward" size={20} color={colors.muted} />}
-        onPress={onCollectionPress}
-      />
 
       <LocalizedText style={[styles.sectionTitle, { color: colors.muted }]}>
         KO‘RINISH
