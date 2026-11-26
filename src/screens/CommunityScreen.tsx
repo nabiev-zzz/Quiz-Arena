@@ -45,6 +45,8 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   const [clips, setClips] = useState<CommunityPost[]>([]);
   const [activeSection, setActiveSection] = useState<'feed' | 'clips'>('feed');
   const [clipBusy, setClipBusy] = useState(false);
+  const [selectedClip, setSelectedClip] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [clipUploadProgress, setClipUploadProgress] = useState<number | null>(null);
   const [stories, setStories] = useState<CommunityStory[]>([]);
   const [content, setContent] = useState('');
   const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
@@ -117,8 +119,8 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
       showLocalizedAlert('Video uzun', 'Video 90 soniyadan oshmasin.');
       return null;
     }
-    if (asset.fileSize && asset.fileSize > 50 * 1024 * 1024) {
-      showLocalizedAlert('Video hajmi katta', 'Video 50 MB dan oshmasin.');
+    if (asset.fileSize && asset.fileSize > 30 * 1024 * 1024) {
+      showLocalizedAlert('Video hajmi katta', 'Tezroq yuklanishi uchun video 30 MB dan oshmasin.');
       return null;
     }
     return asset;
@@ -127,20 +129,39 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   const videoMime = (asset: ImagePicker.ImagePickerAsset) => {
     if (asset.mimeType === 'video/quicktime') return 'video/quicktime';
     if (asset.mimeType === 'video/webm') return 'video/webm';
+    if (asset.mimeType === 'video/mp4') return 'video/mp4';
+    const fileName = (asset.fileName || asset.uri).toLowerCase();
+    if (fileName.endsWith('.mov')) return 'video/quicktime';
+    if (fileName.endsWith('.webm')) return 'video/webm';
     return 'video/mp4';
+  };
+
+  const chooseClip = async () => {
+    if (clipBusy) return;
+    try {
+      const asset = await pickVideo();
+      if (asset) { setSelectedClip(asset); setClipUploadProgress(null); }
+    } catch (error) {
+      showLocalizedAlert('Video tanlash', error instanceof Error ? error.message : 'Video tanlanmadi');
+    }
   };
 
   const publishClip = async () => {
     if (clipBusy) return;
     try {
-      const asset = await pickVideo();
-      if (!asset) return;
+      if (!selectedClip) {
+        showLocalizedAlert('Avval video tanlang', 'Galereyadan videoni tanlang, keyin Yuklash tugmasini bosing.');
+        return;
+      }
       setClipBusy(true);
-      const media = await uploadCommunityMedia(asset.uri, videoMime(asset));
+      setClipUploadProgress(0);
+      const media = await uploadCommunityMedia(selectedClip.uri, videoMime(selectedClip), setClipUploadProgress);
       const created = await createCommunityClip(content.trim(), media.mediaKey, media.mediaType);
       setClips((current) => [created, ...current]);
       setPosts((current) => [created, ...current]);
       setContent('');
+      setSelectedClip(null);
+      setClipUploadProgress(null);
       setActiveSection('clips');
       showLocalizedAlert('Tayyor!', 'Video lavha muvaffaqiyatli joylandi.');
     } catch (error) {
@@ -405,12 +426,37 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
                 <LocalizedText style={styles.clipsTitle}>Qisqa videolar</LocalizedText>
                 <LocalizedText style={styles.clipsSubtitle}>90 soniyagacha videolarni ulashing va tomosha qiling.</LocalizedText>
               </View>
-              <Pressable onPress={() => void publishClip()} disabled={clipBusy} style={[styles.createClipButton, clipBusy && { opacity: 0.65 }]}>
-                {clipBusy ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="add" size={18} color="#FFFFFF" />}
-                <LocalizedText style={styles.createClipText}>Video joylash</LocalizedText>
+              <Pressable onPress={() => void chooseClip()} disabled={clipBusy} style={[styles.createClipButton, clipBusy && { opacity: 0.65 }]}>
+                <Ionicons name="folder-open-outline" size={17} color="#FFFFFF" />
+                <LocalizedText style={styles.createClipText}>Videoni tanlash</LocalizedText>
               </Pressable>
             </View>
-            <TextInput value={content} onChangeText={setContent} placeholder="Video uchun izoh (ixtiyoriy)" placeholderTextColor={c.textMuted} style={styles.clipCaptionInput} maxLength={2000} />
+            <LocalizedText style={styles.clipGuidance}>1. Galereyadan video tanlang. 2. Izoh yozing. 3. Yuklashni bosing. MP4 tavsiya etiladi · 90 soniyagacha · 30 MB gacha.</LocalizedText>
+            {selectedClip && (
+              <View style={styles.selectedClipCard}>
+                <View style={styles.selectedClipIcon}><Ionicons name="videocam" size={22} color={c.primary} /></View>
+                <View style={{ flex: 1 }}>
+                  <LocalizedText style={styles.selectedClipName} numberOfLines={1}>{selectedClip.fileName || 'Tanlangan video'}</LocalizedText>
+                  <LocalizedText style={styles.selectedClipMeta}>{selectedClip.fileSize ? `${(selectedClip.fileSize / (1024 * 1024)).toFixed(1)} MB` : 'Hajmi aniqlanmoqda'} · {selectedClip.duration ? `${Math.round(selectedClip.duration / 1000)} soniya` : 'Video'}</LocalizedText>
+                </View>
+                <Pressable onPress={() => setSelectedClip(null)} disabled={clipBusy} style={styles.removeClipButton}><Ionicons name="close" size={18} color={c.textMuted} /></Pressable>
+              </View>
+            )}
+            <TextInput value={content} onChangeText={setContent} placeholder="Video haqida qisqa izoh (ixtiyoriy)" placeholderTextColor={c.textMuted} style={styles.clipCaptionInput} maxLength={2000} />
+            {clipBusy && clipUploadProgress !== null && (
+              <View style={styles.uploadProgressCard}>
+                <View style={styles.uploadProgressHeader}>
+                  <LocalizedText style={styles.uploadProgressTitle}>{clipUploadProgress >= 100 ? 'Video saqlandi' : 'Video yuklanmoqda...'}</LocalizedText>
+                  <LocalizedText style={styles.uploadProgressPercent}>{clipUploadProgress}%</LocalizedText>
+                </View>
+                <View style={styles.uploadProgressTrack}><View style={[styles.uploadProgressFill, { width: `${clipUploadProgress}%` }]} /></View>
+                <LocalizedText style={styles.uploadProgressHint}>Ilovadan chiqib ketmang. Yuklash tugagach video avtomatik joylanadi.</LocalizedText>
+              </View>
+            )}
+            <Pressable onPress={() => void publishClip()} disabled={clipBusy || !selectedClip} style={[styles.publishClipButton, (clipBusy || !selectedClip) && { opacity: 0.48 }]}>
+              {clipBusy ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="cloud-upload-outline" size={18} color="#FFFFFF" />}
+              <LocalizedText style={styles.publishClipButtonText}>{clipBusy ? 'Yuklanmoqda...' : 'Yuklash va joylash'}</LocalizedText>
+            </Pressable>
             {loading ? <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 30 }} /> : clips.length === 0 ? (
               <View style={styles.clipsEmpty}>
                 <Ionicons name="videocam-outline" size={38} color={c.primary} />
@@ -480,6 +526,22 @@ function makeStyles(c: ReturnType<typeof useTheme>['tokens']['colors'], isDark: 
     sectionTabText: { color: c.textMuted, fontSize: 13, fontWeight: '700' },
     sectionTabTextActive: { color: '#FFFFFF' },
     clipsSection: { gap: 16, paddingBottom: 28 },
+    clipGuidance: { color: c.textMuted, fontSize: 11, lineHeight: 17, marginTop: -8 },
+    selectedClipCard: { flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: 15, padding: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
+    selectedClipIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(137,111,255,0.16)' : 'rgba(137,111,255,0.1)' },
+    selectedClipName: { color: c.text, fontSize: 12, fontWeight: '800' },
+    selectedClipMeta: { color: c.textMuted, fontSize: 10, marginTop: 4 },
+    removeClipButton: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: c.background },
+    uploadProgressCard: { borderRadius: 15, padding: 13, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder, gap: 9 },
+    uploadProgressHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    uploadProgressTitle: { color: c.text, fontSize: 12, fontWeight: '800' },
+    uploadProgressPercent: { color: c.primary, fontSize: 12, fontWeight: '900' },
+    uploadProgressTrack: { height: 8, borderRadius: 8, overflow: 'hidden', backgroundColor: c.background },
+    uploadProgressFill: { height: '100%', borderRadius: 8, backgroundColor: c.primary },
+    uploadProgressHint: { color: c.textMuted, fontSize: 10, lineHeight: 15 },
+    publishClipButton: { minHeight: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, backgroundColor: c.primary },
+    publishClipButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+
     clipCaptionInput: { minHeight: 44, borderRadius: 12, paddingHorizontal: 13, color: c.text, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, fontSize: 13 },
     clipsIntro: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
     clipsTitle: { color: c.text, fontSize: 19, fontWeight: '800' },

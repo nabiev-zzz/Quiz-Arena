@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { API_BASE_URL, getToken } from './authService';
 
 export interface CommunityPerson {
@@ -71,22 +72,63 @@ export const createCommunityStory = (mediaKey: string, mediaType: string, captio
 export const markCommunityStoryViewed = (id: string) =>
   request<{ viewed: boolean; viewsCount: number }>(`/api/community/stories/${encodeURIComponent(id)}/view`, 'POST');
 
-export async function uploadCommunityMedia(uri: string, contentType: string) {
+function putBlobWithProgress(url: string, blob: Blob, headers: Record<string, string>, onProgress?: (percent: number) => void) {
+  return new Promise<{ status: number; responseText: string }>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', url);
+    Object.entries(headers).forEach(([name, value]) => xhr.setRequestHeader(name, value));
+    xhr.timeout = 180_000;
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) onProgress?.(Math.min(98, 3 + Math.round((event.loaded / event.total) * 95)));
+    };
+    xhr.onload = () => resolve({ status: xhr.status, responseText: xhr.responseText || '' });
+    xhr.onerror = () => reject(new Error('Internet aloqasi uzildi. Yuklashni qayta urinib ko‘ring.'));
+    xhr.ontimeout = () => reject(new Error('Yuklash vaqti tugadi. Internetni tekshirib, qayta urinib ko‘ring.'));
+    xhr.onabort = () => reject(new Error('Yuklash bekor qilindi.'));
+    xhr.send(blob);
+  });
+}
+
+export async function uploadCommunityMedia(uri: string, contentType: string, onProgress?: (percent: number) => void) {
   const token = await getToken();
   if (!token) throw new Error('Kirish talab qilinadi');
-  const key = await request<{ fileName: string; mediaType: string }>('/api/community/media/upload-key', 'POST', { contentType });
+  const key = await request<{ fileName: string; mediaType: string; mediaKey: string; uploadUrl: string }>('/api/community/media/upload-key', 'POST', { contentType });
+  onProgress?.(1);
   const local = await fetch(uri);
-  if (!local.ok) throw new Error('Tanlangan rasmni o‘qib bo‘lmadi');
+  if (!local.ok) throw new Error('Tanlangan video faylini o‘qib bo‘lmadi');
   const blob = await local.blob();
   const isVideo = contentType.startsWith('video/');
-  const maxBytes = isVideo ? 50 * 1024 * 1024 : 8 * 1024 * 1024;
-  if (!blob.size || blob.size > maxBytes) throw new Error(isVideo ? 'Video hajmi 50 MB dan oshmasin' : 'Rasm hajmi 8 MB dan oshmasin');
-  const response = await fetch(`${API_BASE_URL}/api/community/media/upload/${encodeURIComponent(key.fileName)}`, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': contentType },
-    body: blob,
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(typeof data.message === 'string' ? data.message : 'Media faylni yuklab bo‘lmadi');
-  return { mediaKey: data.mediaKey as string, mediaType: data.mediaType as string };
+  const maxBytes = isVideo ? 30 * 1024 * 1024 : 8 * 1024 * 1024;
+  if (!blob.size || blob.size > maxBytes) throw new Error(isVideo ? 'Video hajmi 30 MB dan oshmasin' : 'Rasm hajmi 8 MB dan oshmasin');
+  onProgress?.(3);
+
+  const mediaHeaders = { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=31536000, immutable' };
+  if (Platform.OS !== 'web' && key.uploadUrl && key.mediaKey) {
+    try {
+      const direct = await putBlobWithProgress(key.uploadUrl, blob, mediaHeaders, onProgress);
+      if (direct.status >= 200 && direct.status < 300) {
+        onProgress?.(100);
+        return { mediaKey: key.mediaKey, mediaType: key.mediaType };
+      }
+    } catch {
+      // Fall back to the authenticated API proxy if the storage endpoint rejects direct mobile upload.
+    }
+  }
+
+  const proxy = await putBlobWithProgress(
+    `${API_BASE_URL}/api/community/media/upload/${encodeURIComponent(key.fileName)}`,
+    blob,
+    { ...mediaHeaders, Authorization: `Bearer ${token}` },
+    onProgress,
+  );
+  let data: Record<string, unknown> = {};
+  try { data = JSON.parse(proxy.responseText || '{}') as Record<string, unknown>; } catch { /* handled below */ }
+  if (proxy.status < 200 || proxy.status >= 300) {
+    throw new Error(typeof data.message === 'string' ? data.message : 'Media faylni yuklab bo‘lmadi');
+  }
+  if (typeof data.mediaKey !== 'string' || typeof data.mediaType !== 'string') {
+    throw new Error('Server yuklangan faylni tasdiqlamadi. Qayta urinib ko‘ring.');
+  }
+  onProgress?.(100);
+  return { mediaKey: data.mediaKey, mediaType: data.mediaType };
 }

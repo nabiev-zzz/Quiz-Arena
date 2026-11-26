@@ -8,7 +8,7 @@ interface AuthRequest { user: { id: string }; body?: Buffer }
 export class CommunityController {
   constructor(private readonly community: CommunityService) {}
   @Post('media/upload-key')
-  uploadKey(@Body() body: { contentType?: string }) { return this.community.createUploadFileName(body?.contentType ?? ''); }
+  uploadKey(@Request() request: AuthRequest, @Body() body: { contentType?: string }) { return this.community.createUploadFileName(request.user.id, body?.contentType ?? ''); }
   @Put('media/upload/:fileName')
   uploadMedia(@Request() request: AuthRequest, @Param('fileName') fileName: string, @Headers('content-type') contentType: string) {
     return this.community.uploadMedia(request.user.id, fileName, contentType, request.body as Buffer);

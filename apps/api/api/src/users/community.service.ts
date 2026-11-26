@@ -32,11 +32,12 @@ export class CommunityService {
     };
   }
 
-  createUploadFileName(contentType: string) {
+  createUploadFileName(userId: string, contentType: string) {
     const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm' };
     const extension = extensions[contentType];
     if (!extension) throw new BadRequestException('JPG, PNG, WEBP rasmlari yoki MP4, MOV, WEBM videolar qabul qilinadi');
-    return { fileName: this.storage.createKey('upload', extension).split('/').pop(), mediaType: contentType };
+    const mediaKey = this.storage.createKey(userId, extension);
+    return { fileName: mediaKey.split('/').pop(), mediaType: contentType, mediaKey, uploadUrl: this.storage.sign('PUT', mediaKey, 900) };
   }
 
   uploadMedia(userId: string, fileName: string, contentType: string, buffer: Buffer) {
