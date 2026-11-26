@@ -50,6 +50,7 @@ export default function AiTutorScreen({
       const nextY = event.contentOffset.y;
       const delta = nextY - lastDockScrollY.value;
       lastDockScrollY.value = nextY;
+      // eslint-disable-next-line react-hooks/immutability -- Reanimated shared values are mutable by design.
       dockStretch.value = withSpring(
         Math.max(-1, Math.min(1, delta / 30)),
         { damping: 11, stiffness: 160, mass: 0.7 },
@@ -57,11 +58,13 @@ export default function AiTutorScreen({
     },
     onEndDrag: () => {
       if (dockStretch) {
+        // eslint-disable-next-line react-hooks/immutability -- Reanimated shared values are mutable by design.
         dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 });
       }
     },
     onMomentumEnd: () => {
       if (dockStretch) {
+        // eslint-disable-next-line react-hooks/immutability -- Reanimated shared values are mutable by design.
         dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 });
       }
     },
@@ -100,6 +103,7 @@ export default function AiTutorScreen({
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Async history hydration is intentionally triggered on screen entry.
     void loadHistory();
   }, [loadHistory]);
 
@@ -482,7 +486,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceGlass,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -534,7 +538,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     width: 42,
     height: 42,
     borderRadius: 15,
-    backgroundColor: '#6759E8',
+    backgroundColor: colors.primaryDark,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -571,7 +575,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     width: 30,
     height: 30,
     borderRadius: 11,
-    backgroundColor: '#6759E8',
+    backgroundColor: colors.primaryDark,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -592,10 +596,10 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     minWidth: 0,
     paddingHorizontal: 13,
     paddingVertical: 10,
-    borderRadius: 17,
+    borderRadius: 21,
   },
   userBubble: {
-    backgroundColor: '#6759E8',
+    backgroundColor: colors.primaryDark,
     borderBottomRightRadius: 5,
   },
   assistantBubble: {
@@ -709,7 +713,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 19,
+    borderRadius: 22,
   },
   input: {
     flex: 1,
@@ -726,7 +730,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     width: 46,
     height: 46,
     borderRadius: 15,
-    backgroundColor: '#7657E8',
+    backgroundColor: colors.primaryDark,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 6,
