@@ -84,7 +84,7 @@ function DockItem({
       <Animated.View style={[styles.itemInner, animatedStyle]}>
         <Ionicons
           name={active ? item.activeIcon : item.icon}
-          size={23}
+          size={24}
           color={active ? colors.primary : colors.textMuted}
         />
         <LocalizedText
@@ -141,7 +141,7 @@ export default function LiquidDock({
           styles.dock,
           {
             borderColor: tokens.colors.borderStrong,
-            backgroundColor: tokens.colors.surfaceElevated,
+            backgroundColor: tokens.colors.surfaceGlass,
           },
         ]}
       >
@@ -188,16 +188,16 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   dock: {
-    height: 68,
-    borderRadius: 22,
+    height: 72,
+    borderRadius: 26,
     borderWidth: 1,
     overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.13,
-    shadowRadius: 22,
+    shadowOpacity: 0.20,
+    shadowRadius: 26,
     elevation: 14,
   },
   itemsRow: {
@@ -208,10 +208,10 @@ const styles = StyleSheet.create({
   },
   liquidPill: {
     position: 'absolute',
-    top: 5,
-    bottom: 5,
+    top: 6,
+    bottom: 6,
     left: 4,
-    borderRadius: 19,
+    borderRadius: 21,
     borderWidth: 1,
     zIndex: 1,
   },
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 10,
-    lineHeight: 13,
+    lineHeight: 14,
     fontWeight: '600',
     textAlign: 'center',
   },
