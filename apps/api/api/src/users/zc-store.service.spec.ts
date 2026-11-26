@@ -77,6 +77,26 @@ describe('ZcStoreService', () => {
     }));
   });
 
+  it('purchases and equips the animated laurel wreath avatar', async () => {
+    const result = await service.purchase('user-1', 'decoration_laurel_wreath');
+
+    expect(result.purchased).toBe(true);
+    expect(result.item).toEqual(expect.objectContaining({
+      id: 'decoration_laurel_wreath',
+      kind: 'decoration',
+      value: 'laurel_wreath',
+      price: 650,
+    }));
+    expect(user.zcBalance).toBe(350);
+    expect(user.avatarDecoration).toBe('laurel_wreath');
+    expect(itemRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'user-1',
+      itemId: 'decoration_laurel_wreath',
+      kind: 'decoration',
+      price: 650,
+    }));
+  });
+
   it('does not charge twice for an already owned cosmetic', async () => {
     itemRepository.findOne.mockResolvedValue({ itemId: 'badge_legend' });
 

@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BookWingsAvatar from '../components/BookWingsAvatar';
+import LaurelWreathAvatar from '../components/LaurelWreathAvatar';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
@@ -49,8 +50,8 @@ export default function ShopScreen({ onBack }: Props) {
     if (filter === 'frames') return item.kind === 'frame' && !item.value.endsWith('3d');
     if (filter === 'effects') return item.kind === 'frame' && item.value.endsWith('3d');
     if (filter === 'badges') return item.kind === 'badge';
-    if (filter === 'avatars') return item.kind === 'decoration' && item.value === 'book_wings';
-    return item.kind === 'decoration' && item.value !== 'book_wings';
+    if (filter === 'avatars') return item.kind === 'decoration' && ['book_wings', 'laurel_wreath'].includes(item.value);
+    return item.kind === 'decoration' && !['book_wings', 'laurel_wreath'].includes(item.value);
   }), [products, filter]);
 
   const handleProduct = async (item: ZcStoreProduct) => {
@@ -135,7 +136,9 @@ export default function ShopScreen({ onBack }: Props) {
               return (
                 <View key={item.id} style={styles.product}>
                   <View style={styles.previewStage}>
-                    {item.kind === 'decoration' && item.value === 'book_wings' ? (
+                    {item.kind === 'decoration' && item.value === 'laurel_wreath' ? (
+                      <LaurelWreathAvatar size={110} imageUri={user.avatarUrl} initials={user.displayName.trim().split(/\\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'U'} />
+                    ) : item.kind === 'decoration' && item.value === 'book_wings' ? (
                       <BookWingsAvatar size={100} imageUri={user.avatarUrl} initials={user.displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'U'} />
                     ) : isFrame ? (
                       <View style={[styles.avatarPreview, frameStyle(item.value)]}>

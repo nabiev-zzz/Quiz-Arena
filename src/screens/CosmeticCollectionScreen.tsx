@@ -5,6 +5,7 @@ import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import BookWingsAvatar from '../components/BookWingsAvatar';
+import LaurelWreathAvatar from '../components/LaurelWreathAvatar';
 import { getZcStoreCatalog, type ZcStoreProduct } from '../services/zcStoreService';
 
 type Kind = 'frame' | 'badge' | 'decoration';
@@ -78,7 +79,7 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
     ? (selection.frame ? (FRAME_NAMES[selection.frame] ?? selection.frame) : 'Standart ramka')
     : kind === 'badge'
       ? (selection.badge ? (BADGE_NAMES[selection.badge] ?? selection.badge.toUpperCase()) : 'Nishonsiz')
-      : (selection.decoration ? ({ crown: 'Toj', laurel: 'Laurel', star: 'Yulduz', sparkle: 'Yulduzcha', book_wings: 'Kitob qanotlari' }[selection.decoration] ?? selection.decoration) : 'Bezaksiz');
+      : (selection.decoration ? ({ crown: 'Toj', laurel: 'Laurel', star: 'Yulduz', sparkle: 'Yulduzcha', book_wings: 'Kitob qanotlari', laurel_wreath: 'Dafna toji' }[selection.decoration] ?? selection.decoration) : 'Bezaksiz');
   const showActions = visibleItems.length > 0 || Boolean(currentValue);
 
   return <View style={styles.screen}>
@@ -92,7 +93,9 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
         <View style={styles.previewGlow} />
         <View style={styles.previewTop}><Ionicons name="eye-outline" size={16} color={c.primary} /><LocalizedText style={styles.previewTitle}>PROFILDA QANDAY KO‘RINADI</LocalizedText><View style={{ flex: 1 }} /><LocalizedText style={styles.live}>JONLI KO‘RINISH</LocalizedText></View>
         <View style={styles.profilePreview}>
-          {selection.decoration === 'book_wings' ? (
+          {selection.decoration === 'laurel_wreath' ? (
+            <LaurelWreathAvatar size={148} imageUri={user?.avatarUrl} initials={initials || 'U'} frameColor={selection.frame === 'aurora' ? '#A78BFA' : selection.frame === 'royal' ? '#F2CE73' : selection.frame === 'ocean' ? '#60A5FA' : selection.frame === 'neon3d' ? '#E9D5FF' : selection.frame === 'inferno3d' ? '#FED7AA' : selection.frame === 'frost3d' ? '#BAE6FD' : selection.frame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
+          ) : selection.decoration === 'book_wings' ? (
             <BookWingsAvatar size={136} imageUri={user?.avatarUrl} initials={initials || 'U'} frameColor={selection.frame === 'aurora' ? '#A78BFA' : selection.frame === 'royal' ? '#F2CE73' : selection.frame === 'ocean' ? '#60A5FA' : selection.frame === 'neon3d' ? '#E9D5FF' : selection.frame === 'inferno3d' ? '#FED7AA' : selection.frame === 'frost3d' ? '#BAE6FD' : selection.frame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
           ) : <>
             <View style={[styles.avatarFrame, frameStyle(selection.frame)]}>
@@ -123,6 +126,7 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
           return <Pressable key={item.id} onPress={() => choose(item.value)} style={({ pressed }) => [styles.item, selected && styles.itemSelected, pressed && styles.itemPressed]}>
             <View style={styles.itemStage}>
               {item.kind === 'frame' ? <View style={[styles.miniAvatarFrame, frameStyle(item.value)]}>{user?.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.miniAvatar} /> : <Ionicons name="person" size={26} color="#FFFFFF" />}</View>
+                : item.value === 'laurel_wreath' ? <LaurelWreathAvatar size={96} imageUri={user?.avatarUrl} initials={initials || 'U'} />
                 : item.value === 'book_wings' ? <BookWingsAvatar size={86} imageUri={user?.avatarUrl} initials={initials || 'U'} />
                 : <View style={styles.badgeSample}><Ionicons name={item.kind === 'badge' ? (item.value === 'legend' ? 'ribbon' : item.value === 'champion' ? 'trophy' : item.value === 'scholar' ? 'book' : 'flame') : (item.value === 'crown' ? 'ribbon' : item.value === 'laurel' ? 'leaf' : 'star')} size={30} color={item.kind === 'badge' ? '#D6B66A' : '#C5B4FF'} /></View>}
             </View>
