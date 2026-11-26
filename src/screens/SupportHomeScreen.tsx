@@ -16,7 +16,7 @@ export default function SupportHomeScreen({ onBack, onOpenChat }: SupportHomeScr
 
   const openEmail = () => {
     const subject = encodeURIComponent('ZELQEN CORE — Qo‘llab-quvvatlash');
-    const body = encodeURIComponent('Salom, ZELQEN CORE jamoasi!\\n\\nMurojaatim:\\n');
+    const body = encodeURIComponent('Salom, ZELQEN CORE jamoasi!\n\nMurojaatim:\n');
     const mailto = `mailto:zelqencoresupport@gmail.com?subject=${subject}&body=${body}`;
     const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=zelqencoresupport%40gmail.com&su=${subject}&body=${body}`;
     void Linking.openURL(Platform.OS === 'web' ? gmail : mailto).catch(() => undefined);
