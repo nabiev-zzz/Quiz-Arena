@@ -677,10 +677,20 @@ export class AuthService {
       throw new ServiceUnavailableException('QA admin account configuration is invalid');
     }
 
-    const existing = await this.userRepository.findOne({ where: { username: configuredUsername } });
+    const existing = await this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.username = :username', { username: configuredUsername })
+      .getOne();
     if (existing) {
       if (existing.role !== 'admin' || existing.status !== 'active') {
         throw new ServiceUnavailableException('Configured QA admin username is already assigned to a non-admin or inactive account');
+      }
+      // Reconcile the existing QA admin with the currently configured Railway secret.
+      // This safely fixes stale database hashes after an intentional secret rotation.
+      if (!(await bcrypt.compare(configuredPassword, existing.passwordHash))) {
+        existing.passwordHash = await bcrypt.hash(configuredPassword, 12);
+        await this.userRepository.save(existing);
       }
       return;
     }
