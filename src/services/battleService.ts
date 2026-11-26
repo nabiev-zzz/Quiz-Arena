@@ -51,6 +51,11 @@ export interface BattleFinished {
     delta: number;
     rankTier: string;
   }>;
+  zcChanges?: Record<string, {
+    userId: string;
+    amount: number;
+    balanceAfter: number;
+  }>;
 }
 
 export interface BattleMatched {

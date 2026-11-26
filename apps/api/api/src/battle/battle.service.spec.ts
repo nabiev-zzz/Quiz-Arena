@@ -2,12 +2,14 @@ import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { BattleService, BattleQuestionResult } from './battle.service';
 import { BattleMatch } from './entities/battle-match.entity';
 import { User } from '../users/entities/user.entity';
+import { ZcTransaction } from '../users/entities/zc-transaction.entity';
 
 describe('BattleService — Rank tizimi', () => {
   let service: BattleService;
   let match: any;
   let users: Map<string, any>;
   let manager: any;
+  let zcEntries: any[];
   let questionRepository: any;
 
   const playerOneId = 'user-1';
@@ -52,6 +54,7 @@ describe('BattleService — Rank tizimi', () => {
       finishedAt: null,
     };
 
+    zcEntries = [];
     users = new Map([
       [
         playerOneId,
@@ -84,10 +87,20 @@ describe('BattleService — Rank tizimi', () => {
       }),
     };
 
+    const zcRepo: any = {
+      create: jest.fn((input: any) => ({ id: `zc-${zcEntries.length + 1}`, ...input })),
+      save: jest.fn(async (entry: any) => {
+        zcEntries.push(entry);
+        return entry;
+      }),
+      find: jest.fn(async () => zcEntries),
+    };
+
     manager = {
       getRepository: jest.fn((entity: any) => {
         if (entity === BattleMatch) return matchRepo;
         if (entity === User) return userRepo;
+        if (entity === ZcTransaction) return zcRepo;
         throw new Error('Unknown repository');
       }),
     };
@@ -110,9 +123,12 @@ describe('BattleService — Rank tizimi', () => {
     questionRepository = { find: jest.fn(async () => []) };
     const userRepository: any = {};
 
+    const dailyTasksService: any = { recordRankedBattle: jest.fn(async () => undefined) };
+
     service = new BattleService(
       configService,
       aiService,
+      dailyTasksService,
       matchRepository,
       questionRepository,
       userRepository,
@@ -148,6 +164,11 @@ describe('BattleService — Rank tizimi', () => {
     expect(change.rankTier).toBe('Bronze');
 
     expect(users.get(playerOneId).rankPoints).toBe(127);
+    expect(users.get(playerOneId).zcBalance).toBe(20);
+    expect(users.get(playerTwoId).zcBalance).toBe(5);
+    expect(response.zcChanges[playerOneId].amount).toBe(20);
+    expect(response.zcChanges[playerTwoId].amount).toBe(5);
+    expect(zcEntries).toHaveLength(2);
   });
 
   it('Durangda RP beriladi', async () => {
@@ -230,6 +251,9 @@ describe('BattleService — Rank tizimi', () => {
     expect(response.rankChanges).toEqual({});
     expect(users.get(playerOneId).rankPoints).toBe(100);
     expect(users.get(playerTwoId).rankPoints).toBe(100);
+    expect(users.get(playerOneId).zcBalance ?? 0).toBe(0);
+    expect(users.get(playerTwoId).zcBalance ?? 0).toBe(0);
+    expect(zcEntries).toHaveLength(0);
   });
 
   it('Bir jangni takroran yakunlash RPni ikkinchi marta bermaydi', async () => {
@@ -263,6 +287,9 @@ describe('BattleService — Rank tizimi', () => {
     expect(secondResponse.rankChanges[playerTwoId].rankPoints).toBe(85);
     expect(users.get(playerOneId).rankPoints).toBe(127);
     expect(users.get(playerTwoId).rankPoints).toBe(85);
+    expect(secondResponse.zcChanges[playerOneId].amount).toBe(20);
+    expect(secondResponse.zcChanges[playerTwoId].amount).toBe(5);
+    expect(zcEntries).toHaveLength(2);
   });
   it('Jang tafsilotlari faqat ishtirokchiga ochiladi va savol tahlilini qaytaradi', async () => {
     setup('ranked');

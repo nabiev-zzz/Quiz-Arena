@@ -11,6 +11,9 @@ import { useTheme } from '../theme/ThemeContext';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
 import { getLearningHistory, getLearningHistoryItem, type LearningHistoryItem, type LearningHistorySummary } from '../services/learningService';
+import { getZcHistory, type ZcTransactionItem } from '../services/zcWalletService';
+import { getZcStoreCatalog, purchaseZcStoreItem, type ZcStoreProduct } from '../services/zcStoreService';
+import { getDailyTasks, claimDailyTask, type DailyTask } from '../services/dailyTasksService';
 
 interface ProfileScreenProps {
   onClosePress?: () => void;
@@ -20,7 +23,7 @@ interface ProfileScreenProps {
   dockStretch?: SharedValue<number>;
 }
 
-type ProfileTab = 'main' | 'board' | 'activity' | 'wishlist';
+type ProfileTab = 'main' | 'board' | 'activity' | 'missions' | 'wishlist';
 
 const AVATAR_CATEGORIES = [
   { id: 'anime', label: 'Anime', style: 'lorelei', seeds: ['Aiko', 'Hana', 'Akira', 'Yuki', 'Ren', 'Sora', 'Mika', 'Kai'] },
@@ -40,7 +43,7 @@ function getAvatarUrl(style: string, seed: string) {
 }
 
 export default function ProfileScreen({ onClosePress, onSettingsPress, onPremiumPress, onUserPress, dockStretch }: ProfileScreenProps) {
-  const { user, updateProfile, logout } = useAuth();
+  const { user, updateProfile, refreshUser, logout } = useAuth();
   const { tokens, isDark } = useTheme();
   const C = {
     background: tokens.colors.background,
@@ -87,6 +90,14 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const [historyLoading, setHistoryLoading] = useState(false);
   const [loadingHistoryDetailId, setLoadingHistoryDetailId] = useState<string | null>(null);
   const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
+  const [zcHistory, setZcHistory] = useState<ZcTransactionItem[]>([]);
+  const [zcHistoryLoading, setZcHistoryLoading] = useState(false);
+  const [storeProducts, setStoreProducts] = useState<ZcStoreProduct[]>([]);
+  const [storeLoading, setStoreLoading] = useState(false);
+  const [purchasingItemId, setPurchasingItemId] = useState<string | null>(null);
+  const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([]);
+  const [dailyTasksLoading, setDailyTasksLoading] = useState(false);
+  const [claimingTaskId, setClaimingTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -106,6 +117,39 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
       .finally(() => { if (active) setHistoryLoading(false); });
     return () => { active = false; };
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'main' || !user) return;
+    let active = true;
+    setZcHistoryLoading(true);
+    getZcHistory(5)
+      .then((result) => { if (active) setZcHistory(result.items); })
+      .catch(() => { if (active) setZcHistory([]); })
+      .finally(() => { if (active) setZcHistoryLoading(false); });
+    return () => { active = false; };
+  }, [activeTab, user?.id]);
+
+  useEffect(() => {
+    if (activeTab !== 'missions' || !user) return;
+    let active = true;
+    setDailyTasksLoading(true);
+    getDailyTasks()
+      .then((result) => { if (active) setDailyTasks(result.tasks); })
+      .catch((error) => { if (active) showLocalizedAlert('Vazifalar xatosi', error instanceof Error ? error.message : 'Vazifalar yuklanmadi'); })
+      .finally(() => { if (active) setDailyTasksLoading(false); });
+    return () => { active = false; };
+  }, [activeTab, user?.id]);
+
+  useEffect(() => {
+    if (activeTab !== 'wishlist' || !user) return;
+    let active = true;
+    setStoreLoading(true);
+    getZcStoreCatalog()
+      .then((catalog) => { if (active) setStoreProducts(catalog.items); })
+      .catch((error) => { if (active) showLocalizedAlert('Do‘kon xatosi', error instanceof Error ? error.message : 'Do‘kon yuklanmadi'); })
+      .finally(() => { if (active) setStoreLoading(false); });
+    return () => { active = false; };
+  }, [activeTab, user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -209,6 +253,38 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     }
   };
 
+  const buyOrEquipCosmetic = async (product: ZcStoreProduct) => {
+    if (purchasingItemId) return;
+    setPurchasingItemId(product.id);
+    try {
+      if (!product.owned) {
+        await purchaseZcStoreItem(product.id);
+      }
+      await updateProfile(product.kind === 'frame' ? { profileFrame: product.value } : { avatarDecoration: product.value });
+      setStoreProducts((current) => current.map((item) => item.id === product.id ? { ...item, owned: true } : item));
+      showLocalizedAlert(product.owned ? 'Jihozlandi' : 'Xarid muvaffaqiyatli', product.name + ' profilingizga qo‘llandi.');
+    } catch (error) {
+      showLocalizedAlert('Xarid amalga oshmadi', error instanceof Error ? error.message : 'ZC do‘konida xatolik yuz berdi.');
+    } finally {
+      setPurchasingItemId(null);
+    }
+  };
+
+  const claimTaskReward = async (task: DailyTask) => {
+    if (!task.completed || task.claimed || claimingTaskId) return;
+    setClaimingTaskId(task.id);
+    try {
+      const result = await claimDailyTask(task.id);
+      setDailyTasks((current) => current.map((item) => item.id === task.id ? { ...item, claimed: true } : item));
+      await refreshUser();
+      showLocalizedAlert('Mukofot olindi', `+${result.reward} ZC balansingizga qo‘shildi.`);
+    } catch (error) {
+      showLocalizedAlert('Mukofot olinmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring.');
+    } finally {
+      setClaimingTaskId(null);
+    }
+  };
+
   const saveCosmetic = async (value: string | null) => {
     if (!cosmeticType || cosmeticSaving) return;
     setCosmeticSaving(true);
@@ -251,7 +327,8 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     { key: 'main', label: 'Main' },
     { key: 'board', label: 'Board' },
     { key: 'activity', label: 'Tarix' },
-    { key: 'wishlist', label: 'Wishlist' },
+    { key: 'missions', label: 'Vazifalar' },
+    { key: 'wishlist', label: 'Do‘kon' },
   ];
 
   const renderCard = (children: React.ReactNode, extraStyle?: object, key?: string) => (
@@ -312,6 +389,47 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
 
         {activeTab === 'main' ? (
           <>
+            {renderCard(
+              <View style={styles.row}>
+                <View style={[styles.iconTile, { backgroundColor: 'rgba(232, 190, 92, 0.14)' }]}>
+                  <Ionicons name="wallet-outline" size={21} color="#D9B65B" />
+                </View>
+                <View style={styles.rowBody}>
+                  <LocalizedText style={styles.cardTitle}>Zelqen Credits</LocalizedText>
+                  <LocalizedText style={styles.cardSubtitle}>Ilova ichidagi virtual valyuta</LocalizedText>
+                </View>
+                <NativeText style={{ color: '#D9B65B', fontSize: 16, fontWeight: '900' }}>
+                  {Math.max(0, Number(user.zcBalance ?? 0)).toLocaleString('en-US')} ZC
+                </NativeText>
+              </View>,
+            )}
+            {renderCard(
+              <View style={{ gap: 11 }}>
+                <View style={styles.row}>
+                  <View style={styles.rowBody}>
+                    <LocalizedText style={styles.cardTitle}>ZC tranzaksiyalari</LocalizedText>
+                    <LocalizedText style={styles.cardSubtitle}>Oxirgi kirim va sarflar</LocalizedText>
+                  </View>
+                  {zcHistoryLoading ? <ActivityIndicator size="small" color={C.purple} /> : null}
+                </View>
+                {!zcHistoryLoading && zcHistory.length === 0 ? (
+                  <LocalizedText style={styles.cardSubtitle}>Hozircha tranzaksiyalar yo‘q.</LocalizedText>
+                ) : zcHistory.map((item) => (
+                  <View key={item.id} style={[styles.row, { paddingTop: 8, borderTopWidth: 1, borderTopColor: C.border }]}>
+                    <View style={[styles.iconTile, { backgroundColor: item.type === 'credit' ? 'rgba(76, 175, 125, 0.13)' : 'rgba(226, 140, 155, 0.13)' }]}>
+                      <Ionicons name={item.type === 'credit' ? 'arrow-down' : 'arrow-up'} size={19} color={item.type === 'credit' ? '#55B98A' : '#E28C9B'} />
+                    </View>
+                    <View style={styles.rowBody}>
+                      <LocalizedText style={styles.cardTitle}>{item.reason}</LocalizedText>
+                      <LocalizedText style={styles.cardSubtitle}>{new Date(item.createdAt).toLocaleDateString()}</LocalizedText>
+                    </View>
+                    <NativeText style={{ color: item.type === 'credit' ? '#55B98A' : '#E28C9B', fontSize: 14, fontWeight: '900' }}>
+                      {item.type === 'credit' ? '+' : '−'}{item.amount.toLocaleString('en-US')} ZC
+                    </NativeText>
+                  </View>
+                ))}
+              </View>,
+            )}
             {renderCard(
               <Pressable style={styles.row} onPress={onPremiumPress}>
                 <View style={styles.iconTile}><Ionicons name="diamond-outline" size={21} color={C.purple} /></View>
@@ -492,6 +610,45 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
           </>
         ) : null}
 
+        {activeTab === 'missions' ? (
+          <>
+            <View style={styles.sectionHeader}>
+              <View style={styles.rowBody}>
+                <LocalizedText style={styles.sectionTitle}>Kunlik vazifalar</LocalizedText>
+                <LocalizedText style={styles.cardSubtitle}>Har kuni Toshkent vaqti bilan yangilanadi. Vazifalarni bajaring va ZC oling.</LocalizedText>
+              </View>
+              <LocalizedText style={styles.linkText}>ZC</LocalizedText>
+            </View>
+            {dailyTasksLoading ? <ActivityIndicator color={C.purple} style={{ marginVertical: 24 }} /> : dailyTasks.map((task) => (
+              renderCard(
+                <View style={{ gap: 10 }}>
+                  <View style={styles.row}>
+                    <View style={styles.iconTile}><Ionicons name="trophy-outline" size={21} color={C.purple} /></View>
+                    <View style={styles.rowBody}>
+                      <LocalizedText style={styles.cardTitle}>{task.title}</LocalizedText>
+                      <LocalizedText style={styles.cardSubtitle}>{task.description}</LocalizedText>
+                    </View>
+                    <NativeText style={{ color: '#D9B65B', fontWeight: '900' }}>+{task.reward} ZC</NativeText>
+                  </View>
+                  <View style={{ height: 7, borderRadius: 6, backgroundColor: C.surfaceRaised, overflow: 'hidden' }}>
+                    <View style={{ height: 7, width: `${Math.min(100, (task.progress / task.target) * 100)}%`, borderRadius: 6, backgroundColor: '#65C99A' }} />
+                  </View>
+                  <View style={[styles.row, { minHeight: 34 }]}>
+                    <LocalizedText style={styles.cardSubtitle}>{task.progress}/{task.target} bajarildi</LocalizedText>
+                    <Pressable style={[styles.followButton, (!task.completed || task.claimed || claimingTaskId !== null) && { opacity: 0.5 }]} disabled={!task.completed || task.claimed || claimingTaskId !== null} onPress={() => void claimTaskReward(task)}>
+                      {claimingTaskId === task.id ? <ActivityIndicator size="small" color="#FFFFFF" /> : <LocalizedText style={styles.followButtonText}>{task.claimed ? 'Olingan' : task.completed ? 'Mukofotni olish' : 'Davom eting'}</LocalizedText>}
+                    </Pressable>
+                  </View>
+                </View>,
+                undefined,
+                task.id,
+              )
+            ))}
+            {!dailyTasksLoading && dailyTasks.length === 0 ? renderCard(<LocalizedText style={styles.cardSubtitle}>Hozircha kunlik vazifalar mavjud emas.</LocalizedText>) : null}
+            <LocalizedText style={[styles.cardSubtitle, { marginTop: 8 }]}>Eslatma: ZC — ilova ichidagi virtual ball. Uni hozircha naqd pulga yechib bo‘lmaydi.</LocalizedText>
+          </>
+        ) : null}
+
         {activeTab === 'wishlist' ? (
           <>
             <View style={styles.sectionHeader}><LocalizedText style={styles.sectionTitle}>Mukofotlar va bezaklar</LocalizedText></View>
@@ -501,12 +658,31 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
                 <View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>Mening mukofotlarim</LocalizedText><LocalizedText style={styles.cardSubtitle}>Yutuqlar va medallar</LocalizedText></View>
               </View>,
             )}
-            <Pressable onPress={() => setCosmeticType('decoration')}>
-              {renderCard(<View style={styles.row}><View style={styles.iconTile}><Ionicons name="color-palette-outline" size={21} color={C.purple} /></View><View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>Avatar bezaklari</LocalizedText><LocalizedText style={styles.cardSubtitle}>{user.avatarDecoration || 'Hozircha bezak tanlanmagan'}</LocalizedText></View><LocalizedText style={styles.linkText}>Sozlash</LocalizedText></View>)}
-            </Pressable>
-            <Pressable onPress={() => setCosmeticType('frame')}>
-              {renderCard(<View style={styles.row}><View style={styles.iconTile}><Ionicons name="albums-outline" size={21} color={C.purple} /></View><View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>Profil ramkasi</LocalizedText><LocalizedText style={styles.cardSubtitle}>{user.profileFrame || 'Standart ramka'}</LocalizedText></View><LocalizedText style={styles.linkText}>Sozlash</LocalizedText></View>)}
-            </Pressable>
+            <View style={styles.sectionHeader}>
+              <View style={styles.rowBody}>
+                <LocalizedText style={styles.sectionTitle}>ZC do‘koni</LocalizedText>
+                <LocalizedText style={styles.cardSubtitle}>XP reyting uchun, ZC esa xaridlar uchun ishlatiladi.</LocalizedText>
+              </View>
+              <LocalizedText style={styles.linkText}>{Number(user.zcBalance ?? 0)} ZC</LocalizedText>
+            </View>
+            {storeLoading ? <ActivityIndicator color={C.purple} style={{ marginVertical: 18 }} /> : storeProducts.map((product) => {
+              const equipped = product.kind === 'frame' ? user.profileFrame === product.value : user.avatarDecoration === product.value;
+              return renderCard(
+                <View style={styles.row}>
+                  <View style={styles.iconTile}><Ionicons name={product.kind === 'frame' ? 'albums-outline' : 'sparkles-outline'} size={21} color={C.purple} /></View>
+                  <View style={styles.rowBody}>
+                    <LocalizedText style={styles.cardTitle}>{product.name}</LocalizedText>
+                    <LocalizedText style={styles.cardSubtitle}>{product.description}</LocalizedText>
+                    <LocalizedText style={styles.cardSubtitle}>{product.owned ? 'Sizda mavjud' : product.price + ' ZC'}</LocalizedText>
+                  </View>
+                  <Pressable style={styles.followButton} disabled={purchasingItemId !== null || equipped} onPress={() => void buyOrEquipCosmetic(product)}>
+                    {purchasingItemId === product.id ? <ActivityIndicator color="#FFFFFF" size="small" /> : <LocalizedText style={styles.followButtonText}>{equipped ? 'Tanlangan' : product.owned ? 'Jihozlash' : 'Xarid qilish'}</LocalizedText>}
+                  </Pressable>
+                </View>,
+                undefined,
+                product.id,
+              );
+            })}
           </>
         ) : null}
 

@@ -548,6 +548,18 @@ export default function BattleScreen({
             </View>
           ) : null}
 
+          {user && finished.zcChanges?.[user.id] ? (
+            <View style={[styles.rankResultCard, { borderColor: '#D9B65B' }]}>
+              <LocalizedText style={styles.rankResultTitle}>ZELQEN CREDITS</LocalizedText>
+              <LocalizedText style={[styles.rankResultDelta, { color: '#D9B65B' }]}>
+                +{finished.zcChanges[user.id].amount} ZC
+              </LocalizedText>
+              <LocalizedText style={styles.rankResultTier}>
+                Yangi balans: {finished.zcChanges[user.id].balanceAfter.toLocaleString('en-US')} ZC
+              </LocalizedText>
+            </View>
+          ) : null}
+
           <LocalizedText style={styles.scoreTitle}>Yakuniy hisob</LocalizedText>
           {Object.entries(finished.scores || {}).map(([id, score]) => (
             <LocalizedText key={id} style={styles.scoreLine}>

@@ -55,8 +55,8 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         <View style={styles.brandRow}>
-          <View style={styles.brandMark}><LocalizedText style={styles.brandMarkText}>Q</LocalizedText></View>
-          <View><LocalizedText style={styles.logo}>QUIZ ARENA</LocalizedText><LocalizedText style={styles.brandCaption}>BILIM · RAQOBAT · NATIJA</LocalizedText></View>
+          <View style={styles.brandMark}><LocalizedText style={styles.brandMarkText}>Z</LocalizedText></View>
+          <View><LocalizedText style={styles.logo}>ZELQEN CORE</LocalizedText><LocalizedText style={styles.brandCaption}>BILIM · RAQOBAT · NATIJA</LocalizedText></View>
         </View>
         <View style={styles.hero}>
           <LocalizedText style={styles.eyebrow}>YANGI IMKONIYATLAR SARI</LocalizedText>
