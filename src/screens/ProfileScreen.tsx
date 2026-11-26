@@ -278,7 +278,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
         </View>
 
         <View style={styles.identity}>
-          <View style={styles.avatarWrap}>
+          <View style={[styles.avatarWrap, user.avatarDecoration === 'laurel_wreath' && styles.avatarWrapLaurel]}>
             {user.avatarDecoration === 'laurel_wreath' ? (
               <LaurelWreathAvatar size={148} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
             ) : user.avatarDecoration === 'book_wings' ? (
@@ -654,6 +654,7 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     headerTitle: { color: C.muted, fontSize: 11, fontWeight: '800', letterSpacing: 2 },
     identity: { alignItems: 'center', paddingTop: 8, paddingBottom: 19 },
     avatarWrap: { width: 122, height: 122, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+    avatarWrapLaurel: { width: 148, height: 148 },
     avatarFrame: { width: 112, height: 112, borderRadius: 56, padding: 3, backgroundColor: C.purple, borderWidth: 2, borderColor: '#8B68E5' },
     frameAurora: { backgroundColor: '#8B72E8' },
     frameRoyal: { backgroundColor: '#D7A93F' },
