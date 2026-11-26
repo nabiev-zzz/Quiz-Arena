@@ -1,3 +1,4 @@
+import { describe, expect, it, jest, beforeEach } from '@jest/globals';
 import { BadRequestException } from '@nestjs/common';
 import { ZcStoreService } from './zc-store.service';
 
