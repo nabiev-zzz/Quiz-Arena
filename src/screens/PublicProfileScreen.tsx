@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text as NativeText, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedBadge from '../components/AnimatedBadge';
+import ProfileEffect from '../components/ProfileEffect';
 import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
 import { followUser, getPublicUserProfile, unfollowUser, type PublicUser } from '../services/userService';
@@ -54,6 +55,7 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><LocalizedText style={styles.backText}>Orqaga</LocalizedText></Pressable>
+      <ProfileEffect value={profile.profileFrame} style={{ marginBottom: 0 }}>
       <GlassSurface intensity={isDark ? 34 : 42} style={styles.hero}>
         <View style={styles.identityRow}>
           <View style={[styles.avatarRing, profile.profileFrame === 'aurora' ? styles.frameAurora : profile.profileFrame === 'royal' ? styles.frameRoyal : profile.profileFrame === 'ocean' ? styles.frameOcean : profile.profileFrame === 'neon3d' ? styles.frameNeon3d : profile.profileFrame === 'inferno3d' ? styles.frameInferno3d : profile.profileFrame === 'frost3d' ? styles.frameFrost3d : profile.profileFrame === 'galaxy3d' ? styles.frameGalaxy3d : null]}>
@@ -79,6 +81,7 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
           </Pressable>
         )}
       </GlassSurface>
+      </ProfileEffect>
       <LocalizedText style={styles.sectionTitle}>Natijalar</LocalizedText>
       <View style={styles.stats}>
         <GlassSurface intensity={isDark ? 30 : 38} style={styles.stat}><LocalizedText style={styles.statValue}>{profile.xp}</LocalizedText><LocalizedText style={styles.statLabel}>XP</LocalizedText></GlassSurface>
