@@ -26,6 +26,7 @@ interface ProfileEffectProps {
 
 export default function ProfileEffect({ value, style, children, variant = 'hero' }: ProfileEffectProps) {
   const palette = value ? PALETTES[value] : undefined;
+  const compact = variant === 'compact';
   const pulse = useSharedValue(0);
   const rotation = useSharedValue(0);
   const counterRotation = useSharedValue(0);
@@ -41,14 +42,14 @@ export default function ProfileEffect({ value, style, children, variant = 'hero'
       ), -1, false,
     );
     rotation.value = withRepeat(withTiming(360, { duration: 19000, easing: Easing.linear }), -1, false);
-    counterRotation.value = withRepeat(withTiming(360, { duration: 27000, easing: Easing.linear }), -1, false);
-    drift.value = withRepeat(
+    if (!compact) counterRotation.value = withRepeat(withTiming(360, { duration: 27000, easing: Easing.linear }), -1, false);
+    if (!compact) drift.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 2800, easing: Easing.inOut(Easing.ease) }),
         withTiming(0, { duration: 2800, easing: Easing.inOut(Easing.ease) }),
       ), -1, false,
     );
-    sweep.value = withRepeat(
+    if (!compact) sweep.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 3600, easing: Easing.inOut(Easing.ease) }),
         withTiming(-1, { duration: 3600, easing: Easing.inOut(Easing.ease) }),
@@ -61,7 +62,7 @@ export default function ProfileEffect({ value, style, children, variant = 'hero'
       drift.value = 0;
       sweep.value = -1;
     };
-  }, [palette, pulse, rotation, counterRotation, drift, sweep]);
+  }, [palette, compact, pulse, rotation, counterRotation, drift, sweep]);
 
   const auraStyle = useAnimatedStyle(() => ({
     opacity: 0.2 + pulse.value * 0.48,
@@ -77,7 +78,6 @@ export default function ProfileEffect({ value, style, children, variant = 'hero'
     opacity: 0.05 + pulse.value * 0.19,
     transform: [{ translateX: sweep.value * 42 }, { rotate: '-24deg' }],
   }));
-  const compact = variant === 'compact';
 
   if (!palette) return <View style={style}>{children}</View>;
 
@@ -114,9 +114,11 @@ export default function ProfileEffect({ value, style, children, variant = 'hero'
             <View style={[styles.highlight, { backgroundColor: palette.line }]} />
           </>
         )}
-        <Animated.View style={[styles.particle, styles.particleOne, { backgroundColor: palette.line, shadowColor: palette.glow }, particleStyle]} />
-        <Animated.View style={[styles.particle, styles.particleTwo, { backgroundColor: palette.secondary, shadowColor: palette.secondary }, particleStyle]} />
-        <Animated.View style={[styles.particle, styles.particleThree, { backgroundColor: palette.line, shadowColor: palette.glow }, particleStyle]} />
+        {!compact && <>
+          <Animated.View style={[styles.particle, styles.particleOne, { backgroundColor: palette.line, shadowColor: palette.glow }, particleStyle]} />
+          <Animated.View style={[styles.particle, styles.particleTwo, { backgroundColor: palette.secondary, shadowColor: palette.secondary }, particleStyle]} />
+          <Animated.View style={[styles.particle, styles.particleThree, { backgroundColor: palette.line, shadowColor: palette.glow }, particleStyle]} />
+        </>}
         {!compact && (
           <>
             <Animated.View style={[styles.particle, styles.particleFour, { backgroundColor: palette.secondary, shadowColor: palette.glow }, particleStyle]} />
