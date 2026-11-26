@@ -148,8 +148,8 @@ export default function ShopScreen({ onBack }: Props) {
                         {user.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} /> : <Ionicons name="person" size={32} color="#FFFFFF" />}
                       </View>
                     ) : (
-                      <View style={[styles.symbolPreview, item.kind === 'badge' && styles.badgePreview]}>
-                        <Ionicons name={previewIcon(item)} size={32} color={item.kind === 'badge' ? '#F5D27A' : '#C5B4FF'} />
+                      <View style={styles.symbolPreview}>
+                        <Ionicons name={previewIcon(item)} size={32} color="#C5B4FF" />
                       </View>
                     )}
                     {item.value.endsWith('3d') ? <View style={styles.threeDPill}><LocalizedText style={styles.threeDText}>3D EFFECT</LocalizedText></View> : null}
