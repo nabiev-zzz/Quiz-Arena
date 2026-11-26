@@ -87,6 +87,8 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const [historyLoading, setHistoryLoading] = useState(false);
   const [loadingHistoryDetailId, setLoadingHistoryDetailId] = useState<string | null>(null);
   const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
+  const [historyPeriod, setHistoryPeriod] = useState<'all' | 'week' | 'month'>('all');
+  const [historySearch, setHistorySearch] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -139,6 +141,18 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const nextRank = rankTiers[rankIndex + 1];
   const rankProgress = nextRank ? Math.min(100, ((rankPoints - rankInfo.min) / (nextRank.min - rankInfo.min)) * 100) : 100;
   const initials = user.displayName.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  const historyNow = Date.now();
+  const filteredHistory = learningHistory.filter((attempt) => {
+    const completedAt = new Date(attempt.completedAt).getTime();
+    const matchesPeriod = historyPeriod === 'all' || (historyPeriod === 'week' && completedAt >= historyNow - 7 * 24 * 60 * 60 * 1000) || (historyPeriod === 'month' && completedAt >= historyNow - 30 * 24 * 60 * 60 * 1000);
+    const query = historySearch.trim().toLocaleLowerCase();
+    const matchesSearch = !query || (attempt.subjectName + ' ' + attempt.topicName).toLocaleLowerCase().includes(query);
+    return matchesPeriod && matchesSearch;
+  });
+  const historyQuestions = filteredHistory.reduce((sum, item) => sum + item.totalQuestions, 0);
+  const historyCorrect = filteredHistory.reduce((sum, item) => sum + item.correctAnswers, 0);
+  const historyAccuracy = historyQuestions ? Math.round((historyCorrect / historyQuestions) * 100) : 0;
+  const historyBest = filteredHistory.reduce((best, item) => Math.max(best, Math.round(Number(item.accuracy) || 0)), 0);
 
   const applyAvatar = async (uri: string | null) => {
     if (avatarSaving) return;
@@ -428,55 +442,82 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
 
         {activeTab === 'activity' ? (
           <>
-            <View style={styles.sectionHeader}>
-              <LocalizedText style={styles.sectionTitle}>Testlar tarixi</LocalizedText>
-              <LocalizedText style={styles.cardSubtitle}>{learningHistory.length} ta urinish</LocalizedText>
+            <View style={styles.historyHero}>
+              <View style={styles.historyHeroTop}>
+                <View style={styles.rowBody}>
+                  <LocalizedText style={styles.historyEyebrow}>SHAXSIY FAOLIYAT</LocalizedText>
+                  <LocalizedText style={styles.historyHeroTitle}>Bilim yo‘ling</LocalizedText>
+                  <LocalizedText style={styles.historyHeroSubtitle}>Har bir urinish — yangi natija</LocalizedText>
+                </View>
+                <View style={styles.historyHeroIcon}><Ionicons name="time-outline" size={25} color="#FFFFFF" /></View>
+              </View>
+              <View style={styles.historyHeroStats}>
+                <View style={styles.historyHeroStat}><LocalizedText style={styles.historyHeroValue}>{learningHistory.length}</LocalizedText><LocalizedText style={styles.historyHeroLabel}>Test</LocalizedText></View>
+                <View style={styles.historyHeroDivider} />
+                <View style={styles.historyHeroStat}><LocalizedText style={styles.historyHeroValue}>{historyAccuracy}%</LocalizedText><LocalizedText style={styles.historyHeroLabel}>Aniqlik</LocalizedText></View>
+                <View style={styles.historyHeroDivider} />
+                <View style={styles.historyHeroStat}><LocalizedText style={styles.historyHeroValue}>{historyQuestions}</LocalizedText><LocalizedText style={styles.historyHeroLabel}>Savol</LocalizedText></View>
+              </View>
             </View>
-            {historyLoading ? (
-              <ActivityIndicator color={C.purple} style={{ marginVertical: 18 }} />
-            ) : learningHistory.length === 0 ? (
-              <View style={styles.historyEmpty}>
-                <Ionicons name="document-text-outline" size={28} color={C.muted} />
-                <LocalizedText style={styles.cardSubtitle}>Hozircha saqlangan test tarixi yo‘q.</LocalizedText>
-              </View>
-            ) : learningHistory.map((attempt) => {
-              const detail = historyDetails[attempt.id];
-              return (
-              <View key={attempt.id} style={styles.historyCard}>
-                <Pressable style={styles.historyHeader} onPress={() => void toggleHistoryAttempt(attempt.id)}>
-                  <View style={styles.historyIcon}><Ionicons name="document-text-outline" size={19} color={C.purple} /></View>
-                  <View style={styles.rowBody}>
-                    <LocalizedText style={styles.cardTitle} numberOfLines={1}>{attempt.subjectName} · {attempt.topicName}</LocalizedText>
-                    <LocalizedText style={styles.cardSubtitle}>{new Date(attempt.completedAt).toLocaleString()} · {attempt.totalQuestions} ta savol</LocalizedText>
-                  </View>
-                  <View style={styles.historyScore}>
-                    <LocalizedText style={styles.historyPercent}>{Math.round(Number(attempt.accuracy))}%</LocalizedText>
-                    <LocalizedText style={styles.cardSubtitle}>{attempt.correctAnswers}/{attempt.totalQuestions}</LocalizedText>
-                  </View>
-                  <Ionicons name={expandedAttemptId === attempt.id ? 'chevron-up' : 'chevron-down'} size={17} color={C.muted} />
+            <View style={styles.historyMetricRow}>
+              <View style={styles.historyMetricCard}><View style={styles.historyMetricIcon}><Ionicons name="checkmark-circle-outline" size={17} color="#35C995" /></View><LocalizedText style={styles.historyMetricValue}>{historyCorrect}</LocalizedText><LocalizedText style={styles.historyMetricLabel}>To‘g‘ri javob</LocalizedText></View>
+              <View style={styles.historyMetricCard}><View style={styles.historyMetricIcon}><Ionicons name="ribbon-outline" size={17} color="#F2BD58" /></View><LocalizedText style={styles.historyMetricValue}>{historyBest}%</LocalizedText><LocalizedText style={styles.historyMetricLabel}>Eng yaxshi natija</LocalizedText></View>
+            </View>
+            <View style={styles.historySectionHeading}>
+              <View style={styles.rowBody}><LocalizedText style={styles.sectionTitle}>Testlar tarixi</LocalizedText><LocalizedText style={styles.cardSubtitle}>{filteredHistory.length} / {learningHistory.length} ta urinish</LocalizedText></View>
+              <View style={styles.historySectionIcon}><Ionicons name="bar-chart-outline" size={18} color={C.purple} /></View>
+            </View>
+            <View style={styles.historySearchBox}>
+              <Ionicons name="search-outline" size={18} color={C.muted} />
+              <LocalizedTextInput value={historySearch} onChangeText={setHistorySearch} placeholder="Fan yoki mavzuni qidiring" placeholderTextColor={C.muted} style={styles.historySearchInput} returnKeyType="search" />
+              {historySearch.length > 0 ? <Pressable onPress={() => setHistorySearch('')} hitSlop={10}><Ionicons name="close-circle" size={17} color={C.muted} /></Pressable> : null}
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.historyFilters}>
+              {([{ key: 'all', label: 'Barchasi' }, { key: 'week', label: '7 kun' }, { key: 'month', label: '30 kun' }] as const).map((filter) => (
+                <Pressable key={filter.key} onPress={() => setHistoryPeriod(filter.key)} style={[styles.historyFilter, historyPeriod === filter.key && styles.historyFilterActive]}>
+                  <LocalizedText style={[styles.historyFilterText, historyPeriod === filter.key && styles.historyFilterTextActive]}>{filter.label}</LocalizedText>
                 </Pressable>
-                {expandedAttemptId === attempt.id ? (
-                  <View style={styles.historyReview}>
-                    <LocalizedText style={styles.historyReviewTitle}>Savollar tahlili</LocalizedText>
-                    {loadingHistoryDetailId === attempt.id ? <ActivityIndicator color={C.purple} /> : detail?.review?.length ? detail.review.map((item, index) => (
-                      <View key={item.id} style={styles.historyQuestion}>
-                        <LocalizedText style={styles.historyQuestionTitle}>{index + 1}. {item.question}</LocalizedText>
-                        <LocalizedText style={styles.cardSubtitle}>Sizning javobingiz: {item.options[item.selectedAnswer] ?? '—'}</LocalizedText>
-                        <LocalizedText style={[styles.cardSubtitle, { color: item.isCorrect ? '#35C995' : '#E47786', fontWeight: '800' }]}>To‘g‘ri javob: {item.options[item.correctAnswer] ?? '—'}</LocalizedText>
-                        {!!item.explanation && <LocalizedText style={styles.cardSubtitle}>{item.explanation}</LocalizedText>}
-                        {!!item.aiExplanation && (
-                          <View style={styles.historyAiBox}>
-                            <LocalizedText style={styles.historyAiTitle}>AI Ustoz tahlili</LocalizedText>
-                            <LocalizedText style={styles.cardSubtitle}>{item.aiExplanation}</LocalizedText>
-                          </View>
-                        )}
-                      </View>
-                    )) : (
-                      <LocalizedText style={styles.cardSubtitle}>Bu test natijasi eski formatda saqlangan. Batafsil savollar tahlili mavjud emas.</LocalizedText>
-                    )}
-                  </View>
-                ) : null}
+              ))}
+            </ScrollView>
+            {historyLoading ? (
+              <View style={styles.historyLoading}><ActivityIndicator color={C.purple} /><LocalizedText style={styles.cardSubtitle}>Tarix yuklanmoqda...</LocalizedText></View>
+            ) : filteredHistory.length === 0 ? (
+              <View style={styles.historyEmpty}>
+                <View style={styles.historyEmptyIcon}><Ionicons name="file-tray-outline" size={27} color={C.purple} /></View>
+                <LocalizedText style={styles.historyEmptyTitle}>{learningHistory.length === 0 ? 'Hali tarix yo‘q' : 'Natija topilmadi'}</LocalizedText>
+                <LocalizedText style={styles.cardSubtitle}>{learningHistory.length === 0 ? 'Birinchi testingizni yakunlang — natijangiz shu yerda saqlanadi.' : 'Qidiruv yoki vaqt oralig‘ini o‘zgartirib ko‘ring.'}</LocalizedText>
+                {learningHistory.length > 0 ? <Pressable onPress={() => { setHistorySearch(''); setHistoryPeriod('all'); }} style={styles.historyReset}><LocalizedText style={styles.historyResetText}>Filtrlarni tozalash</LocalizedText></Pressable> : null}
               </View>
+            ) : filteredHistory.map((attempt) => {
+              const detail = historyDetails[attempt.id];
+              const percent = Math.max(0, Math.min(100, Math.round(Number(attempt.accuracy) || 0)));
+              return (
+                <View key={attempt.id} style={styles.historyCard}>
+                  <Pressable style={styles.historyHeader} onPress={() => void toggleHistoryAttempt(attempt.id)} accessibilityRole="button" accessibilityLabel={'Test ' + attempt.subjectName + ', ' + percent + ' foiz'}>
+                    <View style={styles.historyIcon}><Ionicons name="document-text-outline" size={19} color={C.purple} /></View>
+                    <View style={styles.rowBody}>
+                      <LocalizedText style={styles.cardTitle} numberOfLines={1}>{attempt.subjectName} · {attempt.topicName}</LocalizedText>
+                      <LocalizedText style={styles.cardSubtitle}>{new Date(attempt.completedAt).toLocaleString()} · {attempt.totalQuestions} ta savol</LocalizedText>
+                      <View style={styles.historyProgressTrack}><View style={[styles.historyProgressFill, { width: percent + '%' }]} /></View>
+                    </View>
+                    <View style={styles.historyScore}><LocalizedText style={styles.historyPercent}>{percent}%</LocalizedText><LocalizedText style={styles.cardSubtitle}>{attempt.correctAnswers}/{attempt.totalQuestions}</LocalizedText></View>
+                    <Ionicons name={expandedAttemptId === attempt.id ? 'chevron-up' : 'chevron-down'} size={17} color={C.muted} />
+                  </Pressable>
+                  {expandedAttemptId === attempt.id ? (
+                    <View style={styles.historyReview}>
+                      <LocalizedText style={styles.historyReviewTitle}>Savollar tahlili</LocalizedText>
+                      {loadingHistoryDetailId === attempt.id ? <ActivityIndicator color={C.purple} /> : detail?.review?.length ? detail.review.map((item, index) => (
+                        <View key={item.id} style={styles.historyQuestion}>
+                          <LocalizedText style={styles.historyQuestionTitle}>{index + 1}. {item.question}</LocalizedText>
+                          <LocalizedText style={styles.cardSubtitle}>Sizning javobingiz: {item.options[item.selectedAnswer] ?? '—'}</LocalizedText>
+                          <LocalizedText style={[styles.cardSubtitle, { color: item.isCorrect ? '#35C995' : '#E47786', fontWeight: '800' }]}>To‘g‘ri javob: {item.options[item.correctAnswer] ?? '—'}</LocalizedText>
+                          {!!item.explanation && <LocalizedText style={styles.cardSubtitle}>{item.explanation}</LocalizedText>}
+                          {!!item.aiExplanation && <View style={styles.historyAiBox}><LocalizedText style={styles.historyAiTitle}>AI Ustoz tahlili</LocalizedText><LocalizedText style={styles.cardSubtitle}>{item.aiExplanation}</LocalizedText></View>}
+                        </View>
+                      )) : <LocalizedText style={styles.cardSubtitle}>Bu test natijasi eski formatda saqlangan. Batafsil savollar tahlili mavjud emas.</LocalizedText>}
+                    </View>
+                  ) : null}
+                </View>
               );
             })}
             <View style={styles.sectionHeader}><LocalizedText style={styles.sectionTitle}>Erishilgan yutuqlar</LocalizedText></View>
@@ -673,7 +714,39 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     progressTrack: { height: 6, borderRadius: 4, backgroundColor: C.surfaceRaised, overflow: 'hidden', marginTop: 16, marginBottom: 8 },
     progressFill: { height: 6, borderRadius: 4, backgroundColor: C.purple },
     achievementList: { gap: 9 },
+    historyHero: { borderRadius: 24, padding: 18, marginBottom: 12, overflow: 'hidden', backgroundColor: '#6554D9', borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)' },
+    historyHeroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    historyEyebrow: { color: '#D8D0FF', fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
+    historyHeroTitle: { color: '#FFFFFF', fontSize: 21, fontWeight: '900', marginTop: 5 },
+    historyHeroSubtitle: { color: '#E2DCFF', fontSize: 11, marginTop: 3 },
+    historyHeroIcon: { width: 46, height: 46, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' },
+    historyHeroStats: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.18)' },
+    historyHeroStat: { flex: 1, alignItems: 'center', gap: 3 },
+    historyHeroValue: { color: '#FFFFFF', fontSize: 21, fontWeight: '900' },
+    historyHeroLabel: { color: '#E2DCFF', fontSize: 10, fontWeight: '600' },
+    historyHeroDivider: { width: 1, height: 29, backgroundColor: 'rgba(255,255,255,0.22)' },
+    historyMetricRow: { flexDirection: 'row', gap: 9, marginBottom: 17 },
+    historyMetricCard: { flex: 1, minHeight: 83, padding: 12, borderRadius: 17, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, gap: 4 },
+    historyMetricIcon: { width: 27, height: 27, borderRadius: 9, backgroundColor: C.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+    historyMetricValue: { color: C.text, fontSize: 18, fontWeight: '900' },
+    historyMetricLabel: { color: C.muted, fontSize: 10, fontWeight: '600' },
+    historySectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 11 },
+    historySectionIcon: { width: 35, height: 35, borderRadius: 12, backgroundColor: C.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+    historySearchBox: { minHeight: 45, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 13, borderRadius: 14, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, marginBottom: 10 },
+    historySearchInput: { flex: 1, minWidth: 0, color: C.text, fontSize: 12, paddingVertical: 9 },
+    historyFilters: { gap: 8, paddingBottom: 12 },
+    historyFilter: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
+    historyFilterActive: { borderColor: C.purple, backgroundColor: C.purpleSoft },
+    historyFilterText: { color: C.muted, fontSize: 11, fontWeight: '700' },
+    historyFilterTextActive: { color: C.purple },
+    historyLoading: { minHeight: 115, alignItems: 'center', justifyContent: 'center', gap: 10 },
+    historyReset: { marginTop: 13, paddingHorizontal: 15, paddingVertical: 9, borderRadius: 12, backgroundColor: C.purpleSoft },
+    historyResetText: { color: C.purple, fontSize: 11, fontWeight: '800' },
+    historyEmptyIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: C.purpleSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+    historyEmptyTitle: { color: C.text, fontSize: 14, fontWeight: '800' },
     historyCard: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 17, padding: 13, marginBottom: 9 },
+    historyProgressTrack: { height: 5, borderRadius: 5, backgroundColor: C.surfaceRaised, overflow: 'hidden', marginTop: 7 },
+    historyProgressFill: { height: '100%', borderRadius: 5, backgroundColor: C.purple },
     historyHeader: { minHeight: 55, flexDirection: 'row', alignItems: 'center', gap: 10 },
     historyIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: C.purpleSoft, alignItems: 'center', justifyContent: 'center' },
     historyScore: { alignItems: 'flex-end', marginRight: 2 },
