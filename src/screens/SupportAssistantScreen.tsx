@@ -75,18 +75,18 @@ export default function SupportAssistantScreen({
 
   const listRef = useRef<FlatList<SupportChatMessage>>(null);
 
-  const openSupportEmail = async () => {
+  const openSupportEmail = () => {
     const subject = encodeURIComponent('ZELQEN CORE — Qo‘llab-quvvatlash');
     const body = encodeURIComponent('Salom, ZELQEN CORE jamoasi!\n\nMurojaatim:\n');
     const url = `mailto:zelqencoresupport@gmail.com?subject=${subject}&body=${body}`;
-    try {
-      await Linking.openURL(url);
-    } catch {
+
+    // Trigger the mail client directly from the press event (important on web browsers).
+    void Linking.openURL(url).catch(() => {
       Alert.alert(
         'Email ilovasi topilmadi',
         'Qo‘llab-quvvatlash uchun zelqencoresupport@gmail.com manziliga yozing.',
       );
-    }
+    });
   };
 
   const submitMessage = async (message: string, temporaryId: string) => {
@@ -222,7 +222,13 @@ export default function SupportAssistantScreen({
               <LocalizedText style={styles.onlineText}>Ilova bo‘yicha yordam</LocalizedText>
             </View>
           </View>
-          <Pressable onPress={() => void openSupportEmail()} style={styles.supportHeaderButton} accessibilityRole="button" accessibilityLabel="Qo‘llab-quvvatlash emailiga yozish">
+          <Pressable
+            onPress={openSupportEmail}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Qo‘llab-quvvatlash emailiga yozish"
+            style={({ pressed }) => [styles.supportHeaderButton, pressed && styles.supportHeaderButtonPressed]}
+          >
             <Ionicons name="headset-outline" size={17} color="#FFFFFF" />
             <LocalizedText style={styles.supportHeaderText}>Qo‘llab-quvvatlash</LocalizedText>
           </Pressable>
@@ -493,7 +499,10 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     color: colors.textMuted,
   },
   supportHeaderButton: {
-    minHeight: 38,
+    minHeight: 42,
+    flexShrink: 0,
+    zIndex: 20,
+    elevation: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -501,6 +510,10 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     paddingHorizontal: 10,
     borderRadius: 12,
     backgroundColor: '#6759E8',
+  },
+  supportHeaderButtonPressed: {
+    opacity: 0.78,
+    transform: [{ scale: 0.98 }],
   },
   supportHeaderText: {
     color: '#FFFFFF',
