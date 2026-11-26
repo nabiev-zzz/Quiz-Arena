@@ -46,7 +46,7 @@ export default function DiscoverUsersScreen({ onBack, onUserPress }: Props) {
         return (
           <GlassSurface key={person.id} intensity={isDark ? 30 : 38} style={styles.person}>
             <Pressable style={styles.identity} onPress={() => onUserPress(person.username)} accessibilityRole="button" accessibilityLabel={`${person.displayName} profilini ochish`}>
-              {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={styles.avatar} /> : <View style={styles.avatarFallback}><LocalizedText style={styles.initials}>{initials || '?'}</LocalizedText></View>}
+              {person.avatarUrl ? <Image source={{ uri: person.avatarUrl }} style={{ width: 55, height: 55, borderRadius: 19 }} /> : <View style={styles.avatarFallback}><LocalizedText style={styles.initials}>{initials || '?'}</LocalizedText></View>}
               <View style={styles.details}>
                 <LocalizedText style={styles.name} numberOfLines={1}>{person.displayName}</LocalizedText>
                 <LocalizedText style={styles.handle} numberOfLines={1}>@{person.username}</LocalizedText>
@@ -82,7 +82,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     avatarFallback: { width: 55, height: 55, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceElevated },
     initials: { color: colors.text, fontSize: 18, fontWeight: '900' },
     details: { flex: 1, minWidth: 0, gap: 2 },
-    name: { color: colors.text, fontSize: 14, fontWeight: '850' },
+    name: { color: colors.text, fontSize: 14, fontWeight: '800' },
     handle: { color: colors.primary, fontSize: 11, fontWeight: '600' },
     followersLine: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
     followers: { color: colors.textMuted, fontSize: 10 },
