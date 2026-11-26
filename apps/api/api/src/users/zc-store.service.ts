@@ -19,6 +19,7 @@ const PRODUCTS: StoreProduct[] = [
   { id: 'decoration_crown', name: 'Toj bezagi', description: 'Avatar uchun toj belgisi', kind: 'decoration', value: 'crown', price: 350 },
   { id: 'decoration_laurel', name: 'Laurel bezagi', description: 'Avatar uchun dafna yaprog‘i', kind: 'decoration', value: 'laurel', price: 180 },
   { id: 'decoration_star', name: 'Yulduz bezagi', description: 'Avatar uchun yulduz belgisi', kind: 'decoration', value: 'star', price: 120 },
+  { id: 'decoration_book_wings', name: 'Kitob qanotlari', description: 'Profil avataringizni harakatlanuvchi kitob qanotlari, bitiruv qalpog‘i va yaltiraydigan yulduzlar bilan bezaydi', kind: 'decoration', value: 'book_wings', price: 850 },
   { id: 'badge_legend', name: 'Legend nishoni', description: 'Profilingizda afsonaviy bilimdon nishoni', kind: 'badge', value: 'legend', price: 700 },
   { id: 'badge_champion', name: 'Champion nishoni', description: 'G‘oliblar uchun oltin chempion belgisi', kind: 'badge', value: 'champion', price: 550 },
   { id: 'badge_scholar', name: 'Scholar nishoni', description: 'Bilim va izlanish ramzi', kind: 'badge', value: 'scholar', price: 350 },
