@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "uz.quizarena.app"
+      "package": "uz.quizarena.app",
+      "versionCode": 4
     },
     "web": {
       "favicon": "./assets/favicon.png",
