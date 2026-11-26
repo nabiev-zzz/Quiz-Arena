@@ -15,6 +15,7 @@ interface BookWingsAvatarProps {
   imageUri?: string | null;
   initials?: string;
   size?: number;
+  frameColor?: string;
 }
 
 /**
@@ -25,6 +26,7 @@ export default function BookWingsAvatar({
   imageUri,
   initials = 'U',
   size = 112,
+  frameColor = '#FBBF24',
 }: BookWingsAvatarProps) {
   const wingMotion = useSharedValue(0);
   const capMotion = useSharedValue(0);
@@ -177,6 +179,7 @@ export default function BookWingsAvatar({
             top: size * 0.29,
             left: size * 0.225,
             padding: size * 0.035,
+            borderColor: frameColor,
           },
         ]}
       >
