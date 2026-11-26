@@ -37,6 +37,14 @@ export function getPublicUserProfile(username: string): Promise<PublicUser> {
   return userRequest<PublicUser>(`/api/users/profile/${encodeURIComponent(username)}`);
 }
 
+export function getUserFollowers(id: string): Promise<PublicUser[]> {
+  return userRequest<PublicUser[]>(`/api/users/${encodeURIComponent(id)}/followers`);
+}
+
+export function getUserFollowing(id: string): Promise<PublicUser[]> {
+  return userRequest<PublicUser[]>(`/api/users/${encodeURIComponent(id)}/following`);
+}
+
 export function followUser(id: string): Promise<{ following: boolean; followersCount: number }> {
   return userRequest(`/api/users/${encodeURIComponent(id)}/follow`, 'POST');
 }
