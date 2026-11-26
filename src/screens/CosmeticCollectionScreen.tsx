@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import BookWingsAvatar from '../components/BookWingsAvatar';
 import LaurelWreathAvatar from '../components/LaurelWreathAvatar';
+import AnimatedBadge from '../components/AnimatedBadge';
 import { getZcStoreCatalog, type ZcStoreProduct } from '../services/zcStoreService';
 
 type Kind = 'frame' | 'badge' | 'decoration';
@@ -16,7 +17,7 @@ const TABS: { id: Kind; label: string; icon: keyof typeof Ionicons.glyphMap }[] 
   { id: 'decoration', label: 'Bezaklar', icon: 'sparkles-outline' },
 ];
 const FRAME_NAMES: Record<string, string> = { aurora: 'Aurora', royal: 'Royal', ocean: 'Ocean', neon3d: 'Neon 3D', inferno3d: 'Inferno 3D', frost3d: 'Frost 3D', galaxy3d: 'Galaxy 3D' };
-const BADGE_NAMES: Record<string, string> = { legend: 'LEGEND', champion: 'CHAMPION', scholar: 'SCHOLAR', streak: 'STREAK' };
+const BADGE_NAMES: Record<string, string> = { legend: 'LEGEND', champion: 'CHAMPION', scholar: 'SCHOLAR', streak: 'STREAK', mythic: 'MYTHIC', phoenix: 'PHOENIX', cyber: 'CYBER CORE', celestial: 'CELESTIAL' };
 
 export default function CosmeticCollectionScreen({ onBack }: { onBack: () => void }) {
   const { user, updateProfile, refreshUser } = useAuth();
@@ -105,7 +106,7 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
           </>}
           <LocalizedText style={styles.displayName}>{user?.displayName ?? 'Foydalanuvchi'}</LocalizedText>
           <LocalizedText style={styles.username}>@{user?.username ?? 'username'}</LocalizedText>
-          {selection.badge ? <View style={styles.badge}><Ionicons name={selection.badge === 'legend' ? 'ribbon' : selection.badge === 'champion' ? 'trophy' : selection.badge === 'scholar' ? 'book' : 'flame'} size={15} color="#F5D27A" /><LocalizedText style={styles.badgeText}>{BADGE_NAMES[selection.badge] ?? selection.badge.toUpperCase()}</LocalizedText></View> : null}
+          {selection.badge ? <View style={styles.badge}><AnimatedBadge value={selection.badge} size={46} /><LocalizedText style={styles.badgeText}>{BADGE_NAMES[selection.badge] ?? selection.badge.toUpperCase()}</LocalizedText></View> : null}
         </View>
         <View style={styles.previewFooter}><LocalizedText style={styles.previewFooterLabel}>Tanlanayotgan: </LocalizedText><LocalizedText style={styles.previewFooterValue}>{selectedLabel}</LocalizedText></View>
       </View>
@@ -128,7 +129,7 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
               {item.kind === 'frame' ? <View style={[styles.miniAvatarFrame, frameStyle(item.value)]}>{user?.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.miniAvatar} /> : <Ionicons name="person" size={26} color="#FFFFFF" />}</View>
                 : item.value === 'laurel_wreath' ? <LaurelWreathAvatar size={96} imageUri={user?.avatarUrl} initials={initials || 'U'} />
                 : item.value === 'book_wings' ? <BookWingsAvatar size={86} imageUri={user?.avatarUrl} initials={initials || 'U'} />
-                : <View style={styles.badgeSample}><Ionicons name={item.kind === 'badge' ? (item.value === 'legend' ? 'ribbon' : item.value === 'champion' ? 'trophy' : item.value === 'scholar' ? 'book' : 'flame') : (item.value === 'crown' ? 'ribbon' : item.value === 'laurel' ? 'leaf' : 'star')} size={30} color={item.kind === 'badge' ? '#D6B66A' : '#C5B4FF'} /></View>}
+                : item.kind === 'badge' ? <AnimatedBadge value={item.value} size={70} /> : <View style={styles.badgeSample}><Ionicons name={item.value === 'crown' ? 'ribbon' : item.value === 'laurel' ? 'leaf' : 'star'} size={30} color="#C5B4FF" /></View>}
             </View>
             <LocalizedText style={styles.itemName} numberOfLines={1}>{item.name}</LocalizedText>
             <LocalizedText style={styles.itemDescription} numberOfLines={2}>{item.description}</LocalizedText>
