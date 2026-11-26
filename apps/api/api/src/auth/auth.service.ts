@@ -697,10 +697,54 @@ export class AuthService {
     await this.userRepository.save(admin);
   }
 
+  /**
+   * Bootstrap the dedicated QA tester account from a Railway secret.
+   * The username is intentionally fixed and can never receive admin privileges.
+   * If the account already exists, only its configured QA password is reconciled.
+   */
+  private async ensureQaTesterAccount(username: string) {
+    const testerUsername = 'qa_tester_zelqen';
+    const configuredPassword = this.config.get<string>('QA_TESTER_ACCOUNT_PASSWORD');
+
+    if (username !== testerUsername || !configuredPassword) return;
+    const passwordBytes = Buffer.byteLength(configuredPassword, 'utf8');
+    if (passwordBytes < 8 || passwordBytes > 72) {
+      throw new ServiceUnavailableException('QA tester password configuration must be 8–72 bytes');
+    }
+
+    const existing = await this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.username = :username', { username: testerUsername })
+      .getOne();
+
+    if (existing) {
+      if (existing.role !== 'user' || existing.status !== 'active') {
+        throw new ServiceUnavailableException('QA tester account must remain an active standard user');
+      }
+      if (!(await bcrypt.compare(configuredPassword, existing.passwordHash))) {
+        existing.passwordHash = await bcrypt.hash(configuredPassword, 12);
+        await this.userRepository.save(existing);
+      }
+      return;
+    }
+
+    const tester = this.userRepository.create({
+      displayName: 'ZELQEN QA Tester',
+      username: testerUsername,
+      email: null,
+      passwordHash: await bcrypt.hash(configuredPassword, 12),
+      role: 'user',
+      status: 'active',
+    });
+    await this.userRepository.save(tester);
+  }
+
   async login(dto: LoginDto) {
     const username = dto.username.trim().toLowerCase();
     await this.ensureOwnerAccount(username);
     await this.ensureQaAdminAccount(username);
+    await this.ensureQaTesterAccount(username);
     const user = await this.userRepository
       .createQueryBuilder('user')
       .addSelect('user.passwordHash')
