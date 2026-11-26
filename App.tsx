@@ -774,7 +774,7 @@ const styles = StyleSheet.create({
 
   homeMenuButton: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   drawerOverlay: { flex: 1, flexDirection: 'row', backgroundColor: 'rgba(8,7,18,0.56)' },
-  drawerBackdrop: { ...StyleSheet.absoluteFillObject },
+  drawerBackdrop: StyleSheet.absoluteFill,
   drawerPanel: { width: '86%', maxWidth: 380, height: '100%', borderRightWidth: 1, paddingHorizontal: 17, paddingTop: 8, paddingBottom: 8, shadowColor: '#000000', shadowOffset: { width: 8, height: 0 }, shadowOpacity: 0.24, shadowRadius: 20, elevation: 24 },
   drawerTopRow: { minHeight: 43, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   drawerBrand: { fontSize: 12, fontWeight: '900', letterSpacing: 1.8 },
