@@ -259,12 +259,13 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
 
   return (
     <View style={styles.screen}>
+      <ProfileAtmosphere value={user.profileFrame} />
       <Animated.ScrollView onScroll={dockScrollHandler} scrollEventThrottle={16} style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Pressable style={styles.headerButton} onPress={onClosePress} accessibilityRole="button" accessibilityLabel="Profilni yopish">
             <Ionicons name="close" size={22} color={C.text} />
           </Pressable>
-          <LocalizedText style={styles.headerTitle}>PROFILE</LocalizedText>
+          <LocalizedText style={styles.headerTitle}>PROFIL</LocalizedText>
           <Pressable style={styles.headerButton} onPress={onSettingsPress} accessibilityRole="button" accessibilityLabel="Sozlamalar">
             <Ionicons name="settings-outline" size={21} color={C.text} />
           </Pressable>
@@ -593,7 +594,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
           <LocalizedText style={styles.logoutText}>Hisobdan chiqish</LocalizedText>
         </Pressable>
       </Animated.ScrollView>
-      <ProfileAtmosphere value={user.profileFrame} />
 
       <Modal visible={avatarPickerVisible} transparent animationType="slide" onRequestClose={() => setAvatarPickerVisible(false)}>
         <View style={styles.modalBackground}>
