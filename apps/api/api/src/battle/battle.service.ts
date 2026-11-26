@@ -17,6 +17,8 @@ import { In, Repository } from 'typeorm';
 import { BattleMatch } from './entities/battle-match.entity';
 import { BattleQuestion } from './entities/battle-question.entity';
 import { User } from '../users/entities/user.entity';
+import { ZcTransaction } from '../users/entities/zc-transaction.entity';
+import { DailyTasksService } from '../users/daily-tasks.service';
 import { AiService } from '../ai/ai.service';
 
 interface AiGeneratedBattleQuestion {
@@ -33,6 +35,8 @@ export interface BattleQuestionResult {
   answers: Record<string, number | null>;
   points: Record<string, number>;
   explanation: string;
+  question?: string;
+  options?: string[];
 }
 
 export interface BattleRankChange {
@@ -43,8 +47,15 @@ export interface BattleRankChange {
   rankTier: string;
 }
 
+export type BattleZcChange = {
+  userId: string;
+  amount: number;
+  balanceAfter: number;
+};
+
 export type FinishedBattleResult = BattleMatch & {
   rankChanges: Record<string, BattleRankChange>;
+  zcChanges: Record<string, BattleZcChange>;
 };
 
 function getBattleRankTier(points: number): string {
@@ -79,6 +90,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
     private readonly aiService: AiService,
+    private readonly dailyTasksService: DailyTasksService,
 
     @InjectRepository(BattleMatch)
     private readonly matchRepository: Repository<BattleMatch>,
@@ -421,6 +433,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
       async (manager): Promise<FinishedBattleResult> => {
         const matchRepo = manager.getRepository(BattleMatch);
         const userRepo = manager.getRepository(User);
+        const zcTransactionRepo = manager.getRepository(ZcTransaction);
 
         const match = await matchRepo.findOne({
           where: { id: matchId },
@@ -432,9 +445,28 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
         }
 
         if (match.status === 'finished') {
+          const existingWalletEntries = match.playerTwoId
+            ? await zcTransactionRepo.find({
+                where: {
+                  idempotencyKey: In([
+                    `battle:${match.id}:${match.playerOneId}`,
+                    `battle:${match.id}:${match.playerTwoId}`,
+                  ]),
+                },
+              })
+            : [];
+          const zcChanges: Record<string, BattleZcChange> = {};
+          for (const entry of existingWalletEntries) {
+            zcChanges[entry.userId] = {
+              userId: entry.userId,
+              amount: entry.amount,
+              balanceAfter: entry.balanceAfter,
+            };
+          }
           return Object.assign(match, {
             rankChanges: (match.rankChanges ??
               {}) as Record<string, BattleRankChange>,
+            zcChanges,
           });
         }
 
@@ -538,14 +570,13 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
         match.finishedAt = new Date();
 
         const rankChanges: Record<string, BattleRankChange> = {};
+        const lockedUsers = new Map<string, User>();
 
         if (match.mode === 'ranked' && match.playerTwoId) {
           const playerIds = [
             match.playerOneId,
             match.playerTwoId,
           ].sort();
-
-          const lockedUsers = new Map<string, User>();
 
           for (const playerId of playerIds) {
             const user = await userRepo.findOne({
@@ -636,8 +667,40 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
           }
         }
 
-        // RP natijasi match bilan bir tranzaksiyada saqlanadi.
-        // Shu sababli qayta urinishlarda aynan shu natija qaytariladi.
+        // Ranked Battle mukofotlari ham match va RP bilan bitta DB tranzaksiyasida yoziladi.
+        // G'alaba: 20 ZC, durang: 10 ZC, mag'lubiyat: 5 ZC.
+        // Idempotency kaliti match qayta yakunlansa ham ikki marta to'lashga yo'l qo'ymaydi.
+        const zcChanges: Record<string, BattleZcChange> = {};
+        if (match.mode === 'ranked' && match.playerTwoId) {
+          for (const playerId of [match.playerOneId, match.playerTwoId]) {
+            const user = lockedUsers.get(playerId);
+            if (!user) continue;
+            const amount = winnerId === null ? 10 : winnerId === playerId ? 20 : 5;
+            user.zcBalance = Math.max(0, Number(user.zcBalance ?? 0)) + amount;
+            await userRepo.save(user);
+            const entry = zcTransactionRepo.create({
+              userId: playerId,
+              type: 'credit',
+              amount,
+              balanceAfter: user.zcBalance,
+              reason: winnerId === null
+                ? 'Ranked Battle durangi'
+                : winnerId === playerId
+                  ? 'Ranked Battle g‘alabasi'
+                  : 'Ranked Battle ishtiroki',
+              idempotencyKey: `battle:${match.id}:${playerId}`,
+            });
+            await zcTransactionRepo.save(entry);
+            await this.dailyTasksService.recordRankedBattle(manager, playerId, winnerId === playerId);
+            zcChanges[playerId] = {
+              userId: playerId,
+              amount,
+              balanceAfter: user.zcBalance,
+            };
+          }
+        }
+
+        // RP va ZC natijalari match bilan bitta tranzaksiyada saqlanadi.
         match.rankChanges = rankChanges as unknown as Record<string, unknown>;
 
         const saved = await matchRepo.save(match);
@@ -646,7 +709,7 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
           `Battle ${match.roomCode} yakunlandi. G'olib: ${winnerId || 'Durang'}. Rank: ${Object.keys(rankChanges).length} ishtirokchi.`,
         );
 
-        return Object.assign(saved, { rankChanges });
+        return Object.assign(saved, { rankChanges, zcChanges });
       },
     );
   }
@@ -751,174 +814,33 @@ export class BattleService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  // Faqat yakunlangan janglar asosida shaxsiy statistika.
-  async getStats(userId: string) {
-    const matches = await this.matchRepository.find({
-      where: [
-        { playerOneId: userId, status: 'finished' },
-        { playerTwoId: userId, status: 'finished' },
-      ],
-      order: { finishedAt: 'DESC' },
+  // Faqat jang ishtirokchisiga o'zining yakunlangan jangi tafsilotlarini ko'rsatadi.
+  async getHistoryDetail(userId: string, matchId: string) {
+    const match = await this.matchRepository.findOne({
+      where: { id: matchId },
     });
 
-    let wins = 0;
-    let losses = 0;
-    let draws = 0;
-    let totalPoints = 0;
-
-    for (const match of matches) {
-      totalPoints += match.scores?.[userId] || 0;
-
-      if (!match.winnerId) {
-        draws++;
-      } else if (match.winnerId === userId) {
-        wins++;
-      } else {
-        losses++;
-      }
+    if (!match) {
+      throw new NotFoundException('Battle tarixi topilmadi.');
     }
 
-    const total = matches.length;
-
-    return {
-      userId,
-      totalMatches: total,
-      wins,
-      losses,
-      draws,
-      totalPoints,
-      averagePoints:
-        total > 0 ? Math.round((totalPoints / total) * 100) / 100 : 0,
-      winRate: total > 0 ? Math.round((wins / total) * 10000) / 100 : 0,
-      recentMatches: matches.slice(0, 5).map((match) => ({
-        id: match.id,
-        mode: match.mode,
-        result: !match.winnerId
-          ? 'draw'
-          : match.winnerId === userId
-            ? 'win'
-            : 'loss',
-        myScore: match.scores?.[userId] || 0,
-        finishedAt: match.finishedAt,
-      })),
-    };
-  }
-
-  // Battle uchun alohida reyting.
-  async getLeaderboard(requestedLimit = 50) {
-    const limit = Math.min(Math.max(Number(requestedLimit) || 50, 1), 100);
-
-    const matches = await this.matchRepository.find({
-      where: {
-  status: 'finished',
-  mode: 'ranked',
-},
-      order: { finishedAt: 'DESC' },
-    });
-
-    const rankingMap = new Map<
-      string,
-      {
-        matches: number;
-        wins: number;
-        losses: number;
-        draws: number;
-        points: number;
-      }
-    >();
-
-    for (const match of matches) {
-      const playerIds = [
-        match.playerOneId,
-        match.playerTwoId,
-      ].filter((id): id is string => Boolean(id));
-
-      for (const playerId of playerIds) {
-        const current = rankingMap.get(playerId) || {
-          matches: 0,
-          wins: 0,
-          losses: 0,
-          draws: 0,
-          points: 0,
-        };
-
-        current.matches++;
-        current.points += match.scores?.[playerId] || 0;
-
-        if (!match.winnerId) {
-          current.draws++;
-        } else if (match.winnerId === playerId) {
-          current.wins++;
-        } else {
-          current.losses++;
-        }
-
-        rankingMap.set(playerId, current);
-      }
+    if (match.playerOneId !== userId && match.playerTwoId !== userId) {
+      throw new NotFoundException('Battle tarixi topilmadi.');
     }
 
-    const playerIds = [...rankingMap.keys()];
-
-    if (playerIds.length === 0) {
-      return { total: 0, leaderboard: [] };
-    }
-
-    const users = await this.userRepository.find({
-      where: { id: In(playerIds) },
-      select: {
-        id: true,
-        displayName: true,
-        username: true,
-        avatarUrl: true,
-        rankPoints: true,
-      },
-    });
-
-    const userMap = new Map(users.map((user) => [user.id, user]));
-
-    const leaderboard: BattleRankingEntry[] = playerIds
-      .map((userId) => {
-        const user = userMap.get(userId);
-        const stats = rankingMap.get(userId)!;
-
-        if (!user) {
-          return null;
-        }
-
-        return {
-          userId,
-          displayName: user.displayName,
-          username: user.username,
-          avatarUrl: user.avatarUrl,
-          rankPoints: user.rankPoints ?? 0,
-          rankTier: getBattleRankTier(user.rankPoints ?? 0),
-          matches: stats.matches,
-          wins: stats.wins,
-          losses: stats.losses,
-          draws: stats.draws,
-          points: stats.points,
-          winRate:
-            stats.matches > 0
-              ? Math.round((stats.wins / stats.matches) * 10000) / 100
-              : 0,
-        };
-      })
-      .filter((entry): entry is BattleRankingEntry => entry !== null)
-      .sort(
-        (a, b) =>
-          b.rankPoints - a.rankPoints ||
-          b.wins - a.wins ||
-          b.winRate - a.winRate ||
-          b.points - a.points ||
-          b.matches - a.matches,
+    if (match.status !== 'finished') {
+      throw new BadRequestException(
+        'Savollar tahlili faqat yakunlangan janglar uchun mavjud.',
       );
+    }
 
-    return {
-      total: leaderboard.length,
-      leaderboard: leaderboard.slice(0, limit).map((entry, index) => ({
-        rank: index + 1,
-        ...entry,
-      })),
-    };
-  }
-}
+    const questionResults = Array.isArray(match.questionResults)
+      ? (match.questionResults as unknown as BattleQuestionResult[])
+      : [];
+    const questionIds = [
+      ...new Set(questionResults.map((item) => item.questionId).filter(Boolean)),
+    ];
+    const questions = questionIds.length
+      ? await this.questionRepository.find({
+          where: { id: In(questionIds) },
+          s
