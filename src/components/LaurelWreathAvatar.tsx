@@ -164,17 +164,18 @@ export default function LaurelWreathAvatar({
           key={stem.key}
           pointerEvents="none"
           style={[
-            styles.stem,
+            styles.stemPosition,
             {
               left: stem.x * scale - (stem.width * scale) / 2,
               top: stem.y * scale - size * 0.005,
               width: stem.width * scale,
               height: Math.max(1.3, size * 0.012),
-              transform: [{ rotate: `${stem.angle}deg` }],
             },
             stemStyle,
           ]}
-        />
+        >
+          <View style={[styles.stem, { width: '100%', height: '100%', transform: [{ rotate: `${stem.angle}deg` }] }]} />
+        </Animated.View>
       ))}
 
       {branches.map((leaf) => (
@@ -182,18 +183,18 @@ export default function LaurelWreathAvatar({
           key={leaf.key}
           pointerEvents="none"
           style={[
-            styles.leaf,
+            styles.leafPosition,
             {
               left: leaf.x * scale - size * 0.018,
               top: leaf.y * scale - size * 0.037,
               width: size * 0.036,
               height: size * 0.074 * leaf.length,
-              backgroundColor: leaf.color,
-              transform: [{ rotate: `${leaf.angle}deg` }],
             },
             leafStyle,
           ]}
-        />
+        >
+          <View style={[styles.leaf, { width: '100%', height: '100%', backgroundColor: leaf.color, transform: [{ rotate: `${leaf.angle}deg` }] }]} />
+        </Animated.View>
       ))}
 
       {Array.from({ length: 4 }, (_, i) => {
@@ -247,7 +248,9 @@ export default function LaurelWreathAvatar({
 const styles = StyleSheet.create({
   root: { position: 'relative', alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
   halo: { position: 'absolute', borderWidth: 1.5, borderColor: '#6EE7B7' },
-  stem: { position: 'absolute', backgroundColor: '#059669', borderRadius: 99, transformOrigin: 'center' },
+  stemPosition: { position: 'absolute' },
+  stem: { position: 'absolute', backgroundColor: '#059669', borderRadius: 99 },
+  leafPosition: { position: 'absolute' },
   leaf: { position: 'absolute', borderRadius: 999, borderWidth: 0.8, borderColor: '#A7F3D0' },
   berry: { position: 'absolute', backgroundColor: '#FBBF24', borderWidth: 0.6, borderColor: '#92400E' },
   avatarRing: {
