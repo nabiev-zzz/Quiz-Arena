@@ -45,7 +45,6 @@ export default function ProfileAtmosphere({ value }: { value?: string | null }) 
   return (
     <View pointerEvents="none" style={styles.overlay}>
       <Animated.View style={[styles.fullStage, stage]}>
-        <Animated.View style={[styles.halo, { backgroundColor: colors.a, shadowColor: colors.a }, flash]} />
         <Animated.View style={[styles.orbit, spin]}>
           <View style={[styles.orbitLine, { borderColor: colors.a }]} />
           <View style={[styles.orbitLine, styles.orbitLineTwo, { borderColor: colors.b }]} />
@@ -71,7 +70,6 @@ export default function ProfileAtmosphere({ value }: { value?: string | null }) 
 const styles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFill, zIndex: 80, elevation: 80, overflow: 'hidden' },
   fullStage: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
-  halo: { position: 'absolute', width: '135%', height: '48%', borderRadius: 999, opacity: 0.28, shadowOpacity: 1, shadowRadius: 100, elevation: 20 },
   orbit: { position: 'absolute', width: '145%', height: '82%', alignItems: 'center', justifyContent: 'center' },
   orbitLine: { position: 'absolute', width: '92%', height: '66%', borderWidth: 2, borderRadius: 999, opacity: 0.45, transform: [{ rotate: '18deg' }] },
   orbitLineTwo: { width: '110%', height: '42%', borderWidth: 1.5, opacity: 0.55, transform: [{ rotate: '-24deg' }] },
