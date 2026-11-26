@@ -19,6 +19,7 @@ import { AddUserRankPoints20261124002500 } from './database/migrations/AddUserRa
 import { AddUserZcBalance20261125230000 } from './database/migrations/AddUserZcBalance';
 import { CreateZcTransactions20261126010000 } from './database/migrations/CreateZcTransactions';
 import { CreateUserNotifications20261126150000 } from './database/migrations/CreateUserNotifications';
+import { CreateCommunitySocial20261126180000 } from './database/migrations/CreateCommunitySocial';
 import { CreateZcStoreItems20261126020000 } from './database/migrations/CreateZcStoreItems';
 import { CreateDailyTaskProgress20261126030000 } from './database/migrations/CreateDailyTaskProgress';
 import { AddZcProfileBadges20261126040000 } from './database/migrations/AddZcProfileBadges';
@@ -66,6 +67,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         AddUserZcBalance20261125230000,
         CreateZcTransactions20261126010000,
         CreateUserNotifications20261126150000,
+        CreateCommunitySocial20261126180000,
         CreateZcStoreItems20261126020000,
         CreateDailyTaskProgress20261126030000,
         AddZcProfileBadges20261126040000,
