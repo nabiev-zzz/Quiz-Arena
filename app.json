@@ -22,7 +22,11 @@
       "package": "uz.quizarena.app"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "ZELQEN CORE",
+      "shortName": "ZELQEN",
+      "lang": "uz",
+      "description": "ZELQEN CORE — bilimni o‘rganish, AI ustoz bilan shug‘ullanish va do‘stlar bilan bellashish platformasi."
     },
     "plugins": [
       "expo-secure-store",
