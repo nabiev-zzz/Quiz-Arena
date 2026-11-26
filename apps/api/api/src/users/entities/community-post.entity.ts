@@ -18,6 +18,9 @@ export class CommunityPost {
   @Column({ type: 'varchar', length: 2000 })
   content: string;
 
+  @Column({ type: 'varchar', length: 60, nullable: true })
+  subject: string | null;
+
   @Column({ type: 'varchar', length: 500, nullable: true })
   mediaKey: string | null;
 

@@ -16,6 +16,7 @@ export interface CommunityPost {
   createdAt: string;
   mediaUrl?: string | null;
   mediaType?: string | null;
+  subject?: string | null;
   author: CommunityPerson;
   likesCount: number;
   commentsCount: number;
@@ -58,8 +59,8 @@ async function request<T>(path: string, method = 'GET', body?: unknown): Promise
 
 export const getCommunityFeed = () => request<CommunityPost[]>('/api/community/posts?limit=40');
 export const getCommunityClips = () => request<CommunityPost[]>('/api/community/clips?limit=40');
-export const createCommunityClip = (content: string, mediaKey: string, mediaType: string) =>
-  request<CommunityPost>('/api/community/clips', 'POST', { content, mediaKey, mediaType });
+export const createCommunityClip = (content: string, mediaKey: string, mediaType: string, subject?: string) =>
+  request<CommunityPost>('/api/community/clips', 'POST', { content, mediaKey, mediaType, subject });
 export const createCommunityPost = (content: string, mediaKey?: string, mediaType?: string) =>
   request<CommunityPost>('/api/community/posts', 'POST', { content, mediaKey, mediaType });
 export const likeCommunityPost = (id: string) => request<{ isLiked: boolean; likesCount: number }>(`/api/community/posts/${encodeURIComponent(id)}/like`, 'POST');
@@ -98,8 +99,9 @@ export async function uploadCommunityMedia(uri: string, contentType: string, onP
   if (!local.ok) throw new Error('Tanlangan video faylini o‘qib bo‘lmadi');
   const blob = await local.blob();
   const isVideo = contentType.startsWith('video/');
-  const maxBytes = isVideo ? 30 * 1024 * 1024 : 8 * 1024 * 1024;
-  if (!blob.size || blob.size > maxBytes) throw new Error(isVideo ? 'Video hajmi 30 MB dan oshmasin' : 'Rasm hajmi 8 MB dan oshmasin');
+  const isDocument = contentType.startsWith('application/');
+  const maxBytes = isVideo ? 30 * 1024 * 1024 : isDocument ? 15 * 1024 * 1024 : 8 * 1024 * 1024;
+  if (!blob.size || blob.size > maxBytes) throw new Error(isVideo ? 'Video hajmi 30 MB dan oshmasin' : isDocument ? 'Hujjat hajmi 15 MB dan oshmasin' : 'Rasm hajmi 8 MB dan oshmasin');
   onProgress?.(3);
 
   const mediaHeaders = { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=31536000, immutable' };
@@ -132,3 +134,52 @@ export async function uploadCommunityMedia(uri: string, contentType: string, onP
   onProgress?.(100);
   return { mediaKey: data.mediaKey, mediaType: data.mediaType };
 }
+
+export interface LearningGroup { id:string; name:string; description:string; subject:string; visibility:'public'|'private'; members_count:number; joined:boolean; is_owner:boolean; display_name:string; username:string; avatar_url:string|null; }
+export interface LearningQuestion { id:string; subject:string; title:string; body:string; status:string; created_at:string; author_id:string; display_name:string; username:string; avatar_url:string|null; answers_count:number; best_answer_id:string|null; is_own:boolean; media_url:string|null; }
+export interface LearningAnswer { id:string; body:string; is_best:boolean; author_id:string; display_name:string; username:string; }
+export interface LearningResource { id:string; title:string; description:string; subject:string; file_type:string; created_at:string; author_id:string; display_name:string; username:string; saved:boolean; saves_count:number; average_rating:number; my_rating:number|null; ratings_count:number; }
+const learningPath='/api/community/learning';
+export const getLearningGroups=(subject?:string)=>request<LearningGroup[]>(`${learningPath}/groups${subject?`?subject=${encodeURIComponent(subject)}`:''}`);
+export const createLearningGroup=(body:{name:string;description:string;subject:string;visibility:'public'|'private'})=>request<LearningGroup>(`${learningPath}/groups`,'POST',body);
+export const joinLearningGroup=(id:string)=>request<{joined:boolean;membersCount:number}>(`${learningPath}/groups/${encodeURIComponent(id)}/join`,'POST');
+export const getLearningQuestions=(subject?:string)=>request<LearningQuestion[]>(`${learningPath}/questions${subject?`?subject=${encodeURIComponent(subject)}`:''}`);
+export const createLearningQuestion=(body:{subject:string;title:string;body:string;mediaKey?:string;mediaType?:string})=>request<LearningQuestion>(`${learningPath}/questions`,'POST',body);
+export const getLearningAnswers=(id:string)=>request<LearningAnswer[]>(`${learningPath}/questions/${encodeURIComponent(id)}/answers`);
+export const answerLearningQuestion=(id:string,body:string)=>request<LearningAnswer>(`${learningPath}/questions/${encodeURIComponent(id)}/answers`,'POST',{body});
+export const acceptLearningAnswer=(id:string,answerId:string)=>request<{accepted:boolean;answerId:string}>(`${learningPath}/questions/${encodeURIComponent(id)}/answers/${encodeURIComponent(answerId)}/best`,'PATCH');
+export const getLearningResources=(subject?:string)=>request<LearningResource[]>(`${learningPath}/library${subject?`?subject=${encodeURIComponent(subject)}`:''}`);
+export const createLearningResource=(body:{title:string;description:string;subject:string;fileKey:string;fileType:string})=>request<LearningResource>(`${learningPath}/library`,'POST',body);
+export const saveLearningResource=(id:string)=>request<{saved:boolean;savesCount:number}>(`${learningPath}/library/${encodeURIComponent(id)}/save`,'POST');
+export const getLearningResourceDownload=(id:string)=>request<{url:string;fileType:string}>(`${learningPath}/library/${encodeURIComponent(id)}/download`);
+export interface LearningGroupMessage { id:string; body:string; created_at:string; author_id:string; display_name:string; username:string; avatar_url:string|null; }
+export const getLearningGroupMessages=(id:string)=>request<LearningGroupMessage[]>(`${learningPath}/groups/${encodeURIComponent(id)}/messages`);
+export const sendLearningGroupMessage=(id:string,body:string)=>request<{id:string;body:string;created_at:string}>(`${learningPath}/groups/${encodeURIComponent(id)}/messages`,'POST',{body});
+
+export const rateLearningResource=(id:string,rating:number)=>request<{myRating:number;averageRating:number;ratingsCount:number}>(`${learningPath}/library/${encodeURIComponent(id)}/rate`,'POST',{rating});
+export interface LearningResourceComment { id:string; body:string; created_at:string; author_id:string; display_name:string; username:string; avatar_url:string|null; }
+export const getLearningResourceComments=(id:string)=>request<LearningResourceComment[]>(`${learningPath}/library/${encodeURIComponent(id)}/comments`);
+export const addLearningResourceComment=(id:string,body:string)=>request<LearningResourceComment>(`${learningPath}/library/${encodeURIComponent(id)}/comments`,'POST',{body});
+export interface LearningPortfolioItem { id:string; kind:'project'|'certificate'|'skill'; title:string; description:string; link_url:string|null; created_at:string; author_id:string; display_name:string; username:string; avatar_url:string|null; is_own:boolean; }
+export interface LearningMentor { user_id:string; display_name:string; username:string; avatar_url:string|null; xp:number; headline:string; subjects:string; bio:string; students_count:number; }
+export interface LearningMarathon { id:string; title:string; description:string; subject:string; duration_days:number; starts_at:string; creator_name:string; creator_username:string; members_count:number; joined:boolean; progress:number; }
+export const getLearningPortfolio=()=>request<LearningPortfolioItem[]>(`${learningPath}/portfolio`);
+export const createLearningPortfolioItem=(body:{kind:'project'|'certificate'|'skill';title:string;description:string;linkUrl?:string})=>request<LearningPortfolioItem>(`${learningPath}/portfolio`,'POST',body);
+export const getLearningMentors=()=>request<LearningMentor[]>(`${learningPath}/mentors`);
+export const becomeLearningMentor=(body:{headline:string;subjects:string;bio:string})=>request<{enabled:boolean}>(`${learningPath}/mentors/profile`,'POST',body);
+export const requestLearningMentor=(id:string,message:string)=>request<{id:string;status:string}>(`${learningPath}/mentors/${encodeURIComponent(id)}/request`,'POST',{message});
+export const getLearningMarathons=()=>request<LearningMarathon[]>(`${learningPath}/marathons`);
+export const createLearningMarathon=(body:{title:string;description:string;subject:string;durationDays:number})=>request<LearningMarathon>(`${learningPath}/marathons`,'POST',body);
+export const joinLearningMarathon=(id:string)=>request<{joined:boolean;membersCount:number}>(`${learningPath}/marathons/${encodeURIComponent(id)}/join`,'POST');
+export const updateLearningMarathonProgress=(id:string,progress:number)=>request<{progress:number;xpAwarded:number;zcAwarded:number}>(`${learningPath}/marathons/${encodeURIComponent(id)}/progress`,'PATCH',{progress});
+export interface LearningMentorRequest { id:string; message:string; status:string; created_at:string; learner_id:string; display_name:string; username:string; avatar_url:string|null; }
+export const getLearningMentorRequests=()=>request<LearningMentorRequest[]>(`${learningPath}/mentors/requests`);
+export const respondLearningMentorRequest=(id:string,status:'accepted'|'declined')=>request<{id:string;status:string}>(`${learningPath}/mentors/requests/${encodeURIComponent(id)}`,'PATCH',{status});
+export interface CommunityClipQuiz { id:string; question:string; options:string[]; attempted:boolean; selectedOption:number|null; isCorrect:boolean|null; isOwner?:boolean; canEdit?:boolean; correctOption?:number; }
+export const getCommunityClipQuiz=(id:string)=>request<CommunityClipQuiz|null>(`/api/community/clips/${encodeURIComponent(id)}/quiz`);
+export const createCommunityClipQuiz=(id:string,body:{question:string;options:string[];correctOption:number})=>request<{id:string;question:string;options:string[]}>(`/api/community/clips/${encodeURIComponent(id)}/quiz`,'POST',body);
+export const answerCommunityClipQuiz=(id:string,selectedOption:number)=>request<{isCorrect:boolean;xpAwarded:number;zcAwarded:number}>(`/api/community/clips/${encodeURIComponent(id)}/quiz/answer`,'POST',{selectedOption});
+export interface LearningGroupTask { id:string; title:string; description:string; due_at:string|null; creator_username:string; completed_count:number; completed:boolean; }
+export const getLearningGroupTasks=(id:string)=>request<LearningGroupTask[]>(`${learningPath}/groups/${encodeURIComponent(id)}/tasks`);
+export const createLearningGroupTask=(id:string,body:{title:string;description:string;dueAt?:string})=>request<LearningGroupTask>(`${learningPath}/groups/${encodeURIComponent(id)}/tasks`,'POST',body);
+export const completeLearningGroupTask=(id:string)=>request<{completed:boolean;completedCount:number;xpAwarded:number}>(`${learningPath}/group-tasks/${encodeURIComponent(id)}/complete`,'POST');

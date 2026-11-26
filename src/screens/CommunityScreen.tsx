@@ -5,20 +5,24 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CommunityClipVideo from '../components/CommunityClipVideo';
+import CommunityLearningHubScreen from './CommunityLearningHubScreen';
 import * as ImagePicker from 'expo-image-picker';
 import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import { useTheme } from '../theme/ThemeContext';
 import {
   addCommunityComment, createCommunityPost, createCommunityStory, getCommunityComments,
   getCommunityFeed, getCommunityStories, getCommunityClips, createCommunityClip, likeCommunityPost, markCommunityStoryViewed,
-  unlikeCommunityPost, uploadCommunityMedia,
-  type CommunityComment, type CommunityPost, type CommunityStory,
+  unlikeCommunityPost, uploadCommunityMedia, getCommunityClipQuiz, createCommunityClipQuiz, answerCommunityClipQuiz,
+  type CommunityComment, type CommunityPost, type CommunityStory, type CommunityClipQuiz,
 } from '../services/communityService';
 
 interface Props {
   onBack: () => void;
   onDiscoverUsers: () => void;
   onMessages: () => void;
+  onChallenges: () => void;
+  onDailyTasks: () => void;
+  onTutor: () => void;
   onUserPress: (username: string) => void;
 }
 
@@ -38,13 +42,14 @@ function imageMime(asset: ImagePicker.ImagePickerAsset) {
   return 'image/jpeg';
 }
 
-export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, onUserPress }: Props) {
+export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, onChallenges, onDailyTasks, onTutor, onUserPress }: Props) {
   const { tokens, isDark } = useTheme();
   const c = tokens.colors;
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [clips, setClips] = useState<CommunityPost[]>([]);
-  const [activeSection, setActiveSection] = useState<'feed' | 'clips'>('feed');
+  const [activeSection, setActiveSection] = useState<'feed' | 'clips' | 'groups' | 'questions' | 'library'>('feed');
   const [clipBusy, setClipBusy] = useState(false);
+  const [clipSubject, setClipSubject] = useState('Boshqa');
   const [selectedClip, setSelectedClip] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [clipUploadProgress, setClipUploadProgress] = useState<number | null>(null);
   const [stories, setStories] = useState<CommunityStory[]>([]);
@@ -60,6 +65,15 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   const [sendingComment, setSendingComment] = useState(false);
   const [storyBusy, setStoryBusy] = useState(false);
   const [selectedStory, setSelectedStory] = useState<CommunityStory | null>(null);
+  const [quizClip, setQuizClip] = useState<CommunityPost | null>(null);
+  const [clipQuiz, setClipQuiz] = useState<CommunityClipQuiz | null>(null);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizBusy, setQuizBusy] = useState(false);
+  const [quizQuestion, setQuizQuestion] = useState('');
+  const [quizOptions, setQuizOptions] = useState(['','','','']);
+  const [correctOption, setCorrectOption] = useState(0);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -156,10 +170,11 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
       setClipBusy(true);
       setClipUploadProgress(0);
       const media = await uploadCommunityMedia(selectedClip.uri, videoMime(selectedClip), setClipUploadProgress);
-      const created = await createCommunityClip(content.trim(), media.mediaKey, media.mediaType);
+      const created = await createCommunityClip(content.trim(), media.mediaKey, media.mediaType, clipSubject);
       setClips((current) => [created, ...current]);
       setPosts((current) => [created, ...current]);
       setContent('');
+      setClipSubject('Boshqa');
       setSelectedClip(null);
       setClipUploadProgress(null);
       setActiveSection('clips');
@@ -167,6 +182,33 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     } catch (error) {
       showLocalizedAlert('Video joylanmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring');
     } finally { setClipBusy(false); }
+  };
+
+  const openClipQuiz = async (clip: CommunityPost) => {
+    setQuizClip(clip); setClipQuiz(null); setQuizQuestion(''); setQuizOptions(['','','','']); setCorrectOption(0); setSelectedOption(null); setQuizLoading(true);
+    try { const quiz=await getCommunityClipQuiz(clip.id); setClipQuiz(quiz); if(quiz?.isOwner&&quiz.canEdit){setQuizQuestion(quiz.question);setQuizOptions(quiz.options);setCorrectOption(quiz.correctOption??0)} }
+    catch (error) { showLocalizedAlert('Mini-test', error instanceof Error ? error.message : 'Mini-test yuklanmadi'); }
+    finally { setQuizLoading(false); }
+  };
+  const publishClipQuiz = async () => {
+    if (!quizClip || quizBusy) return;
+    setQuizBusy(true);
+    try {
+      const result = await createCommunityClipQuiz(quizClip.id, { question: quizQuestion, options: quizOptions, correctOption });
+      setClipQuiz({ ...result, attempted: false, selectedOption: null, isCorrect: null, isOwner: true, canEdit: true, correctOption });
+      showLocalizedAlert('Mini-test tayyor', 'Videongizga mini-test biriktirildi.');
+    } catch (error) { showLocalizedAlert('Mini-test', error instanceof Error ? error.message : 'Saqlanmadi'); }
+    finally { setQuizBusy(false); }
+  };
+  const submitClipQuiz = async () => {
+    if (!quizClip || selectedOption === null || quizBusy) return;
+    setQuizBusy(true);
+    try {
+      const result = await answerCommunityClipQuiz(quizClip.id, selectedOption);
+      setClipQuiz(current => current ? { ...current, attempted: true, selectedOption, isCorrect: result.isCorrect } : current);
+      showLocalizedAlert(result.isCorrect ? 'To‘g‘ri javob!' : 'Keyingi safar omad!', result.isCorrect ? `${result.xpAwarded} XP va ${result.zcAwarded} ZC oldingiz.` : 'Bu safar javob noto‘g‘ri.');
+    } catch (error) { showLocalizedAlert('Mini-test', error instanceof Error ? error.message : 'Javob qabul qilinmadi'); }
+    finally { setQuizBusy(false); }
   };
 
   const publishStory = async () => {
@@ -255,6 +297,10 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     </Pressable>
   );
 
+  if (activeSection === 'groups' || activeSection === 'questions' || activeSection === 'library') {
+    return <CommunityLearningHubScreen onBack={() => setActiveSection('feed')} />;
+  }
+
   return (
     <>
       <ScrollView
@@ -270,12 +316,16 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
             <LocalizedText style={styles.eyebrow}>ZELQEN SOCIAL</LocalizedText>
             <LocalizedText style={styles.title}>Hamjamiyat</LocalizedText>
           </View>
-          <Pressable onPress={onMessages} style={styles.messagesButton}>
+          <Pressable onPress={onMessages} style={styles.messagesButton} accessibilityLabel="Xabarlar">
             <Ionicons name="paper-plane-outline" size={17} color={c.primary} />
           </Pressable>
-          <Pressable onPress={onDiscoverUsers} style={styles.discoverButton}>
+          <Pressable onPress={onChallenges} style={styles.messagesButton} accessibilityLabel="Bilim bellashuvlari">
+            <Ionicons name="trophy-outline" size={17} color={c.primary} />
+          </Pressable>
+          <Pressable onPress={onDailyTasks} style={styles.messagesButton} accessibilityLabel="Kunlik vazifalar"><Ionicons name="calendar-outline" size={17} color={c.primary}/></Pressable>
+          <Pressable onPress={onTutor} style={styles.messagesButton} accessibilityLabel="AI Ustoz"><Ionicons name="sparkles-outline" size={17} color={c.primary}/></Pressable>
+          <Pressable onPress={onDiscoverUsers} style={styles.messagesButton} accessibilityLabel="Foydalanuvchilarni topish">
             <Ionicons name="people-outline" size={17} color={c.primary} />
-            <LocalizedText style={styles.discoverText}>Odamlar</LocalizedText>
           </Pressable>
         </View>
 
@@ -287,7 +337,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
           </View>
         </View>
 
-        <View style={styles.sectionTabs}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sectionTabs}>
           <Pressable onPress={() => setActiveSection('feed')} style={[styles.sectionTab, activeSection === 'feed' && styles.sectionTabActive]}>
             <Ionicons name="newspaper-outline" size={16} color={activeSection === 'feed' ? '#FFFFFF' : c.textMuted} />
             <LocalizedText style={[styles.sectionTabText, activeSection === 'feed' && styles.sectionTabTextActive]}>Lenta</LocalizedText>
@@ -296,7 +346,19 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
             <Ionicons name="play-circle-outline" size={17} color={activeSection === 'clips' ? '#FFFFFF' : c.textMuted} />
             <LocalizedText style={[styles.sectionTabText, activeSection === 'clips' && styles.sectionTabTextActive]}>Lavhalar</LocalizedText>
           </Pressable>
-        </View>
+          <Pressable onPress={() => setActiveSection('groups')} style={styles.sectionTab}>
+            <Ionicons name="people-outline" size={16} color={c.textMuted} />
+            <LocalizedText style={styles.sectionTabText}>Guruhlar</LocalizedText>
+          </Pressable>
+          <Pressable onPress={() => setActiveSection('questions')} style={styles.sectionTab}>
+            <Ionicons name="help-circle-outline" size={16} color={c.textMuted} />
+            <LocalizedText style={styles.sectionTabText}>Savol-javob</LocalizedText>
+          </Pressable>
+          <Pressable onPress={() => setActiveSection('library')} style={styles.sectionTab}>
+            <Ionicons name="library-outline" size={16} color={c.textMuted} />
+            <LocalizedText style={styles.sectionTabText}>Kutubxona</LocalizedText>
+          </Pressable>
+        </ScrollView>
 
         {activeSection === 'feed' && <>
         <View style={styles.storySection}>
@@ -443,6 +505,8 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
               </View>
             )}
             <TextInput value={content} onChangeText={setContent} placeholder="Video haqida qisqa izoh (ixtiyoriy)" placeholderTextColor={c.textMuted} style={styles.clipCaptionInput} maxLength={2000} />
+            <LocalizedText style={styles.feedCaption}>Lavha mavzusi</LocalizedText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:6,paddingVertical:8}}>{['Matematika','Fizika','Informatika','Kimyo','Biologiya','Tarix','Til o‘rganish','Boshqa'].map(subject=><Pressable key={subject} onPress={()=>setClipSubject(subject)} style={{paddingHorizontal:11,paddingVertical:7,borderRadius:16,backgroundColor:clipSubject===subject?c.primary:c.surface,borderWidth:1,borderColor:clipSubject===subject?c.primary:c.border}}><LocalizedText style={{fontSize:10,fontWeight:'800',color:clipSubject===subject?'#fff':c.textMuted}}>{subject}</LocalizedText></Pressable>)}</ScrollView>
             {clipBusy && clipUploadProgress !== null && (
               <View style={styles.uploadProgressCard}>
                 <View style={styles.uploadProgressHeader}>
@@ -467,7 +531,8 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
               <View key={clip.id} style={styles.clipCard}>
                 <View style={styles.clipAuthor}>{renderPerson(clip.author)}<LocalizedText style={styles.time}>{timeAgo(clip.createdAt)}</LocalizedText></View>
                 {clip.mediaUrl ? <CommunityClipVideo uri={clip.mediaUrl} /> : null}
-                {clip.content ? <LocalizedText style={styles.clipCaption}>{clip.content}</LocalizedText> : null}
+                {clip.subject&&<LocalizedText style={styles.feedCaption}>#{clip.subject}</LocalizedText>}{clip.content ? <LocalizedText style={styles.clipCaption}>{clip.content}</LocalizedText> : null}
+                <Pressable onPress={() => void openClipQuiz(clip)} style={[styles.action,{alignSelf:'flex-start',marginTop:8,backgroundColor:c.primary+'14',paddingHorizontal:11,paddingVertical:8,borderRadius:10}]}><Ionicons name="help-circle-outline" size={17} color={c.primary}/><LocalizedText style={[styles.actionText,{color:c.primary,fontWeight:'800'}]}>Mini-test</LocalizedText></Pressable>
                 <View style={styles.clipActions}>
                   <Pressable style={styles.action} onPress={() => void toggleLike(clip)} disabled={busyPost === clip.id}>
                     <Ionicons name={clip.isLiked ? 'heart' : 'heart-outline'} size={20} color={clip.isLiked ? '#F05B82' : c.textMuted} />
@@ -513,6 +578,24 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
             {selectedStory.isOwn ? <LocalizedText style={styles.storyViews}><Ionicons name="eye-outline" size={14} color="#FFFFFF" />  {selectedStory.viewsCount} ko‘rish</LocalizedText> : null}
           </View>
         )}
+      </Modal>
+      <Modal visible={Boolean(quizClip)} transparent animationType="fade" onRequestClose={() => setQuizClip(null)}>
+        <View style={{flex:1,backgroundColor:'rgba(8,10,22,0.78)',justifyContent:'center',padding:18}}>
+          <View style={{backgroundColor:c.surface,borderRadius:22,padding:18,maxHeight:'88%'}}>
+            <View style={{flexDirection:'row',alignItems:'center',marginBottom:12}}><View style={{flex:1}}><LocalizedText style={styles.feedTitle}>Lavha mini-testi</LocalizedText><LocalizedText style={styles.feedCaption}>{quizClip?.content||'Bilimingizni sinab ko‘ring'}</LocalizedText></View><Pressable onPress={()=>setQuizClip(null)} style={styles.storyClose}><Ionicons name="close" size={21} color={c.text}/></Pressable></View>
+            {quizLoading?<ActivityIndicator color={c.primary} style={{padding:24}}/>:quizClip?.isOwn&&(!clipQuiz||clipQuiz.canEdit)?<ScrollView keyboardShouldPersistTaps="handled">
+              <LocalizedText style={styles.commentAuthor}>SAVOL</LocalizedText><TextInput value={quizQuestion} onChangeText={setQuizQuestion} placeholder="Video bo‘yicha savol yozing" placeholderTextColor={c.textMuted} style={styles.commentInput}/>
+              <LocalizedText style={[styles.commentAuthor,{marginTop:12}]}>4 TA JAVOB VARIANTI</LocalizedText>
+              {quizOptions.map((option,index)=><View key={index} style={{flexDirection:'row',alignItems:'center',gap:8,marginTop:8}}><Pressable onPress={()=>setCorrectOption(index)} style={{width:30,height:30,borderRadius:15,alignItems:'center',justifyContent:'center',backgroundColor:correctOption===index?c.primary:c.background}}><LocalizedText style={{color:correctOption===index?'#fff':c.text,fontWeight:'900'}}>{String.fromCharCode(65+index)}</LocalizedText></Pressable><TextInput value={option} onChangeText={value=>setQuizOptions(current=>current.map((item,i)=>i===index?value:item))} placeholder={`${String.fromCharCode(65+index)} variant`} placeholderTextColor={c.textMuted} style={[styles.commentInput,{flex:1}]}/></View>)}
+              <LocalizedText style={styles.feedCaption}>To‘g‘ri javobni chapdagi harfni bosib belgilang.</LocalizedText>
+              <Pressable onPress={()=>void publishClipQuiz()} disabled={quizBusy} style={[styles.publishButton,{justifyContent:'center',marginTop:14}]}>{quizBusy?<ActivityIndicator color="#fff"/>:<Ionicons name="checkmark-circle-outline" size={17} color="#fff"/>}<LocalizedText style={styles.publishText}>{quizBusy?'Saqlanmoqda...':'Mini-testni saqlash'}</LocalizedText></Pressable>
+            </ScrollView>:quizClip?.isOwn&&clipQuiz?<View style={{paddingVertical:20,alignItems:'center'}}><Ionicons name="lock-closed-outline" size={32} color={c.primary}/><LocalizedText style={styles.feedTitle}>Mini-test qulflangan</LocalizedText><LocalizedText style={styles.feedCaption}>Birinchi ishtirokchi javob berganidan keyin testni tahrirlab bo‘lmaydi.</LocalizedText></View>:clipQuiz? <ScrollView>
+              <LocalizedText style={styles.postContent}>{clipQuiz.question}</LocalizedText>
+              {clipQuiz.options.map((option,index)=><Pressable key={index} disabled={clipQuiz.attempted} onPress={()=>setSelectedOption(index)} style={{padding:12,borderRadius:12,marginBottom:8,backgroundColor:selectedOption===index?c.primary+'22':c.background,borderWidth:1,borderColor:selectedOption===index?c.primary:c.glassBorder}}><LocalizedText style={{color:c.text,fontSize:13,fontWeight:'700'}}>{String.fromCharCode(65+index)}. {option}</LocalizedText></Pressable>)}
+              {clipQuiz.attempted?<LocalizedText style={{color:clipQuiz.isCorrect?'#2FA985':'#E28B58',fontWeight:'900',marginTop:8}}>{clipQuiz.isCorrect?'To‘g‘ri javob!':'Javob noto‘g‘ri.'} {clipQuiz.isCorrect?'5 XP va 2 ZC olindi.':''}</LocalizedText>:<Pressable onPress={()=>void submitClipQuiz()} disabled={selectedOption===null||quizBusy} style={[styles.publishButton,{justifyContent:'center',marginTop:10,opacity:selectedOption===null?0.5:1}]}>{quizBusy?<ActivityIndicator color="#fff"/>:<Ionicons name="checkmark" size={17} color="#fff"/>}<LocalizedText style={styles.publishText}>Javobni yuborish</LocalizedText></Pressable>}
+            </ScrollView>:<View style={{paddingVertical:20,alignItems:'center'}}><Ionicons name="help-circle-outline" size={34} color={c.primary}/><LocalizedText style={styles.feedTitle}>Bu lavhada mini-test yo‘q</LocalizedText><LocalizedText style={styles.feedCaption}>Muallif hali test qo‘shmagan.</LocalizedText></View>}
+          </View>
+        </View>
       </Modal>
     </>
   );
