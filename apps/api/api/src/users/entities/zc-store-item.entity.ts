@@ -13,7 +13,7 @@ export class ZcStoreItem {
   itemId: string;
 
   @Column({ type: 'varchar', length: 20 })
-  kind: 'frame' | 'decoration';
+  kind: 'frame' | 'decoration' | 'badge';
 
   @Column({ type: 'integer' })
   price: number;
