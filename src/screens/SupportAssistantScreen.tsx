@@ -76,15 +76,13 @@ export default function SupportAssistantScreen({
 
   const openSupportEmail = () => {
     const subject = encodeURIComponent('ZELQEN CORE — Qo‘llab-quvvatlash');
-    const body = encodeURIComponent('Salom, ZELQEN CORE jamoasi!\n\nMurojaatim:\n');
-    const url = `mailto:zelqencoresupport@gmail.com?subject=${subject}&body=${body}`;
+    const body = encodeURIComponent('Salom, ZELQEN CORE jamoasi!\\n\\nMurojaatim:\\n');
+    const mailtoUrl = `mailto:zelqencoresupport@gmail.com?subject=${subject}&body=${body}`;
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=zelqencoresupport%40gmail.com&su=${subject}&body=${body}`;
+    const url = Platform.OS === 'web' ? gmailUrl : mailtoUrl;
 
-    // Trigger the mail client directly from the press event (important on web browsers).
     void Linking.openURL(url).catch(() => {
-      Alert.alert(
-        'Email ilovasi topilmadi',
-        'Qo‘llab-quvvatlash uchun zelqencoresupport@gmail.com manziliga yozing.',
-      );
+      setError('Email ochilmadi. To‘g‘ridan-to‘g‘ri zelqencoresupport@gmail.com manziliga yozing.');
     });
   };
 
