@@ -29,7 +29,7 @@ interface ProfileScreenProps {
   dockStretch?: SharedValue<number>;
 }
 
-type ProfileTab = 'main' | 'board' | 'activity' | 'missions';
+type ProfileTab = 'main' | 'board' | 'activity' | 'missions' | 'wallet';
 
 const AVATAR_CATEGORIES = [
   { id: 'anime', label: 'Anime', style: 'lorelei', seeds: ['Aiko', 'Hana', 'Akira', 'Yuki', 'Ren', 'Sora', 'Mika', 'Kai'] },
@@ -112,10 +112,10 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
   }, [activeTab]);
 
   useEffect(() => {
-    if (activeTab !== 'main' || !user) return;
+    if (activeTab !== 'wallet' || !user) return;
     let active = true;
     setZcHistoryLoading(true);
-    getZcHistory(5)
+    getZcHistory(50)
       .then((result) => { if (active) setZcHistory(result.items); })
       .catch(() => { if (active) setZcHistory([]); })
       .finally(() => { if (active) setZcHistoryLoading(false); });
@@ -261,6 +261,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
     { key: 'board', label: 'Board' },
     { key: 'activity', label: 'Tarix' },
     { key: 'missions', label: 'Vazifalar' },
+    { key: 'wallet', label: 'Hamyon' },
   ];
 
   const renderCard = (children: React.ReactNode, extraStyle?: object, key?: string) => (
@@ -269,7 +270,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
 
   return (
     <View style={styles.screen}>
-      <ProfileAtmosphere value={user.profileFrame} />
       <Animated.ScrollView onScroll={dockScrollHandler} scrollEventThrottle={16} style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Pressable style={styles.headerButton} onPress={onClosePress} accessibilityRole="button" accessibilityLabel="Profilni yopish">
@@ -285,9 +285,9 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
           <ProfileEffect value={user.profileFrame} variant="hero" style={styles.avatarEffectStage}>
           <View style={[styles.avatarWrap, user.avatarDecoration === 'laurel_wreath' && styles.avatarWrapLaurel]}>
             {user.avatarDecoration === 'laurel_wreath' ? (
-              <LaurelWreathAvatar size={148} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
+              <LaurelWreathAvatar size={184} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
             ) : user.avatarDecoration === 'book_wings' ? (
-              <BookWingsAvatar size={122} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
+              <BookWingsAvatar size={164} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
             ) : (
             <View style={[styles.avatarFrame, user.profileFrame === 'aurora' && styles.frameAurora, user.profileFrame === 'royal' && styles.frameRoyal, user.profileFrame === 'ocean' && styles.frameOcean, user.profileFrame === 'neon3d' && styles.frameNeon3d, user.profileFrame === 'inferno3d' && styles.frameInferno3d, user.profileFrame === 'frost3d' && styles.frameFrost3d, user.profileFrame === 'galaxy3d' && styles.frameGalaxy3d]}>
               {avatarUri ? <Image source={{ uri: avatarUri }} style={styles.avatar} /> : <View style={styles.avatarFallback}><LocalizedText style={styles.avatarInitials}>{initials || '?'}</LocalizedText></View>}
@@ -295,7 +295,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
             )}
             {user.avatarDecoration && user.avatarDecoration !== 'book_wings' && user.avatarDecoration !== 'laurel_wreath' ? <View style={styles.decoration}><Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={13} color="#F5D78A" /></View> : null}
             <Pressable style={styles.cameraButton} onPress={chooseAvatar} accessibilityRole="button" accessibilityLabel="Avatarni almashtirish">
-              <Ionicons name="camera" size={15} color="#FFFFFF" />
+              <Ionicons name="camera" size={18} color="#FFFFFF" />
             </Pressable>
           </View>
           </ProfileEffect>
@@ -340,33 +340,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
                 <NativeText style={{ color: '#D9B65B', fontSize: 16, fontWeight: '900' }}>
                   {Math.max(0, Number(user.zcBalance ?? 0)).toLocaleString('en-US')} ZC
                 </NativeText>
-              </View>,
-            )}
-            {renderCard(
-              <View style={{ gap: 11 }}>
-                <View style={styles.row}>
-                  <View style={styles.rowBody}>
-                    <LocalizedText style={styles.cardTitle}>ZC tranzaksiyalari</LocalizedText>
-                    <LocalizedText style={styles.cardSubtitle}>Oxirgi kirim va sarflar</LocalizedText>
-                  </View>
-                  {zcHistoryLoading ? <ActivityIndicator size="small" color={C.purple} /> : null}
-                </View>
-                {!zcHistoryLoading && zcHistory.length === 0 ? (
-                  <LocalizedText style={styles.cardSubtitle}>Hozircha tranzaksiyalar yo‘q.</LocalizedText>
-                ) : zcHistory.map((item) => (
-                  <View key={item.id} style={[styles.row, { paddingTop: 8, borderTopWidth: 1, borderTopColor: C.border }]}>
-                    <View style={[styles.iconTile, { backgroundColor: item.type === 'credit' ? 'rgba(76, 175, 125, 0.13)' : 'rgba(226, 140, 155, 0.13)' }]}>
-                      <Ionicons name={item.type === 'credit' ? 'arrow-down' : 'arrow-up'} size={19} color={item.type === 'credit' ? '#55B98A' : '#E28C9B'} />
-                    </View>
-                    <View style={styles.rowBody}>
-                      <LocalizedText style={styles.cardTitle}>{item.reason}</LocalizedText>
-                      <LocalizedText style={styles.cardSubtitle}>{new Date(item.createdAt).toLocaleDateString()}</LocalizedText>
-                    </View>
-                    <NativeText style={{ color: item.type === 'credit' ? '#55B98A' : '#E28C9B', fontSize: 14, fontWeight: '900' }}>
-                      {item.type === 'credit' ? '+' : '−'}{item.amount.toLocaleString('en-US')} ZC
-                    </NativeText>
-                  </View>
-                ))}
               </View>,
             )}
             {renderCard(
@@ -449,6 +422,57 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
                 </ScrollView>
               </>
             ) : null}
+          </>
+        ) : null}
+
+        {activeTab === 'wallet' ? (
+          <>
+            {renderCard(
+              <View style={{ gap: 8 }}>
+                <View style={styles.row}>
+                  <View style={[styles.iconTile, { backgroundColor: 'rgba(232, 190, 92, 0.14)' }]}>
+                    <Ionicons name="wallet" size={22} color="#D9B65B" />
+                  </View>
+                  <View style={styles.rowBody}>
+                    <LocalizedText style={styles.cardTitle}>Zelqen Credits</LocalizedText>
+                    <LocalizedText style={styles.cardSubtitle}>Joriy balansingiz</LocalizedText>
+                  </View>
+                </View>
+                <NativeText style={{ color: '#D9B65B', fontSize: 29, fontWeight: '900', letterSpacing: -0.7 }}>
+                  {Math.max(0, Number(user.zcBalance ?? 0)).toLocaleString('en-US')} ZC
+                </NativeText>
+              </View>,
+            )}
+            {renderCard(
+              <View style={{ gap: 12 }}>
+                <View style={styles.row}>
+                  <View style={styles.rowBody}>
+                    <LocalizedText style={styles.cardTitle}>Tranzaksiyalar tarixi</LocalizedText>
+                    <LocalizedText style={styles.cardSubtitle}>Barcha oxirgi kirim va sarflaringiz</LocalizedText>
+                  </View>
+                  {zcHistoryLoading ? <ActivityIndicator size="small" color={C.purple} /> : null}
+                </View>
+                {!zcHistoryLoading && zcHistory.length === 0 ? (
+                  <View style={{ alignItems: 'center', paddingVertical: 22, gap: 8 }}>
+                    <Ionicons name="receipt-outline" size={28} color={C.muted} />
+                    <LocalizedText style={styles.cardSubtitle}>Hozircha tranzaksiyalar yo‘q.</LocalizedText>
+                  </View>
+                ) : zcHistory.map((item) => (
+                  <View key={item.id} style={[styles.row, { paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border }]}>
+                    <View style={[styles.iconTile, { backgroundColor: item.type === 'credit' ? 'rgba(76, 175, 125, 0.13)' : 'rgba(226, 140, 155, 0.13)' }]}>
+                      <Ionicons name={item.type === 'credit' ? 'arrow-down' : 'arrow-up'} size={19} color={item.type === 'credit' ? '#55B98A' : '#E28C9B'} />
+                    </View>
+                    <View style={styles.rowBody}>
+                      <LocalizedText style={styles.cardTitle}>{item.reason}</LocalizedText>
+                      <LocalizedText style={styles.cardSubtitle}>{new Date(item.createdAt).toLocaleString()}</LocalizedText>
+                    </View>
+                    <NativeText style={{ color: item.type === 'credit' ? '#55B98A' : '#E28C9B', fontSize: 14, fontWeight: '900' }}>
+                      {item.type === 'credit' ? '+' : '−'}{item.amount.toLocaleString('en-US')} ZC
+                    </NativeText>
+                  </View>
+                ))}
+              </View>,
+            )}
           </>
         ) : null}
 
@@ -599,6 +623,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
           <LocalizedText style={styles.logoutText}>Hisobdan chiqish</LocalizedText>
         </Pressable>
       </Animated.ScrollView>
+      <ProfileAtmosphere value={user.profileFrame} />
 
       <Modal visible={avatarPickerVisible} transparent animationType="slide" onRequestClose={() => setAvatarPickerVisible(false)}>
         <View style={styles.modalBackground}>
@@ -658,11 +683,11 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     header: { height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
     headerButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { color: C.muted, fontSize: 11, fontWeight: '800', letterSpacing: 2 },
-    identity: { alignItems: 'center', paddingTop: 8, paddingBottom: 19 },
-    avatarEffectStage: { width: 154, height: 154, alignItems: 'center', justifyContent: 'center' },
-    avatarWrap: { width: 122, height: 122, alignItems: 'center', justifyContent: 'center' },
-    avatarWrapLaurel: { width: 148, height: 148 },
-    avatarFrame: { width: 112, height: 112, borderRadius: 56, padding: 3, backgroundColor: C.purple, borderWidth: 2, borderColor: '#8B68E5' },
+    identity: { alignItems: 'flex-start', paddingTop: 8, paddingBottom: 19 },
+    avatarEffectStage: { width: 218, height: 218, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
+    avatarWrap: { width: 184, height: 184, alignItems: 'center', justifyContent: 'center' },
+    avatarWrapLaurel: { width: 184, height: 184 },
+    avatarFrame: { width: 172, height: 172, borderRadius: 86, padding: 4, backgroundColor: C.purple, borderWidth: 2, borderColor: '#8B68E5' },
     frameAurora: { backgroundColor: '#8B72E8' },
     frameRoyal: { backgroundColor: '#D7A93F' },
     frameOcean: { backgroundColor: '#4D9FC8' },
@@ -698,11 +723,11 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     shopBuyText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
     avatar: { width: '100%', height: '100%', borderRadius: 54 },
     avatarFallback: { flex: 1, borderRadius: 54, backgroundColor: C.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
-    avatarInitials: { color: C.text, fontSize: 29, fontWeight: '800' },
-    cameraButton: { position: 'absolute', right: 2, bottom: 3, width: 33, height: 33, borderRadius: 17, backgroundColor: C.purple, borderWidth: 3, borderColor: C.background, alignItems: 'center', justifyContent: 'center' },
+    avatarInitials: { color: C.text, fontSize: 42, fontWeight: '800' },
+    cameraButton: { position: 'absolute', right: 4, bottom: 5, width: 39, height: 39, borderRadius: 20, backgroundColor: C.purple, borderWidth: 3, borderColor: C.background, alignItems: 'center', justifyContent: 'center' },
     decoration: { position: 'absolute', top: 2, left: 1, width: 27, height: 27, borderRadius: 14, backgroundColor: C.surfaceRaised, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '100%' },
-    displayName: { color: C.text, fontSize: 25, fontWeight: '800', letterSpacing: -0.5, maxWidth: '90%' },
+    displayName: { color: C.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, maxWidth: '90%' },
     handleRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 5 },
     handle: { color: C.muted, fontSize: 13 },
     badges: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 11 },
