@@ -66,10 +66,10 @@ export default function ProfileEffect({ value, style, children }: ProfileEffectP
 
 const styles = StyleSheet.create({
   root: { position: 'relative', overflow: 'visible' },
-  effectLayer: { ...StyleSheet.absoluteFillObject, zIndex: 0, overflow: 'visible', borderRadius: 28 },
-  aura: { ...StyleSheet.absoluteFillObject, borderWidth: 1.5, borderRadius: 28, shadowOpacity: 0.95, shadowRadius: 24, shadowOffset: { width: 0, height: 0 }, elevation: 12 },
+  effectLayer: { ...StyleSheet.absoluteFill, zIndex: 0, overflow: 'visible', borderRadius: 28 },
+  aura: { ...StyleSheet.absoluteFill, borderWidth: 1.5, borderRadius: 28, shadowOpacity: 0.95, shadowRadius: 24, shadowOffset: { width: 0, height: 0 }, elevation: 12 },
   orbit: { position: 'absolute', top: -9, right: 12, width: 48, height: 48, borderWidth: 1.5, borderStyle: 'dashed', borderRadius: 24, opacity: 0.8 },
-  wash: { ...StyleSheet.absoluteFillObject, borderRadius: 28, opacity: 0.8 },
+  wash: { ...StyleSheet.absoluteFill, borderRadius: 28, opacity: 0.8 },
   sparkle: { position: 'absolute', width: 6, height: 6, borderRadius: 3, shadowOpacity: 1, shadowRadius: 12, elevation: 8 },
   sparkleOne: { top: 15, left: 22 },
   sparkleTwo: { top: 52, right: 16, width: 8, height: 8, borderRadius: 4 },
