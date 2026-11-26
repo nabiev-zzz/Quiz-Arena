@@ -96,7 +96,7 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 22, paddingVertical: 26 },
+    content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 30 },
     brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 26 },
     brandMark: { width: 42, height: 42, borderRadius: 15, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
     brandMarkText: { color: '#FFFFFF', fontSize: 23, fontWeight: '800' },
@@ -106,10 +106,10 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     eyebrow: { color: colors.primary, fontSize: 9, fontWeight: '800', letterSpacing: 1.5, marginBottom: 9 },
     title: { color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.6 },
     subtitle: { color: colors.textMuted, fontSize: 13, marginTop: 8, lineHeight: 19 },
-    formCard: { backgroundColor: colors.surfaceGlass, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: 26, padding: 18 },
+    formCard: { backgroundColor: colors.surfaceGlass, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: 28, padding: 22 },
     label: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', marginBottom: 7, marginTop: 11 },
-    input: { height: 50, borderRadius: 15, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, color: colors.text, fontSize: 14 },
-    button: { height: 52, backgroundColor: colors.primary, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 21 },
+    input: { height: 54, borderRadius: 17, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, color: colors.text, fontSize: 14 },
+    button: { height: 56, backgroundColor: colors.primary, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: 21 },
     buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
     disabled: { opacity: 0.55 },
     footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },

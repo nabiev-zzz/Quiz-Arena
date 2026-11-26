@@ -666,7 +666,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     justifyContent: 'center',
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: 17,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -706,7 +706,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     marginTop: 5,
   },
   inputContainer: {
-    minHeight: 58,
+    minHeight: 64,
     flexDirection: 'row',
     alignItems: 'flex-end',
     marginHorizontal: 12,
@@ -715,7 +715,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 19,
+    borderRadius: 22,
   },
   input: {
     flex: 1,

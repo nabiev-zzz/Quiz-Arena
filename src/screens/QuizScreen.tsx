@@ -529,7 +529,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   selectedChoiceChip: { borderColor: colors.primary, backgroundColor: colors.primary + '22' },
   choiceText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
   selectedChoiceText: { color: colors.primary },
-  reviewCard: { padding: 16, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 11 },
+  reviewCard: { padding: 16, borderRadius: 22, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 11 },
   reviewTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   reviewNumber: { color: colors.textMuted, fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
   reviewStatus: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
