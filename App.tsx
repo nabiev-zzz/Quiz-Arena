@@ -173,6 +173,10 @@ function AppContent() {
   const borderColor = tokens.colors.glassBorder;
 
   const openTab = (nextTab: Tab) => {
+    // A tab selection must dismiss every modal/secondary screen, including Support.
+    // Otherwise the Support screen remains mounted above the selected tab.
+    setSupportScreen(null);
+    setSupportInitialPrompt('');
     setTab(nextTab);
     setShowSettings(false);
     setShowPremium(false);
