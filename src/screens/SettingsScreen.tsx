@@ -431,19 +431,37 @@ export default function SettingsScreen({
         YORDAM
       </LocalizedText>
 
-      <SettingRow
-        icon="help-circle-outline"
-        title="Savol berish va yordam"
-        description="AI yordamchi bilan suhbatlashing"
-        right={
-          <Ionicons
-            name="chevron-forward"
-            size={20}
-            color={colors.muted}
-          />
-        }
-        onPress={onHelp}
-      />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Savol berish va yordam"
+        testID="settings-help-button"
+        hitSlop={8}
+        onPress={() => {
+          if (onHelp) onHelp();
+        }}
+        style={({ pressed }) => [
+          styles.row,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+            opacity: pressed ? 0.72 : 1,
+            transform: [{ scale: pressed ? 0.99 : 1 }],
+          },
+        ]}
+      >
+        <View style={styles.rowIcon}>
+          <Ionicons name="help-circle-outline" size={21} color={colors.accent} />
+        </View>
+        <View style={styles.rowContent}>
+          <LocalizedText style={[styles.rowTitle, { color: colors.text }]}>
+            Savol berish va yordam
+          </LocalizedText>
+          <LocalizedText style={[styles.rowDescription, { color: colors.muted }]}>
+            Yordam xizmatiga murojaat
+          </LocalizedText>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+      </Pressable>
 
       <LocalizedText style={[styles.version, { color: colors.muted }]}>
         QUIZ ARENA • Sozlamalar
