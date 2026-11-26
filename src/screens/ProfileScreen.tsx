@@ -315,7 +315,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
           </Pressable>
           <LocalizedText style={styles.headerTitle}>PROFILE</LocalizedText>
           <Pressable style={styles.headerButton} onPress={onSettingsPress} accessibilityRole="button" accessibilityLabel="Sozlamalar">
-            <Ionicons name="settings-outline" size={21} color={C.text} />
+            <Ionicons name="settings-outline" size={21} color={C.text} />
           </Pressable>
         </View>
 
@@ -729,7 +729,7 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     frameAurora: { backgroundColor: '#8B72E8' },
     frameRoyal: { backgroundColor: '#D7A93F' },
     frameOcean: { backgroundColor: '#4D9FC8' },
-    frameNeon3d: { backgroundColor: '#7C3AED', borderColor: '#D8B4FE', borderWidth: 5, shadowColor: '#A855F7', shadowOpacity: 0.95, shadowRadius: 16, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
+    frameNeon3d: { backgroundColor: '#7C3AED', borderColor: '#D8B4FE', borderWidth: 5, shadowColor: '#A855F7', shadowOpacity: 0.95, shadowRadius: 16, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
     frameInferno3d: { backgroundColor: '#EA580C', borderColor: '#FDBA74', borderWidth: 5, shadowColor: '#F97316', shadowOpacity: 0.95, shadowRadius: 16, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
     frameFrost3d: { backgroundColor: '#0284C7', borderColor: '#BAE6FD', borderWidth: 5, shadowColor: '#38BDF8', shadowOpacity: 0.95, shadowRadius: 16, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
     frameGalaxy3d: { backgroundColor: '#4338CA', borderColor: '#C4B5FD', borderWidth: 5, shadowColor: '#818CF8', shadowOpacity: 0.95, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 16 },
