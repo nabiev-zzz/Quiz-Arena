@@ -54,6 +54,8 @@ export class User {
   xp: number;
   @Column({ type: 'integer', default: 0 })
   rankPoints: number;
+  @Column({ type: 'integer', default: 0 })
+  zcBalance: number;
   @Column({ type: 'integer', default: 1 })
   level: number;
 
@@ -68,6 +70,9 @@ export class User {
 
   @Column({ type: 'varchar', length: 50, nullable: true })
   avatarDecoration: string | null;
+
+  @Column({ type: 'varchar', length: 60, nullable: true })
+  profileBadge: string | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
