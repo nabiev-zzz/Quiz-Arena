@@ -8,6 +8,7 @@ import * as Clipboard from 'expo-clipboard';
 import BookWingsAvatar from '../components/BookWingsAvatar';
 import LaurelWreathAvatar from '../components/LaurelWreathAvatar';
 import AnimatedBadge from '../components/AnimatedBadge';
+import ProfileEffect from '../components/ProfileEffect';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
@@ -278,7 +279,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
           </Pressable>
         </View>
 
-        <View style={styles.identity}>
+        <ProfileEffect value={user.profileFrame} style={styles.identity}>
           <View style={[styles.avatarWrap, user.avatarDecoration === 'laurel_wreath' && styles.avatarWrapLaurel]}>
             {user.avatarDecoration === 'laurel_wreath' ? (
               <LaurelWreathAvatar size={148} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
@@ -305,7 +306,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
           <View style={styles.badges}>
             {user.profileBadge ? <View style={styles.profileBadgeChip}><AnimatedBadge value={user.profileBadge} size={34} /><LocalizedText style={styles.profileBadgeText}>{user.profileBadge.toUpperCase()}</LocalizedText></View> : <LocalizedText style={styles.cardSubtitle}>Profil nishoni hali tanlanmagan</LocalizedText>}
           </View>
-        </View>
+        </ProfileEffect>
 
         <Pressable style={styles.editButton} onPress={onEditPress} disabled={!onEditPress}>
           <Ionicons name="create-outline" size={17} color="#FFFFFF" />
