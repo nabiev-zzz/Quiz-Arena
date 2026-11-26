@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
 import BookWingsAvatar from '../components/BookWingsAvatar';
+import LaurelWreathAvatar from '../components/LaurelWreathAvatar';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
@@ -278,14 +279,16 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
 
         <View style={styles.identity}>
           <View style={styles.avatarWrap}>
-            {user.avatarDecoration === 'book_wings' ? (
+            {user.avatarDecoration === 'laurel_wreath' ? (
+              <LaurelWreathAvatar size={148} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
+            ) : user.avatarDecoration === 'book_wings' ? (
               <BookWingsAvatar size={122} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
             ) : (
             <View style={[styles.avatarFrame, user.profileFrame === 'aurora' && styles.frameAurora, user.profileFrame === 'royal' && styles.frameRoyal, user.profileFrame === 'ocean' && styles.frameOcean, user.profileFrame === 'neon3d' && styles.frameNeon3d, user.profileFrame === 'inferno3d' && styles.frameInferno3d, user.profileFrame === 'frost3d' && styles.frameFrost3d, user.profileFrame === 'galaxy3d' && styles.frameGalaxy3d]}>
               {avatarUri ? <Image source={{ uri: avatarUri }} style={styles.avatar} /> : <View style={styles.avatarFallback}><LocalizedText style={styles.avatarInitials}>{initials || '?'}</LocalizedText></View>}
             </View>
             )}
-            {user.avatarDecoration && user.avatarDecoration !== 'book_wings' ? <View style={styles.decoration}><Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={13} color="#F5D78A" /></View> : null}
+            {user.avatarDecoration && user.avatarDecoration !== 'book_wings' && user.avatarDecoration !== 'laurel_wreath' ? <View style={styles.decoration}><Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={13} color="#F5D78A" /></View> : null}
             <Pressable style={styles.cameraButton} onPress={chooseAvatar} accessibilityRole="button" accessibilityLabel="Avatarni almashtirish">
               <Ionicons name="camera" size={15} color="#FFFFFF" />
             </Pressable>
