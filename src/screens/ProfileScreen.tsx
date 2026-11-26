@@ -561,7 +561,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
                     <View style={styles.iconTile}><Ionicons name="trophy-outline" size={21} color={C.purple} /></View>
                     <View style={styles.rowBody}>
                       <LocalizedText style={styles.cardTitle}>{task.title}</LocalizedText>
-                      <LocalizedText style={styles.cardSubtitle}>{task.description}</LocalizedText>
+                      <LocalizedText style={styles.cardSubtitle}>{task.description}</LocalizedText>
                     </View>
                     <NativeText style={{ color: '#D9B65B', fontWeight: '900' }}>+{task.reward} ZC</NativeText>
                   </View>
