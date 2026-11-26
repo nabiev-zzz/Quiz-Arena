@@ -315,7 +315,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     return <CommunityCompetitionsScreen onBack={() => setActiveSection('dashboard')} />;
   }
   if (['groups', 'questions', 'library', 'portfolio', 'mentors', 'marathons'].includes(activeSection)) {
-    return <CommunityLearningHubScreen initialSection={activeSection as 'groups' | 'questions' | 'library' | 'portfolio' | 'mentors' | 'marathons'} onBack={() => setActiveSection('dashboard')} />;
+    return <CommunityLearningHubScreen initialSection={activeSection as 'groups' | 'questions' | 'library' | 'portfolio' | 'mentors' | 'marathons'} onBack={() => setActiveSection('dashboard')} onNavigate={section => { if (section === 'home') setActiveSection('dashboard'); else if (section === 'messages') onMessages(); else setActiveSection(section); }} />;
   }
 
   return (
