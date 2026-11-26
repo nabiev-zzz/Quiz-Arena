@@ -15,7 +15,7 @@ import { AiJobsModule } from './queue/ai-jobs.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AiTutorMessage, BattleMatch, User]),
+    TypeOrmModule.forFeature([AiTutorMessage, BattleMatch, LearningAttempt, User]),
     AuthModule,
     SubscriptionsModule,
     AiJobsModule,
