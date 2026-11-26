@@ -585,6 +585,26 @@ function AppContent() {
             </Pressable>
 
             <Animated.ScrollView style={styles.drawerScroll} contentContainerStyle={styles.drawerScrollContent} showsVerticalScrollIndicator={false}>
+              <LocalizedText style={[styles.drawerSectionLabel, { color: mutedColor }]}>BUGUNGI FAOLLIK</LocalizedText>
+              <Pressable
+                style={[styles.drawerItem, { backgroundColor: tokens.colors.surface }]}
+                onPress={() => openTab('home')}
+                accessibilityRole="button"
+                accessibilityLabel="Kunlik vazifalarni ochish"
+              >
+                <View style={[styles.drawerItemIcon, { backgroundColor: 'rgba(39,185,138,0.16)' }]}>
+                  <Ionicons name="flash" size={19} color="#27B98A" />
+                </View>
+                <View style={styles.drawerItemCopy}>
+                  <LocalizedText style={[styles.drawerItemTitle, { color: textColor }]}>Kunlik vazifalar</LocalizedText>
+                  <LocalizedText style={[styles.drawerItemDetail, { color: mutedColor }]}>Bugungi maqsadlar va ZC mukofotlari</LocalizedText>
+                </View>
+                <View style={styles.dailyRewardPill}>
+                  <LocalizedText style={styles.dailyRewardText}>{homeDailyTasks.filter((task) => task.completed).length}/{homeDailyTasks.length}</LocalizedText>
+                </View>
+                <Ionicons name="chevron-forward" size={17} color={mutedColor} />
+              </Pressable>
+
               <LocalizedText style={[styles.drawerSectionLabel, { color: mutedColor }]}>FANLAR</LocalizedText>
               <Pressable style={[styles.drawerItem, { backgroundColor: tokens.colors.surface }]} onPress={() => openTab('learn')}>
                 <View style={[styles.drawerItemIcon, { backgroundColor: 'rgba(139,115,230,0.16)' }]}><Ionicons name="book-outline" size={19} color={tokens.colors.primary} /></View>
