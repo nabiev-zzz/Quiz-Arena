@@ -4,7 +4,7 @@ export interface ZcStoreProduct {
   id: string;
   name: string;
   description: string;
-  kind: 'frame' | 'decoration';
+  kind: 'frame' | 'decoration' | 'badge';
   value: string;
   price: number;
   owned: boolean;
