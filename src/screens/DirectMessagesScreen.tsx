@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { Socket } from 'socket.io-client';
 import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import { useTheme } from '../theme/ThemeContext';
+import { communityTokens, type CommunityColors } from '../theme/communityTokens';
 import {
   createDirectSocket, getDirectConversations, getDirectMessages, markDirectRead,
   sendDirectMessage, startDirectConversation,
@@ -24,8 +25,8 @@ function conversationTime(value: string) {
 }
 
 export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
-  const { tokens, isDark } = useTheme();
-  const c = tokens.colors;
+  const { mode, isDark } = useTheme();
+  const c = communityTokens[mode].colors;
   const styles = makeStyles(c, isDark);
   const [conversations, setConversations] = useState<DirectConversation[]>([]);
   const [active, setActive] = useState<DirectConversation | null>(null);
@@ -264,7 +265,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
   );
 }
 
-function makeStyles(c: ReturnType<typeof useTheme>['tokens']['colors'], isDark: boolean) {
+function makeStyles(c: CommunityColors, isDark: boolean) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.background },
     header: { minHeight: 80, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 9, paddingBottom: 11, borderBottomWidth: 1, borderBottomColor: c.glassBorder, backgroundColor: c.background },
