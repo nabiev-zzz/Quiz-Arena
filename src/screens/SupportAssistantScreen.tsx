@@ -9,7 +9,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Linking,
@@ -77,15 +76,13 @@ export default function SupportAssistantScreen({
 
   const openSupportEmail = () => {
     const subject = encodeURIComponent('ZELQEN CORE — Qo‘llab-quvvatlash');
-    const body = encodeURIComponent('Salom, ZELQEN CORE jamoasi!\n\nMurojaatim:\n');
-    const url = `mailto:zelqencoresupport@gmail.com?subject=${subject}&body=${body}`;
+    const body = encodeURIComponent('Salom, ZELQEN CORE jamoasi!\\n\\nMurojaatim:\\n');
+    const mailtoUrl = `mailto:zelqencoresupport@gmail.com?subject=${subject}&body=${body}`;
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=zelqencoresupport%40gmail.com&su=${subject}&body=${body}`;
+    const url = Platform.OS === 'web' ? gmailUrl : mailtoUrl;
 
-    // Trigger the mail client directly from the press event (important on web browsers).
     void Linking.openURL(url).catch(() => {
-      Alert.alert(
-        'Email ilovasi topilmadi',
-        'Qo‘llab-quvvatlash uchun zelqencoresupport@gmail.com manziliga yozing.',
-      );
+      setError('Email ochilmadi. To‘g‘ridan-to‘g‘ri zelqencoresupport@gmail.com manziliga yozing.');
     });
   };
 
@@ -212,7 +209,7 @@ export default function SupportAssistantScreen({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.header}>
-          <Pressable onPress={onBack} style={styles.backButton}>
+          <Pressable onPress={onBack} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Orqaga" hitSlop={10}>
             <LocalizedText style={styles.backText}>‹</LocalizedText>
           </Pressable>
           <View style={styles.headerInfo}>
@@ -224,6 +221,7 @@ export default function SupportAssistantScreen({
           </View>
           <Pressable
             onPress={openSupportEmail}
+            testID="support-email-button"
             hitSlop={10}
             accessibilityRole="button"
             accessibilityLabel="Qo‘llab-quvvatlash emailiga yozish"
@@ -262,17 +260,29 @@ export default function SupportAssistantScreen({
                   Ilovadan foydalanish, akkaunt, testlar, Battle, ZC yoki texnik muammo bo‘yicha savolingizni yozing.
                 </LocalizedText>
 
-                <View style={styles.suggestion}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Battle xonasiga qanday qo‘shilaman?"
+                  testID="support-quick-question-battle"
+                  onPress={() => setInput('Battle xonasiga qanday qo‘shilaman?')}
+                  style={({ pressed }) => [styles.suggestion, pressed && styles.suggestionPressed]}
+                >
                   <LocalizedText style={styles.suggestionText}>
                     Battle xonasiga qanday qo‘shilaman?
                   </LocalizedText>
-                </View>
+                </Pressable>
 
-                <View style={styles.suggestion}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="ZC balansimni qayerdan ko‘raman?"
+                  testID="support-quick-question-zc"
+                  onPress={() => setInput('ZC balansimni qayerdan ko‘raman?')}
+                  style={({ pressed }) => [styles.suggestion, pressed && styles.suggestionPressed]}
+                >
                   <LocalizedText style={styles.suggestionText}>
                     ZC balansimni qayerdan ko‘raman?
                   </LocalizedText>
-                </View>
+                </Pressable>
               </View>
             }
             ListFooterComponent={
@@ -310,6 +320,9 @@ export default function SupportAssistantScreen({
           />
 
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Xabarni yuborish"
+            testID="support-send-button"
             onPress={() => void handleSend()}
             disabled={!input.trim() || sending}
             style={[
@@ -657,6 +670,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     borderColor: colors.border,
     marginTop: 9,
   },
+  suggestionPressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
   suggestionText: {
     color: colors.primary,
     fontSize: 13,
