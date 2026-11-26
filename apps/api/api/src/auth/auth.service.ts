@@ -27,6 +27,7 @@ export interface UpdateProfileInput {
   avatarUrl?: string | null;
   avatarDecoration?: string | null;
   profileFrame?: string | null;
+  profileBadge?: string | null;
 }
 
 @Injectable()
@@ -126,10 +127,20 @@ export class AuthService {
     }
     if (input.profileFrame !== undefined && input.profileFrame !== user.profileFrame) {
       if (input.profileFrame !== null) {
-        const owned = await this.zcStoreItems.exists({ where: { userId, kind: 'frame', itemId: `frame_${input.profileFrame}` } });
+        const itemId = input.profileFrame.endsWith('3d')
+          ? `effect_${input.profileFrame}`
+          : `frame_${input.profileFrame}`;
+        const owned = await this.zcStoreItems.exists({ where: { userId, kind: 'frame', itemId } });
         if (!owned) throw new BadRequestException('Bu profil ramkasi sizda yo‘q. Avval ZC do‘konidan xarid qiling.');
       }
       user.profileFrame = input.profileFrame;
+    }
+    if (input.profileBadge !== undefined && input.profileBadge !== user.profileBadge) {
+      if (input.profileBadge !== null) {
+        const owned = await this.zcStoreItems.exists({ where: { userId, kind: 'badge', itemId: `badge_${input.profileBadge}` } });
+        if (!owned) throw new BadRequestException('Bu profil nishoni sizda yo‘q. Avval ZC do‘konidan xarid qiling.');
+      }
+      user.profileBadge = input.profileBadge;
     }
 
     try {
