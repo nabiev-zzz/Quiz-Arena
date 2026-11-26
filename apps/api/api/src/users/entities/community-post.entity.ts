@@ -18,6 +18,12 @@ export class CommunityPost {
   @Column({ type: 'varchar', length: 2000 })
   content: string;
 
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  mediaKey: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  mediaType: string | null;
+
   @Column({ type: 'varchar', length: 20, default: 'active' })
   status: 'active' | 'hidden';
 

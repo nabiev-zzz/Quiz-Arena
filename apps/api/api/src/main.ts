@@ -1,11 +1,12 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { json, urlencoded } from 'express';
+import { json, raw, urlencoded } from 'express';
 import { AppModule } from './app.module';
 import { RedisIoAdapter } from './battle/redis-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
+  app.use(raw({ type: 'image/*', limit: '8mb' }));
   app.use(json({ limit: '1mb' }));
   app.use(urlencoded({ extended: true, limit: '1mb' }));
 
