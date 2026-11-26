@@ -13,6 +13,7 @@ import * as bcrypt from 'bcryptjs';
 import { createHash, createPublicKey, randomBytes, randomInt, verify as verifySignature } from 'node:crypto';
 
 import { User } from '../users/entities/user.entity';
+import { ZcStoreItem } from '../users/entities/zc-store-item.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { PhoneRegisterDto, PasswordResetDto } from './dto/phone-otp.dto';
@@ -38,6 +39,8 @@ export class AuthService {
     private readonly config: ConfigService,
     @InjectRepository(AuthOAuthCode)
     private readonly oauthCodeRepository: Repository<AuthOAuthCode>,
+    @InjectRepository(ZcStoreItem)
+    private readonly zcStoreItems: Repository<ZcStoreItem>,
   ) {}
 
   private getRankTier(points: number): string {
@@ -62,6 +65,7 @@ export class AuthService {
       role: user.role,
       status: user.status,
       xp: user.xp,
+      zcBalance: user.zcBalance ?? 0,
       rankPoints: user.rankPoints,
       rankTier: this.getRankTier(user.rankPoints),
       level: user.level,
@@ -69,6 +73,7 @@ export class AuthService {
       bio: user.bio,
       profileFrame: user.profileFrame,
       avatarDecoration: user.avatarDecoration,
+      profileBadge: user.profileBadge,
       createdAt: user.createdAt,
     };
   }
@@ -111,8 +116,21 @@ export class AuthService {
 
     if (input.bio !== undefined) user.bio = input.bio?.trim() || null;
     if (input.avatarUrl !== undefined) user.avatarUrl = input.avatarUrl;
-    if (input.avatarDecoration !== undefined) user.avatarDecoration = input.avatarDecoration;
-    if (input.profileFrame !== undefined) user.profileFrame = input.profileFrame;
+
+    if (input.avatarDecoration !== undefined && input.avatarDecoration !== user.avatarDecoration) {
+      if (input.avatarDecoration !== null) {
+        const owned = await this.zcStoreItems.exists({ where: { userId, kind: 'decoration', itemId: `decoration_${input.avatarDecoration}` } });
+        if (!owned) throw new BadRequestException('Bu avatar bezagi sizda yo‘q. Avval ZC do‘konidan xarid qiling.');
+      }
+      user.avatarDecoration = input.avatarDecoration;
+    }
+    if (input.profileFrame !== undefined && input.profileFrame !== user.profileFrame) {
+      if (input.profileFrame !== null) {
+        const owned = await this.zcStoreItems.exists({ where: { userId, kind: 'frame', itemId: `frame_${input.profileFrame}` } });
+        if (!owned) throw new BadRequestException('Bu profil ramkasi sizda yo‘q. Avval ZC do‘konidan xarid qiling.');
+      }
+      user.profileFrame = input.profileFrame;
+    }
 
     try {
       const savedUser = await this.userRepository.save(user);
@@ -140,14 +158,19 @@ export class AuthService {
     if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) {
       throw new BadRequestException('Username formati noto‘g‘ri');
     }
-    if (await this.userRepository.findOne({ where: { username } })) {
+    // Run independent database checks and password hashing concurrently.
+    // Cost 10 keeps a strong adaptive hash while reducing CPU time on the free tier.
+    const [existingUsername, existingEmail, passwordHash] = await Promise.all([
+      this.userRepository.findOne({ where: { username } }),
+      email ? this.userRepository.findOne({ where: { email } }) : Promise.resolve(null),
+      bcrypt.hash(dto.password, 10),
+    ]);
+    if (existingUsername) {
       throw new ConflictException('Bu username allaqachon band');
     }
-    if (email && await this.userRepository.findOne({ where: { email } })) {
+    if (existingEmail) {
       throw new ConflictException('Bu email allaqachon ro‘yxatdan o‘tgan');
     }
-
-    const passwordHash = await bcrypt.hash(dto.password, 12);
     const user = this.userRepository.create({
       displayName, username, email, passwordHash, role: 'user', status: 'active',
     });
@@ -202,7 +225,7 @@ export class AuthService {
       .getOne();
     // Keep the response identical whether the account exists or not.
     if (user) await this.otpService.issue(phone, 'password_reset');
-    return { message: 'Agar raqam QUIZ ARENA hisobiga bog‘langan bo‘lsa, kod yuboriladi' };
+    return { message: 'Agar raqam ZELQEN CORE hisobiga bog‘langan bo‘lsa, kod yuboriladi' };
   }
 
 
@@ -556,97 +579,4 @@ export class AuthService {
     const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
     if (!clientId) throw new ServiceUnavailableException('Google orqali kirish hali sozlanmagan');
 
-    const response = await fetch(
-      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
-      { signal: AbortSignal.timeout(10_000) },
-    );
-    const claims = await response.json().catch(() => null) as
-      | { aud?: string; iss?: string; sub?: string; email?: string; email_verified?: string; name?: string; nonce?: string }
-      | null;
-
-    if (
-      !response.ok || !claims?.sub || claims.aud !== clientId ||
-      !['accounts.google.com', 'https://accounts.google.com'].includes(claims.iss ?? '') ||
-      claims.email_verified !== 'true' || !claims.email ||
-      (expectedNonce !== undefined && claims.nonce !== expectedNonce)
-    ) {
-      throw new UnauthorizedException('Google hisobini tasdiqlash amalga oshmadi');
-    }
-
-    const email = claims.email.trim().toLowerCase();
-    let user = await this.userRepository.findOne({ where: { googleSubject: claims.sub } });
-
-    if (!user) {
-      user = await this.userRepository.findOne({ where: { email } });
-      if (user) {
-        if (user.googleSubject && user.googleSubject !== claims.sub) {
-          throw new ConflictException('Bu email boshqa Google hisobiga bog‘langan');
-        }
-        user.googleSubject = claims.sub;
-      } else {
-        const base = (email.split('@')[0] || 'player').toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 20) || 'player';
-        let username = base;
-        while (await this.userRepository.findOne({ where: { username } })) {
-          username = `${base.slice(0, 18)}_${randomInt(10, 99)}`;
-        }
-        user = this.userRepository.create({
-          displayName: (claims.name || base).slice(0, 100),
-          username,
-          email,
-          googleSubject: claims.sub,
-          passwordHash: await bcrypt.hash(randomBytes(32).toString('hex'), 12),
-          role: 'user',
-          status: 'active',
-        });
-      }
-      user = await this.userRepository.save(user);
-    }
-
-    if (user.email && !user.emailVerifiedAt) {
-      user.emailVerifiedAt = new Date();
-      user = await this.userRepository.save(user);
-    }
-    if (user.status !== 'active') throw new UnauthorizedException('Hisobingiz bloklangan');
-    return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
-  }
-
-  private async ensureOwnerAccount(username: string) {
-    const configuredUsername = this.config.get<string>('OWNER_ACCOUNT_USERNAME')?.trim().toLowerCase();
-    const configuredPassword = this.config.get<string>('OWNER_ACCOUNT_PASSWORD');
-
-    if (!configuredUsername || !configuredPassword || username !== configuredUsername) return;
-    if (!/^[a-z0-9_]{3,30}$/.test(configuredUsername) || configuredPassword.length < 20) {
-      throw new ServiceUnavailableException('Owner account configuration is invalid');
-    }
-
-    const existing = await this.userRepository.findOne({ where: { username: configuredUsername } });
-    if (existing) return;
-
-    const passwordHash = await bcrypt.hash(configuredPassword, 12);
-    const owner = this.userRepository.create({
-      displayName: 'QUIZ ARENA Owner',
-      username: configuredUsername,
-      email: null,
-      passwordHash,
-      role: 'admin',
-      status: 'active',
-    });
-    await this.userRepository.save(owner);
-  }
-
-  async login(dto: LoginDto) {
-    const username = dto.username.trim().toLowerCase();
-    await this.ensureOwnerAccount(username);
-    const user = await this.userRepository
-      .createQueryBuilder('user')
-      .addSelect('user.passwordHash')
-      .where('user.username = :username', { username })
-      .getOne();
-
-    if (!user) throw new UnauthorizedException('Username yoki parol noto‘g‘ri');
-    const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!passwordMatches) throw new UnauthorizedException('Username yoki parol noto‘g‘ri');
-    if (user.status !== 'active') throw new UnauthorizedException('Hisobingiz bloklangan');
-    return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
-  }
-}
+    const response = aw

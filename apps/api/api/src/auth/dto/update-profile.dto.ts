@@ -1,4 +1,3 @@
-
 import {
   IsOptional,
   IsString,
@@ -39,11 +38,16 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['sparkle', 'crown', 'laurel'])
+  @IsIn(['sparkle', 'crown', 'laurel', 'star'])
   avatarDecoration?: string | null;
 
   @IsOptional()
   @IsString()
-  @IsIn(['aurora', 'royal', 'ocean'])
+  @IsIn(['aurora', 'royal', 'ocean', 'neon3d', 'inferno3d', 'frost3d', 'galaxy3d'])
   profileFrame?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['legend', 'champion', 'scholar', 'streak'])
+  profileBadge?: string | null;
 }

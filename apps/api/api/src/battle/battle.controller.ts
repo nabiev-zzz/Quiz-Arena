@@ -2,6 +2,7 @@
 import {
   Controller,
   Get,
+  Param,
   Query,
   Req,
   UseGuards,
@@ -24,6 +25,14 @@ export class BattleController {
   @Get('status')
   getStatus() {
     return this.battleService.getStatus();
+  }
+
+  @Get('history/:matchId')
+  getHistoryDetail(
+    @Req() request: AuthenticatedRequest,
+    @Param('matchId') matchId: string,
+  ) {
+    return this.battleService.getHistoryDetail(request.user.id, matchId);
   }
 
   @Get('history')

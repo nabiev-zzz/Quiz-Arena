@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { User } from '../users/entities/user.entity';
+import { ZcStoreItem } from '../users/entities/zc-store-item.entity';
 import { AuthOtp } from './entities/auth-otp.entity';
 import { AuthOAuthCode } from './entities/auth-oauth-code.entity';
 import { AuthEmailCode } from './entities/auth-email-code.entity';
@@ -16,7 +17,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, AuthOtp, AuthOAuthCode, AuthEmailCode]),
+    TypeOrmModule.forFeature([User, ZcStoreItem, AuthOtp, AuthOAuthCode, AuthEmailCode]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       inject: [ConfigService],
