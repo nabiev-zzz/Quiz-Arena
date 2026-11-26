@@ -5,7 +5,7 @@ import { User } from './entities/user.entity';
 import { ZcTransaction } from './entities/zc-transaction.entity';
 import { ZcStoreItem } from './entities/zc-store-item.entity';
 
-type StoreKind = 'frame' | 'decoration';
+type StoreKind = 'frame' | 'decoration' | 'badge';
 type StoreProduct = { id: string; name: string; description: string; kind: StoreKind; value: string; price: number };
 
 const PRODUCTS: StoreProduct[] = [
@@ -19,6 +19,10 @@ const PRODUCTS: StoreProduct[] = [
   { id: 'decoration_crown', name: 'Toj bezagi', description: 'Avatar uchun toj belgisi', kind: 'decoration', value: 'crown', price: 350 },
   { id: 'decoration_laurel', name: 'Laurel bezagi', description: 'Avatar uchun dafna yaprog‘i', kind: 'decoration', value: 'laurel', price: 180 },
   { id: 'decoration_star', name: 'Yulduz bezagi', description: 'Avatar uchun yulduz belgisi', kind: 'decoration', value: 'star', price: 120 },
+  { id: 'badge_legend', name: 'Legend nishoni', description: 'Profilingizda afsonaviy bilimdon nishoni', kind: 'badge', value: 'legend', price: 700 },
+  { id: 'badge_champion', name: 'Champion nishoni', description: 'G‘oliblar uchun oltin chempion belgisi', kind: 'badge', value: 'champion', price: 550 },
+  { id: 'badge_scholar', name: 'Scholar nishoni', description: 'Bilim va izlanish ramzi', kind: 'badge', value: 'scholar', price: 350 },
+  { id: 'badge_streak', name: 'Streak nishoni', description: 'Doimiy faollik uchun olov belgisi', kind: 'badge', value: 'streak', price: 300 },
 ];
 
 @Injectable()
@@ -65,7 +69,8 @@ export class ZcStoreService {
 
       user.zcBalance = balance - product.price;
       if (product.kind === 'frame') user.profileFrame = product.value;
-      else user.avatarDecoration = product.value;
+      else if (product.kind === 'decoration') user.avatarDecoration = product.value;
+      else user.profileBadge = product.value;
 
       await manager.save(User, user);
       await manager.save(ZcTransaction, manager.create(ZcTransaction, {
