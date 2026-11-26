@@ -36,7 +36,7 @@ jobs:
         run: npx expo export --platform web --output-dir "$RUNNER_TEMP/expo-web-export"
 
       - name: Build the combined public website image
-        run: docker build --build-arg APP_SOURCE_BRANCH=main -t quiz-arena-website:ci -f website/Dockerfile website
+        run: docker build --build-arg APP_SOURCE_BRANCH="${GITHUB_HEAD_REF:-main}" -t quiz-arena-website:ci -f website/Dockerfile website
 
       - name: Smoke-test landing page and browser app routes
         run: |
@@ -51,7 +51,8 @@ jobs:
           curl --fail --silent --dump-header "$RUNNER_TEMP/app.headers" http://127.0.0.1:8080/app/ > "$RUNNER_TEMP/app.html"
           grep -qi "content-type: text/html; charset=utf-8" "$RUNNER_TEMP/landing.headers"
           grep -qi "content-type: text/html; charset=utf-8" "$RUNNER_TEMP/app.headers"
-          grep -q "QUIZ ARENA" "$RUNNER_TEMP/landing.html"
+          grep -q "ZELQEN CORE" "$RUNNER_TEMP/landing.html"
+          grep -q "<title>ZELQEN CORE</title>" "$RUNNER_TEMP/app.html"
           grep -q "/app/_expo/" "$RUNNER_TEMP/app.html"
 
       - name: Expo dependency validation
