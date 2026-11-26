@@ -414,7 +414,7 @@ function AppContent() {
         return (
           <SettingsScreen
             onBack={() => setShowSettings(false)}
-            onHelp={() => { setShowSettings(false); setShowSupportAssistant(true); }}
+            onHelp={() => { setShowSettings(false); setSupportScreen('home'); }}
             dockStretch={dockStretch}
           />
         );
