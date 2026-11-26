@@ -17,6 +17,7 @@ import { getDailyTasks, claimDailyTask, type DailyTask } from '../services/daily
 interface ProfileScreenProps {
   onClosePress?: () => void;
   onSettingsPress?: () => void;
+  onEditPress?: () => void;
   onPremiumPress?: () => void;
   onShopPress?: () => void;
   onUserPress?: (username: string) => void;
@@ -42,7 +43,7 @@ function getAvatarUrl(style: string, seed: string) {
   return `https://api.dicebear.com/9.x/${style}/png?seed=${encodeURIComponent(seed)}&size=160`;
 }
 
-export default function ProfileScreen({ onClosePress, onSettingsPress, onPremiumPress, onShopPress, onUserPress, dockStretch }: ProfileScreenProps) {
+export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPress, onPremiumPress, onShopPress, onUserPress, dockStretch }: ProfileScreenProps) {
   const { user, updateProfile, refreshUser, logout } = useAuth();
   const { tokens, isDark } = useTheme();
   const C = {
@@ -342,9 +343,9 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
           </View>
         </View>
 
-        <Pressable style={styles.editButton} onPress={() => setEditVisible(true)}>
+        <Pressable style={styles.editButton} onPress={() => onEditPress ? onEditPress() : setEditVisible(true)}>
           <Ionicons name="create-outline" size={17} color="#FFFFFF" />
-          <LocalizedText style={styles.editButtonText}>Edit profile</LocalizedText>
+          <LocalizedText style={styles.editButtonText}>Profilni tahrirlash</LocalizedText>
         </Pressable>
 
         <View style={styles.tabs}>
