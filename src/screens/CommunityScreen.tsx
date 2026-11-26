@@ -6,9 +6,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import CommunityClipVideo from '../components/CommunityClipVideo';
 import CommunityLearningHubScreen from './CommunityLearningHubScreen';
+import CommunityDashboardScreen, { CommunityBottomNavigation, CommunityCompetitionsScreen, type CommunitySectionKey } from './CommunityDashboardScreen';
 import * as ImagePicker from 'expo-image-picker';
 import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import { useTheme } from '../theme/ThemeContext';
+import { communityTokens, type CommunityColors } from '../theme/communityTokens';
 import {
   addCommunityComment, createCommunityPost, createCommunityStory, getCommunityComments,
   getCommunityFeed, getCommunityStories, getCommunityClips, createCommunityClip, likeCommunityPost, markCommunityStoryViewed,
@@ -43,11 +45,11 @@ function imageMime(asset: ImagePicker.ImagePickerAsset) {
 }
 
 export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, onChallenges, onDailyTasks, onTutor, onUserPress }: Props) {
-  const { tokens, isDark } = useTheme();
-  const c = tokens.colors;
+  const { mode, isDark } = useTheme();
+  const c = communityTokens[mode].colors;
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [clips, setClips] = useState<CommunityPost[]>([]);
-  const [activeSection, setActiveSection] = useState<'feed' | 'clips' | 'groups' | 'questions' | 'library'>('feed');
+  const [activeSection, setActiveSection] = useState<'dashboard' | 'feed' | 'clips' | 'groups' | 'questions' | 'library' | 'portfolio' | 'mentors' | 'marathons' | 'competitions'>('dashboard');
   const [clipBusy, setClipBusy] = useState(false);
   const [clipSubject, setClipSubject] = useState('Boshqa');
   const [selectedClip, setSelectedClip] = useState<ImagePicker.ImagePickerAsset | null>(null);
@@ -297,12 +299,27 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     </Pressable>
   );
 
-  if (activeSection === 'groups' || activeSection === 'questions' || activeSection === 'library') {
-    return <CommunityLearningHubScreen onBack={() => setActiveSection('feed')} />;
+  if (activeSection === 'dashboard') {
+    return <CommunityDashboardScreen
+      onBack={onBack}
+      onDailyTasks={onDailyTasks}
+      onTutor={onTutor}
+      onDiscoverUsers={onDiscoverUsers}
+      onNavigate={(section: CommunitySectionKey) => {
+        if (section === 'messages') { onMessages(); return; }
+        setActiveSection(section);
+      }}
+    />;
+  }
+  if (activeSection === 'competitions') {
+    return <CommunityCompetitionsScreen onBack={() => setActiveSection('dashboard')} />;
+  }
+  if (['groups', 'questions', 'library', 'portfolio', 'mentors', 'marathons'].includes(activeSection)) {
+    return <CommunityLearningHubScreen initialSection={activeSection as 'groups' | 'questions' | 'library' | 'portfolio' | 'mentors' | 'marathons'} onBack={() => setActiveSection('dashboard')} />;
   }
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: c.background }}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
@@ -311,7 +328,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(true); }} tintColor={c.primary} />}
       >
         <View style={styles.header}>
-          <Pressable onPress={onBack} style={styles.iconButton}><Ionicons name="arrow-back" size={21} color={c.text} /></Pressable>
+          <Pressable onPress={() => setActiveSection('dashboard')} style={styles.iconButton}><Ionicons name="arrow-back" size={21} color={c.text} /></Pressable>
           <View style={{ flex: 1 }}>
             <LocalizedText style={styles.eyebrow}>ZELQEN SOCIAL</LocalizedText>
             <LocalizedText style={styles.title}>Hamjamiyat</LocalizedText>
@@ -319,7 +336,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
           <Pressable onPress={onMessages} style={styles.messagesButton} accessibilityLabel="Xabarlar">
             <Ionicons name="paper-plane-outline" size={17} color={c.primary} />
           </Pressable>
-          <Pressable onPress={onChallenges} style={styles.messagesButton} accessibilityLabel="Bilim bellashuvlari">
+          <Pressable onPress={() => setActiveSection('competitions')} style={styles.messagesButton} accessibilityLabel="Hamjamiyat bellashuvlari">
             <Ionicons name="trophy-outline" size={17} color={c.primary} />
           </Pressable>
           <Pressable onPress={onDailyTasks} style={styles.messagesButton} accessibilityLabel="Kunlik vazifalar"><Ionicons name="calendar-outline" size={17} color={c.primary}/></Pressable>
@@ -557,6 +574,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
           </View>
         )}
       </ScrollView>
+      <CommunityBottomNavigation active={activeSection} onNavigate={section => { if (section === 'home') setActiveSection('dashboard'); else if (section === 'messages') onMessages(); else setActiveSection(section); }} />
 
       <Modal visible={Boolean(selectedStory)} transparent animationType="fade" onRequestClose={() => setSelectedStory(null)}>
         {selectedStory && (
@@ -597,11 +615,11 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
           </View>
         </View>
       </Modal>
-    </>
+    </View>
   );
 }
 
-function makeStyles(c: ReturnType<typeof useTheme>['tokens']['colors'], isDark: boolean) {
+function makeStyles(c: CommunityColors, isDark: boolean) {
   return StyleSheet.create({
     sectionTabs: { flexDirection: 'row', backgroundColor: c.surface, borderRadius: 16, padding: 4, marginBottom: 18, gap: 5 },
     sectionTab: { flex: 1, minHeight: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
