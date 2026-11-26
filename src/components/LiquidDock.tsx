@@ -188,8 +188,8 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   dock: {
-    height: 72,
-    borderRadius: 26,
+    height: 76,
+    borderRadius: 28,
     borderWidth: 1,
     overflow: 'hidden',
     flexDirection: 'row',
