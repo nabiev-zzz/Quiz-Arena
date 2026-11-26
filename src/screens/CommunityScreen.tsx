@@ -545,7 +545,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
                 </View>
                 {expandedPost === clip.id && (
                   <View style={styles.comments}>
-                    {(comments[clip.id] || []).map((comment) => <View key={comment.id} style={styles.comment}><LocalizedText style={styles.commentAuthor}>@{comment.author.username}</LocalizedText><LocalizedText style={styles.commentText}>{comment.content}</LocalizedText></View>)}
+                    {(comments[clip.id] || []).map((comment) => <View key={comment.id} style={styles.comment}><LocalizedText style={styles.commentAuthor}>@{comment.author.username}</LocalizedText><LocalizedText style={styles.commentText}>{comment.content}</LocalizedText></View>)}
                     <View style={styles.commentComposer}>
                       <TextInput value={commentDraft} onChangeText={setCommentDraft} placeholder="Izoh yozing..." placeholderTextColor={c.textMuted} style={styles.commentInput} maxLength={1000} />
                       <Pressable onPress={() => void sendComment(clip.id)} disabled={!commentDraft.trim() || sendingComment} style={styles.commentSend}><Ionicons name="send" size={16} color="#FFFFFF" /></Pressable>
@@ -634,7 +634,7 @@ function makeStyles(c: ReturnType<typeof useTheme>['tokens']['colors'], isDark: 
     clipsEmpty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, gap: 9, backgroundColor: c.surface, borderRadius: 20 },
     clipsEmptyTitle: { color: c.text, fontSize: 16, fontWeight: '800' },
     clipsEmptyText: { color: c.textMuted, fontSize: 13 },
-    clipCard: { backgroundColor: c.surface, borderRadius: 22, padding: 12, gap: 10, borderWidth: 1, borderColor: c.border },
+    clipCard: { backgroundColor: c.surface, borderRadius: 26, padding: 14, gap: 10, borderWidth: 1, borderColor: c.border },
     clipAuthor: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     clipCaption: { color: c.text, fontSize: 14, lineHeight: 20 },
     clipActions: { flexDirection: 'row', alignItems: 'center', gap: 20, paddingHorizontal: 4 },
@@ -647,7 +647,7 @@ function makeStyles(c: ReturnType<typeof useTheme>['tokens']['colors'], isDark: 
     messagesButton: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
     discoverButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 40, borderRadius: 14, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
     discoverText: { color: c.primary, fontSize: 11, fontWeight: '800' },
-    intro: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, padding: 15, marginBottom: 14, backgroundColor: isDark ? 'rgba(116,91,220,0.16)' : 'rgba(116,91,220,0.09)', borderWidth: 1, borderColor: c.glassBorder },
+    intro: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 26, padding: 17, marginBottom: 14, backgroundColor: isDark ? 'rgba(116,91,220,0.16)' : 'rgba(116,91,220,0.09)', borderWidth: 1, borderColor: c.glassBorder },
     introIcon: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: c.primary },
     introTitle: { color: c.text, fontSize: 14, fontWeight: '900' },
     introSubtitle: { color: c.textMuted, fontSize: 11, lineHeight: 16, marginTop: 3 },
@@ -655,14 +655,14 @@ function makeStyles(c: ReturnType<typeof useTheme>['tokens']['colors'], isDark: 
     storyHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 },
     storyList: { gap: 13, paddingVertical: 2, paddingRight: 10 },
     storyItem: { width: 66, alignItems: 'center', gap: 5 },
-    storyRing: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', padding: 3 },
+    storyRing: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', padding: 3 },
     addStoryRing: { borderWidth: 1.5, borderColor: c.glassBorder, backgroundColor: c.surface },
     storyUnseen: { borderWidth: 2.5, borderColor: '#8B5CF6' },
     storySeen: { borderWidth: 1.5, borderColor: c.textMuted },
     storyAvatar: { width: 50, height: 50, borderRadius: 25 },
     storyFallback: { width: 50, height: 50, borderRadius: 25, backgroundColor: c.surfaceElevated, alignItems: 'center', justifyContent: 'center' },
     storyName: { color: c.textMuted, fontSize: 9, maxWidth: 66 },
-    composer: { padding: 14, borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder, marginBottom: 22 },
+    composer: { padding: 16, borderRadius: 26, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder, marginBottom: 22 },
     composerTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
     composerAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(137,111,255,0.18)' : 'rgba(137,111,255,0.12)' },
     input: { flex: 1, minHeight: 62, maxHeight: 150, color: c.text, fontSize: 13, lineHeight: 19, paddingTop: 8 },
@@ -679,7 +679,7 @@ function makeStyles(c: ReturnType<typeof useTheme>['tokens']['colors'], isDark: 
     feedHeading: { marginBottom: 10 },
     feedTitle: { color: c.text, fontSize: 17, fontWeight: '900' },
     feedCaption: { color: c.textMuted, fontSize: 10, marginTop: 3 },
-    post: { padding: 15, borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder, marginBottom: 11 },
+    post: { padding: 16, borderRadius: 26, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder, marginBottom: 11 },
     postHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     person: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9 },
     avatar: { width: 40, height: 40, borderRadius: 20 },
@@ -689,7 +689,7 @@ function makeStyles(c: ReturnType<typeof useTheme>['tokens']['colors'], isDark: 
     handle: { color: c.primary, fontSize: 10, marginTop: 2 },
     time: { color: c.textMuted, fontSize: 9 },
     postContent: { color: c.text, fontSize: 13, lineHeight: 20, marginTop: 14, marginBottom: 13 },
-    postImage: { width: '100%', aspectRatio: 4 / 3, borderRadius: 15, marginTop: 10, marginBottom: 12, backgroundColor: c.background },
+    postImage: { width: '100%', aspectRatio: 4 / 3, borderRadius: 20, marginTop: 10, marginBottom: 12, backgroundColor: c.background },
     postActions: { flexDirection: 'row', alignItems: 'center', gap: 17, borderTopWidth: 1, borderTopColor: c.glassBorder, paddingTop: 11 },
     action: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 28 },
     actionText: { color: c.textMuted, fontSize: 10, fontWeight: '700' },
@@ -702,7 +702,7 @@ function makeStyles(c: ReturnType<typeof useTheme>['tokens']['colors'], isDark: 
     commentComposer: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
     commentInput: { flex: 1, height: 40, borderRadius: 13, paddingHorizontal: 12, color: c.text, backgroundColor: c.background, fontSize: 11 },
     commentSend: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: c.primary },
-    empty: { alignItems: 'center', padding: 28, borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder, marginTop: 6 },
+    empty: { alignItems: 'center', padding: 30, borderRadius: 25, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder, marginTop: 6 },
     emptyTitle: { color: c.text, fontSize: 15, fontWeight: '900', marginTop: 12 },
     emptyText: { color: c.textMuted, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 5 },
     emptyButton: { marginTop: 14, paddingHorizontal: 16, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: c.primary },
