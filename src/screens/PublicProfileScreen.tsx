@@ -13,9 +13,10 @@ import { getProfileAchievements } from '../utils/profileAchievements';
 interface Props {
   username: string;
   onBack: () => void;
+  onMessagePress: (userId: string) => void;
 }
 
-export default function PublicProfileScreen({ username, onBack }: Props) {
+export default function PublicProfileScreen({ username, onBack, onMessagePress }: Props) {
   const { tokens, isDark } = useTheme();
   const colors = tokens.colors;
   const [profile, setProfile] = useState<PublicUser | null>(null);
@@ -79,10 +80,16 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
           <View style={styles.count}><LocalizedText style={styles.countNumber}>{profile.followingCount ?? 0}</LocalizedText><LocalizedText style={styles.countLabel}>Kuzatilayotganlar</LocalizedText></View>
         </View>
         {!profile.isSelf && (
+          <View style={styles.socialActions}>
+          <Pressable onPress={() => onMessagePress(profile.id)} style={styles.messageButton}>
+            <Ionicons name="paper-plane-outline" size={16} color={colors.primary} />
+            <LocalizedText style={styles.messageButtonText}>Xabar yuborish</LocalizedText>
+          </Pressable>
           <Pressable disabled={busy} onPress={toggleFollow} style={[styles.followButton, profile.isFollowing && styles.followingButton]}>
             <Ionicons name={profile.isFollowing ? 'checkmark' : 'person-add-outline'} size={17} color={profile.isFollowing ? colors.text : '#FFFFFF'} />
             <LocalizedText style={[styles.followButtonText, profile.isFollowing && styles.followingText]}>{busy ? '...' : profile.isFollowing ? 'Kuzatilmoqda' : 'Kuzatish'}</LocalizedText>
           </Pressable>
+          </View>
         )}
       </GlassSurface>
       <LocalizedText style={styles.sectionTitle}>Natijalar</LocalizedText>
@@ -158,7 +165,10 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     countNumber: { color: colors.text, fontSize: 19, fontWeight: '800' },
     countLabel: { color: colors.textMuted, fontSize: 11, marginTop: 3 },
     separator: { width: 1, height: 30, backgroundColor: colors.border },
-    followButton: { width: '100%', height: 46, borderRadius: 14, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4 },
+    socialActions: { flexDirection: 'row', gap: 9, marginTop: 14 },
+    messageButton: { flex: 1, minHeight: 44, borderRadius: 14, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: isDark ? 'rgba(137,111,255,0.12)' : 'rgba(137,111,255,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+    messageButtonText: { color: colors.primary, fontSize: 11, fontWeight: '900' },
+    followButton: { flex: 1, width: '100%', height: 46, borderRadius: 14, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 0 },
     followingButton: { backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border },
     followButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
     followingText: { color: colors.text },

@@ -17,6 +17,7 @@ import {
 interface Props {
   onBack: () => void;
   onDiscoverUsers: () => void;
+  onMessages: () => void;
   onUserPress: (username: string) => void;
 }
 
@@ -36,7 +37,7 @@ function imageMime(asset: ImagePicker.ImagePickerAsset) {
   return 'image/jpeg';
 }
 
-export default function CommunityScreen({ onBack, onDiscoverUsers, onUserPress }: Props) {
+export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, onUserPress }: Props) {
   const { tokens, isDark } = useTheme();
   const c = tokens.colors;
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -190,6 +191,9 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onUserPress }
             <LocalizedText style={styles.eyebrow}>ZELQEN SOCIAL</LocalizedText>
             <LocalizedText style={styles.title}>Hamjamiyat</LocalizedText>
           </View>
+          <Pressable onPress={onMessages} style={styles.messagesButton}>
+            <Ionicons name="paper-plane-outline" size={17} color={c.primary} />
+          </Pressable>
           <Pressable onPress={onDiscoverUsers} style={styles.discoverButton}>
             <Ionicons name="people-outline" size={17} color={c.primary} />
             <LocalizedText style={styles.discoverText}>Odamlar</LocalizedText>
@@ -357,6 +361,7 @@ function makeStyles(c: ReturnType<typeof useTheme>['tokens']['colors'], isDark: 
     iconButton: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
     eyebrow: { color: c.primary, fontSize: 9, fontWeight: '900', letterSpacing: 1.7 },
     title: { color: c.text, fontSize: 25, fontWeight: '900', letterSpacing: -0.7 },
+    messagesButton: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
     discoverButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 40, borderRadius: 14, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
     discoverText: { color: c.primary, fontSize: 11, fontWeight: '800' },
     intro: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, padding: 15, marginBottom: 14, backgroundColor: isDark ? 'rgba(116,91,220,0.16)' : 'rgba(116,91,220,0.09)', borderWidth: 1, borderColor: c.glassBorder },
