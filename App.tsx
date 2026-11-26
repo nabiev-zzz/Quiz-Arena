@@ -39,6 +39,7 @@ import AiTutorScreen from './src/screens/AiTutorScreen';
 import SupportHomeScreen from './src/screens/SupportHomeScreen';
 import SupportChatScreen from './src/screens/SupportChatScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import ZcTransactionsScreen from './src/screens/ZcTransactionsScreen';
 import ShopScreen from './src/screens/ShopScreen';
 import CosmeticCollectionScreen from './src/screens/CosmeticCollectionScreen';
 import ProfileEditScreen from './src/screens/ProfileEditScreen';
@@ -141,6 +142,7 @@ function AppContent() {
   const [showSettings, setShowSettings] = useState(false);
   const [showCosmeticCollection, setShowCosmeticCollection] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [showZcTransactions, setShowZcTransactions] = useState(false);
   const [showNavigationDrawer, setShowNavigationDrawer] = useState(false);
   const [showDailyTasks, setShowDailyTasks] = useState(false);
   const [supportScreen, setSupportScreen] = useState<'home' | 'chat' | null>(null);
@@ -203,6 +205,7 @@ function AppContent() {
     setShowSettings(false);
     setShowCosmeticCollection(false);
     setShowProfileEdit(false);
+    setShowZcTransactions(false);
     setShowPremium(false);
     setShowDocumentQuiz(false);
     setShowSmartPractice(false);
@@ -430,6 +433,10 @@ function AppContent() {
         );
       }
 
+      if (showZcTransactions) {
+        return <ZcTransactionsScreen onBack={() => setShowZcTransactions(false)} />;
+      }
+
       if (showShop) {
         return <ShopScreen onBack={() => setShowShop(false)} />;
       }
@@ -445,6 +452,7 @@ function AppContent() {
           onEditPress={() => setShowProfileEdit(true)}
           onPremiumPress={() => setShowPremium(true)}
           onShopPress={() => setShowShop(true)}
+          onTransactionsPress={() => setShowZcTransactions(true)}
           onUserPress={(username) => setSelectedPublicUsername(username === 'discover' ? '__discover__' : username)}
           dockStretch={dockStretch}
         />

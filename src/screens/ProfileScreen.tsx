@@ -16,7 +16,6 @@ import { useTheme } from '../theme/ThemeContext';
 import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, type UserSuggestion } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
 import { getLearningHistory, getLearningHistoryItem, type LearningHistoryItem, type LearningHistorySummary } from '../services/learningService';
-import { getZcHistory, type ZcTransactionItem } from '../services/zcWalletService';
 import { getDailyTasks, claimDailyTask, type DailyTask } from '../services/dailyTasksService';
 
 interface ProfileScreenProps {
@@ -25,6 +24,7 @@ interface ProfileScreenProps {
   onEditPress?: () => void;
   onPremiumPress?: () => void;
   onShopPress?: () => void;
+  onTransactionsPress?: () => void;
   onUserPress?: (username: string) => void;
   dockStretch?: SharedValue<number>;
 }
@@ -48,7 +48,7 @@ function getAvatarUrl(style: string, seed: string) {
   return `https://api.dicebear.com/9.x/${style}/png?seed=${encodeURIComponent(seed)}&size=160`;
 }
 
-export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPress, onPremiumPress, onShopPress, onUserPress, dockStretch }: ProfileScreenProps) {
+export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPress, onPremiumPress, onShopPress, onTransactionsPress, onUserPress, dockStretch }: ProfileScreenProps) {
   const { user, updateProfile, refreshUser, logout } = useAuth();
   const { tokens, isDark } = useTheme();
   const C = {
@@ -89,8 +89,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
   const [historyLoading, setHistoryLoading] = useState(false);
   const [loadingHistoryDetailId, setLoadingHistoryDetailId] = useState<string | null>(null);
   const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
-  const [zcHistory, setZcHistory] = useState<ZcTransactionItem[]>([]);
-  const [zcHistoryLoading, setZcHistoryLoading] = useState(false);
   const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([]);
   const [dailyTasksLoading, setDailyTasksLoading] = useState(false);
   const [claimingTaskId, setClaimingTaskId] = useState<string | null>(null);
@@ -111,16 +109,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
     return () => { active = false; };
   }, [activeTab]);
 
-  useEffect(() => {
-    if (activeTab !== 'wallet' || !user) return;
-    let active = true;
-    setZcHistoryLoading(true);
-    getZcHistory(50)
-      .then((result) => { if (active) setZcHistory(result.items); })
-      .catch(() => { if (active) setZcHistory([]); })
-      .finally(() => { if (active) setZcHistoryLoading(false); });
-    return () => { active = false; };
-  }, [activeTab, user?.id]);
+
 
   useEffect(() => {
     if (activeTab !== 'missions' || !user) return;
@@ -257,9 +246,9 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
   };
 
   const tabs: { key: ProfileTab; label: string }[] = [
-    { key: 'main', label: 'Main' },
-    { key: 'board', label: 'Board' },
-    { key: 'activity', label: 'Tarix' },
+    { key: 'main', label: 'Asosiy' },
+    { key: 'board', label: 'Natijalar' },
+    { key: 'activity', label: 'Faollik' },
     { key: 'missions', label: 'Vazifalar' },
     { key: 'wallet', label: 'Hamyon' },
   ];
@@ -270,12 +259,13 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
 
   return (
     <View style={styles.screen}>
+      <ProfileAtmosphere value={user.profileFrame} />
       <Animated.ScrollView onScroll={dockScrollHandler} scrollEventThrottle={16} style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Pressable style={styles.headerButton} onPress={onClosePress} accessibilityRole="button" accessibilityLabel="Profilni yopish">
             <Ionicons name="close" size={22} color={C.text} />
           </Pressable>
-          <LocalizedText style={styles.headerTitle}>PROFILE</LocalizedText>
+          <LocalizedText style={styles.headerTitle}>PROFIL</LocalizedText>
           <Pressable style={styles.headerButton} onPress={onSettingsPress} accessibilityRole="button" accessibilityLabel="Sozlamalar">
             <Ionicons name="settings-outline" size={21} color={C.text} />
           </Pressable>
@@ -285,7 +275,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
           <ProfileEffect value={user.profileFrame} variant="hero" style={styles.avatarEffectStage}>
           <View style={[styles.avatarWrap, user.avatarDecoration === 'laurel_wreath' && styles.avatarWrapLaurel]}>
             {user.avatarDecoration === 'laurel_wreath' ? (
-              <LaurelWreathAvatar size={116} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
+              <LaurelWreathAvatar size={132} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
             ) : user.avatarDecoration === 'book_wings' ? (
               <BookWingsAvatar size={116} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
             ) : (
@@ -320,7 +310,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
 
         <View style={styles.tabs}>
           {tabs.map((tab) => (
-            <Pressable key={tab.key} style={[styles.tab, activeTab === tab.key && styles.tabActive]} onPress={() => setActiveTab(tab.key)}>
+            <Pressable key={tab.key} style={[styles.tab, activeTab === tab.key && styles.tabActive]} onPress={() => setActiveTab(tab.key)} accessibilityRole="tab" accessibilityState={{ selected: activeTab === tab.key }}>
               <LocalizedText style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</LocalizedText>
               
             </Pressable>
@@ -375,7 +365,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
               </View>,
             )}
             <View style={styles.sectionHeader}>
-              <LocalizedText style={styles.sectionTitle}>Friends</LocalizedText>
+              <LocalizedText style={styles.sectionTitle}>Hamjamiyat</LocalizedText>
               <Pressable onPress={() => onUserPress?.('discover')}><LocalizedText style={styles.linkText}>Barchasi <Ionicons name="chevron-forward" size={11} /></LocalizedText></Pressable>
             </View>
             {renderCard(
@@ -445,34 +435,14 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
               </View>,
             )}
             {renderCard(
-              <View style={{ gap: 12 }}>
-                <View style={styles.row}>
-                  <View style={styles.rowBody}>
-                    <LocalizedText style={styles.cardTitle}>Tranzaksiyalar tarixi</LocalizedText>
-                    <LocalizedText style={styles.cardSubtitle}>Barcha oxirgi kirim va sarflaringiz</LocalizedText>
-                  </View>
-                  {zcHistoryLoading ? <ActivityIndicator size="small" color={C.purple} /> : null}
+              <Pressable style={styles.row} onPress={onTransactionsPress} accessibilityRole="button" accessibilityLabel="Tranzaksiyalar tarixini ochish">
+                <View style={styles.iconTile}><Ionicons name="receipt-outline" size={21} color={C.purple} /></View>
+                <View style={styles.rowBody}>
+                  <LocalizedText style={styles.cardTitle}>Tranzaksiyalar tarixi</LocalizedText>
+                  <LocalizedText style={styles.cardSubtitle}>ZC kirimlari va sarflarini alohida ko‘rish</LocalizedText>
                 </View>
-                {!zcHistoryLoading && zcHistory.length === 0 ? (
-                  <View style={{ alignItems: 'center', paddingVertical: 22, gap: 8 }}>
-                    <Ionicons name="receipt-outline" size={28} color={C.muted} />
-                    <LocalizedText style={styles.cardSubtitle}>Hozircha tranzaksiyalar yo‘q.</LocalizedText>
-                  </View>
-                ) : zcHistory.map((item) => (
-                  <View key={item.id} style={[styles.row, { paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border }]}>
-                    <View style={[styles.iconTile, { backgroundColor: item.type === 'credit' ? 'rgba(76, 175, 125, 0.13)' : 'rgba(226, 140, 155, 0.13)' }]}>
-                      <Ionicons name={item.type === 'credit' ? 'arrow-down' : 'arrow-up'} size={19} color={item.type === 'credit' ? '#55B98A' : '#E28C9B'} />
-                    </View>
-                    <View style={styles.rowBody}>
-                      <LocalizedText style={styles.cardTitle}>{item.reason}</LocalizedText>
-                      <LocalizedText style={styles.cardSubtitle}>{new Date(item.createdAt).toLocaleString()}</LocalizedText>
-                    </View>
-                    <NativeText style={{ color: item.type === 'credit' ? '#55B98A' : '#E28C9B', fontSize: 14, fontWeight: '900' }}>
-                      {item.type === 'credit' ? '+' : '−'}{item.amount.toLocaleString('en-US')} ZC
-                    </NativeText>
-                  </View>
-                ))}
-              </View>,
+                <Ionicons name="chevron-forward" size={19} color={C.muted} />
+              </Pressable>,
             )}
           </>
         ) : null}
@@ -624,7 +594,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
           <LocalizedText style={styles.logoutText}>Hisobdan chiqish</LocalizedText>
         </Pressable>
       </Animated.ScrollView>
-      <ProfileAtmosphere value={user.profileFrame} />
 
       <Modal visible={avatarPickerVisible} transparent animationType="slide" onRequestClose={() => setAvatarPickerVisible(false)}>
         <View style={styles.modalBackground}>
@@ -685,11 +654,11 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     headerButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { color: C.muted, fontSize: 11, fontWeight: '800', letterSpacing: 2 },
     identity: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 8, paddingTop: 8, paddingBottom: 19, marginHorizontal: -8, width: 'auto' },
-    avatarEffectStage: { width: 142, height: 142, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    avatarEffectStage: { width: 158, height: 158, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     identityInfo: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 2 },
-    avatarWrap: { width: 116, height: 116, alignItems: 'center', justifyContent: 'center' },
-    avatarWrapLaurel: { width: 116, height: 116 },
-    avatarFrame: { width: 108, height: 108, borderRadius: 54, padding: 3, backgroundColor: C.purple, borderWidth: 2, borderColor: '#8B68E5' },
+    avatarWrap: { width: 132, height: 132, alignItems: 'center', justifyContent: 'center' },
+    avatarWrapLaurel: { width: 132, height: 132 },
+    avatarFrame: { width: 124, height: 124, borderRadius: 62, padding: 3, backgroundColor: C.purple, borderWidth: 2, borderColor: '#8B68E5' },
     frameAurora: { backgroundColor: '#8B72E8' },
     frameRoyal: { backgroundColor: '#D7A93F' },
     frameOcean: { backgroundColor: '#4D9FC8' },
@@ -725,7 +694,7 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     shopBuyText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
     avatar: { width: '100%', height: '100%', borderRadius: 54 },
     avatarFallback: { flex: 1, borderRadius: 54, backgroundColor: C.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
-    avatarInitials: { color: C.text, fontSize: 42, fontWeight: '800' },
+    avatarInitials: { color: C.text, fontSize: 46, fontWeight: '800' },
     cameraButton: { position: 'absolute', right: 4, bottom: 5, width: 39, height: 39, borderRadius: 20, backgroundColor: C.purple, borderWidth: 3, borderColor: C.background, alignItems: 'center', justifyContent: 'center' },
     decoration: { position: 'absolute', top: 2, left: 1, width: 27, height: 27, borderRadius: 14, backgroundColor: C.surfaceRaised, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '100%' },
@@ -736,7 +705,7 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     editButton: { height: 48, borderRadius: 14, backgroundColor: C.purple, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 16 },
     editButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
     tabs: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 3, padding: 4, borderRadius: 13, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, marginBottom: 17 },
-    tab: { flex: 1, minHeight: 38, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderRadius: 11 },
+    tab: { flex: 1, minHeight: 42, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderRadius: 11 },
     tabActive: { backgroundColor: C.purple, },
     tabText: { color: C.subtle, fontSize: 11, fontWeight: '700' },
     tabTextActive: { color: '#FFFFFF', fontWeight: '900' },

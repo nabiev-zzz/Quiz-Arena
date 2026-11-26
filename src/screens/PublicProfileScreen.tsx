@@ -55,6 +55,7 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
 
   return (
     <View style={styles.screen}>
+    <ProfileAtmosphere value={profile.profileFrame} />
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><LocalizedText style={styles.backText}>Orqaga</LocalizedText></Pressable>
       <GlassSurface intensity={isDark ? 34 : 42} style={styles.hero}>
@@ -119,7 +120,6 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
         <View style={styles.rankText}><LocalizedText style={styles.rankName}>Profil ramkasi</LocalizedText><LocalizedText style={styles.rankHint}>{profile.profileFrame || 'Standart'}</LocalizedText></View>
       </GlassSurface>
     </ScrollView>
-    <ProfileAtmosphere value={profile.profileFrame} />
     </View>
   );
 }
