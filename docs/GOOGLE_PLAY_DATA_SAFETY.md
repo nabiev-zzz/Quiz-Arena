@@ -45,6 +45,7 @@ Confirm current processor terms, retention, data regions and any SDK-side collec
 
 - [ ] Deploy the website update and verify the privacy and account-deletion URLs return HTTP 200 publicly without login walls on the privacy page.
 - [ ] Verify account deletion end-to-end with a disposable test account, including all tables and payment ledger anonymization.
-- [ ] Add the developer's real support email to the privacy policy, website support page and Play Console contact details.
+- [x] Developer support email is published on the privacy policy and support page: `zelqencoresupport@gmail.com`.
+- [ ] Add the same email to Google Play Console developer contact details and verify that the inbox is monitored.
 - [ ] Reconcile this inventory against the live Railway environment, logs, database backups, and the exact Google Play AAB.
 - [ ] Answer all Play Console Data safety and account-deletion questions truthfully; do not guess.
