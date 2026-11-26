@@ -5,7 +5,6 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { useTheme } from '../../theme/ThemeContext';
 
 type Props = {
@@ -21,7 +20,7 @@ export default function GlassSurface({
   intensity,
   bordered = true,
 }: Props) {
-  const { isDark, tokens } = useTheme();
+  const { tokens } = useTheme();
 
   return (
     <View
@@ -37,11 +36,6 @@ export default function GlassSurface({
         style,
       ]}
     >
-      <BlurView
-        intensity={intensity ?? tokens.blur.medium}
-        tint={isDark ? 'dark' : 'light'}
-        style={StyleSheet.absoluteFill}
-      />
       <View style={styles.content}>{children}</View>
     </View>
   );
