@@ -73,6 +73,7 @@ export class AuthService {
       bio: user.bio,
       profileFrame: user.profileFrame,
       avatarDecoration: user.avatarDecoration,
+      profileBadge: user.profileBadge,
       createdAt: user.createdAt,
     };
   }
