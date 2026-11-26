@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-export type SubscriptionProvider = 'google_play' | 'click' | 'payme';
+export type SubscriptionProvider = 'google_play' | 'click' | 'payme' | 'admin_grant';
 export type SubscriptionStatus = 'pending' | 'active' | 'expired' | 'cancelled' | 'refunded';
 
 @Entity('user_subscriptions')
