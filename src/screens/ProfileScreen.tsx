@@ -9,6 +9,7 @@ import BookWingsAvatar from '../components/BookWingsAvatar';
 import LaurelWreathAvatar from '../components/LaurelWreathAvatar';
 import AnimatedBadge from '../components/AnimatedBadge';
 import ProfileEffect from '../components/ProfileEffect';
+import ProfileAtmosphere from '../components/ProfileAtmosphere';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
@@ -268,6 +269,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
 
   return (
     <View style={styles.screen}>
+      <ProfileAtmosphere value={user.profileFrame} />
       <Animated.ScrollView onScroll={dockScrollHandler} scrollEventThrottle={16} style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Pressable style={styles.headerButton} onPress={onClosePress} accessibilityRole="button" accessibilityLabel="Profilni yopish">
@@ -317,9 +319,9 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
 
         <View style={styles.tabs}>
           {tabs.map((tab) => (
-            <Pressable key={tab.key} style={styles.tab} onPress={() => setActiveTab(tab.key)}>
+            <Pressable key={tab.key} style={[styles.tab, activeTab === tab.key && styles.tabActive]} onPress={() => setActiveTab(tab.key)}>
               <LocalizedText style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</LocalizedText>
-              {activeTab === tab.key ? <View style={styles.tabUnderline} /> : null}
+              
             </Pressable>
           ))}
         </View>
@@ -649,16 +651,16 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
 
 function makeStyles(C: { background: string; surface: string; surfaceRaised: string; border: string; purple: string; purpleSoft: string; text: string; muted: string; subtle: string }) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: C.background },
-    container: { flex: 1, backgroundColor: C.background },
+    screen: { flex: 1, backgroundColor: C.background, position: 'relative' },
+    container: { flex: 1, backgroundColor: 'transparent' },
     content: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 132 },
     loading: { flex: 1, backgroundColor: C.background, justifyContent: 'center', alignItems: 'center' },
     header: { height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
     headerButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { color: C.muted, fontSize: 11, fontWeight: '800', letterSpacing: 2 },
     identity: { alignItems: 'center', paddingTop: 8, paddingBottom: 19 },
-    avatarEffectStage: { width: 184, height: 184, alignItems: 'center', justifyContent: 'center' },
-    avatarWrap: { width: 122, height: 122, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+    avatarEffectStage: { width: 154, height: 154, alignItems: 'center', justifyContent: 'center' },
+    avatarWrap: { width: 122, height: 122, alignItems: 'center', justifyContent: 'center' },
     avatarWrapLaurel: { width: 148, height: 148 },
     avatarFrame: { width: 112, height: 112, borderRadius: 56, padding: 3, backgroundColor: C.purple, borderWidth: 2, borderColor: '#8B68E5' },
     frameAurora: { backgroundColor: '#8B72E8' },
@@ -704,13 +706,14 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     handleRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 5 },
     handle: { color: C.muted, fontSize: 13 },
     badges: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 11 },
-    editButton: { height: 49, borderRadius: 15, backgroundColor: C.purple, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 21 },
+    editButton: { height: 48, borderRadius: 14, backgroundColor: C.purple, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 16 },
     editButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-    tabs: { height: 49, flexDirection: 'row', alignItems: 'stretch', borderBottomWidth: 1, borderBottomColor: C.border, marginBottom: 17 },
-    tab: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingTop: 8 },
-    tabText: { color: C.subtle, fontSize: 12, fontWeight: '700' },
-    tabTextActive: { color: C.text },
-    tabUnderline: { height: 3, width: '70%', borderRadius: 3, backgroundColor: C.purple },
+    tabs: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 3, padding: 4, borderRadius: 15, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, marginBottom: 17 },
+    tab: { flex: 1, minHeight: 38, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderRadius: 11 },
+    tabActive: { backgroundColor: C.purpleSoft },
+    tabText: { color: C.subtle, fontSize: 11, fontWeight: '700' },
+    tabTextActive: { color: C.text, fontWeight: '900' },
+    tabUnderline: { height: 0, width: 0 },
     card: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 19, padding: 15, marginBottom: 11 },
     premiumCard: { borderColor: '#49306F' },
     row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 46 },
