@@ -1,7 +1,7 @@
 import { LocalizedText, LocalizedTextInput, showLocalizedAlert } from '../i18n/LocalizedText';
 import React, { useEffect, useState } from 'react';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text as NativeText, TextInput as NativeTextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text as NativeText, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
@@ -72,20 +72,13 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
   });
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('main');
-  const [editVisible, setEditVisible] = useState(false);
-  const [displayName, setDisplayName] = useState('');
-  const [username, setUsername] = useState('');
-  const [bio, setBio] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarPickerVisible, setAvatarPickerVisible] = useState(false);
   const [avatarCategory, setAvatarCategory] = useState<AvatarCategoryId>('anime');
   const [avatarSaving, setAvatarSaving] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
   const [socialProfile, setSocialProfile] = useState<PublicUser | null>(null);
   const [followingUserId, setFollowingUserId] = useState<string | null>(null);
-  const [cosmeticType, setCosmeticType] = useState<'decoration' | 'frame' | null>(null);
-  const [cosmeticSaving, setCosmeticSaving] = useState(false);
   const [learningHistory, setLearningHistory] = useState<LearningHistorySummary[]>([]);
   const [historyDetails, setHistoryDetails] = useState<Record<string, LearningHistoryItem>>({});
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -99,9 +92,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
 
   useEffect(() => {
     if (!user) return;
-    setDisplayName(user.displayName);
-    setUsername(user.username);
-    setBio(user.bio ?? '');
     setAvatarUri(user.avatarUrl);
   }, [user]);
 
@@ -221,28 +211,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
     }
   };
 
-  const saveProfile = async () => {
-    if (displayName.trim().length < 2) {
-      showLocalizedAlert('Xatolik', 'Ism kamida 2 ta belgidan iborat bo‘lsin.');
-      return;
-    }
-    if (!/^[a-zA-Z0-9_]{3,30}$/.test(username.trim())) {
-      showLocalizedAlert('Xatolik', 'Username 3–30 belgi bo‘lsin. Faqat harf, raqam va _ ishlating.');
-      return;
-    }
-    setSaving(true);
-    try {
-      await updateProfile({ displayName: displayName.trim(), username: username.trim(), bio: bio.trim() || null, ...(avatarUri !== user.avatarUrl ? { avatarUrl: avatarUri } : {}) });
-      setEditVisible(false);
-      showLocalizedAlert('Saqlandi', 'Profil ma’lumotlari yangilandi.');
-    } catch (error) {
-      showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Profilni saqlashda xatolik yuz berdi.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-
   const claimTaskReward = async (task: DailyTask) => {
     if (!task.completed || task.claimed || claimingTaskId) return;
     setClaimingTaskId(task.id);
@@ -255,19 +223,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
       showLocalizedAlert('Mukofot olinmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring.');
     } finally {
       setClaimingTaskId(null);
-    }
-  };
-
-  const saveCosmetic = async (value: string | null) => {
-    if (!cosmeticType || cosmeticSaving) return;
-    setCosmeticSaving(true);
-    try {
-      await updateProfile(cosmeticType === 'decoration' ? { avatarDecoration: value } : { profileFrame: value });
-      setCosmeticType(null);
-    } catch (error) {
-      showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Bezakni saqlab bo‘lmadi');
-    } finally {
-      setCosmeticSaving(false);
     }
   };
 
@@ -343,7 +298,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
           </View>
         </View>
 
-        <Pressable style={styles.editButton} onPress={() => onEditPress ? onEditPress() : setEditVisible(true)}>
+        <Pressable style={styles.editButton} onPress={onEditPress} disabled={!onEditPress}>
           <Ionicons name="create-outline" size={17} color="#FFFFFF" />
           <LocalizedText style={styles.editButtonText}>Profilni tahrirlash</LocalizedText>
         </Pressable>
@@ -631,23 +586,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
         </Pressable>
       </Animated.ScrollView>
 
-      <Modal visible={editVisible} transparent animationType="fade" onRequestClose={() => setEditVisible(false)}>
-        <View style={styles.modalBackground}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}><LocalizedText style={styles.modalTitle}>Edit profile</LocalizedText><Pressable onPress={() => setEditVisible(false)}><Ionicons name="close" size={22} color={C.text} /></Pressable></View>
-            <LocalizedText style={styles.inputLabel}>Ismingiz</LocalizedText>
-            <LocalizedTextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="Ismingiz" placeholderTextColor={C.subtle} maxLength={100} />
-            <LocalizedText style={styles.inputLabel}>Username</LocalizedText>
-            <LocalizedTextInput style={styles.input} value={username} onChangeText={setUsername} placeholder="username" placeholderTextColor={C.subtle} autoCapitalize="none" maxLength={30} />
-            <LocalizedText style={styles.inputLabel}>Bio</LocalizedText>
-            <LocalizedTextInput style={[styles.input, styles.bioInput]} value={bio} onChangeText={setBio} placeholder="O‘zingiz haqingizda..." placeholderTextColor={C.subtle} multiline maxLength={500} />
-            <Pressable style={[styles.saveButton, saving && styles.disabled]} onPress={() => void saveProfile()} disabled={saving}>
-              {saving ? <ActivityIndicator color="#FFFFFF" /> : <LocalizedText style={styles.saveButtonText}>O‘zgarishlarni saqlash</LocalizedText>}
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
-
       <Modal visible={avatarPickerVisible} transparent animationType="slide" onRequestClose={() => setAvatarPickerVisible(false)}>
         <View style={styles.modalBackground}>
           <View style={[styles.modalCard, styles.avatarModalCard]}>
@@ -693,24 +631,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
         </View>
       </Modal>
 
-      <Modal visible={cosmeticType !== null} transparent animationType="fade" onRequestClose={() => setCosmeticType(null)}>
-        <View style={styles.modalBackground}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}><LocalizedText style={styles.modalTitle}>{cosmeticType === 'decoration' ? 'Avatar bezagini tanlang' : 'Profil ramkasini tanlang'}</LocalizedText><Pressable onPress={() => setCosmeticType(null)}><Ionicons name="close" size={22} color={C.text} /></Pressable></View>
-            {(cosmeticType === 'decoration'
-              ? [{ value: null, label: 'Standart bezak' }, { value: 'sparkle', label: 'Yulduzcha' }, { value: 'crown', label: 'Toj' }, { value: 'laurel', label: 'Laurel' }]
-              : [{ value: null, label: 'Standart ramka' }, { value: 'aurora', label: 'Aurora' }, { value: 'royal', label: 'Royal' }, { value: 'ocean', label: 'Ocean' }]
-            ).map((option) => {
-              const selected = cosmeticType === 'decoration' ? user.avatarDecoration === option.value : user.profileFrame === option.value;
-              return <Pressable key={option.label} style={[styles.cosmeticOption, selected && styles.cosmeticSelected]} disabled={cosmeticSaving} onPress={() => void saveCosmetic(option.value)}>
-                <LocalizedText style={styles.cardTitle}>{option.label}</LocalizedText>
-                {selected ? <Ionicons name="checkmark-circle" size={19} color={C.purple} /> : <Ionicons name="ellipse-outline" size={18} color={C.muted} />}
-              </Pressable>;
-            })}
-            {cosmeticSaving ? <ActivityIndicator color={C.purple} style={{ marginTop: 12 }} /> : null}
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
