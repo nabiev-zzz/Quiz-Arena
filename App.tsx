@@ -45,6 +45,7 @@ import CosmeticCollectionScreen from './src/screens/CosmeticCollectionScreen';
 import ProfileEditScreen from './src/screens/ProfileEditScreen';
 import PublicProfileScreen from './src/screens/PublicProfileScreen';
 import DiscoverUsersScreen from './src/screens/DiscoverUsersScreen';
+import CommunityScreen from './src/screens/CommunityScreen';
 import BattleScreen from './src/screens/BattleScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import PremiumScreen from './src/screens/PremiumScreen';
@@ -239,7 +240,7 @@ function AppContent() {
     const openFeature = (key: string) => {
       if (key === 'friends') {
         openTab('profile');
-        setSelectedPublicUsername('__discover__');
+        setSelectedPublicUsername('__community__');
         return;
       }
       if (key === 'premium') {
@@ -415,6 +416,25 @@ function AppContent() {
     }
 
     if (tab === 'profile') {
+      if (selectedPublicUsername === '__community__') {
+        return (
+          <CommunityScreen
+            onBack={() => setSelectedPublicUsername(null)}
+            onDiscoverUsers={() => setSelectedPublicUsername('__community_discover__')}
+            onUserPress={(username) => setSelectedPublicUsername(username)}
+          />
+        );
+      }
+
+      if (selectedPublicUsername === '__community_discover__') {
+        return (
+          <DiscoverUsersScreen
+            onBack={() => setSelectedPublicUsername('__community__')}
+            onUserPress={(username) => setSelectedPublicUsername(username)}
+          />
+        );
+      }
+
       if (selectedPublicUsername === '__discover__') {
         return (
           <DiscoverUsersScreen

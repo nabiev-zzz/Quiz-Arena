@@ -6,6 +6,11 @@ import { UserFollow } from './entities/user-follow.entity';
 import { ZcTransaction } from './entities/zc-transaction.entity';
 import { ZcStoreItem } from './entities/zc-store-item.entity';
 import { UsersController } from './users.controller';
+import { CommunityController } from './community.controller';
+import { CommunityService } from './community.service';
+import { CommunityPost } from './entities/community-post.entity';
+import { CommunityPostLike } from './entities/community-post-like.entity';
+import { CommunityPostComment } from './entities/community-post-comment.entity';
 import { UsersService } from './users.service';
 import { ZcWalletController } from './zc-wallet.controller';
 import { ZcWalletService } from './zc-wallet.service';
@@ -19,9 +24,9 @@ import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, UserFollow, ZcTransaction, ZcStoreItem, DailyTaskProgress, UserNotification]), AuthModule],
-  controllers: [UsersController, ZcWalletController, ZcStoreController, DailyTasksController, NotificationsController],
-  providers: [UsersService, ZcWalletService, ZcStoreService, DailyTasksService, NotificationsService],
+  imports: [TypeOrmModule.forFeature([User, UserFollow, ZcTransaction, ZcStoreItem, DailyTaskProgress, UserNotification, CommunityPost, CommunityPostLike, CommunityPostComment]), AuthModule],
+  controllers: [CommunityController, UsersController, ZcWalletController, ZcStoreController, DailyTasksController, NotificationsController],
+  providers: [CommunityService, UsersService, ZcWalletService, ZcStoreService, DailyTasksService, NotificationsService],
   exports: [UsersService, ZcWalletService, ZcStoreService, DailyTasksService],
 })
 export class UsersModule {}
