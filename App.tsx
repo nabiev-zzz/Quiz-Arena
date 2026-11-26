@@ -39,6 +39,7 @@ import SupportHomeScreen from './src/screens/SupportHomeScreen';
 import SupportChatScreen from './src/screens/SupportChatScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ShopScreen from './src/screens/ShopScreen';
+import CosmeticCollectionScreen from './src/screens/CosmeticCollectionScreen';
 import PublicProfileScreen from './src/screens/PublicProfileScreen';
 import DiscoverUsersScreen from './src/screens/DiscoverUsersScreen';
 import BattleScreen from './src/screens/BattleScreen';
@@ -135,6 +136,7 @@ function AppContent() {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCosmeticCollection, setShowCosmeticCollection] = useState(false);
   const [showNavigationDrawer, setShowNavigationDrawer] = useState(false);
   const [showDailyTasks, setShowDailyTasks] = useState(false);
   const [supportScreen, setSupportScreen] = useState<'home' | 'chat' | null>(null);
@@ -173,6 +175,7 @@ function AppContent() {
     setSupportInitialPrompt('');
     setTab(nextTab);
     setShowSettings(false);
+    setShowCosmeticCollection(false);
     setShowPremium(false);
     setShowDocumentQuiz(false);
     setShowSmartPractice(false);
@@ -400,6 +403,10 @@ function AppContent() {
         );
       }
 
+      if (showCosmeticCollection) {
+        return <CosmeticCollectionScreen onBack={() => { setShowCosmeticCollection(false); setShowSettings(true); }} />;
+      }
+
       if (showShop) {
         return <ShopScreen onBack={() => setShowShop(false)} />;
       }
@@ -413,6 +420,7 @@ function AppContent() {
           <SettingsScreen
             onBack={() => setShowSettings(false)}
             onHelp={() => { setShowSettings(false); setSupportScreen('home'); }}
+            onCollectionPress={() => { setShowSettings(false); setShowCosmeticCollection(true); }}
             dockStretch={dockStretch}
           />
         );
@@ -687,10 +695,13 @@ function AppContent() {
             setSupportScreen('chat');
           }}
         />
+      ) : showCosmeticCollection ? (
+        <CosmeticCollectionScreen onBack={() => { setShowCosmeticCollection(false); setShowSettings(true); }} />
       ) : showSettings ? (
         <SettingsScreen
           onBack={() => setShowSettings(false)}
           onHelp={() => { setShowSettings(false); setSupportScreen('home'); }}
+          onCollectionPress={() => { setShowSettings(false); setShowCosmeticCollection(true); }}
           dockStretch={dockStretch}
         />
       ) : showSmartPractice ? (
