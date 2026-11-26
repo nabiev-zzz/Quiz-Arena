@@ -3,6 +3,7 @@ import { jest } from '@jest/globals';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
 import { AiTutorService } from './ai-tutor.service';
+import { SupportAiService } from './support-ai.service';
 import { AiGenerationQueueService } from './queue/ai-generation-queue.service';
 
 describe('AiController', () => {
@@ -17,6 +18,10 @@ describe('AiController', () => {
           useValue: {
             generateQuestions: jest.fn(),
           },
+        },
+        {
+          provide: SupportAiService,
+          useValue: { reply: jest.fn() },
         },
         {
           provide: AiTutorService,
