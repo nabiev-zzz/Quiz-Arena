@@ -30,6 +30,7 @@ import { subjects as learningSubjects } from './src/data/subjects';
 import { getDailyTasks, claimDailyTask, type DailyTask } from './src/services/dailyTasksService';
 
 import LearnScreen from './src/screens/LearnScreen';
+import DailyTasksScreen from './src/screens/DailyTasksScreen';
 import DocumentQuizScreen from './src/screens/DocumentQuizScreen';
 import SmartPracticeScreen from './src/screens/SmartPracticeScreen';
 import QuizScreen from './src/screens/QuizScreen';
@@ -113,7 +114,6 @@ function AppContent() {
   const [homeDailyTasks, setHomeDailyTasks] = useState<DailyTask[]>([]);
   const homeDailyDateRef = useRef('');
   const [homeDailyLoading, setHomeDailyLoading] = useState(false);
-  const [homeClaimingTaskId, setHomeClaimingTaskId] = useState<string | null>(null);
 
   const loadHomeDailyTasks = async () => {
     if (!user) return;
@@ -129,26 +129,13 @@ function AppContent() {
     }
   };
 
-  const handleHomeTaskClaim = async (task: DailyTask) => {
-    if (!task.completed || task.claimed || homeClaimingTaskId) return;
-    setHomeClaimingTaskId(task.id);
-    try {
-      await claimDailyTask(task.id);
-      await Promise.all([loadHomeDailyTasks(), refreshUser()]);
-      Alert.alert('Mukofot olindi!', `Hisobingizga ${task.reward} ZC qo‘shildi.`);
-    } catch (error) {
-      Alert.alert('Xatolik', error instanceof Error ? error.message : 'Mukofotni olish amalga oshmadi.');
-    } finally {
-      setHomeClaimingTaskId(null);
-    }
-  };
-
   const [tab, setTab] = useState<Tab>('home');
   const [authScreen, setAuthScreen] = useState<'login' | 'register'>('login');
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showNavigationDrawer, setShowNavigationDrawer] = useState(false);
+  const [showDailyTasks, setShowDailyTasks] = useState(false);
   const [supportScreen, setSupportScreen] = useState<'home' | 'chat' | null>(null);
   const [supportInitialPrompt, setSupportInitialPrompt] = useState('');
   const [showPremium, setShowPremium] = useState(false);
@@ -177,6 +164,7 @@ function AppContent() {
 
   const openTab = (nextTab: Tab) => {
     setShowNavigationDrawer(false);
+    setShowDailyTasks(false);
     // A tab selection must dismiss every modal/secondary screen, including Support.
     // Otherwise the Support screen remains mounted above the selected tab.
     setSupportScreen(null);
@@ -271,62 +259,55 @@ function AppContent() {
           {searchQuery.length > 0 && <Pressable onPress={() => setSearchQuery('')} hitSlop={10}><Ionicons name="close-circle" size={18} color={mutedColor} /></Pressable>}
         </View>
 
-        <Animated.View entering={FadeInDown.duration(480)} style={[styles.dailyHomeCard, { backgroundColor: tokens.colors.surface, borderColor }]}>
-          <View style={styles.dailyHomeTop}>
-            <View style={styles.dailyHomeHeading}>
-              <View style={styles.dailyHomeIcon}><Ionicons name="flash" size={17} color="#FFFFFF" /></View>
-              <View style={{ flex: 1 }}>
-                <LocalizedText style={[styles.dailyHomeTitle, { color: textColor }]}>Kunlik vazifalar</LocalizedText>
-                <LocalizedText style={[styles.dailyHomeSubtitle, { color: mutedColor }]}>Har kuni yangi maqsadlar va ZC mukofotlari</LocalizedText>
+        {normalizedQuery.length === 0 && (
+          <Pressable
+            style={[styles.dailyHomeCard, { backgroundColor: tokens.colors.surface, borderColor }]}
+            onPress={() => setShowDailyTasks(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Barcha kunlik vazifalarni ochish"
+          >
+            <View style={styles.dailyHomeTop}>
+              <View style={styles.dailyHomeHeading}>
+                <View style={styles.dailyHomeIcon}><Ionicons name="flash" size={18} color="#FFFFFF" /></View>
+                <View style={{ flex: 1 }}>
+                  <LocalizedText style={[styles.dailyHomeTitle, { color: textColor }]}>Kunlik vazifalar</LocalizedText>
+                  <LocalizedText style={[styles.dailyHomeSubtitle, { color: mutedColor }]}>Asosiy maqsadlaringiz va bugungi natija</LocalizedText>
+                </View>
               </View>
+              <View style={styles.dailyTodayPill}><LocalizedText style={styles.dailyTodayText}>BUGUN</LocalizedText></View>
             </View>
-            <View style={styles.dailyTodayPill}><LocalizedText style={styles.dailyTodayText}>BUGUN</LocalizedText></View>
-          </View>
-          {homeDailyLoading && homeDailyTasks.length === 0 ? (
-            <View style={styles.dailyLoading}><ActivityIndicator size="small" color={tokens.colors.primary} /><LocalizedText style={[styles.dailyHomeSubtitle, { color: mutedColor }]}>Vazifalar yuklanmoqda...</LocalizedText></View>
-          ) : homeDailyTasks.length > 0 ? (
-            <View style={styles.dailyTaskList}>
-              {homeDailyTasks.map((task, index) => {
-                const progress = Math.min(100, Math.round((task.progress / Math.max(1, task.target)) * 100));
-                const readyToClaim = task.completed && !task.claimed;
-                return (
-                  <Animated.View key={task.id} entering={FadeInDown.delay(index * 90).duration(380)} style={styles.dailyTaskRow}>
-                    <View style={styles.dailyTaskMain}>
-                      <View style={[styles.dailyTaskCheck, task.completed && styles.dailyTaskCheckDone]}>
-                        <Ionicons name={task.completed ? 'checkmark' : 'ellipse-outline'} size={15} color={task.completed ? '#FFFFFF' : mutedColor} />
+            {homeDailyLoading ? (
+              <View style={styles.dailyLoading}><ActivityIndicator size="small" color={tokens.colors.primary} /><LocalizedText style={[styles.dailyHomeSubtitle, { color: mutedColor }]}>Vazifalar yuklanmoqda...</LocalizedText></View>
+            ) : (
+              <>
+                <View style={styles.dailyTaskList}>
+                  {homeDailyTasks.slice(0, 2).map((task) => (
+                    <View key={task.id} style={styles.dailyTaskRow}>
+                      <View style={styles.dailyTaskMain}>
+                        <View style={[styles.dailyTaskCheck, task.completed && styles.dailyTaskCheckDone]}>
+                          <Ionicons name={task.completed ? "checkmark" : "ellipse-outline"} size={15} color={task.completed ? "#FFFFFF" : mutedColor} />
+                        </View>
+                        <View style={styles.dailyTaskCopy}>
+                          <LocalizedText style={[styles.dailyTaskName, { color: textColor }]} numberOfLines={1}>{task.title}</LocalizedText>
+                          <LocalizedText style={[styles.dailyTaskDescription, { color: mutedColor }]} numberOfLines={1}>{task.description}</LocalizedText>
+                        </View>
+                        <View style={styles.dailyRewardPill}><LocalizedText style={styles.dailyRewardText}>+{task.reward} ZC</LocalizedText></View>
                       </View>
-                      <View style={styles.dailyTaskCopy}>
-                        <LocalizedText style={[styles.dailyTaskName, { color: textColor }]}>{task.title}</LocalizedText>
-                        <LocalizedText style={[styles.dailyTaskDescription, { color: mutedColor }]}>{task.description}</LocalizedText>
-                      </View>
-                      <View style={styles.dailyRewardPill}><LocalizedText style={styles.dailyRewardText}>+{task.reward} ZC</LocalizedText></View>
                     </View>
-                    <View style={styles.dailyProgressLine}>
-                      <View style={[styles.dailyProgressTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.09)' : '#E9E7F2' }]}>
-                        <Animated.View style={[styles.dailyProgressFill, { width: `${progress}%` }]} />
-                      </View>
-                      <LocalizedText style={[styles.dailyProgressText, { color: mutedColor }]}>{Math.min(task.progress, task.target)}/{task.target}</LocalizedText>
-                    </View>
-                    {readyToClaim ? (
-                      <Pressable disabled={homeClaimingTaskId !== null} onPress={() => void handleHomeTaskClaim(task)} style={({ pressed }) => [styles.dailyClaimButton, pressed && { opacity: 0.78 }]}>
-                        <LocalizedText style={styles.dailyClaimText}>{homeClaimingTaskId === task.id ? 'Olinmoqda...' : 'Mukofotni olish'}</LocalizedText>
-                        <Ionicons name="gift-outline" size={14} color="#FFFFFF" />
-                      </Pressable>
-                    ) : task.claimed ? (
-                      <LocalizedText style={styles.dailyClaimedText}>Mukofot olindi ✓</LocalizedText>
-                    ) : null}
-                  </Animated.View>
-                );
-              })}
-            </View>
-          ) : (
-            <LocalizedText style={[styles.dailyHomeSubtitle, { color: mutedColor }]}>Kunlik vazifalarni ko‘rish uchun keyinroq qayta urinib ko‘ring.</LocalizedText>
-          )}
-          <View style={styles.dailyHomeFooter}>
-            <Ionicons name="refresh-circle-outline" size={15} color={mutedColor} />
-            <LocalizedText style={[styles.dailyHomeFooterText, { color: mutedColor }]}>Vazifalar Toshkent vaqti bilan har kuni 00:00 da yangilanadi</LocalizedText>
-          </View>
-        </Animated.View>
+                  ))}
+                  {homeDailyTasks.length === 0 && <LocalizedText style={[styles.dailyHomeSubtitle, { color: mutedColor }]}>{homeDailyLoading ? "Yuklanmoqda..." : "Bugungi vazifalarni ko‘rish uchun bosing."}</LocalizedText>}
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
+                  <LocalizedText style={[styles.dailyHomeSubtitle, { color: mutedColor }]}>{homeDailyTasks.filter((task) => task.completed).length}/{homeDailyTasks.length} ta vazifa bajarildi</LocalizedText>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                    <LocalizedText style={{ color: tokens.colors.primary, fontSize: 10, fontWeight: "900" }}>Barchasini ko‘rish</LocalizedText>
+                    <Ionicons name="chevron-forward" size={14} color={tokens.colors.primary} />
+                  </View>
+                </View>
+              </>
+            )}
+          </Pressable>
+        )}
 
         {normalizedQuery.length > 0 ? (
           <View style={styles.homeSearchResults}>
@@ -588,7 +569,7 @@ function AppContent() {
               <LocalizedText style={[styles.drawerSectionLabel, { color: mutedColor }]}>BUGUNGI FAOLLIK</LocalizedText>
               <Pressable
                 style={[styles.drawerItem, { backgroundColor: tokens.colors.surface }]}
-                onPress={() => openTab('home')}
+                onPress={() => { setShowNavigationDrawer(false); setShowDailyTasks(true); }}
                 accessibilityRole="button"
                 accessibilityLabel="Kunlik vazifalarni ochish"
               >
@@ -677,7 +658,9 @@ function AppContent() {
         />
       </View>
 
-      {supportScreen === 'chat' ? (
+      {showDailyTasks ? (
+        <DailyTasksScreen onBack={() => setShowDailyTasks(false)} />
+      ) : supportScreen === 'chat' ? (
         <SupportChatScreen
           onBack={() => setSupportScreen('home')}
           bottomDockSpace={96}
