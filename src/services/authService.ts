@@ -25,6 +25,7 @@ export interface AuthUser {
   bio: string | null;
   profileFrame: string | null;
   avatarDecoration: string | null;
+  profileBadge?: string | null;
   createdAt?: string;
 }
 
@@ -40,6 +41,7 @@ export interface UpdateProfileInput {
   avatarUrl?: string | null;
   avatarDecoration?: string | null;
   profileFrame?: string | null;
+  profileBadge?: string | null;
 }
 
 async function request<T>(
