@@ -4,12 +4,13 @@ import {
   StyleSheet, TextInput, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import CommunityClipVideo from '../components/CommunityClipVideo';
 import * as ImagePicker from 'expo-image-picker';
 import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import { useTheme } from '../theme/ThemeContext';
 import {
   addCommunityComment, createCommunityPost, createCommunityStory, getCommunityComments,
-  getCommunityFeed, getCommunityStories, likeCommunityPost, markCommunityStoryViewed,
+  getCommunityFeed, getCommunityStories, getCommunityClips, createCommunityClip, likeCommunityPost, markCommunityStoryViewed,
   unlikeCommunityPost, uploadCommunityMedia,
   type CommunityComment, type CommunityPost, type CommunityStory,
 } from '../services/communityService';
@@ -41,6 +42,9 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   const { tokens, isDark } = useTheme();
   const c = tokens.colors;
   const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [clips, setClips] = useState<CommunityPost[]>([]);
+  const [activeSection, setActiveSection] = useState<'feed' | 'clips'>('feed');
+  const [clipBusy, setClipBusy] = useState(false);
   const [stories, setStories] = useState<CommunityStory[]>([]);
   const [content, setContent] = useState('');
   const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
@@ -58,9 +62,10 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
-      const [feed, activeStories] = await Promise.all([getCommunityFeed(), getCommunityStories()]);
+      const [feed, activeStories, videoClips] = await Promise.all([getCommunityFeed(), getCommunityStories(), getCommunityClips()]);
       setPosts(feed);
       setStories(activeStories);
+      setClips(videoClips);
     } catch (error) {
       showLocalizedAlert('Hamjamiyat', error instanceof Error ? error.message : 'Lenta yuklanmadi');
     } finally { setLoading(false); setRefreshing(false); }
@@ -96,6 +101,53 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     } finally { setPosting(false); }
   };
 
+  const pickVideo = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      showLocalizedAlert('Ruxsat kerak', 'Video tanlash uchun galereyaga ruxsat bering.');
+      return null;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['videos'], allowsEditing: false, videoMaxDuration: 90, quality: 0.8,
+    });
+    if (result.canceled) return null;
+    const asset = result.assets[0];
+    if (!asset) return null;
+    if (asset.duration && asset.duration > 90_000) {
+      showLocalizedAlert('Video uzun', 'Video 90 soniyadan oshmasin.');
+      return null;
+    }
+    if (asset.fileSize && asset.fileSize > 50 * 1024 * 1024) {
+      showLocalizedAlert('Video hajmi katta', 'Video 50 MB dan oshmasin.');
+      return null;
+    }
+    return asset;
+  };
+
+  const videoMime = (asset: ImagePicker.ImagePickerAsset) => {
+    if (asset.mimeType === 'video/quicktime') return 'video/quicktime';
+    if (asset.mimeType === 'video/webm') return 'video/webm';
+    return 'video/mp4';
+  };
+
+  const publishClip = async () => {
+    if (clipBusy) return;
+    try {
+      const asset = await pickVideo();
+      if (!asset) return;
+      setClipBusy(true);
+      const media = await uploadCommunityMedia(asset.uri, videoMime(asset));
+      const created = await createCommunityClip(content.trim(), media.mediaKey, media.mediaType);
+      setClips((current) => [created, ...current]);
+      setPosts((current) => [created, ...current]);
+      setContent('');
+      setActiveSection('clips');
+      showLocalizedAlert('Tayyor!', 'Video lavha muvaffaqiyatli joylandi.');
+    } catch (error) {
+      showLocalizedAlert('Video joylanmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring');
+    } finally { setClipBusy(false); }
+  };
+
   const publishStory = async () => {
     if (storyBusy) return;
     try {
@@ -127,16 +179,20 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     if (busyPost) return;
     setBusyPost(post.id);
     const nextLiked = !post.isLiked;
-    setPosts((current) => current.map((item) => item.id === post.id
-      ? { ...item, isLiked: nextLiked, likesCount: Math.max(0, item.likesCount + (nextLiked ? 1 : -1)) }
-      : item));
+    const optimistic = (items: CommunityPost[]) => items.map((item) => item.id === post.id
+      ? { ...item, isLiked: nextLiked, likesCount: Math.max(0, item.likesCount + (nextLiked ? 1 : -1)) } : item);
+    setPosts(optimistic);
+    setClips(optimistic);
     try {
       const result = nextLiked ? await likeCommunityPost(post.id) : await unlikeCommunityPost(post.id);
-      setPosts((current) => current.map((item) => item.id === post.id ? { ...item, ...result } : item));
+      const applyResult = (items: CommunityPost[]) => items.map((item) => item.id === post.id ? { ...item, ...result } : item);
+      setPosts(applyResult);
+      setClips(applyResult);
     } catch (error) {
-      setPosts((current) => current.map((item) => item.id === post.id
-        ? { ...item, isLiked: post.isLiked, likesCount: post.likesCount }
-        : item));
+      const rollback = (items: CommunityPost[]) => items.map((item) => item.id === post.id
+        ? { ...item, isLiked: post.isLiked, likesCount: post.likesCount } : item);
+      setPosts(rollback);
+      setClips(rollback);
       showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Layk qo‘yilmadi');
     } finally { setBusyPost(null); }
   };
@@ -157,7 +213,9 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     try {
       const comment = await addCommunityComment(postId, text);
       setComments((current) => ({ ...current, [postId]: [...(current[postId] || []), comment] }));
-      setPosts((current) => current.map((item) => item.id === postId ? { ...item, commentsCount: item.commentsCount + 1 } : item));
+      const increment = (items: CommunityPost[]) => items.map((item) => item.id === postId ? { ...item, commentsCount: item.commentsCount + 1 } : item);
+      setPosts(increment);
+      setClips(increment);
       setCommentDraft('');
     } catch (error) { showLocalizedAlert('Izoh yuborilmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring'); }
     finally { setSendingComment(false); }
@@ -208,6 +266,18 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
           </View>
         </View>
 
+        <View style={styles.sectionTabs}>
+          <Pressable onPress={() => setActiveSection('feed')} style={[styles.sectionTab, activeSection === 'feed' && styles.sectionTabActive]}>
+            <Ionicons name="newspaper-outline" size={16} color={activeSection === 'feed' ? '#FFFFFF' : c.textMuted} />
+            <LocalizedText style={[styles.sectionTabText, activeSection === 'feed' && styles.sectionTabTextActive]}>Lenta</LocalizedText>
+          </Pressable>
+          <Pressable onPress={() => setActiveSection('clips')} style={[styles.sectionTab, activeSection === 'clips' && styles.sectionTabActive]}>
+            <Ionicons name="play-circle-outline" size={17} color={activeSection === 'clips' ? '#FFFFFF' : c.textMuted} />
+            <LocalizedText style={[styles.sectionTabText, activeSection === 'clips' && styles.sectionTabTextActive]}>Lavhalar</LocalizedText>
+          </Pressable>
+        </View>
+
+        {activeSection === 'feed' && <>
         <View style={styles.storySection}>
           <View style={styles.storyHeading}>
             <LocalizedText style={styles.feedTitle}>Stories</LocalizedText>
@@ -285,7 +355,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
               <LocalizedText style={styles.time}>{timeAgo(post.createdAt)}</LocalizedText>
             </View>
             {post.content ? <LocalizedText style={styles.postContent}>{post.content}</LocalizedText> : null}
-            {post.mediaUrl ? <Image source={{ uri: post.mediaUrl }} style={styles.postImage} resizeMode="cover" /> : null}
+            {post.mediaUrl ? (post.mediaType?.startsWith('video/') ? <CommunityClipVideo uri={post.mediaUrl} /> : <Image source={{ uri: post.mediaUrl }} style={styles.postImage} resizeMode="cover" />) : null}
             <View style={styles.postActions}>
               <Pressable style={styles.action} onPress={() => void toggleLike(post)} disabled={busyPost === post.id}>
                 <Ionicons name={post.isLiked ? 'heart' : 'heart-outline'} size={19} color={post.isLiked ? '#F05B82' : c.textMuted} />
@@ -326,6 +396,55 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
             <Pressable onPress={onDiscoverUsers} style={styles.emptyButton}><LocalizedText style={styles.emptyButtonText}>Odamlarni topish</LocalizedText></Pressable>
           </View>
         )}
+        </>}
+
+        {activeSection === 'clips' && (
+          <View style={styles.clipsSection}>
+            <View style={styles.clipsIntro}>
+              <View style={{ flex: 1 }}>
+                <LocalizedText style={styles.clipsTitle}>Qisqa videolar</LocalizedText>
+                <LocalizedText style={styles.clipsSubtitle}>90 soniyagacha videolarni ulashing va tomosha qiling.</LocalizedText>
+              </View>
+              <Pressable onPress={() => void publishClip()} disabled={clipBusy} style={[styles.createClipButton, clipBusy && { opacity: 0.65 }]}>
+                {clipBusy ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="add" size={18} color="#FFFFFF" />}
+                <LocalizedText style={styles.createClipText}>Video joylash</LocalizedText>
+              </Pressable>
+            </View>
+            <TextInput value={content} onChangeText={setContent} placeholder="Video uchun izoh (ixtiyoriy)" placeholderTextColor={c.textMuted} style={styles.clipCaptionInput} maxLength={2000} />
+            {loading ? <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 30 }} /> : clips.length === 0 ? (
+              <View style={styles.clipsEmpty}>
+                <Ionicons name="videocam-outline" size={38} color={c.primary} />
+                <LocalizedText style={styles.clipsEmptyTitle}>Hali videolar yo‘q</LocalizedText>
+                <LocalizedText style={styles.clipsEmptyText}>Birinchi videoni siz joylang.</LocalizedText>
+              </View>
+            ) : clips.map((clip) => (
+              <View key={clip.id} style={styles.clipCard}>
+                <View style={styles.clipAuthor}>{renderPerson(clip.author)}<LocalizedText style={styles.time}>{timeAgo(clip.createdAt)}</LocalizedText></View>
+                {clip.mediaUrl ? <CommunityClipVideo uri={clip.mediaUrl} /> : null}
+                {clip.content ? <LocalizedText style={styles.clipCaption}>{clip.content}</LocalizedText> : null}
+                <View style={styles.clipActions}>
+                  <Pressable style={styles.action} onPress={() => void toggleLike(clip)} disabled={busyPost === clip.id}>
+                    <Ionicons name={clip.isLiked ? 'heart' : 'heart-outline'} size={20} color={clip.isLiked ? '#F05B82' : c.textMuted} />
+                    <LocalizedText style={styles.actionText}>{clip.likesCount}</LocalizedText>
+                  </Pressable>
+                  <Pressable style={styles.action} onPress={() => void openComments(clip.id)}>
+                    <Ionicons name="chatbubble-outline" size={18} color={c.textMuted} />
+                    <LocalizedText style={styles.actionText}>{clip.commentsCount} izoh</LocalizedText>
+                  </Pressable>
+                </View>
+                {expandedPost === clip.id && (
+                  <View style={styles.comments}>
+                    {(comments[clip.id] || []).map((comment) => <View key={comment.id} style={styles.comment}><LocalizedText style={styles.commentAuthor}>@{comment.author.username}</LocalizedText><LocalizedText style={styles.commentText}>{comment.content}</LocalizedText></View>)}
+                    <View style={styles.commentComposer}>
+                      <TextInput value={commentDraft} onChangeText={setCommentDraft} placeholder="Izoh yozing..." placeholderTextColor={c.textMuted} style={styles.commentInput} maxLength={1000} />
+                      <Pressable onPress={() => void sendComment(clip.id)} disabled={!commentDraft.trim() || sendingComment} style={styles.commentSend}><Ionicons name="send" size={16} color="#FFFFFF" /></Pressable>
+                    </View>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       <Modal visible={Boolean(selectedStory)} transparent animationType="fade" onRequestClose={() => setSelectedStory(null)}>
@@ -355,6 +474,25 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
 
 function makeStyles(c: ReturnType<typeof useTheme>['tokens']['colors'], isDark: boolean) {
   return StyleSheet.create({
+    sectionTabs: { flexDirection: 'row', backgroundColor: c.surface, borderRadius: 16, padding: 4, marginBottom: 18, gap: 5 },
+    sectionTab: { flex: 1, minHeight: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
+    sectionTabActive: { backgroundColor: c.primary },
+    sectionTabText: { color: c.textMuted, fontSize: 13, fontWeight: '700' },
+    sectionTabTextActive: { color: '#FFFFFF' },
+    clipsSection: { gap: 16, paddingBottom: 28 },
+    clipCaptionInput: { minHeight: 44, borderRadius: 12, paddingHorizontal: 13, color: c.text, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, fontSize: 13 },
+    clipsIntro: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+    clipsTitle: { color: c.text, fontSize: 19, fontWeight: '800' },
+    clipsSubtitle: { color: c.textMuted, fontSize: 12, marginTop: 3, lineHeight: 17 },
+    createClipButton: { backgroundColor: c.primary, borderRadius: 13, minHeight: 42, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 5 },
+    createClipText: { color: '#FFFFFF', fontWeight: '800', fontSize: 12 },
+    clipsEmpty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, gap: 9, backgroundColor: c.surface, borderRadius: 20 },
+    clipsEmptyTitle: { color: c.text, fontSize: 16, fontWeight: '800' },
+    clipsEmptyText: { color: c.textMuted, fontSize: 13 },
+    clipCard: { backgroundColor: c.surface, borderRadius: 22, padding: 12, gap: 10, borderWidth: 1, borderColor: c.border },
+    clipAuthor: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    clipCaption: { color: c.text, fontSize: 14, lineHeight: 20 },
+    clipActions: { flexDirection: 'row', alignItems: 'center', gap: 20, paddingHorizontal: 4 },
     screen: { flex: 1, backgroundColor: c.background },
     content: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 150 },
     header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 18 },

@@ -13,6 +13,12 @@ export class CommunityController {
   uploadMedia(@Request() request: AuthRequest, @Param('fileName') fileName: string, @Headers('content-type') contentType: string) {
     return this.community.uploadMedia(request.user.id, fileName, contentType, request.body as Buffer);
   }
+  @Get('clips')
+  clips(@Request() request: AuthRequest, @Query('limit') limit?: string) { return this.community.clips(request.user.id, Number(limit) || 30); }
+  @Post('clips')
+  createClip(@Request() request: AuthRequest, @Body() body: { content?: string; mediaKey?: string; mediaType?: string }) {
+    return this.community.createClip(request.user.id, body?.content ?? '', body?.mediaKey ?? '', body?.mediaType ?? '');
+  }
   @Get('posts')
   feed(@Request() request: AuthRequest, @Query('limit') limit?: string) { return this.community.feed(request.user.id, Number(limit) || 30); }
   @Post('posts')

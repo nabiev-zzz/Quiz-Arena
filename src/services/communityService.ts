@@ -56,6 +56,9 @@ async function request<T>(path: string, method = 'GET', body?: unknown): Promise
 }
 
 export const getCommunityFeed = () => request<CommunityPost[]>('/api/community/posts?limit=40');
+export const getCommunityClips = () => request<CommunityPost[]>('/api/community/clips?limit=40');
+export const createCommunityClip = (content: string, mediaKey: string, mediaType: string) =>
+  request<CommunityPost>('/api/community/clips', 'POST', { content, mediaKey, mediaType });
 export const createCommunityPost = (content: string, mediaKey?: string, mediaType?: string) =>
   request<CommunityPost>('/api/community/posts', 'POST', { content, mediaKey, mediaType });
 export const likeCommunityPost = (id: string) => request<{ isLiked: boolean; likesCount: number }>(`/api/community/posts/${encodeURIComponent(id)}/like`, 'POST');
@@ -75,13 +78,15 @@ export async function uploadCommunityMedia(uri: string, contentType: string) {
   const local = await fetch(uri);
   if (!local.ok) throw new Error('Tanlangan rasmni o‘qib bo‘lmadi');
   const blob = await local.blob();
-  if (!blob.size || blob.size > 8 * 1024 * 1024) throw new Error('Rasm hajmi 8 MB dan oshmasin');
+  const isVideo = contentType.startsWith('video/');
+  const maxBytes = isVideo ? 50 * 1024 * 1024 : 8 * 1024 * 1024;
+  if (!blob.size || blob.size > maxBytes) throw new Error(isVideo ? 'Video hajmi 50 MB dan oshmasin' : 'Rasm hajmi 8 MB dan oshmasin');
   const response = await fetch(`${API_BASE_URL}/api/community/media/upload/${encodeURIComponent(key.fileName)}`, {
     method: 'PUT',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': contentType },
     body: blob,
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(typeof data.message === 'string' ? data.message : 'Rasmni yuklab bo‘lmadi');
+  if (!response.ok) throw new Error(typeof data.message === 'string' ? data.message : 'Media faylni yuklab bo‘lmadi');
   return { mediaKey: data.mediaKey as string, mediaType: data.mediaType as string };
 }
