@@ -24,6 +24,12 @@ export class SubscriptionsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('admin/qa-tester/grant')
+  grantQaTester(@Request() request: AuthRequest) {
+    return this.subscriptionsService.grantQaTester(request.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('usage/:featureKey')
   consumeFeature(@Request() request: AuthRequest, @Param('featureKey') featureKey: string) {
     return this.featureUsageService.consume(request.user.id, featureKey);
