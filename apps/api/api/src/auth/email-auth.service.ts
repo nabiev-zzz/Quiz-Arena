@@ -140,6 +140,7 @@ export class EmailAuthService {
         role: user.role,
         status: user.status,
         xp: user.xp,
+        zcBalance: user.zcBalance ?? 0,
         rankPoints: user.rankPoints,
         rankTier: user.rankPoints >= 1400 ? 'Grandmaster' : user.rankPoints >= 1100 ? 'Master' : user.rankPoints >= 800 ? 'Diamond' : user.rankPoints >= 600 ? 'Platinum' : user.rankPoints >= 400 ? 'Gold' : user.rankPoints >= 200 ? 'Silver' : 'Bronze',
         level: user.level,
@@ -147,6 +148,7 @@ export class EmailAuthService {
         bio: user.bio,
         profileFrame: user.profileFrame,
         avatarDecoration: user.avatarDecoration,
+        profileBadge: user.profileBadge,
         createdAt: user.createdAt,
       },
     };
