@@ -23,22 +23,24 @@ import { SupportChatMessage, sendSupportMessage } from '../services/supportAssis
 import { useTheme } from '../theme/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
-interface SupportAssistantScreenProps {
+interface SupportChatScreenProps {
   onBack: () => void;
   bottomDockSpace?: number;
   dockStretch?: SharedValue<number>;
   language?: 'uz' | 'ru' | 'en';
+  initialPrompt?: string;
 }
 
 const CONNECTION_ERROR =
   'Serverga ulanib bo‘lmadi. Internetni tekshirib, qayta urinib ko‘ring.';
 
-export default function SupportAssistantScreen({
+export default function SupportChatScreen({
   onBack,
   bottomDockSpace = 0,
   dockStretch,
   language = 'uz',
-}: SupportAssistantScreenProps) {
+  initialPrompt = '',
+}: SupportChatScreenProps) {
   const { tokens } = useTheme();
   const colors = tokens.colors;
   const styles = makeStyles(colors);
@@ -67,7 +69,7 @@ export default function SupportAssistantScreen({
   });
 
   const [messages, setMessages] = useState<SupportChatMessage[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(initialPrompt);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [failedMessageIds, setFailedMessageIds] = useState<string[]>([]);
@@ -213,10 +215,10 @@ export default function SupportAssistantScreen({
             <LocalizedText style={styles.backText}>‹</LocalizedText>
           </Pressable>
           <View style={styles.headerInfo}>
-            <LocalizedText style={styles.headerTitle}>AI Yordamchi</LocalizedText>
+            <LocalizedText style={styles.headerTitle}>Yordam chati</LocalizedText>
             <View style={styles.onlineRow}>
               <View style={styles.onlineDot} />
-              <LocalizedText style={styles.onlineText}>Ilova bo‘yicha yordam</LocalizedText>
+              <LocalizedText style={styles.onlineText}>Mustaqil ZELQEN CORE Support AI</LocalizedText>
             </View>
           </View>
           <Pressable
