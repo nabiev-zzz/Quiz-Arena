@@ -12,6 +12,8 @@ import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  Modal,
   StyleSheet,
   Text as NativeText,
   View,
@@ -146,6 +148,7 @@ function AppContent() {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showNavigationDrawer, setShowNavigationDrawer] = useState(false);
   const [supportScreen, setSupportScreen] = useState<'home' | 'chat' | null>(null);
   const [supportInitialPrompt, setSupportInitialPrompt] = useState('');
   const [showPremium, setShowPremium] = useState(false);
@@ -173,6 +176,7 @@ function AppContent() {
   const borderColor = tokens.colors.glassBorder;
 
   const openTab = (nextTab: Tab) => {
+    setShowNavigationDrawer(false);
     // A tab selection must dismiss every modal/secondary screen, including Support.
     // Otherwise the Support screen remains mounted above the selected tab.
     setSupportScreen(null);
@@ -240,6 +244,15 @@ function AppContent() {
     return (
       <>
         <View style={styles.homeHeader}>
+          <Pressable
+            style={[styles.homeMenuButton, { backgroundColor: tokens.colors.surfaceElevated, borderColor }]}
+            onPress={() => setShowNavigationDrawer(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Yon menyuni ochish"
+            hitSlop={8}
+          >
+            <Ionicons name="menu" size={24} color={textColor} />
+          </Pressable>
           <View style={styles.homeBrand}>
             <View style={styles.homeBrandIcon}><LocalizedText style={styles.homeBrandLetter}>Z</LocalizedText></View>
             <View style={styles.homeBrandText}>
@@ -376,8 +389,6 @@ function AppContent() {
       return (
         <LearnScreen
           dockStretch={dockStretch}
-          onDocumentQuiz={() => setShowDocumentQuiz(true)}
-          onSmartPractice={() => setShowSmartPractice(true)}
           initialSubject={selectedSubject}
           onTopicSelect={(subject, topic) => {
             setSelectedSubject(subject);
@@ -522,6 +533,109 @@ function AppContent() {
     >
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
+      <Modal
+        visible={showNavigationDrawer}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setShowNavigationDrawer(false)}
+      >
+        <View style={styles.drawerOverlay}>
+          <Pressable
+            style={styles.drawerBackdrop}
+            onPress={() => setShowNavigationDrawer(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Menyani yopish"
+          />
+          <SafeAreaView
+            edges={['top', 'bottom']}
+            style={[styles.drawerPanel, { backgroundColor: tokens.colors.background, borderColor }]}
+          >
+            <View style={styles.drawerTopRow}>
+              <LocalizedText style={[styles.drawerBrand, { color: textColor }]}>ZELQEN CORE</LocalizedText>
+              <Pressable onPress={() => setShowNavigationDrawer(false)} style={styles.drawerClose} accessibilityRole="button" accessibilityLabel="Yopish">
+                <Ionicons name="close" size={22} color={mutedColor} />
+              </Pressable>
+            </View>
+            <Pressable
+              style={[styles.drawerProfile, { backgroundColor: tokens.colors.surface, borderColor }]}
+              onPress={() => openTab('profile')}
+              accessibilityRole="button"
+              accessibilityLabel="Profilni ochish"
+            >
+              {user.avatarUrl ? (
+                <Image source={{ uri: user.avatarUrl }} style={styles.drawerAvatar} />
+              ) : (
+                <View style={[styles.drawerAvatar, styles.drawerAvatarFallback]}>
+                  <LocalizedText style={styles.drawerAvatarInitials}>{user.displayName.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</LocalizedText>
+                </View>
+              )}
+              <View style={styles.drawerProfileCopy}>
+                <LocalizedText style={[styles.drawerUserName, { color: textColor }]} numberOfLines={1}>{user.displayName}</LocalizedText>
+                <LocalizedText style={[styles.drawerUsername, { color: mutedColor }]} numberOfLines={1}>@{user.username}</LocalizedText>
+                <View style={styles.drawerStats}>
+                  <LocalizedText style={styles.drawerStatText}>LVL {user.level}</LocalizedText>
+                  <LocalizedText style={styles.drawerStatDivider}>·</LocalizedText>
+                  <LocalizedText style={styles.drawerStatText}>{user.zcBalance ?? 0} ZC</LocalizedText>
+                  <LocalizedText style={styles.drawerStatDivider}>·</LocalizedText>
+                  <LocalizedText style={styles.drawerStatText}>{user.xp ?? 0} XP</LocalizedText>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={mutedColor} />
+            </Pressable>
+
+            <Animated.ScrollView style={styles.drawerScroll} contentContainerStyle={styles.drawerScrollContent} showsVerticalScrollIndicator={false}>
+              <LocalizedText style={[styles.drawerSectionLabel, { color: mutedColor }]}>FANLAR</LocalizedText>
+              <Pressable style={[styles.drawerItem, { backgroundColor: tokens.colors.surface }]} onPress={() => openTab('learn')}>
+                <View style={[styles.drawerItemIcon, { backgroundColor: 'rgba(139,115,230,0.16)' }]}><Ionicons name="book-outline" size={19} color={tokens.colors.primary} /></View>
+                <View style={styles.drawerItemCopy}>
+                  <LocalizedText style={[styles.drawerItemTitle, { color: textColor }]}>Barcha fanlar</LocalizedText>
+                  <LocalizedText style={[styles.drawerItemDetail, { color: mutedColor }]}>Fan va mavzularni tanlang</LocalizedText>
+                </View>
+                <Ionicons name="chevron-forward" size={17} color={mutedColor} />
+              </Pressable>
+              <Pressable style={[styles.drawerItem, { backgroundColor: tokens.colors.surface }]} onPress={() => { setShowNavigationDrawer(false); openTab('learn'); setShowSmartPractice(true); }}>
+                <View style={[styles.drawerItemIcon, { backgroundColor: 'rgba(39,185,138,0.16)' }]}><Ionicons name="bulb-outline" size={19} color="#27B98A" /></View>
+                <View style={styles.drawerItemCopy}>
+                  <LocalizedText style={[styles.drawerItemTitle, { color: textColor }]}>Smart Practice</LocalizedText>
+                  <LocalizedText style={[styles.drawerItemDetail, { color: mutedColor }]}>Xatolaringiz asosida shaxsiy mashq</LocalizedText>
+                </View>
+                <Ionicons name="chevron-forward" size={17} color={mutedColor} />
+              </Pressable>
+              <Pressable style={[styles.drawerItem, { backgroundColor: tokens.colors.surface }]} onPress={() => { setShowNavigationDrawer(false); openTab('learn'); setShowDocumentQuiz(true); }}>
+                <View style={[styles.drawerItemIcon, { backgroundColor: 'rgba(121,88,201,0.16)' }]}><Ionicons name="document-text-outline" size={19} color="#A78BFA" /></View>
+                <View style={styles.drawerItemCopy}>
+                  <LocalizedText style={[styles.drawerItemTitle, { color: textColor }]}>Hujjatdan test yaratish</LocalizedText>
+                  <LocalizedText style={[styles.drawerItemDetail, { color: mutedColor }]}>PDF yoki Word fayldan AI test</LocalizedText>
+                </View>
+                <Ionicons name="chevron-forward" size={17} color={mutedColor} />
+              </Pressable>
+
+              <LocalizedText style={[styles.drawerSectionLabel, { color: mutedColor }]}>ASOSIY BO‘LIMLAR</LocalizedText>
+              {[
+                { key: 'home', title: 'Bosh sahifa', detail: 'Asosiy panel', icon: 'home-outline' as const },
+                { key: 'battle', title: 'Battle', detail: 'Bilim bellashuvlari', icon: 'flash-outline' as const },
+                { key: 'ranking', title: 'Reyting', detail: 'Yetakchi bilimdonlar', icon: 'trophy-outline' as const },
+                { key: 'tutor', title: 'AI Ustoz', detail: 'Shaxsiy AI yordamchi', icon: 'sparkles-outline' as const },
+                { key: 'profile', title: 'Profil', detail: 'Hisob va yutuqlar', icon: 'person-outline' as const },
+              ].map((item) => (
+                <Pressable key={item.key} style={[styles.drawerCompactItem, { borderBottomColor: borderColor }]} onPress={() => openTab(item.key as Tab)}>
+                  <Ionicons name={item.icon} size={19} color={tokens.colors.primary} />
+                  <LocalizedText style={[styles.drawerCompactTitle, { color: textColor }]}>{item.title}</LocalizedText>
+                  <Ionicons name="chevron-forward" size={16} color={mutedColor} />
+                </Pressable>
+              ))}
+              <Pressable style={[styles.drawerCompactItem, { borderBottomColor: borderColor }]} onPress={() => { setShowNavigationDrawer(false); openTab('profile'); setShowSettings(true); }}>
+                <Ionicons name="settings-outline" size={19} color={tokens.colors.primary} />
+                <LocalizedText style={[styles.drawerCompactTitle, { color: textColor }]}>Sozlamalar</LocalizedText>
+                <Ionicons name="chevron-forward" size={16} color={mutedColor} />
+              </Pressable>
+            </Animated.ScrollView>
+            <LocalizedText style={[styles.drawerFooter, { color: mutedColor }]}>Bilimingni oshir. Bellash. Rivojlan.</LocalizedText>
+          </SafeAreaView>
+        </View>
+      </Modal>
+
       <View pointerEvents="none" style={styles.ambientBackground}>
         <View
           style={[
@@ -657,6 +771,35 @@ export default function App() {
 const styles = StyleSheet.create({
 
 
+
+  homeMenuButton: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  drawerOverlay: { flex: 1, flexDirection: 'row', backgroundColor: 'rgba(8,7,18,0.56)' },
+  drawerBackdrop: StyleSheet.absoluteFill,
+  drawerPanel: { width: '86%', maxWidth: 380, height: '100%', borderRightWidth: 1, paddingHorizontal: 17, paddingTop: 8, paddingBottom: 8, shadowColor: '#000000', shadowOffset: { width: 8, height: 0 }, shadowOpacity: 0.24, shadowRadius: 20, elevation: 24 },
+  drawerTopRow: { minHeight: 43, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  drawerBrand: { fontSize: 12, fontWeight: '900', letterSpacing: 1.8 },
+  drawerClose: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(140,130,170,0.12)' },
+  drawerProfile: { minHeight: 92, borderWidth: 1, borderRadius: 17, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 20 },
+  drawerAvatar: { width: 54, height: 54, borderRadius: 17, backgroundColor: '#7657E8' },
+  drawerAvatarFallback: { alignItems: 'center', justifyContent: 'center' },
+  drawerAvatarInitials: { color: '#FFFFFF', fontSize: 19, fontWeight: '900' },
+  drawerProfileCopy: { flex: 1, minWidth: 0, gap: 3 },
+  drawerUserName: { fontSize: 14, fontWeight: '900' },
+  drawerUsername: { fontSize: 10, fontWeight: '600' },
+  drawerStats: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
+  drawerStatText: { color: '#A995FF', fontSize: 9, fontWeight: '900' },
+  drawerStatDivider: { color: '#8A839C', fontSize: 10 },
+  drawerScroll: { flex: 1 },
+  drawerScrollContent: { paddingBottom: 16, gap: 8 },
+  drawerSectionLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1.5, marginTop: 7, marginBottom: 3 },
+  drawerItem: { minHeight: 66, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  drawerItemIcon: { width: 37, height: 37, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  drawerItemCopy: { flex: 1, minWidth: 0, gap: 3 },
+  drawerItemTitle: { fontSize: 11, fontWeight: '900' },
+  drawerItemDetail: { fontSize: 9, lineHeight: 13 },
+  drawerCompactItem: { minHeight: 45, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: 4 },
+  drawerCompactTitle: { flex: 1, fontSize: 11, fontWeight: '700' },
+  drawerFooter: { fontSize: 9, textAlign: 'center', paddingVertical: 8 },
   homeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 19 },
   homeBrand: { flexDirection: 'row', alignItems: 'center', gap: 11, flex: 1 },
   homeBrandIcon: { width: 42, height: 42, borderRadius: 13, backgroundColor: '#5865F2', alignItems: 'center', justifyContent: 'center' },

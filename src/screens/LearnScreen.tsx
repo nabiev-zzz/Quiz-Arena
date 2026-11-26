@@ -10,14 +10,12 @@ import { useTheme } from '../theme/ThemeContext';
 interface LearnScreenProps {
   initialSubject?: Subject | null;
   onTopicSelect?: (subject: Subject, topic: Topic) => void;
-  onDocumentQuiz?: () => void;
-  onSmartPractice?: () => void;
   dockStretch?: SharedValue<number>;
 }
 
 const normalize = (value: string) => value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
 
-export default function LearnScreen({ initialSubject, onTopicSelect, onDocumentQuiz, onSmartPractice, dockStretch }: LearnScreenProps) {
+export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch }: LearnScreenProps) {
   const { tokens } = useTheme();
   const colors = tokens.colors;
   const styles = makeStyles(colors);
@@ -50,34 +48,6 @@ export default function LearnScreen({ initialSubject, onTopicSelect, onDocumentQ
 
   return (
     <Animated.ScrollView onScroll={dockScrollHandler} scrollEventThrottle={16} style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-      <View style={styles.quickActions}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Smart Practice — avvalgi xatolardan shaxsiy mashq yaratish"
-          onPress={onSmartPractice}
-          style={({ pressed }) => [styles.smartPracticeBanner, pressed && styles.pressed]}
-        >
-          <View style={styles.smartPracticeIcon}><Ionicons name="bulb-outline" size={21} color="#FFFFFF" /></View>
-          <View style={styles.documentQuizCopy}>
-            <LocalizedText style={styles.documentQuizTitle}>Smart Practice</LocalizedText>
-            <LocalizedText style={styles.documentQuizDescription}>Avvalgi xatolaringizdan shaxsiy mashq yarating</LocalizedText>
-          </View>
-          <Ionicons name="arrow-forward-circle" size={23} color="#D9D0FF" />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Hujjatdan test yaratish"
-          onPress={onDocumentQuiz}
-          style={({ pressed }) => [styles.documentQuizBanner, pressed && styles.pressed]}
-        >
-          <View style={styles.documentQuizIcon}><Ionicons name="document-text-outline" size={21} color="#FFFFFF" /></View>
-          <View style={styles.documentQuizCopy}>
-            <LocalizedText style={styles.documentQuizTitle}>Hujjatdan test yaratish</LocalizedText>
-            <LocalizedText style={styles.documentQuizDescription}>PDF yoki Word yuklang — AI savollar tayyorlaydi</LocalizedText>
-          </View>
-          <Ionicons name="arrow-forward-circle" size={23} color="#D9D0FF" />
-        </Pressable>
-      </View>
       {selectedSubject ? (
         <>
           <Pressable style={styles.backButton} onPress={() => { setSelectedSubject(null); setSearchQuery(''); }}>
@@ -165,15 +135,6 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     container: { flex: 1, backgroundColor: colors.background },
     content: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 136 },
     header: { marginTop: 8, marginBottom: 19 },
-    quickActions: { gap: 11, marginBottom: 27 },
-    smartPracticeBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderRadius: 17, backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(140,229,208,0.30)' },
-    smartPracticeIcon: { width: 43, height: 43, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#258F7C' },
-    documentQuizBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderRadius: 17, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.glassBorder },
-    documentQuizIcon: { width: 43, height: 43, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#7958C9' },
-    documentQuizCopy: { flex: 1, gap: 4 },
-    documentQuizTitle: { color: colors.text, fontSize: 13, fontWeight: '900' },
-    documentQuizDescription: { color: colors.textMuted, fontSize: 10, lineHeight: 15 },
-
     eyebrow: { color: colors.primary, fontSize: 10, fontWeight: '900', letterSpacing: 1.8, marginBottom: 10 },
     title: { color: colors.text, fontSize: 27, lineHeight: 34, fontWeight: '900', letterSpacing: -0.7 },
     subtitle: { color: colors.textMuted, fontSize: 13, lineHeight: 20, marginTop: 7 },
