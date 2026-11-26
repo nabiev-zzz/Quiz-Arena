@@ -152,11 +152,11 @@ export default function LiquidDock({
               styles.liquidPill,
               {
                 backgroundColor: isDark
-                  ? 'rgba(88,101,242,0.24)'
-                  : 'rgba(126,101,232,0.12)',
+                  ? 'rgba(167,139,250,0.22)'
+                  : 'rgba(121,88,201,0.12)',
                 borderColor: isDark
-                  ? 'rgba(142,161,255,0.42)'
-                  : 'rgba(126,101,232,0.22)',
+                  ? 'rgba(196,181,253,0.38)'
+                  : 'rgba(121,88,201,0.24)',
               },
               indicatorStyle,
             ]}
@@ -188,16 +188,16 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   dock: {
-    height: 64,
-    borderRadius: 17,
+    height: 68,
+    borderRadius: 22,
     borderWidth: 1,
     overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 18,
+    shadowOpacity: 0.13,
+    shadowRadius: 22,
     elevation: 14,
   },
   itemsRow: {

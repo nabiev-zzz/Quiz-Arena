@@ -4,3 +4,50 @@
 .learning-launch{margin-top:24px}.review-list{text-align:left;max-width:850px;margin:32px auto 0}.review-list h3{font:700 20px Manrope;margin-bottom:14px}.review-item{padding:18px 0;border-top:1px solid var(--line)}.review-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}.review-heading b{font:650 14px/1.5 Manrope}.review-heading span{font-size:11px;font-weight:800;white-space:nowrap}.good{color:var(--mint)}.bad{color:var(--danger)}.review-item p{margin:8px 0}.review-item .explanation{margin-top:10px}
 
 .topic-card.topic-completed{border-color:#8ce5d044;background:linear-gradient(110deg,#8ce5d00b,#a78bfa08)}.topic-card.topic-completed .topic-num{background:#8ce5d01c;color:var(--mint)}.topic-card.topic-completed small{color:var(--mint)}
+
+
+/* ZELQEN CORE learning workspace — aligned with the public site */
+:root{
+ --bg:#0d0b18;--panel:rgba(255,255,255,.045);--panel2:rgba(255,255,255,.075);
+ --line:rgba(196,181,253,.14);--text:#f7f4ff;--muted:#a69db9;
+ --purple:#a78bfa;--mint:#8ce5d0;--gold:#f4cc82;
+}
+body{font-family:"DM Sans",system-ui,sans-serif;line-height:1.55}
+.topbar{height:72px;width:min(1160px,calc(100% - 48px))}
+.page{width:min(1160px,calc(100% - 48px));padding:42px 0 76px}
+.glass{border-radius:22px;border-color:var(--line);box-shadow:0 20px 65px rgba(0,0,0,.18),inset 0 1px rgba(255,255,255,.035)}
+.auth-layout{gap:clamp(32px,6vw,88px)}
+.intro h1{letter-spacing:-.055em}
+.auth-card{padding:clamp(22px,3vw,34px)}
+.auth-tabs{background:rgba(0,0,0,.20);padding:5px}
+.tab{border-radius:10px;min-height:42px}
+.tab.active{background:rgba(167,139,250,.18);color:var(--text)}
+.auth-form input,.search{min-height:48px;border-radius:13px;background:rgba(8,6,16,.52);border-color:var(--line)}
+.primary{min-height:48px;border-radius:13px;box-shadow:0 9px 26px rgba(167,139,250,.15)}
+.stats-grid{gap:14px;margin-bottom:42px}
+.stat-card{border-radius:17px;padding:21px;background:linear-gradient(145deg,rgba(255,255,255,.065),rgba(255,255,255,.025))}
+.subjects-grid{gap:13px}
+.subject-card{border-radius:17px;padding:17px;border-color:var(--line)}
+.topics-panel,.quiz-panel,.result-panel,.history-panel{border-radius:21px;border-color:var(--line)}
+.answer-option{border-radius:14px;transition:background .18s,border-color .18s,transform .18s}
+.answer-option:hover:not(:disabled){transform:translateY(-1px)}
+footer{width:min(1160px,calc(100% - 48px));margin:auto}
+:focus-visible{outline:3px solid rgba(167,139,250,.78);outline-offset:3px}
+@media(max-width:850px){
+ .auth-layout{gap:26px}
+ .auth-card{max-width:none;justify-self:stretch}
+ .stats-grid{gap:10px}
+}
+@media(max-width:560px){
+ .topbar,.page{width:calc(100% - 32px)}
+ .page{padding:28px 0 54px}
+ .auth-card{padding:20px;border-radius:19px}
+ .welcome-row{gap:12px}
+ .stat-card{padding:15px;border-radius:15px}
+ .subject-card{border-radius:15px}
+ .quiz-panel,.result-panel,.history-panel{padding:17px;border-radius:17px}
+ footer{width:calc(100% - 32px)}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
