@@ -24,6 +24,7 @@ interface ProfileScreenProps {
 }
 
 type ProfileTab = 'main' | 'board' | 'activity' | 'missions' | 'wishlist';
+type ShopFilter = 'all' | 'frames' | 'effects' | 'decorations';
 
 const AVATAR_CATEGORIES = [
   { id: 'anime', label: 'Anime', style: 'lorelei', seeds: ['Aiko', 'Hana', 'Akira', 'Yuki', 'Ren', 'Sora', 'Mika', 'Kai'] },
@@ -93,6 +94,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const [zcHistory, setZcHistory] = useState<ZcTransactionItem[]>([]);
   const [zcHistoryLoading, setZcHistoryLoading] = useState(false);
   const [storeProducts, setStoreProducts] = useState<ZcStoreProduct[]>([]);
+  const [shopFilter, setShopFilter] = useState<ShopFilter>('all');
   const [storeLoading, setStoreLoading] = useState(false);
   const [purchasingItemId, setPurchasingItemId] = useState<string | null>(null);
   const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([]);
@@ -328,7 +330,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     { key: 'board', label: 'Board' },
     { key: 'activity', label: 'Tarix' },
     { key: 'missions', label: 'Vazifalar' },
-    { key: 'wishlist', label: 'Do‘kon' },
+    { key: 'wishlist', label: 'Shop' },
   ];
 
   const renderCard = (children: React.ReactNode, extraStyle?: object, key?: string) => (
@@ -344,13 +346,13 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
           </Pressable>
           <LocalizedText style={styles.headerTitle}>PROFILE</LocalizedText>
           <Pressable style={styles.headerButton} onPress={onSettingsPress} accessibilityRole="button" accessibilityLabel="Sozlamalar">
-            <Ionicons name="settings-outline" size={21} color={C.text} />
+            <Ionicons name="settings-outline" size={21} color={C.text} />
           </Pressable>
         </View>
 
         <View style={styles.identity}>
           <View style={styles.avatarWrap}>
-            <View style={[styles.avatarFrame, user.profileFrame === 'aurora' && styles.frameAurora, user.profileFrame === 'royal' && styles.frameRoyal, user.profileFrame === 'ocean' && styles.frameOcean]}>
+            <View style={[styles.avatarFrame, user.profileFrame === 'aurora' && styles.frameAurora, user.profileFrame === 'royal' && styles.frameRoyal, user.profileFrame === 'ocean' && styles.frameOcean, user.profileFrame === 'neon3d' && styles.frameNeon3d, user.profileFrame === 'inferno3d' && styles.frameInferno3d, user.profileFrame === 'frost3d' && styles.frameFrost3d, user.profileFrame === 'galaxy3d' && styles.frameGalaxy3d]}>
               {avatarUri ? <Image source={{ uri: avatarUri }} style={styles.avatar} /> : <View style={styles.avatarFallback}><LocalizedText style={styles.avatarInitials}>{initials || '?'}</LocalizedText></View>}
             </View>
             {user.avatarDecoration ? <View style={styles.decoration}><Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={13} color="#F5D78A" /></View> : null}
@@ -440,16 +442,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
                 <Ionicons name="chevron-forward" size={19} color={C.muted} />
               </Pressable>,
               styles.premiumCard,
-            )}
-            {renderCard(
-              <Pressable style={styles.row} onPress={onPremiumPress}>
-                <View style={styles.iconTile}><Ionicons name="storefront-outline" size={21} color={C.purple} /></View>
-                <View style={styles.rowBody}>
-                  <LocalizedText style={styles.cardTitle}>Shop</LocalizedText>
-                  <LocalizedText style={styles.cardSubtitle}>Profil uchun qo‘shimcha imkoniyatlar</LocalizedText>
-                </View>
-                <Ionicons name="chevron-forward" size={19} color={C.muted} />
-              </Pressable>,
             )}
             {renderCard(
               <View style={styles.bioRow}>
@@ -651,38 +643,49 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
 
         {activeTab === 'wishlist' ? (
           <>
-            <View style={styles.sectionHeader}><LocalizedText style={styles.sectionTitle}>Mukofotlar va bezaklar</LocalizedText></View>
-            {renderCard(
-              <View style={styles.row}>
-                <View style={styles.iconTile}><Ionicons name="medal-outline" size={21} color={C.purple} /></View>
-                <View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>Mening mukofotlarim</LocalizedText><LocalizedText style={styles.cardSubtitle}>Yutuqlar va medallar</LocalizedText></View>
-              </View>,
-            )}
-            <View style={styles.sectionHeader}>
-              <View style={styles.rowBody}>
-                <LocalizedText style={styles.sectionTitle}>ZC do‘koni</LocalizedText>
-                <LocalizedText style={styles.cardSubtitle}>XP reyting uchun, ZC esa xaridlar uchun ishlatiladi.</LocalizedText>
+            <View style={styles.shopHero}>
+              <View style={styles.shopHeroIcon}><Ionicons name="bag-handle" size={23} color="#FFFFFF" /></View>
+              <View style={{ flex: 1 }}>
+                <LocalizedText style={styles.shopHeroTitle}>ZELQEN SHOP</LocalizedText>
+                <LocalizedText style={styles.cardSubtitle}>Profilingizni o‘zingizga xos qiling</LocalizedText>
               </View>
-              <LocalizedText style={styles.linkText}>{Number(user.zcBalance ?? 0)} ZC</LocalizedText>
+              <View style={styles.shopBalance}><LocalizedText style={styles.shopBalanceValue}>{Number(user.zcBalance ?? 0)}</LocalizedText><LocalizedText style={styles.shopBalanceLabel}>ZC</LocalizedText></View>
             </View>
-            {storeLoading ? <ActivityIndicator color={C.purple} style={{ marginVertical: 18 }} /> : storeProducts.map((product) => {
-              const equipped = product.kind === 'frame' ? user.profileFrame === product.value : user.avatarDecoration === product.value;
-              return renderCard(
-                <View style={styles.row}>
-                  <View style={styles.iconTile}><Ionicons name={product.kind === 'frame' ? 'albums-outline' : 'sparkles-outline'} size={21} color={C.purple} /></View>
-                  <View style={styles.rowBody}>
-                    <LocalizedText style={styles.cardTitle}>{product.name}</LocalizedText>
-                    <LocalizedText style={styles.cardSubtitle}>{product.description}</LocalizedText>
-                    <LocalizedText style={styles.cardSubtitle}>{product.owned ? 'Sizda mavjud' : product.price + ' ZC'}</LocalizedText>
-                  </View>
-                  <Pressable style={styles.followButton} disabled={purchasingItemId !== null || equipped} onPress={() => void buyOrEquipCosmetic(product)}>
-                    {purchasingItemId === product.id ? <ActivityIndicator color="#FFFFFF" size="small" /> : <LocalizedText style={styles.followButtonText}>{equipped ? 'Tanlangan' : product.owned ? 'Jihozlash' : 'Xarid qilish'}</LocalizedText>}
-                  </Pressable>
-                </View>,
-                undefined,
-                product.id,
-              );
-            })}
+            <View style={styles.shopFilters}>
+              {([['all', 'Barchasi'], ['frames', 'Ramkalar'], ['effects', '3D effektlar'], ['decorations', 'Bezaklar']] as [ShopFilter, string][]).map(([key, label]) => (
+                <Pressable key={key} onPress={() => setShopFilter(key)} style={[styles.shopFilter, shopFilter === key && styles.shopFilterActive]}>
+                  <LocalizedText style={[styles.shopFilterText, shopFilter === key && styles.shopFilterTextActive]}>{label}</LocalizedText>
+                </Pressable>
+              ))}
+            </View>
+            {storeLoading ? <ActivityIndicator color={C.purple} style={{ marginVertical: 24 }} /> : (
+              <View style={styles.shopGrid}>
+                {storeProducts.filter((product) => shopFilter === 'all' || (shopFilter === 'frames' && product.kind === 'frame' && !product.value.endsWith('3d')) || (shopFilter === 'effects' && product.value.endsWith('3d')) || (shopFilter === 'decorations' && product.kind === 'decoration')).map((product) => {
+                  const equipped = product.kind === 'frame' ? user.profileFrame === product.value : user.avatarDecoration === product.value;
+                  const isDecoration = product.kind === 'decoration';
+                  const previewStyle = product.value === 'aurora' ? styles.frameAurora : product.value === 'royal' ? styles.frameRoyal : product.value === 'ocean' ? styles.frameOcean : product.value === 'neon3d' ? styles.frameNeon3d : product.value === 'inferno3d' ? styles.frameInferno3d : product.value === 'frost3d' ? styles.frameFrost3d : product.value === 'galaxy3d' ? styles.frameGalaxy3d : null;
+                  return (
+                    <View key={product.id} style={styles.shopProduct}>
+                      <View style={styles.shopProductPreview}>
+                        <View style={[styles.shopAvatarPreview, !isDecoration && previewStyle]}>
+                          <Ionicons name={isDecoration ? (product.value === 'crown' ? 'ribbon' : product.value === 'laurel' ? 'leaf' : 'star') : 'person'} size={31} color={isDecoration ? '#F4CE77' : '#FFFFFF'} />
+                        </View>
+                        {product.value.endsWith('3d') ? <View style={styles.shop3dPill}><LocalizedText style={styles.shop3dText}>3D</LocalizedText></View> : null}
+                      </View>
+                      <LocalizedText style={styles.shopProductName} numberOfLines={1}>{product.name}</LocalizedText>
+                      <LocalizedText style={styles.shopProductDescription} numberOfLines={2}>{product.description}</LocalizedText>
+                      <View style={styles.shopProductBottom}>
+                        <LocalizedText style={styles.shopPrice}>{product.owned ? 'Sizda bor' : `${product.price} ZC`}</LocalizedText>
+                        <Pressable style={[styles.shopBuyButton, equipped && styles.shopEquippedButton]} disabled={purchasingItemId !== null || equipped} onPress={() => void buyOrEquipCosmetic(product)}>
+                          {purchasingItemId === product.id ? <ActivityIndicator color="#FFFFFF" size="small" /> : <LocalizedText style={styles.shopBuyText}>{equipped ? 'Tanlangan' : product.owned ? 'Jihozlash' : 'Olish'}</LocalizedText>}
+                        </Pressable>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+            <LocalizedText style={[styles.cardSubtitle, { marginTop: 12, textAlign: 'center' }]}>ZC — faqat ZELQEN CORE ichida ishlatiladigan virtual valyuta.</LocalizedText>
           </>
         ) : null}
 
@@ -794,6 +797,34 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     frameAurora: { backgroundColor: '#8B72E8' },
     frameRoyal: { backgroundColor: '#D7A93F' },
     frameOcean: { backgroundColor: '#4D9FC8' },
+    frameNeon3d: { backgroundColor: '#7C3AED', borderColor: '#D8B4FE', borderWidth: 5, shadowColor: '#A855F7', shadowOpacity: 0.95, shadowRadius: 16, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
+    frameInferno3d: { backgroundColor: '#EA580C', borderColor: '#FDBA74', borderWidth: 5, shadowColor: '#F97316', shadowOpacity: 0.95, shadowRadius: 16, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
+    frameFrost3d: { backgroundColor: '#0284C7', borderColor: '#BAE6FD', borderWidth: 5, shadowColor: '#38BDF8', shadowOpacity: 0.95, shadowRadius: 16, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
+    frameGalaxy3d: { backgroundColor: '#4338CA', borderColor: '#C4B5FD', borderWidth: 5, shadowColor: '#818CF8', shadowOpacity: 0.95, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 16 },
+    shopHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderRadius: 20, backgroundColor: C.surfaceRaised, borderWidth: 1, borderColor: C.border, marginBottom: 13 },
+    shopHeroIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: C.purple },
+    shopHeroTitle: { color: C.text, fontSize: 15, fontWeight: '900', letterSpacing: 1 },
+    shopBalance: { alignItems: 'flex-end' },
+    shopBalanceValue: { color: '#D9B65B', fontSize: 19, fontWeight: '900' },
+    shopBalanceLabel: { color: C.muted, fontSize: 10, fontWeight: '800' },
+    shopFilters: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 13 },
+    shopFilter: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
+    shopFilterActive: { backgroundColor: C.purple, borderColor: C.purple },
+    shopFilterText: { color: C.muted, fontSize: 11, fontWeight: '700' },
+    shopFilterTextActive: { color: '#FFFFFF' },
+    shopGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 11 },
+    shopProduct: { width: '48.5%', minHeight: 205, padding: 11, borderRadius: 18, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
+    shopProductPreview: { height: 84, alignItems: 'center', justifyContent: 'center', marginBottom: 7, position: 'relative' },
+    shopAvatarPreview: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, borderColor: C.purple, backgroundColor: C.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
+    shop3dPill: { position: 'absolute', top: 0, right: 3, backgroundColor: '#8B5CF6', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
+    shop3dText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
+    shopProductName: { color: C.text, fontSize: 13, fontWeight: '800' },
+    shopProductDescription: { color: C.muted, fontSize: 10, lineHeight: 14, minHeight: 29, marginTop: 3 },
+    shopProductBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginTop: 9 },
+    shopPrice: { color: '#D9B65B', fontSize: 11, fontWeight: '900', flexShrink: 1 },
+    shopBuyButton: { backgroundColor: C.purple, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, minWidth: 62, alignItems: 'center' },
+    shopEquippedButton: { backgroundColor: C.surfaceRaised },
+    shopBuyText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
     avatar: { width: '100%', height: '100%', borderRadius: 54 },
     avatarFallback: { flex: 1, borderRadius: 54, backgroundColor: C.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
     avatarInitials: { color: C.text, fontSize: 29, fontWeight: '800' },
