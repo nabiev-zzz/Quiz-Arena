@@ -1,7 +1,11 @@
 FROM node:22-alpine AS web-build
 RUN apk add --no-cache git
-ARG APP_SOURCE_BRANCH=main
-RUN git clone --depth 1 --branch "${APP_SOURCE_BRANCH}" https://github.com/nabiev-zzz/Quiz-Arena.git /workspace
+ARG APP_SOURCE_COMMIT=main
+ADD https://api.github.com/repos/nabiev-zzz/Quiz-Arena/commits/${APP_SOURCE_COMMIT} /tmp/app-source-commit.json
+RUN git init /workspace \
+    && git -C /workspace remote add origin https://github.com/nabiev-zzz/Quiz-Arena.git \
+    && git -C /workspace fetch --depth 1 origin "${APP_SOURCE_COMMIT}" \
+    && git -C /workspace checkout --detach FETCH_HEAD
 WORKDIR /workspace
 RUN npm ci
 RUN npx expo export --platform web --output-dir /web-dist
