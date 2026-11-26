@@ -32,7 +32,8 @@ import DocumentQuizScreen from './src/screens/DocumentQuizScreen';
 import SmartPracticeScreen from './src/screens/SmartPracticeScreen';
 import QuizScreen from './src/screens/QuizScreen';
 import AiTutorScreen from './src/screens/AiTutorScreen';
-import SupportAssistantScreen from './src/screens/SupportAssistantScreen';
+import SupportHomeScreen from './src/screens/SupportHomeScreen';
+import SupportChatScreen from './src/screens/SupportChatScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ShopScreen from './src/screens/ShopScreen';
 import PublicProfileScreen from './src/screens/PublicProfileScreen';
@@ -145,7 +146,8 @@ function AppContent() {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [showSupportAssistant, setShowSupportAssistant] = useState(false);
+  const [supportScreen, setSupportScreen] = useState<'home' | 'chat' | null>(null);
+  const [supportInitialPrompt, setSupportInitialPrompt] = useState('');
   const [showPremium, setShowPremium] = useState(false);
   const [showDocumentQuiz, setShowDocumentQuiz] = useState(false);
   const [showSmartPractice, setShowSmartPractice] = useState(false);
@@ -537,12 +539,26 @@ function AppContent() {
         />
       </View>
 
-      {showSupportAssistant ? (
-        <SupportAssistantScreen onBack={() => { setShowSupportAssistant(false); setShowSettings(true); }} bottomDockSpace={96} dockStretch={dockStretch} language={language} />
+      {supportScreen === 'chat' ? (
+        <SupportChatScreen
+          onBack={() => setSupportScreen('home')}
+          bottomDockSpace={96}
+          dockStretch={dockStretch}
+          language={language}
+          initialPrompt={supportInitialPrompt}
+        />
+      ) : supportScreen === 'home' ? (
+        <SupportHomeScreen
+          onBack={() => { setSupportScreen(null); setShowSettings(true); }}
+          onOpenChat={(prompt) => {
+            setSupportInitialPrompt(prompt ?? '');
+            setSupportScreen('chat');
+          }}
+        />
       ) : showSettings ? (
         <SettingsScreen
           onBack={() => setShowSettings(false)}
-          onHelp={() => { setShowSettings(false); setShowSupportAssistant(true); }}
+          onHelp={() => { setShowSettings(false); setSupportScreen('home'); }}
           dockStretch={dockStretch}
         />
       ) : showSmartPractice ? (
