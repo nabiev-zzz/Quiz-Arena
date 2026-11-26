@@ -10,10 +10,11 @@ import AnimatedBadge from '../components/AnimatedBadge';
 import ProfileEffect from '../components/ProfileEffect';
 import { getZcStoreCatalog, type ZcStoreProduct } from '../services/zcStoreService';
 
-type Kind = 'frame' | 'badge' | 'decoration';
+type Kind = 'frame' | 'effect' | 'badge' | 'decoration';
 type Selection = { frame: string | null; badge: string | null; decoration: string | null };
 const TABS: { id: Kind; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { id: 'frame', label: 'Ramkalar', icon: 'ellipse-outline' },
+  { id: 'effect', label: 'Profil effektlari', icon: 'sparkles-outline' },
   { id: 'badge', label: 'Nishonlar', icon: 'medal-outline' },
   { id: 'decoration', label: 'Bezaklar', icon: 'sparkles-outline' },
 ];
@@ -50,8 +51,8 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
     if (user) setSelection({ frame: user.profileFrame, badge: user.profileBadge ?? null, decoration: user.avatarDecoration });
   }, [user?.profileFrame, user?.profileBadge, user?.avatarDecoration]);
 
-  const visibleItems = useMemo(() => items.filter((item) => item.kind === kind), [items, kind]);
-  const currentValue = selection[kind];
+  const visibleItems = useMemo(() => items.filter((item) => kind === 'effect' ? item.kind === 'frame' && item.value.endsWith('3d') : kind === 'frame' ? item.kind === 'frame' && !item.value.endsWith('3d') : item.kind === kind), [items, kind]);
+  const currentValue = kind === 'effect' ? selection.frame : selection[kind];
   const frameStyle = (value: string | null) => {
     if (value === 'aurora') return styles.frameAurora;
     if (value === 'royal') return styles.frameRoyal;
@@ -62,12 +63,12 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
     if (value === 'galaxy3d') return styles.frameGalaxy3d;
     return null;
   };
-  const choose = (value: string | null) => setSelection((old) => ({ ...old, [kind]: value }));
+  const choose = (value: string | null) => setSelection((old) => ({ ...old, [kind === 'effect' ? 'frame' : kind]: value }));
   const apply = async () => {
     if (!user || saving) return;
     setSaving(true);
     try {
-      if (kind === 'frame') await updateProfile({ profileFrame: selection.frame });
+      if (kind === 'frame' || kind === 'effect') await updateProfile({ profileFrame: selection.frame });
       else if (kind === 'badge') await updateProfile({ profileBadge: selection.badge });
       else await updateProfile({ avatarDecoration: selection.decoration });
       await refreshUser();
@@ -77,8 +78,8 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
     } finally { setSaving(false); }
   };
   const initials = (user?.displayName ?? 'U').trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('');
-  const selectedLabel = kind === 'frame'
-    ? (selection.frame ? (FRAME_NAMES[selection.frame] ?? selection.frame) : 'Standart ramka')
+  const selectedLabel = kind === 'frame' || kind === 'effect'
+    ? (selection.frame ? (FRAME_NAMES[selection.frame] ?? selection.frame) : kind === 'effect' ? 'Effektsiz' : 'Standart ramka')
     : kind === 'badge'
       ? (selection.badge ? (BADGE_NAMES[selection.badge] ?? selection.badge.toUpperCase()) : 'Nishonsiz')
       : (selection.decoration ? ({ crown: 'Toj', laurel: 'Laurel', star: 'Yulduz', sparkle: 'Yulduzcha', book_wings: 'Kitob qanotlari', laurel_wreath: 'Dafna toji' }[selection.decoration] ?? selection.decoration) : 'Bezaksiz');
@@ -127,7 +128,8 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
           const selected = currentValue === item.value;
           return <Pressable key={item.id} onPress={() => choose(item.value)} style={({ pressed }) => [styles.item, selected && styles.itemSelected, pressed && styles.itemPressed]}>
             <View style={styles.itemStage}>
-              {item.kind === 'frame' ? <View style={[styles.miniAvatarFrame, frameStyle(item.value)]}>{user?.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.miniAvatar} /> : <Ionicons name="person" size={26} color="#FFFFFF" />}</View>
+              {kind === 'effect' ? <ProfileEffect value={item.value} style={styles.effectCollectionPreview}><View style={styles.effectCollectionInner}><View style={[styles.effectCollectionAvatar, frameStyle(item.value)]}>{user?.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.miniAvatar} /> : <Ionicons name="person" size={18} color="#FFFFFF" />}</View><LocalizedText style={styles.effectCollectionName}>{user?.displayName ?? 'Foydalanuvchi'}</LocalizedText><LocalizedText style={styles.effectCollectionHandle}>@{user?.username ?? 'username'}</LocalizedText></View></ProfileEffect>
+                : item.kind === 'frame' ? <View style={[styles.miniAvatarFrame, frameStyle(item.value)]}>{user?.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.miniAvatar} /> : <Ionicons name="person" size={26} color="#FFFFFF" />}</View>
                 : item.value === 'laurel_wreath' ? <LaurelWreathAvatar size={96} imageUri={user?.avatarUrl} initials={initials || 'U'} />
                 : item.value === 'book_wings' ? <BookWingsAvatar size={86} imageUri={user?.avatarUrl} initials={initials || 'U'} />
                 : item.kind === 'badge' ? <AnimatedBadge value={item.value} size={70} /> : <View style={styles.badgeSample}><Ionicons name={item.value === 'crown' ? 'ribbon' : item.value === 'laurel' ? 'leaf' : 'star'} size={30} color="#C5B4FF" /></View>}
@@ -140,7 +142,7 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
       </View> : <View style={styles.empty}><Ionicons name="albums-outline" size={38} color={c.textMuted} /><LocalizedText style={styles.emptyTitle}>Bu turdagi buyumlar hali yo‘q</LocalizedText><LocalizedText style={styles.emptyText}>ZC Shop’dan sotib olgan buyumlaringiz shu yerda paydo bo‘ladi.</LocalizedText></View>}
       {showActions ? <View style={styles.actionRow}>
         <Pressable style={({ pressed }) => [styles.resetButton, (!currentValue || saving) && styles.buttonDisabled, pressed && styles.controlPressed]} onPress={() => choose(null)} disabled={saving || !currentValue}><Ionicons name="close-circle-outline" size={17} color={c.textMuted} /><LocalizedText style={styles.resetText}>Olib tashlash</LocalizedText></Pressable>
-        <Pressable style={({ pressed }) => [styles.applyButton, (saving || currentValue === (kind === 'frame' ? user?.profileFrame : kind === 'badge' ? user?.profileBadge : user?.avatarDecoration)) && styles.buttonDisabled, pressed && styles.controlPressed]} onPress={() => void apply()} disabled={saving || currentValue === (kind === 'frame' ? user?.profileFrame : kind === 'badge' ? user?.profileBadge : user?.avatarDecoration)}>{saving ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="checkmark-done" size={18} color="#FFFFFF" /><LocalizedText style={styles.applyText}>Profilga qo‘llash</LocalizedText></>}</Pressable>
+        <Pressable style={({ pressed }) => [styles.applyButton, (saving || currentValue === (kind === 'frame' ? user?.profileFrame : kind === 'badge' ? user?.profileBadge : user?.avatarDecoration)) && styles.buttonDisabled, pressed && styles.controlPressed]} onPress={() => void apply()} disabled={saving || currentValue === (kind === 'frame' || kind === 'effect' ? user?.profileFrame : kind === 'badge' ? user?.profileBadge : user?.avatarDecoration)}>{saving ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="checkmark-done" size={18} color="#FFFFFF" /><LocalizedText style={styles.applyText}>Profilga qo‘llash</LocalizedText></>}</Pressable>
       </View> : null}
       <View style={styles.infoNote}><Ionicons name="shield-checkmark-outline" size={15} color={c.primary} /><LocalizedText style={styles.note}>Tanlovni avval jonli ko‘rinishda tekshiring. “Profilga qo‘llash” bosilgandagina o‘zgarish saqlanadi. Xaridlaringiz kolleksiyada qoladi.</LocalizedText></View>
     </ScrollView>
