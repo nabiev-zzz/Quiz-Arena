@@ -2,7 +2,7 @@ import { API_BASE_URL, getToken, type AuthUser } from './authService';
 
 export interface PublicUser extends Pick<AuthUser,
   'id' | 'displayName' | 'username' | 'avatarUrl' | 'bio' | 'xp' |
-  'level' | 'rankPoints' | 'rankTier' | 'profileFrame' | 'avatarDecoration' | 'createdAt'> {
+  'level' | 'rankPoints' | 'rankTier' | 'profileFrame' | 'avatarDecoration' | 'profileBadge' | 'createdAt'> {
   followersCount: number;
   followingCount?: number;
   isFollowing?: boolean;
