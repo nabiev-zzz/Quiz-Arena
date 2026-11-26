@@ -55,6 +55,11 @@ jobs:
           grep -q "<title>ZELQEN CORE</title>" "$RUNNER_TEMP/app.html"
           grep -q "/app/_expo/" "$RUNNER_TEMP/app.html"
 
+      - name: Verify Galaxy Store build configuration
+        run: |
+          node -e 'const fs=require("fs"); const e=JSON.parse(fs.readFileSync("eas.json","utf8")); const a=JSON.parse(fs.readFileSync("app.json","utf8")); const g=e.build.galaxyStore; if (!g || g.android?.buildType !== "app-bundle" || g.env?.GALAXY_STORE_BUILD !== "true" || a.expo.android.versionCode !== 4 || a.expo.name !== "ZELQEN CORE") process.exit(1);'
+          node -e 'const fs=require("fs"), os=require("os"), path=require("path"), cp=require("child_process"); const d=fs.mkdtempSync(path.join(os.tmpdir(),"galaxy-build-")); fs.copyFileSync("package.json",path.join(d,"package.json")); fs.copyFileSync("scripts/configure-galaxy-autolinking.js",path.join(d,"configure-galaxy-autolinking.js")); cp.execFileSync(process.execPath,[path.join(d,"configure-galaxy-autolinking.js")],{cwd:d,env:{...process.env,GALAXY_STORE_BUILD:"true",EAS_BUILD_PLATFORM:"android"}}); const p=JSON.parse(fs.readFileSync(path.join(d,"package.json"),"utf8")); if (!p.expo?.autolinking?.android?.exclude?.includes("expo-iap")) process.exit(1);'
+
       - name: Expo dependency validation
         run: npx expo install --check
 
