@@ -12,18 +12,18 @@ import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, 
 import { getProfileAchievements } from '../utils/profileAchievements';
 import { getLearningHistory, getLearningHistoryItem, type LearningHistoryItem, type LearningHistorySummary } from '../services/learningService';
 import { getZcHistory, type ZcTransactionItem } from '../services/zcWalletService';
-import { getZcStoreCatalog, purchaseZcStoreItem, type ZcStoreProduct } from '../services/zcStoreService';
 import { getDailyTasks, claimDailyTask, type DailyTask } from '../services/dailyTasksService';
 
 interface ProfileScreenProps {
   onClosePress?: () => void;
   onSettingsPress?: () => void;
   onPremiumPress?: () => void;
+  onShopPress?: () => void;
   onUserPress?: (username: string) => void;
   dockStretch?: SharedValue<number>;
 }
 
-type ProfileTab = 'main' | 'board' | 'activity' | 'missions' | 'wishlist';
+type ProfileTab = 'main' | 'board' | 'activity' | 'missions';
 
 const AVATAR_CATEGORIES = [
   { id: 'anime', label: 'Anime', style: 'lorelei', seeds: ['Aiko', 'Hana', 'Akira', 'Yuki', 'Ren', 'Sora', 'Mika', 'Kai'] },
@@ -42,7 +42,7 @@ function getAvatarUrl(style: string, seed: string) {
   return `https://api.dicebear.com/9.x/${style}/png?seed=${encodeURIComponent(seed)}&size=160`;
 }
 
-export default function ProfileScreen({ onClosePress, onSettingsPress, onPremiumPress, onUserPress, dockStretch }: ProfileScreenProps) {
+export default function ProfileScreen({ onClosePress, onSettingsPress, onPremiumPress, onShopPress, onUserPress, dockStretch }: ProfileScreenProps) {
   const { user, updateProfile, refreshUser, logout } = useAuth();
   const { tokens, isDark } = useTheme();
   const C = {
@@ -92,9 +92,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
   const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
   const [zcHistory, setZcHistory] = useState<ZcTransactionItem[]>([]);
   const [zcHistoryLoading, setZcHistoryLoading] = useState(false);
-  const [storeProducts, setStoreProducts] = useState<ZcStoreProduct[]>([]);
-  const [storeLoading, setStoreLoading] = useState(false);
-  const [purchasingItemId, setPurchasingItemId] = useState<string | null>(null);
   const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([]);
   const [dailyTasksLoading, setDailyTasksLoading] = useState(false);
   const [claimingTaskId, setClaimingTaskId] = useState<string | null>(null);
@@ -140,16 +137,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     return () => { active = false; };
   }, [activeTab, user?.id]);
 
-  useEffect(() => {
-    if (activeTab !== 'wishlist' || !user) return;
-    let active = true;
-    setStoreLoading(true);
-    getZcStoreCatalog()
-      .then((catalog) => { if (active) setStoreProducts(catalog.items); })
-      .catch((error) => { if (active) showLocalizedAlert('Do‘kon xatosi', error instanceof Error ? error.message : 'Do‘kon yuklanmadi'); })
-      .finally(() => { if (active) setStoreLoading(false); });
-    return () => { active = false; };
-  }, [activeTab, user?.id]);
+
 
   useEffect(() => {
     if (!user) return;
@@ -253,22 +241,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     }
   };
 
-  const buyOrEquipCosmetic = async (product: ZcStoreProduct) => {
-    if (purchasingItemId) return;
-    setPurchasingItemId(product.id);
-    try {
-      if (!product.owned) {
-        await purchaseZcStoreItem(product.id);
-      }
-      await updateProfile(product.kind === 'frame' ? { profileFrame: product.value } : { avatarDecoration: product.value });
-      setStoreProducts((current) => current.map((item) => item.id === product.id ? { ...item, owned: true } : item));
-      showLocalizedAlert(product.owned ? 'Jihozlandi' : 'Xarid muvaffaqiyatli', product.name + ' profilingizga qo‘llandi.');
-    } catch (error) {
-      showLocalizedAlert('Xarid amalga oshmadi', error instanceof Error ? error.message : 'ZC do‘konida xatolik yuz berdi.');
-    } finally {
-      setPurchasingItemId(null);
-    }
-  };
 
   const claimTaskReward = async (task: DailyTask) => {
     if (!task.completed || task.claimed || claimingTaskId) return;
@@ -328,7 +300,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
     { key: 'board', label: 'Board' },
     { key: 'activity', label: 'Tarix' },
     { key: 'missions', label: 'Vazifalar' },
-    { key: 'wishlist', label: 'Do‘kon' },
   ];
 
   const renderCard = (children: React.ReactNode, extraStyle?: object, key?: string) => (
@@ -350,7 +321,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
 
         <View style={styles.identity}>
           <View style={styles.avatarWrap}>
-            <View style={[styles.avatarFrame, user.profileFrame === 'aurora' && styles.frameAurora, user.profileFrame === 'royal' && styles.frameRoyal, user.profileFrame === 'ocean' && styles.frameOcean]}>
+            <View style={[styles.avatarFrame, user.profileFrame === 'aurora' && styles.frameAurora, user.profileFrame === 'royal' && styles.frameRoyal, user.profileFrame === 'ocean' && styles.frameOcean, user.profileFrame === 'neon3d' && styles.frameNeon3d, user.profileFrame === 'inferno3d' && styles.frameInferno3d, user.profileFrame === 'frost3d' && styles.frameFrost3d, user.profileFrame === 'galaxy3d' && styles.frameGalaxy3d]}>
               {avatarUri ? <Image source={{ uri: avatarUri }} style={styles.avatar} /> : <View style={styles.avatarFallback}><LocalizedText style={styles.avatarInitials}>{initials || '?'}</LocalizedText></View>}
             </View>
             {user.avatarDecoration ? <View style={styles.decoration}><Ionicons name={user.avatarDecoration === 'crown' ? 'ribbon' : user.avatarDecoration === 'laurel' ? 'leaf' : 'star'} size={13} color="#F5D78A" /></View> : null}
@@ -367,9 +338,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
             <Ionicons name="copy-outline" size={13} color={C.subtle} />
           </Pressable>
           <View style={styles.badges}>
-            <Ionicons name="trophy" size={17} color="#A78BFA" />
-            <Ionicons name="star" size={17} color="#A78BFA" />
-            <Ionicons name="shield-checkmark" size={17} color="#A78BFA" />
+            {user.profileBadge ? <View style={styles.profileBadgeChip}><Ionicons name={user.profileBadge === 'legend' ? 'ribbon' : user.profileBadge === 'champion' ? 'trophy' : user.profileBadge === 'scholar' ? 'book' : 'flame'} size={16} color="#F5D27A" /><LocalizedText style={styles.profileBadgeText}>{user.profileBadge.toUpperCase()}</LocalizedText></View> : <LocalizedText style={styles.cardSubtitle}>Profil nishoni hali tanlanmagan</LocalizedText>}
           </View>
         </View>
 
@@ -431,6 +400,17 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
               </View>,
             )}
             {renderCard(
+              <Pressable style={styles.row} onPress={onShopPress}>
+                <View style={styles.iconTile}><Ionicons name="bag-handle-outline" size={21} color="#D9B65B" /></View>
+                <View style={styles.rowBody}>
+                  <LocalizedText style={styles.cardTitle}>Shop</LocalizedText>
+                  <LocalizedText style={styles.cardSubtitle}>Profil nishonlari, ramkalar va 3D effektlar</LocalizedText>
+                </View>
+                <Ionicons name="chevron-forward" size={19} color={C.muted} />
+              </Pressable>,
+              styles.premiumCard,
+            )}
+            {renderCard(
               <Pressable style={styles.row} onPress={onPremiumPress}>
                 <View style={styles.iconTile}><Ionicons name="diamond-outline" size={21} color={C.purple} /></View>
                 <View style={styles.rowBody}>
@@ -440,16 +420,6 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
                 <Ionicons name="chevron-forward" size={19} color={C.muted} />
               </Pressable>,
               styles.premiumCard,
-            )}
-            {renderCard(
-              <Pressable style={styles.row} onPress={onPremiumPress}>
-                <View style={styles.iconTile}><Ionicons name="storefront-outline" size={21} color={C.purple} /></View>
-                <View style={styles.rowBody}>
-                  <LocalizedText style={styles.cardTitle}>Shop</LocalizedText>
-                  <LocalizedText style={styles.cardSubtitle}>Profil uchun qo‘shimcha imkoniyatlar</LocalizedText>
-                </View>
-                <Ionicons name="chevron-forward" size={19} color={C.muted} />
-              </Pressable>,
             )}
             {renderCard(
               <View style={styles.bioRow}>
@@ -649,42 +619,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onPremium
           </>
         ) : null}
 
-        {activeTab === 'wishlist' ? (
-          <>
-            <View style={styles.sectionHeader}><LocalizedText style={styles.sectionTitle}>Mukofotlar va bezaklar</LocalizedText></View>
-            {renderCard(
-              <View style={styles.row}>
-                <View style={styles.iconTile}><Ionicons name="medal-outline" size={21} color={C.purple} /></View>
-                <View style={styles.rowBody}><LocalizedText style={styles.cardTitle}>Mening mukofotlarim</LocalizedText><LocalizedText style={styles.cardSubtitle}>Yutuqlar va medallar</LocalizedText></View>
-              </View>,
-            )}
-            <View style={styles.sectionHeader}>
-              <View style={styles.rowBody}>
-                <LocalizedText style={styles.sectionTitle}>ZC do‘koni</LocalizedText>
-                <LocalizedText style={styles.cardSubtitle}>XP reyting uchun, ZC esa xaridlar uchun ishlatiladi.</LocalizedText>
-              </View>
-              <LocalizedText style={styles.linkText}>{Number(user.zcBalance ?? 0)} ZC</LocalizedText>
-            </View>
-            {storeLoading ? <ActivityIndicator color={C.purple} style={{ marginVertical: 18 }} /> : storeProducts.map((product) => {
-              const equipped = product.kind === 'frame' ? user.profileFrame === product.value : user.avatarDecoration === product.value;
-              return renderCard(
-                <View style={styles.row}>
-                  <View style={styles.iconTile}><Ionicons name={product.kind === 'frame' ? 'albums-outline' : 'sparkles-outline'} size={21} color={C.purple} /></View>
-                  <View style={styles.rowBody}>
-                    <LocalizedText style={styles.cardTitle}>{product.name}</LocalizedText>
-                    <LocalizedText style={styles.cardSubtitle}>{product.description}</LocalizedText>
-                    <LocalizedText style={styles.cardSubtitle}>{product.owned ? 'Sizda mavjud' : product.price + ' ZC'}</LocalizedText>
-                  </View>
-                  <Pressable style={styles.followButton} disabled={purchasingItemId !== null || equipped} onPress={() => void buyOrEquipCosmetic(product)}>
-                    {purchasingItemId === product.id ? <ActivityIndicator color="#FFFFFF" size="small" /> : <LocalizedText style={styles.followButtonText}>{equipped ? 'Tanlangan' : product.owned ? 'Jihozlash' : 'Xarid qilish'}</LocalizedText>}
-                  </Pressable>
-                </View>,
-                undefined,
-                product.id,
-              );
-            })}
-          </>
-        ) : null}
+
 
         <Pressable style={styles.logoutButton} onPress={() => showLocalizedAlert('Hisobdan chiqish', 'Haqiqatan ham chiqmoqchimisiz?', [
           { text: 'Bekor qilish', style: 'cancel' },
@@ -794,6 +729,36 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     frameAurora: { backgroundColor: '#8B72E8' },
     frameRoyal: { backgroundColor: '#D7A93F' },
     frameOcean: { backgroundColor: '#4D9FC8' },
+    frameNeon3d: { backgroundColor: '#7C3AED', borderColor: '#D8B4FE', borderWidth: 5, shadowColor: '#A855F7', shadowOpacity: 0.95, shadowRadius: 16, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
+    frameInferno3d: { backgroundColor: '#EA580C', borderColor: '#FDBA74', borderWidth: 5, shadowColor: '#F97316', shadowOpacity: 0.95, shadowRadius: 16, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
+    frameFrost3d: { backgroundColor: '#0284C7', borderColor: '#BAE6FD', borderWidth: 5, shadowColor: '#38BDF8', shadowOpacity: 0.95, shadowRadius: 16, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
+    frameGalaxy3d: { backgroundColor: '#4338CA', borderColor: '#C4B5FD', borderWidth: 5, shadowColor: '#818CF8', shadowOpacity: 0.95, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 16 },
+    profileBadgeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, backgroundColor: 'rgba(214,182,106,0.14)', borderWidth: 1, borderColor: '#B88F45' },
+    profileBadgeText: { color: '#D6B66A', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+    shopHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderRadius: 20, backgroundColor: C.surfaceRaised, borderWidth: 1, borderColor: C.border, marginBottom: 13 },
+    shopHeroIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: C.purple },
+    shopHeroTitle: { color: C.text, fontSize: 15, fontWeight: '900', letterSpacing: 1 },
+    shopBalance: { alignItems: 'flex-end' },
+    shopBalanceValue: { color: '#D9B65B', fontSize: 19, fontWeight: '900' },
+    shopBalanceLabel: { color: C.muted, fontSize: 10, fontWeight: '800' },
+    shopFilters: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 13 },
+    shopFilter: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
+    shopFilterActive: { backgroundColor: C.purple, borderColor: C.purple },
+    shopFilterText: { color: C.muted, fontSize: 11, fontWeight: '700' },
+    shopFilterTextActive: { color: '#FFFFFF' },
+    shopGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 11 },
+    shopProduct: { width: '48.5%', minHeight: 205, padding: 11, borderRadius: 18, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
+    shopProductPreview: { height: 84, alignItems: 'center', justifyContent: 'center', marginBottom: 7, position: 'relative' },
+    shopAvatarPreview: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, borderColor: C.purple, backgroundColor: C.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
+    shop3dPill: { position: 'absolute', top: 0, right: 3, backgroundColor: '#8B5CF6', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
+    shop3dText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
+    shopProductName: { color: C.text, fontSize: 13, fontWeight: '800' },
+    shopProductDescription: { color: C.muted, fontSize: 10, lineHeight: 14, minHeight: 29, marginTop: 3 },
+    shopProductBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginTop: 9 },
+    shopPrice: { color: '#D9B65B', fontSize: 11, fontWeight: '900', flexShrink: 1 },
+    shopBuyButton: { backgroundColor: C.purple, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, minWidth: 62, alignItems: 'center' },
+    shopEquippedButton: { backgroundColor: C.surfaceRaised },
+    shopBuyText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
     avatar: { width: '100%', height: '100%', borderRadius: 54 },
     avatarFallback: { flex: 1, borderRadius: 54, backgroundColor: C.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
     avatarInitials: { color: C.text, fontSize: 29, fontWeight: '800' },

@@ -5,16 +5,24 @@ import { User } from './entities/user.entity';
 import { ZcTransaction } from './entities/zc-transaction.entity';
 import { ZcStoreItem } from './entities/zc-store-item.entity';
 
-type StoreKind = 'frame' | 'decoration';
+type StoreKind = 'frame' | 'decoration' | 'badge';
 type StoreProduct = { id: string; name: string; description: string; kind: StoreKind; value: string; price: number };
 
 const PRODUCTS: StoreProduct[] = [
   { id: 'frame_aurora', name: 'Aurora ramkasi', description: 'Profil uchun yorqin aurora ramkasi', kind: 'frame', value: 'aurora', price: 150 },
   { id: 'frame_royal', name: 'Royal ramkasi', description: 'Oltin tusli qirollik ramkasi', kind: 'frame', value: 'royal', price: 250 },
   { id: 'frame_ocean', name: 'Ocean ramkasi', description: 'Moviy okean uslubidagi ramka', kind: 'frame', value: 'ocean', price: 200 },
+  { id: 'effect_neon3d', name: 'Neon 3D', description: 'Binafsha neon yaltirashli 3D profil effekti', kind: 'frame', value: 'neon3d', price: 450 },
+  { id: 'effect_inferno3d', name: 'Inferno 3D', description: 'Olovrang hajmli 3D effekt', kind: 'frame', value: 'inferno3d', price: 500 },
+  { id: 'effect_frost3d', name: 'Frost 3D', description: 'Muzdek moviy 3D nur effekti', kind: 'frame', value: 'frost3d', price: 450 },
+  { id: 'effect_galaxy3d', name: 'Galaxy 3D', description: 'Kosmik binafsha-ko‘k 3D effekt', kind: 'frame', value: 'galaxy3d', price: 600 },
   { id: 'decoration_crown', name: 'Toj bezagi', description: 'Avatar uchun toj belgisi', kind: 'decoration', value: 'crown', price: 350 },
   { id: 'decoration_laurel', name: 'Laurel bezagi', description: 'Avatar uchun dafna yaprog‘i', kind: 'decoration', value: 'laurel', price: 180 },
   { id: 'decoration_star', name: 'Yulduz bezagi', description: 'Avatar uchun yulduz belgisi', kind: 'decoration', value: 'star', price: 120 },
+  { id: 'badge_legend', name: 'Legend nishoni', description: 'Profilingizda afsonaviy bilimdon nishoni', kind: 'badge', value: 'legend', price: 700 },
+  { id: 'badge_champion', name: 'Champion nishoni', description: 'G‘oliblar uchun oltin chempion belgisi', kind: 'badge', value: 'champion', price: 550 },
+  { id: 'badge_scholar', name: 'Scholar nishoni', description: 'Bilim va izlanish ramzi', kind: 'badge', value: 'scholar', price: 350 },
+  { id: 'badge_streak', name: 'Streak nishoni', description: 'Doimiy faollik uchun olov belgisi', kind: 'badge', value: 'streak', price: 300 },
 ];
 
 @Injectable()
@@ -61,7 +69,8 @@ export class ZcStoreService {
 
       user.zcBalance = balance - product.price;
       if (product.kind === 'frame') user.profileFrame = product.value;
-      else user.avatarDecoration = product.value;
+      else if (product.kind === 'decoration') user.avatarDecoration = product.value;
+      else user.profileBadge = product.value;
 
       await manager.save(User, user);
       await manager.save(ZcTransaction, manager.create(ZcTransaction, {
