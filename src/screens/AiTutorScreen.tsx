@@ -9,10 +9,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
-  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -27,7 +25,6 @@ import {
   sendTutorMessage,
 } from '../services/aiTutorService';
 import { useTheme } from '../theme/ThemeContext';
-import { Ionicons } from '@expo/vector-icons';
 
 interface AiTutorScreenProps {
   onBack: () => void;
@@ -80,20 +77,6 @@ export default function AiTutorScreen({
   const [quotaInfo, setQuotaInfo] = useState<{ limit: number | null; remaining: number | null; used: number | null } | null>(null);
 
   const listRef = useRef<FlatList<AiTutorMessage>>(null);
-
-  const openSupportEmail = async () => {
-    const subject = encodeURIComponent('ZELQEN CORE — Qo‘llab-quvvatlash');
-    const body = encodeURIComponent('Salom, ZELQEN CORE jamoasi!\n\nMurojaatim:\n');
-    const url = `mailto:zelqencoresupport@gmail.com?subject=${subject}&body=${body}`;
-    try {
-      await Linking.openURL(url);
-    } catch {
-      Alert.alert(
-        'Email ilovasi topilmadi',
-        'Qo‘llab-quvvatlash uchun zelqencoresupport@gmail.com manziliga yozing.',
-      );
-    }
-  };
 
   const loadHistory = useCallback(async () => {
     const controller = new AbortController();
@@ -262,15 +245,9 @@ export default function AiTutorScreen({
             ) : null}
           </View>
 
-          <Pressable
-            onPress={() => void openSupportEmail()}
-            style={styles.supportHeaderButton}
-            accessibilityRole="button"
-            accessibilityLabel="Qo‘llab-quvvatlash emailiga yozish"
-          >
-            <Ionicons name="headset-outline" size={17} color="#FFFFFF" />
-            <LocalizedText style={styles.supportHeaderText}>Qo‘llab-quvvatlash</LocalizedText>
-          </Pressable>
+          <View style={styles.headerAvatar}>
+            <LocalizedText style={styles.headerAvatarText}>AI</LocalizedText>
+          </View>
         </View>
 
         {loadingHistory ? (
@@ -552,21 +529,6 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   onlineText: {
     fontSize: 12,
     color: colors.textMuted,
-  },
-  supportHeaderButton: {
-    minHeight: 38,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    backgroundColor: '#6759E8',
-  },
-  supportHeaderText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
   },
   headerAvatar: {
     width: 42,
