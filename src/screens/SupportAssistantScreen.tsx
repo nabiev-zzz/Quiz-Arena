@@ -17,7 +17,6 @@ import {
   Pressable,
   StyleSheet,
   Text as NativeText,
-  TextInput as NativeTextInput,
   View,
 } from 'react-native';
 
@@ -29,6 +28,7 @@ interface SupportAssistantScreenProps {
   onBack: () => void;
   bottomDockSpace?: number;
   dockStretch?: SharedValue<number>;
+  language?: 'uz' | 'ru' | 'en';
 }
 
 const CONNECTION_ERROR =
@@ -38,6 +38,7 @@ export default function SupportAssistantScreen({
   onBack,
   bottomDockSpace = 0,
   dockStretch,
+  language = 'uz',
 }: SupportAssistantScreenProps) {
   const { tokens } = useTheme();
   const colors = tokens.colors;
@@ -98,7 +99,7 @@ export default function SupportAssistantScreen({
     setError('');
 
     try {
-      const answer = await sendSupportMessage(message, messages.filter((item) => item.id !== temporaryId).slice(-12), 'uz', controller.signal);
+      const answer = await sendSupportMessage(message, messages.filter((item) => item.id !== temporaryId).slice(-12), language, controller.signal);
 
       setMessages((previous) => [
         ...previous.filter((item) => item.id !== temporaryId),
@@ -179,7 +180,7 @@ export default function SupportAssistantScreen({
                 {item.content}
               </LocalizedText>
             ) : (
-              <TutorFormattedMessage content={item.content} colors={colors} />
+              <SupportFormattedMessage content={item.content} colors={colors} />
             )}
           </View>
 
@@ -329,7 +330,7 @@ export default function SupportAssistantScreen({
 
 type TutorColors = ReturnType<typeof useTheme>['tokens']['colors'];
 
-function TutorFormattedMessage({
+function SupportFormattedMessage({
   content,
   colors,
 }: {
