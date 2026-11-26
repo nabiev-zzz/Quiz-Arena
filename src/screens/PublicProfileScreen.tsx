@@ -55,7 +55,7 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
       <Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><LocalizedText style={styles.backText}>Orqaga</LocalizedText></Pressable>
       <GlassSurface intensity={isDark ? 34 : 42} style={styles.hero}>
         <View style={styles.identityRow}>
-          <View style={[styles.avatarRing, profile.profileFrame === 'aurora' ? styles.frameAurora : profile.profileFrame === 'royal' ? styles.frameRoyal : profile.profileFrame === 'ocean' ? styles.frameOcean : null]}>
+          <View style={[styles.avatarRing, profile.profileFrame === 'aurora' ? styles.frameAurora : profile.profileFrame === 'royal' ? styles.frameRoyal : profile.profileFrame === 'ocean' ? styles.frameOcean : profile.profileFrame === 'neon3d' ? styles.frameNeon3d : profile.profileFrame === 'inferno3d' ? styles.frameInferno3d : profile.profileFrame === 'frost3d' ? styles.frameFrost3d : profile.profileFrame === 'galaxy3d' ? styles.frameGalaxy3d : null]}>
             {profile.avatarUrl ? <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} /> : <View style={styles.avatarFallback}><LocalizedText style={styles.initials}>{initials || '?'}</LocalizedText></View>}
             {profile.avatarDecoration ? <View style={styles.decoration}><Ionicons name={profile.avatarDecoration === 'crown' ? 'ribbon' : profile.avatarDecoration === 'laurel' ? 'leaf' : 'sparkles'} size={17} color="#F3C96A" /></View> : null}
           </View>
@@ -126,6 +126,10 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     frameAurora: { borderColor: '#A78BFA', borderWidth: 4 },
     frameRoyal: { borderColor: '#EFCB78', borderWidth: 4 },
     frameOcean: { borderColor: '#60A5FA', borderWidth: 4 },
+    frameNeon3d: { borderColor: '#D8B4FE', borderWidth: 5, shadowColor: '#A855F7', shadowOpacity: 1, shadowRadius: 17, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
+    frameInferno3d: { borderColor: '#FDBA74', borderWidth: 5, shadowColor: '#F97316', shadowOpacity: 1, shadowRadius: 17, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
+    frameFrost3d: { borderColor: '#BAE6FD', borderWidth: 5, shadowColor: '#38BDF8', shadowOpacity: 1, shadowRadius: 17, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
+    frameGalaxy3d: { borderColor: '#C4B5FD', borderWidth: 5, shadowColor: '#818CF8', shadowOpacity: 1, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 16 },
     avatar: { width: '100%', height: '100%', borderRadius: 50 },
     avatarFallback: { flex: 1, borderRadius: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceElevated },
     initials: { color: colors.text, fontSize: 29, fontWeight: '800' },
