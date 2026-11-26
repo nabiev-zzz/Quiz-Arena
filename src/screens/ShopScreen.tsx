@@ -2,12 +2,13 @@ import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import BookWingsAvatar from '../components/BookWingsAvatar';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { getZcStoreCatalog, purchaseZcStoreItem, type ZcStoreProduct } from '../services/zcStoreService';
 
-type ShopFilter = 'all' | 'frames' | 'effects' | 'badges' | 'decorations';
+type ShopFilter = 'all' | 'frames' | 'effects' | 'badges' | 'decorations' | 'avatars';
 
 const FILTERS: { id: ShopFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { id: 'all', label: 'Barchasi', icon: 'grid-outline' },
@@ -15,6 +16,7 @@ const FILTERS: { id: ShopFilter; label: string; icon: keyof typeof Ionicons.glyp
   { id: 'effects', label: '3D effektlar', icon: 'sparkles-outline' },
   { id: 'badges', label: 'Nishonlar', icon: 'medal-outline' },
   { id: 'decorations', label: 'Bezaklar', icon: 'ribbon-outline' },
+  { id: 'avatars', label: 'Jonli avatarlar', icon: 'book-outline' },
 ];
 
 interface Props { onBack: () => void; }
@@ -47,7 +49,8 @@ export default function ShopScreen({ onBack }: Props) {
     if (filter === 'frames') return item.kind === 'frame' && !item.value.endsWith('3d');
     if (filter === 'effects') return item.kind === 'frame' && item.value.endsWith('3d');
     if (filter === 'badges') return item.kind === 'badge';
-    return item.kind === 'decoration';
+    if (filter === 'avatars') return item.kind === 'decoration' && item.value === 'book_wings';
+    return item.kind === 'decoration' && item.value !== 'book_wings';
   }), [products, filter]);
 
   const handleProduct = async (item: ZcStoreProduct) => {
@@ -113,7 +116,7 @@ export default function ShopScreen({ onBack }: Props) {
           <View style={styles.bannerIcon}><Ionicons name="sparkles" size={25} color="#FFFFFF" /></View>
           <View style={{ flex: 1 }}>
             <LocalizedText style={styles.bannerTitle}>Profilingni bezat!</LocalizedText>
-            <LocalizedText style={styles.bannerText}>Nishonlar, maxsus ramkalar va 3D effektlarni ZC orqali och.</LocalizedText>
+            <LocalizedText style={styles.bannerText}>Nishonlar, ramkalar, 3D effektlar va jonli avatarlarni ZC orqali och.</LocalizedText>
           </View>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
@@ -132,7 +135,9 @@ export default function ShopScreen({ onBack }: Props) {
               return (
                 <View key={item.id} style={styles.product}>
                   <View style={styles.previewStage}>
-                    {isFrame ? (
+                    {item.kind === 'decoration' && item.value === 'book_wings' ? (
+                      <BookWingsAvatar size={100} imageUri={user.avatarUrl} initials={user.displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'U'} />
+                    ) : isFrame ? (
                       <View style={[styles.avatarPreview, frameStyle(item.value)]}>
                         {user.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} /> : <Ionicons name="person" size={32} color="#FFFFFF" />}
                       </View>

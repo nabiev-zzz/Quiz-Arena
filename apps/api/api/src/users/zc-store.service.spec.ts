@@ -57,6 +57,26 @@ describe('ZcStoreService', () => {
     }));
   });
 
+  it('purchases and equips the animated book wings avatar', async () => {
+    const result = await service.purchase('user-1', 'decoration_book_wings');
+
+    expect(result.purchased).toBe(true);
+    expect(result.item).toEqual(expect.objectContaining({
+      id: 'decoration_book_wings',
+      kind: 'decoration',
+      value: 'book_wings',
+      price: 850,
+    }));
+    expect(user.zcBalance).toBe(150);
+    expect(user.avatarDecoration).toBe('book_wings');
+    expect(itemRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'user-1',
+      itemId: 'decoration_book_wings',
+      kind: 'decoration',
+      price: 850,
+    }));
+  });
+
   it('does not charge twice for an already owned cosmetic', async () => {
     itemRepository.findOne.mockResolvedValue({ itemId: 'badge_legend' });
 

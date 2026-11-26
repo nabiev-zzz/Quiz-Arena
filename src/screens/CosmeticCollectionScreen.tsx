@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
+import BookWingsAvatar from '../components/BookWingsAvatar';
 import { getZcStoreCatalog, type ZcStoreProduct } from '../services/zcStoreService';
 
 type Kind = 'frame' | 'badge' | 'decoration';
@@ -77,7 +78,7 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
     ? (selection.frame ? (FRAME_NAMES[selection.frame] ?? selection.frame) : 'Standart ramka')
     : kind === 'badge'
       ? (selection.badge ? (BADGE_NAMES[selection.badge] ?? selection.badge.toUpperCase()) : 'Nishonsiz')
-      : (selection.decoration ? ({ crown: 'Toj', laurel: 'Laurel', star: 'Yulduz', sparkle: 'Yulduzcha' }[selection.decoration] ?? selection.decoration) : 'Bezaksiz');
+      : (selection.decoration ? ({ crown: 'Toj', laurel: 'Laurel', star: 'Yulduz', sparkle: 'Yulduzcha', book_wings: 'Kitob qanotlari' }[selection.decoration] ?? selection.decoration) : 'Bezaksiz');
   const showActions = visibleItems.length > 0 || Boolean(currentValue);
 
   return <View style={styles.screen}>
@@ -91,10 +92,14 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
         <View style={styles.previewGlow} />
         <View style={styles.previewTop}><Ionicons name="eye-outline" size={16} color={c.primary} /><LocalizedText style={styles.previewTitle}>PROFILDA QANDAY KO‘RINADI</LocalizedText><View style={{ flex: 1 }} /><LocalizedText style={styles.live}>JONLI KO‘RINISH</LocalizedText></View>
         <View style={styles.profilePreview}>
-          <View style={[styles.avatarFrame, frameStyle(selection.frame)]}>
-            {user?.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.avatar} /> : <LocalizedText style={styles.initials}>{initials || 'U'}</LocalizedText>}
-          </View>
-          {selection.decoration ? <View style={styles.decoration}><Ionicons name={selection.decoration === 'crown' ? 'ribbon' : selection.decoration === 'laurel' ? 'leaf' : 'star'} size={15} color="#F5D27A" /></View> : null}
+          {selection.decoration === 'book_wings' ? (
+            <BookWingsAvatar size={136} imageUri={user?.avatarUrl} initials={initials || 'U'} frameColor={selection.frame === 'aurora' ? '#A78BFA' : selection.frame === 'royal' ? '#F2CE73' : selection.frame === 'ocean' ? '#60A5FA' : selection.frame === 'neon3d' ? '#E9D5FF' : selection.frame === 'inferno3d' ? '#FED7AA' : selection.frame === 'frost3d' ? '#BAE6FD' : selection.frame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
+          ) : <>
+            <View style={[styles.avatarFrame, frameStyle(selection.frame)]}>
+              {user?.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.avatar} /> : <LocalizedText style={styles.initials}>{initials || 'U'}</LocalizedText>}
+            </View>
+            {selection.decoration ? <View style={styles.decoration}><Ionicons name={selection.decoration === 'crown' ? 'ribbon' : selection.decoration === 'laurel' ? 'leaf' : 'star'} size={15} color="#F5D27A" /></View> : null}
+          </>}
           <LocalizedText style={styles.displayName}>{user?.displayName ?? 'Foydalanuvchi'}</LocalizedText>
           <LocalizedText style={styles.username}>@{user?.username ?? 'username'}</LocalizedText>
           {selection.badge ? <View style={styles.badge}><Ionicons name={selection.badge === 'legend' ? 'ribbon' : selection.badge === 'champion' ? 'trophy' : selection.badge === 'scholar' ? 'book' : 'flame'} size={15} color="#F5D27A" /><LocalizedText style={styles.badgeText}>{BADGE_NAMES[selection.badge] ?? selection.badge.toUpperCase()}</LocalizedText></View> : null}
@@ -118,6 +123,7 @@ export default function CosmeticCollectionScreen({ onBack }: { onBack: () => voi
           return <Pressable key={item.id} onPress={() => choose(item.value)} style={({ pressed }) => [styles.item, selected && styles.itemSelected, pressed && styles.itemPressed]}>
             <View style={styles.itemStage}>
               {item.kind === 'frame' ? <View style={[styles.miniAvatarFrame, frameStyle(item.value)]}>{user?.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.miniAvatar} /> : <Ionicons name="person" size={26} color="#FFFFFF" />}</View>
+                : item.value === 'book_wings' ? <BookWingsAvatar size={86} imageUri={user?.avatarUrl} initials={initials || 'U'} />
                 : <View style={styles.badgeSample}><Ionicons name={item.kind === 'badge' ? (item.value === 'legend' ? 'ribbon' : item.value === 'champion' ? 'trophy' : item.value === 'scholar' ? 'book' : 'flame') : (item.value === 'crown' ? 'ribbon' : item.value === 'laurel' ? 'leaf' : 'star')} size={30} color={item.kind === 'badge' ? '#D6B66A' : '#C5B4FF'} /></View>}
             </View>
             <LocalizedText style={styles.itemName} numberOfLines={1}>{item.name}</LocalizedText>
