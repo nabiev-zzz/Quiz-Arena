@@ -136,7 +136,7 @@ export default function ShopScreen({ onBack }: Props) {
                 <View key={item.id} style={styles.product}>
                   <View style={styles.previewStage}>
                     {item.kind === 'decoration' && item.value === 'book_wings' ? (
-                      <BookWingsAvatar size={100} imageUri={user.avatarUrl} initials={user.displayName.trim().split(/\\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'U'} />
+                      <BookWingsAvatar size={100} imageUri={user.avatarUrl} initials={user.displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'U'} />
                     ) : isFrame ? (
                       <View style={[styles.avatarPreview, frameStyle(item.value)]}>
                         {user.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} /> : <Ionicons name="person" size={32} color="#FFFFFF" />}
