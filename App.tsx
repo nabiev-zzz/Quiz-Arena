@@ -410,6 +410,7 @@ function AppContent() {
         return (
           <SettingsScreen
             onBack={() => setShowSettings(false)}
+            onHelp={() => { setShowSettings(false); setTab('tutor'); }}
             dockStretch={dockStretch}
           />
         );
