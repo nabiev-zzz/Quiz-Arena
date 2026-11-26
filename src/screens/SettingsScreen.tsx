@@ -436,9 +436,6 @@ export default function SettingsScreen({
         accessibilityLabel="Savol berish va yordam"
         testID="settings-help-button"
         hitSlop={8}
-        onPress={() => {
-          if (onHelp) onHelp();
-        }}
         style={({ pressed }) => [
           styles.row,
           {
@@ -446,8 +443,11 @@ export default function SettingsScreen({
             borderColor: colors.border,
             opacity: pressed ? 0.72 : 1,
             transform: [{ scale: pressed ? 0.99 : 1 }],
+            zIndex: 5,
+            elevation: 5,
           },
         ]}
+        onPress={onHelp}
       >
         <View style={styles.rowIcon}>
           <Ionicons name="help-circle-outline" size={21} color={colors.accent} />
