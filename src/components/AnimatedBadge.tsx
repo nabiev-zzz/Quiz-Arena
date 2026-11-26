@@ -155,6 +155,6 @@ const styles = StyleSheet.create({
   studBottom: { bottom: 5, left: '50%', marginLeft: -2 },
   orbit: { position: 'absolute', borderWidth: 1, borderStyle: 'dashed', borderRadius: 999, opacity: 0.65 },
   spark: { position: 'absolute', width: 4, height: 4, borderRadius: 2, zIndex: 4 },
-  sparkTop: { top: size * 0.09, right: size * 0.2 },
-  sparkSide: { bottom: size * 0.18, left: size * 0.13, width: 3, height: 3 },
+  sparkTop: { top: '9%', right: '20%' },
+  sparkSide: { bottom: '18%', left: '13%', width: 3, height: 3 },
 });
