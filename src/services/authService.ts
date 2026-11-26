@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { API_BASE_URL } from '../config/api';
 
 export { API_BASE_URL };
@@ -16,6 +17,7 @@ export interface AuthUser {
   role: 'user' | 'admin';
   status: 'active' | 'blocked';
   xp: number;
+  zcBalance?: number;
   level: number;
   rankPoints?: number;
   rankTier?: string;
@@ -23,6 +25,7 @@ export interface AuthUser {
   bio: string | null;
   profileFrame: string | null;
   avatarDecoration: string | null;
+  profileBadge?: string | null;
   createdAt?: string;
 }
 
@@ -38,6 +41,7 @@ export interface UpdateProfileInput {
   avatarUrl?: string | null;
   avatarDecoration?: string | null;
   profileFrame?: string | null;
+  profileBadge?: string | null;
 }
 
 async function request<T>(
@@ -230,14 +234,36 @@ export async function updateCurrentUser(
   });
 }
 
+function getWebSessionStorage() {
+  if (Platform.OS !== 'web') return null;
+  try {
+    return globalThis.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
 export async function saveToken(token: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    const storage = getWebSessionStorage();
+    if (!storage) throw new Error('Brauzer sessiyasi uchun xotira mavjud emas.');
+    storage.setItem(TOKEN_KEY, token);
+    return;
+  }
   await SecureStore.setItemAsync(TOKEN_KEY, token);
 }
 
 export async function getToken(): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    return getWebSessionStorage()?.getItem(TOKEN_KEY) ?? null;
+  }
   return SecureStore.getItemAsync(TOKEN_KEY);
 }
 
 export async function removeToken(): Promise<void> {
+  if (Platform.OS === 'web') {
+    getWebSessionStorage()?.removeItem(TOKEN_KEY);
+    return;
+  }
   await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
