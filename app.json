@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "QUIZ-ARENA",
+    "name": "ZELQEN CORE",
     "slug": "QUIZ-ARENA",
     "scheme": "quizarena",
     "version": "1.0.0",
@@ -19,15 +19,26 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "uz.quizarena.app"
+      "package": "uz.quizarena.app",
+      "versionCode": 4
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "ZELQEN CORE",
+      "shortName": "ZELQEN",
+      "lang": "uz",
+      "description": "ZELQEN CORE — bilimni o‘rganish, AI ustoz bilan shug‘ullanish va do‘stlar bilan bellashish platformasi."
     },
     "plugins": [
       "expo-secure-store",
       "expo-font",
-      "expo-iap"
+      "expo-iap",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0B0B14"
+        }
+      ]
     ],
     "extra": {
       "eas": {
@@ -35,8 +46,8 @@
       }
     },
     "owner": "faxriyorkk",
-    "splash": {
-      "backgroundColor": "#0B0B14"
+    "experiments": {
+      "baseUrl": "/app"
     }
   }
 }
