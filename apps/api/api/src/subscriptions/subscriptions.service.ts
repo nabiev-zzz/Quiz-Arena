@@ -271,7 +271,7 @@ export class SubscriptionsService {
       }
       let premiumRevoked = false;
       if (revokePremium) {
-        const active = await manager.find({ where: { userId: target.id, status: 'active', provider: 'admin_grant' } });
+        const active = await manager.find(UserSubscription, { where: { userId: target.id, status: 'active', provider: 'admin_grant' } });
         for (const subscription of active) {
           subscription.status = 'cancelled';
           subscription.autoRenew = false;
