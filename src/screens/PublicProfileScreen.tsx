@@ -55,14 +55,15 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><LocalizedText style={styles.backText}>Orqaga</LocalizedText></Pressable>
-      <ProfileEffect value={profile.profileFrame} variant="hero" style={{ marginBottom: 0 }}>
       <GlassSurface intensity={isDark ? 34 : 42} style={styles.hero}>
         <View style={styles.identityRow}>
+          <ProfileEffect value={profile.profileFrame} variant="hero" style={styles.avatarEffectStage}>
           <View style={[styles.avatarRing, profile.profileFrame === 'aurora' ? styles.frameAurora : profile.profileFrame === 'royal' ? styles.frameRoyal : profile.profileFrame === 'ocean' ? styles.frameOcean : profile.profileFrame === 'neon3d' ? styles.frameNeon3d : profile.profileFrame === 'inferno3d' ? styles.frameInferno3d : profile.profileFrame === 'frost3d' ? styles.frameFrost3d : profile.profileFrame === 'galaxy3d' ? styles.frameGalaxy3d : null]}>
             {profile.avatarUrl ? <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} /> : <View style={styles.avatarFallback}><LocalizedText style={styles.initials}>{initials || '?'}</LocalizedText></View>}
             {profile.avatarDecoration ? <View style={styles.decoration}><Ionicons name={profile.avatarDecoration === 'crown' ? 'ribbon' : profile.avatarDecoration === 'laurel' ? 'leaf' : 'sparkles'} size={17} color="#F3C96A" /></View> : null}
             {profile.profileBadge ? <View style={styles.profileBadge}><AnimatedBadge value={profile.profileBadge} size={34} /></View> : null}
           </View>
+          </ProfileEffect>
           <View style={styles.identityText}>
             <LocalizedText style={styles.name}>{profile.displayName}</LocalizedText>
             <LocalizedText style={styles.username}>@{profile.username}</LocalizedText>
@@ -81,7 +82,6 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
           </Pressable>
         )}
       </GlassSurface>
-      </ProfileEffect>
       <LocalizedText style={styles.sectionTitle}>Natijalar</LocalizedText>
       <View style={styles.stats}>
         <GlassSurface intensity={isDark ? 30 : 38} style={styles.stat}><LocalizedText style={styles.statValue}>{profile.xp}</LocalizedText><LocalizedText style={styles.statLabel}>XP</LocalizedText></GlassSurface>
@@ -129,6 +129,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     backText: { color: colors.text, fontSize: 14, fontWeight: '700' },
     empty: { color: colors.textMuted, textAlign: 'center', marginTop: 40 },
     hero: { alignItems: 'center', padding: 22, borderRadius: 27, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: isDark ? 'rgba(35,31,57,0.46)' : 'rgba(255,255,255,0.54)' },
+    avatarEffectStage: { width: 142, height: 142, alignItems: 'center', justifyContent: 'center' },
     identityRow: { flexDirection: 'row', alignItems: 'center', gap: 15, width: '100%' },
     identityText: { flex: 1, minWidth: 0, alignItems: 'flex-start' },
     avatarRing: { width: 92, height: 92, borderRadius: 46, padding: 4, borderWidth: 2, borderColor: 'rgba(157,133,232,0.65)', flexShrink: 0 },

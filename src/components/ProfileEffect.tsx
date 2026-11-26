@@ -26,82 +26,105 @@ interface ProfileEffectProps {
 
 export default function ProfileEffect({ value, style, children, variant = 'hero' }: ProfileEffectProps) {
   const palette = value ? PALETTES[value] : undefined;
+  const compact = variant === 'compact';
   const pulse = useSharedValue(0);
   const rotation = useSharedValue(0);
+  const counterRotation = useSharedValue(0);
   const drift = useSharedValue(0);
+  const sweep = useSharedValue(-1);
 
   useEffect(() => {
     if (!palette) return;
     pulse.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 1900, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0, { duration: 1900, easing: Easing.inOut(Easing.ease) }),
-      ),
-      -1,
-      false,
+        withTiming(1, { duration: 2100, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 2100, easing: Easing.inOut(Easing.ease) }),
+      ), -1, false,
     );
-    rotation.value = withRepeat(withTiming(360, { duration: 18000, easing: Easing.linear }), -1, false);
-    drift.value = withRepeat(
+    rotation.value = withRepeat(withTiming(360, { duration: 19000, easing: Easing.linear }), -1, false);
+    if (!compact) counterRotation.value = withRepeat(withTiming(360, { duration: 27000, easing: Easing.linear }), -1, false);
+    if (!compact) drift.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0, { duration: 2600, easing: Easing.inOut(Easing.ease) }),
-      ),
-      -1,
-      false,
+        withTiming(1, { duration: 2800, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 2800, easing: Easing.inOut(Easing.ease) }),
+      ), -1, false,
     );
-  }, [palette, pulse, rotation, drift]);
+    if (!compact) sweep.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 3600, easing: Easing.inOut(Easing.ease) }),
+        withTiming(-1, { duration: 3600, easing: Easing.inOut(Easing.ease) }),
+      ), -1, false,
+    );
+    return () => {
+      pulse.value = 0;
+      rotation.value = 0;
+      counterRotation.value = 0;
+      drift.value = 0;
+      sweep.value = -1;
+    };
+  }, [palette, compact, pulse, rotation, counterRotation, drift, sweep]);
 
   const auraStyle = useAnimatedStyle(() => ({
-    opacity: 0.24 + pulse.value * 0.42,
-    transform: [{ scale: 0.985 + pulse.value * 0.025 }],
+    opacity: 0.2 + pulse.value * 0.48,
+    transform: [{ scale: 0.94 + pulse.value * 0.06 }],
   }));
   const orbitStyle = useAnimatedStyle(() => ({ transform: [{ rotate: rotation.value + 'deg' }] }));
-  const counterOrbitStyle = useAnimatedStyle(() => ({ transform: [{ rotate: -rotation.value * 0.72 + 'deg' }] }));
+  const counterOrbitStyle = useAnimatedStyle(() => ({ transform: [{ rotate: -counterRotation.value + 'deg' }] }));
   const particleStyle = useAnimatedStyle(() => ({
-    opacity: 0.28 + pulse.value * 0.72,
-    transform: [{ translateY: drift.value * -5 }, { scale: 0.72 + pulse.value * 0.48 }],
+    opacity: 0.22 + pulse.value * 0.78,
+    transform: [{ translateY: drift.value * -9 }, { scale: 0.68 + pulse.value * 0.52 }],
   }));
-  const beamStyle = useAnimatedStyle(() => ({
-    opacity: 0.08 + pulse.value * 0.17,
-    transform: [{ rotate: '-18deg' }, { translateX: drift.value * 18 }],
+  const sweepStyle = useAnimatedStyle(() => ({
+    opacity: 0.05 + pulse.value * 0.19,
+    transform: [{ translateX: sweep.value * 42 }, { rotate: '-24deg' }],
   }));
 
   if (!palette) return <View style={style}>{children}</View>;
 
-  const compact = variant === 'compact';
   return (
-    <View style={[styles.root, style, compact && styles.compactRoot]}>
-      <View pointerEvents="none" style={[styles.effectLayer, compact && styles.compactLayer]}>
-        <Animated.View style={[styles.aura, compact && styles.compactAura, { borderColor: palette.glow, shadowColor: palette.glow }, auraStyle]} />
+    <View style={[styles.root, compact ? styles.compactStage : styles.heroStage, style]}>
+      <View pointerEvents="none" style={styles.effectLayer}>
+        <Animated.View style={[styles.aura, { borderColor: palette.glow, shadowColor: palette.glow }, auraStyle]} />
         <Animated.View style={[styles.orbit, compact && styles.compactOrbit, { borderColor: palette.line }, orbitStyle]}>
-          <View style={[styles.orbitDot, { backgroundColor: palette.line, shadowColor: palette.glow }]} />
+          <View style={[styles.comet, { backgroundColor: palette.line, shadowColor: palette.glow }]} />
+          <View style={[styles.orbitSpark, { backgroundColor: palette.secondary }]} />
         </Animated.View>
-        <Animated.View style={[styles.counterOrbit, compact && styles.compactCounterOrbit, { borderColor: palette.secondary }, counterOrbitStyle]} />
+        <Animated.View style={[styles.counterOrbit, compact && styles.compactCounterOrbit, { borderColor: palette.secondary }, counterOrbitStyle]}>
+          <View style={[styles.satellite, { backgroundColor: palette.line, shadowColor: palette.secondary }]} />
+        </Animated.View>
         {!compact && (
           <>
+            <Animated.View style={[styles.outerOrbit, { borderColor: palette.glow + '75' }, orbitStyle]} />
             <LinearGradient
-              colors={[palette.deep + '00', palette.glow + '30', palette.secondary + '18', palette.deep + '00']}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
+              colors={[palette.deep + '00', palette.glow + '32', palette.secondary + '22', palette.deep + '00']}
+              start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
               style={styles.energyBeam}
             />
             <LinearGradient
-              colors={[palette.glow + '26', palette.secondary + '10', 'transparent']}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
+              colors={['transparent', palette.glow + '25', palette.secondary + '18', 'transparent']}
+              start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
+              style={styles.energySweep}
+            />
+            <Animated.View style={[styles.sweep, { backgroundColor: palette.line }, sweepStyle]} />
+            <LinearGradient
+              colors={[palette.glow + '20', palette.secondary + '0D', 'transparent']}
+              start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
               style={styles.wash}
             />
-            <View style={[styles.topSheen, { backgroundColor: palette.line }]} />
+            <View style={[styles.highlight, { backgroundColor: palette.line }]} />
           </>
         )}
-        <Animated.View style={[styles.particle, styles.particleOne, { backgroundColor: palette.line, shadowColor: palette.glow }, particleStyle]} />
-        <Animated.View style={[styles.particle, styles.particleTwo, { backgroundColor: palette.secondary, shadowColor: palette.secondary }, particleStyle]} />
-        <Animated.View style={[styles.particle, styles.particleThree, { backgroundColor: palette.line, shadowColor: palette.glow }, particleStyle]} />
+        {!compact && <>
+          <Animated.View style={[styles.particle, styles.particleOne, { backgroundColor: palette.line, shadowColor: palette.glow }, particleStyle]} />
+          <Animated.View style={[styles.particle, styles.particleTwo, { backgroundColor: palette.secondary, shadowColor: palette.secondary }, particleStyle]} />
+          <Animated.View style={[styles.particle, styles.particleThree, { backgroundColor: palette.line, shadowColor: palette.glow }, particleStyle]} />
+        </>}
         {!compact && (
           <>
             <Animated.View style={[styles.particle, styles.particleFour, { backgroundColor: palette.secondary, shadowColor: palette.glow }, particleStyle]} />
             <Animated.View style={[styles.particle, styles.particleFive, { backgroundColor: palette.line, shadowColor: palette.secondary }, particleStyle]} />
-            <Animated.View style={[styles.beam, { backgroundColor: palette.line }, beamStyle]} />
+            <Animated.View style={[styles.particle, styles.crystalOne, { backgroundColor: palette.line, shadowColor: palette.secondary }, particleStyle]} />
+            <Animated.View style={[styles.particle, styles.crystalTwo, { backgroundColor: palette.secondary, shadowColor: palette.glow }, particleStyle]} />
           </>
         )}
       </View>
@@ -111,54 +134,34 @@ export default function ProfileEffect({ value, style, children, variant = 'hero'
 }
 
 const styles = StyleSheet.create({
-  root: { position: 'relative', overflow: 'visible' },
-  compactRoot: { alignItems: 'center', justifyContent: 'center' },
-  effectLayer: { ...StyleSheet.absoluteFill, zIndex: 0, overflow: 'visible', borderRadius: 28 },
-  compactLayer: { borderRadius: 999 },
+  root: { position: 'relative', alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
+  heroStage: { width: 184, height: 184 },
+  compactStage: { width: 56, height: 56 },
+  effectLayer: { ...StyleSheet.absoluteFill, zIndex: 0, overflow: 'visible', alignItems: 'center', justifyContent: 'center' },
   aura: {
-    ...StyleSheet.absoluteFill,
-    borderWidth: 1.2,
-    borderRadius: 28,
-    shadowOpacity: 0.95,
-    shadowRadius: 27,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 12,
+    position: 'absolute', width: '91%', height: '91%', borderWidth: 1.3, borderRadius: 999,
+    shadowOpacity: 0.95, shadowRadius: 28, shadowOffset: { width: 0, height: 0 }, elevation: 12,
   },
-  compactAura: { borderRadius: 999, borderWidth: 1.5, shadowRadius: 14 },
-  orbit: {
-    position: 'absolute',
-    top: -15,
-    right: 16,
-    width: 62,
-    height: 62,
-    borderWidth: 1.3,
-    borderStyle: 'dashed',
-    borderRadius: 31,
-    opacity: 0.78,
-  },
-  compactOrbit: { top: -5, right: -5, width: '112%', height: '112%', borderRadius: 999, borderWidth: 1.2 },
-  orbitDot: { position: 'absolute', top: 3, left: '50%', width: 5, height: 5, borderRadius: 3, shadowOpacity: 1, shadowRadius: 8, elevation: 6 },
-  counterOrbit: {
-    position: 'absolute',
-    left: 10,
-    bottom: -12,
-    width: 54,
-    height: 54,
-    borderWidth: 1,
-    borderRadius: 27,
-    borderStyle: 'dotted',
-    opacity: 0.58,
-  },
-  compactCounterOrbit: { left: -4, bottom: -4, width: '112%', height: '112%', borderRadius: 999, borderWidth: 1 },
-  energyBeam: { position: 'absolute', left: -18, right: -18, top: '43%', height: 26, borderRadius: 18 },
-  wash: { ...StyleSheet.absoluteFill, borderRadius: 28 },
-  topSheen: { position: 'absolute', top: 0, left: 24, right: 24, height: 1, opacity: 0.32 },
+  orbit: { position: 'absolute', width: 150, height: 150, borderWidth: 1.25, borderStyle: 'dashed', borderRadius: 75, opacity: 0.8 },
+  compactOrbit: { width: '100%', height: '100%', borderRadius: 999, borderWidth: 1.2 },
+  comet: { position: 'absolute', top: 8, left: '50%', width: 7, height: 7, borderRadius: 4, shadowOpacity: 1, shadowRadius: 10, elevation: 8 },
+  orbitSpark: { position: 'absolute', bottom: 19, right: 9, width: 4, height: 4, borderRadius: 2, opacity: 0.9 },
+  counterOrbit: { position: 'absolute', width: 128, height: 128, borderWidth: 1, borderStyle: 'dotted', borderRadius: 64, opacity: 0.58 },
+  compactCounterOrbit: { width: '82%', height: '82%', borderRadius: 999, borderWidth: 1 },
+  satellite: { position: 'absolute', bottom: 7, left: '50%', width: 5, height: 5, borderRadius: 3, shadowOpacity: 1, shadowRadius: 8 },
+  outerOrbit: { position: 'absolute', width: 174, height: 174, borderWidth: 1, borderRadius: 87, borderStyle: 'solid', opacity: 0.24 },
+  energyBeam: { position: 'absolute', width: 190, height: 36, borderRadius: 20, opacity: 0.78 },
+  energySweep: { position: 'absolute', width: 210, height: 52, borderRadius: 30, opacity: 0.7 },
+  sweep: { position: 'absolute', width: 2, height: 112, borderRadius: 2, opacity: 0.2 },
+  wash: { ...StyleSheet.absoluteFill, borderRadius: 999 },
+  highlight: { position: 'absolute', top: 13, width: 58, height: 1, opacity: 0.38 },
   particle: { position: 'absolute', width: 5, height: 5, borderRadius: 3, shadowOpacity: 1, shadowRadius: 10, elevation: 8 },
-  particleOne: { top: 13, left: 20 },
-  particleTwo: { top: '48%', right: 9, width: 7, height: 7, borderRadius: 4 },
-  particleThree: { bottom: 15, right: 34, width: 4, height: 4 },
-  particleFour: { top: 24, right: 42, width: 3, height: 3 },
-  particleFive: { bottom: 28, left: 48, width: 6, height: 6 },
-  beam: { position: 'absolute', width: 1, height: '74%', top: '13%', left: '51%', opacity: 0.16 },
+  particleOne: { top: 23, left: 25 },
+  particleTwo: { top: '47%', right: 16, width: 7, height: 7, borderRadius: 4 },
+  particleThree: { bottom: 25, right: 39, width: 4, height: 4 },
+  particleFour: { top: 35, right: 45, width: 3, height: 3 },
+  particleFive: { bottom: 39, left: 47, width: 6, height: 6 },
+  crystalOne: { top: 61, left: 13, width: 4, height: 4, borderRadius: 0, transform: [{ rotate: '45deg' }] },
+  crystalTwo: { bottom: 61, right: 15, width: 4, height: 4, borderRadius: 0, transform: [{ rotate: '45deg' }] },
   content: { position: 'relative', zIndex: 1 },
 });

@@ -279,7 +279,8 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
           </Pressable>
         </View>
 
-        <ProfileEffect value={user.profileFrame} variant="hero" style={styles.identity}>
+        <View style={styles.identity}>
+          <ProfileEffect value={user.profileFrame} variant="hero" style={styles.avatarEffectStage}>
           <View style={[styles.avatarWrap, user.avatarDecoration === 'laurel_wreath' && styles.avatarWrapLaurel]}>
             {user.avatarDecoration === 'laurel_wreath' ? (
               <LaurelWreathAvatar size={148} imageUri={avatarUri} initials={initials || 'U'} frameColor={user.profileFrame === 'aurora' ? '#A78BFA' : user.profileFrame === 'royal' ? '#F2CE73' : user.profileFrame === 'ocean' ? '#60A5FA' : user.profileFrame === 'neon3d' ? '#E9D5FF' : user.profileFrame === 'inferno3d' ? '#FED7AA' : user.profileFrame === 'frost3d' ? '#BAE6FD' : user.profileFrame === 'galaxy3d' ? '#DDD6FE' : '#FBBF24'} />
@@ -295,6 +296,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
               <Ionicons name="camera" size={15} color="#FFFFFF" />
             </Pressable>
           </View>
+          </ProfileEffect>
           <View style={styles.nameRow}>
             <LocalizedText style={styles.displayName} numberOfLines={1}>{user.displayName}</LocalizedText>
             <Ionicons name="chevron-down" size={17} color={C.muted} />
@@ -306,7 +308,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
           <View style={styles.badges}>
             {user.profileBadge ? <View style={styles.profileBadgeChip}><AnimatedBadge value={user.profileBadge} size={34} /><LocalizedText style={styles.profileBadgeText}>{user.profileBadge.toUpperCase()}</LocalizedText></View> : <LocalizedText style={styles.cardSubtitle}>Profil nishoni hali tanlanmagan</LocalizedText>}
           </View>
-        </ProfileEffect>
+        </View>
 
         <Pressable style={styles.editButton} onPress={onEditPress} disabled={!onEditPress}>
           <Ionicons name="create-outline" size={17} color="#FFFFFF" />
@@ -655,6 +657,7 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     headerButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { color: C.muted, fontSize: 11, fontWeight: '800', letterSpacing: 2 },
     identity: { alignItems: 'center', paddingTop: 8, paddingBottom: 19 },
+    avatarEffectStage: { width: 184, height: 184, alignItems: 'center', justifyContent: 'center' },
     avatarWrap: { width: 122, height: 122, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
     avatarWrapLaurel: { width: 148, height: 148 },
     avatarFrame: { width: 112, height: 112, borderRadius: 56, padding: 3, backgroundColor: C.purple, borderWidth: 2, borderColor: '#8B68E5' },
