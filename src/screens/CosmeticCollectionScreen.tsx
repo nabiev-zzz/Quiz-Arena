@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LocalizedText } from '../i18n/LocalizedText';
+import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { getZcStoreCatalog, type ZcStoreProduct } from '../services/zcStoreService';
