@@ -26,7 +26,6 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
   const [chatLoading, setChatLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const socketRef = useRef<Socket | null>(null);
-  const scrollRef = useRef<ScrollView>(null);
 
   const loadConversations = useCallback(async () => {
     try { setConversations(await getDirectConversations()); }
@@ -131,7 +130,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
             </View>
           </View>
           {chatLoading && messages.length === 0 ? <ActivityIndicator color={c.primary} style={{ flex: 1 }} /> : (
-            <ScrollView ref={scrollRef} style={styles.messageList} contentContainerStyle={styles.messageContent} onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })} keyboardShouldPersistTaps="handled">
+            <ScrollView style={styles.messageList} contentContainerStyle={styles.messageContent} keyboardShouldPersistTaps="handled">
               {messages.length === 0 && <View style={styles.firstMessage}><Ionicons name="hand-left-outline" size={30} color={c.primary} /><LocalizedText style={styles.firstTitle}>Suhbatni boshlang</LocalizedText><LocalizedText style={styles.firstHint}>Birinchi xabaringizni yuboring.</LocalizedText></View>}
               {messages.map((message) => (
                 <View key={message.id} style={[styles.messageRow, message.isMine ? styles.myRow : styles.theirRow]}>
