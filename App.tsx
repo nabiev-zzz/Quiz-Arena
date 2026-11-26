@@ -300,7 +300,7 @@ function AppContent() {
 
         {normalizedQuery.length === 0 && (
           <Pressable
-            style={[styles.dailyHomeCard, { backgroundColor: tokens.colors.surface, borderColor }]}
+            style={[styles.dailyHomeCard, { backgroundColor: isDark ? tokens.colors.surface : '#F0E9FF', borderColor: isDark ? borderColor : 'rgba(148,99,213,0.16)' }]}
             onPress={() => setShowDailyTasks(true)}
             accessibilityRole="button"
             accessibilityLabel="Barcha kunlik vazifalarni ochish"
@@ -348,6 +348,26 @@ function AppContent() {
           </Pressable>
         )}
 
+        {normalizedQuery.length === 0 && (
+          <View style={styles.homeStatsRow}>
+            <View style={[styles.homeStatCard, { backgroundColor: isDark ? tokens.colors.surface : '#E9E4FA' }]}>
+              <View style={[styles.homeStatIcon, { backgroundColor: 'rgba(148,99,213,0.14)' }]}><Ionicons name="school-outline" size={17} color="#9463D5" /></View>
+              <LocalizedText style={[styles.homeStatValue, { color: textColor }]}>LVL {user?.level ?? 1}</LocalizedText>
+              <LocalizedText style={[styles.homeStatLabel, { color: mutedColor }]}>Daraja</LocalizedText>
+            </View>
+            <View style={[styles.homeStatCard, { backgroundColor: isDark ? tokens.colors.surface : '#E2F3ED' }]}>
+              <View style={[styles.homeStatIcon, { backgroundColor: 'rgba(50,156,131,0.14)' }]}><Ionicons name="sparkles-outline" size={17} color="#329C83" /></View>
+              <LocalizedText style={[styles.homeStatValue, { color: textColor }]}>{user?.xp ?? 0}</LocalizedText>
+              <LocalizedText style={[styles.homeStatLabel, { color: mutedColor }]}>XP ball</LocalizedText>
+            </View>
+            <View style={[styles.homeStatCard, { backgroundColor: isDark ? tokens.colors.surface : '#FFF1D6' }]}>
+              <View style={[styles.homeStatIcon, { backgroundColor: 'rgba(192,138,36,0.14)' }]}><Ionicons name="wallet-outline" size={17} color="#C08A24" /></View>
+              <LocalizedText style={[styles.homeStatValue, { color: textColor }]}>{user?.zcBalance ?? 0}</LocalizedText>
+              <LocalizedText style={[styles.homeStatLabel, { color: mutedColor }]}>ZC balans</LocalizedText>
+            </View>
+          </View>
+        )}
+
         {normalizedQuery.length > 0 ? (
           <View style={styles.homeSearchResults}>
             {featureMatches.length > 0 && <LocalizedText style={[styles.homeSectionTitle, { color: mutedColor }]}>FUNKSIYALAR</LocalizedText>}
@@ -386,16 +406,20 @@ function AppContent() {
               </View>
             </View>
             <View style={styles.homeFeatureGrid}>
-              {features.map((item) => (
-                <Pressable key={item.key} style={({ pressed }) => [styles.homeFeatureCard, { backgroundColor: tokens.colors.surface, borderColor }, pressed && styles.homeFeaturePressed]} onPress={() => openFeature(item.key)}>
-                  <View style={[styles.homeFeatureIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}>
-                    <Ionicons name={item.icon} size={21} color={tokens.colors.primaryLight} />
+              {features.map((item, index) => {
+                const pastel = ['#F0E8FF', '#E5F5F0', '#FFF3D6', '#FCE9F0'][index % 4];
+                const accent = ['#9363D5', '#329C83', '#C08A24', '#C66B91'][index % 4];
+                return (
+                <Pressable key={item.key} style={({ pressed }) => [styles.homeFeatureCard, { backgroundColor: isDark ? tokens.colors.surface : pastel, borderColor: isDark ? borderColor : 'transparent' }, pressed && styles.homeFeaturePressed]} onPress={() => openFeature(item.key)}>
+                  <View style={[styles.homeFeatureIcon, { backgroundColor: isDark ? 'rgba(88,101,242,0.14)' : 'rgba(255,255,255,0.78)' }]}>
+                    <Ionicons name={item.icon} size={21} color={isDark ? tokens.colors.primaryLight : accent} />
                   </View>
                   <LocalizedText style={[styles.homeFeatureTitle, { color: textColor }]}>{item.title}</LocalizedText>
                   <LocalizedText style={[styles.homeFeatureDescription, { color: mutedColor }]} numberOfLines={2}>{item.detail}</LocalizedText>
                   <View style={styles.homeFeatureArrow}><Ionicons name="arrow-forward" size={15} color={mutedColor} /></View>
                 </Pressable>
-              ))}
+                );
+              })}
             </View>
             <LocalizedText style={[styles.homeFooterText, { color: mutedColor }]}>Bilimingni oshir. Bellash. Natijangni ko‘rsat.</LocalizedText>
           </>
@@ -537,7 +561,7 @@ function AppContent() {
           {page.description}
         </LocalizedText>
         <LocalizedText style={styles.comingSoon}>
-          Bu bo'lim keyingi bosqichda ishlab chiqiladi.
+          Bu bo&apos;lim keyingi bosqichda ishlab chiqiladi.
         </LocalizedText>
       </View>
     );
@@ -633,7 +657,7 @@ function AppContent() {
               )}
               <View style={styles.drawerProfileCopy}>
                 <LocalizedText style={[styles.drawerUserName, { color: textColor }]} numberOfLines={1}>{user.displayName}</LocalizedText>
-                <LocalizedText style={[styles.drawerUsername, { color: mutedColor }]} numberOfLines={1}>@{user.username}</LocalizedText>
+                <LocalizedText style={[styles.drawerUsername, { color: mutedColor }]} numberOfLines={1}>@{user.username}</LocalizedText>
                 <View style={styles.drawerStats}>
                   <LocalizedText style={styles.drawerStatText}>LVL {user.level}</LocalizedText>
                   <LocalizedText style={styles.drawerStatDivider}>·</LocalizedText>
@@ -898,15 +922,15 @@ const styles = StyleSheet.create({
   drawerFooter: { fontSize: 9, textAlign: 'center', paddingVertical: 8 },
   homeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 19 },
   homeBrand: { flexDirection: 'row', alignItems: 'center', gap: 11, flex: 1 },
-  homeBrandIcon: { width: 46, height: 46, borderRadius: 16, backgroundColor: '#7658D6', alignItems: 'center', justifyContent: 'center' },
+  homeBrandIcon: { width: 46, height: 46, borderRadius: 16, backgroundColor: '#9463D5', alignItems: 'center', justifyContent: 'center' },
   homeBrandLetter: { color: '#FFFFFF', fontSize: 23, fontWeight: '900' },
   homeBrandText: { flex: 1, minWidth: 0 },
   homeEyebrow: { fontSize: 9, fontWeight: '900', letterSpacing: 1.8 },
   homeGreeting: { fontSize: 20, fontWeight: '900', marginTop: 3, letterSpacing: -0.35 },
   homeProfileButton: { width: 46, height: 46, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  homeSearch: { minHeight: 54, borderRadius: 17, borderWidth: 1, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 22 },
+  homeSearch: { minHeight: 54, borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 22 },
   homeSearchInput: { flex: 1, minWidth: 0, paddingVertical: 12, fontSize: 14 },
-  dailyHomeCard: { borderWidth: 1, borderRadius: 22, padding: 17, marginBottom: 24, overflow: 'hidden' },
+  dailyHomeCard: { borderWidth: 1, borderRadius: 26, padding: 18, marginBottom: 24, overflow: 'hidden' },
   dailyHomeTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 13 },
   dailyHomeHeading: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   dailyHomeIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#7862D8', alignItems: 'center', justifyContent: 'center' },
@@ -934,12 +958,17 @@ const styles = StyleSheet.create({
   dailyClaimedText: { color: '#27B98A', fontSize: 9, fontWeight: '800', marginLeft: 33, marginTop: 7 },
   dailyHomeFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 13, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(140,130,170,0.2)' },
   dailyHomeFooterText: { fontSize: 9, flex: 1 },
+  homeStatsRow: { flexDirection: 'row', gap: 9, marginTop: -5, marginBottom: 22 },
+  homeStatCard: { flex: 1, minWidth: 0, minHeight: 96, borderRadius: 21, padding: 11, justifyContent: 'center' },
+  homeStatIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 7 },
+  homeStatValue: { fontSize: 16, fontWeight: '900', letterSpacing: -0.3 },
+  homeStatLabel: { fontSize: 9, fontWeight: '700', marginTop: 3 },
   homeSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   homeSectionTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 1.35 },
   homeXpChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(245,196,81,0.12)', borderRadius: 7, paddingHorizontal: 8, paddingVertical: 5 },
   homeXpText: { color: '#F5C451', fontSize: 10, fontWeight: '900' },
   homeFeatureGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 13 },
-  homeFeatureCard: { width: '48.5%', minHeight: 154, borderRadius: 21, borderWidth: 1, padding: 15, position: 'relative', justifyContent: 'flex-start' },
+  homeFeatureCard: { width: '48.5%', minHeight: 158, borderRadius: 25, borderWidth: 1, padding: 15, position: 'relative', justifyContent: 'flex-start' },
   homeFeaturePressed: { opacity: 0.72, transform: [{ scale: 0.985 }] },
   homeFeatureIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   homeFeatureTitle: { fontSize: 14, fontWeight: '900' },
