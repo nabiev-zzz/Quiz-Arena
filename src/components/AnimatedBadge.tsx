@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   medalShadow: { alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.7, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 9, zIndex: 2 },
   medalOuter: { width: '100%', height: '100%', borderWidth: 1.2, borderTopColor: 'rgba(255,255,255,0.9)', borderLeftColor: 'rgba(255,255,255,0.55)', borderRightColor: 'rgba(0,0,0,0.42)', borderBottomColor: 'rgba(0,0,0,0.48)' },
   medalFace: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' },
-  innerRim: { ...StyleSheet.absoluteFillObject, borderWidth: 1.1, opacity: 0.8, margin: 3 },
+  innerRim: { position: 'absolute', top: 3, right: 3, bottom: 3, left: 3, borderWidth: 1.1, opacity: 0.8, margin: 3 },
   shimmer: { position: 'absolute', top: '-20%', left: '36%', transform: [{ rotate: '24deg' }], borderRadius: 99 },
   stud: { position: 'absolute', width: 4, height: 4, borderRadius: 2, opacity: 0.9 },
   studTop: { top: 5, left: '50%', marginLeft: -2 },
