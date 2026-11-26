@@ -296,7 +296,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
               <Ionicons name="camera" size={15} color="#FFFFFF" />
             </Pressable>
           </View>
-          </View>
+          </ProfileEffect>
           <View style={styles.nameRow}>
             <LocalizedText style={styles.displayName} numberOfLines={1}>{user.displayName}</LocalizedText>
             <Ionicons name="chevron-down" size={17} color={C.muted} />
@@ -308,7 +308,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
           <View style={styles.badges}>
             {user.profileBadge ? <View style={styles.profileBadgeChip}><AnimatedBadge value={user.profileBadge} size={34} /><LocalizedText style={styles.profileBadgeText}>{user.profileBadge.toUpperCase()}</LocalizedText></View> : <LocalizedText style={styles.cardSubtitle}>Profil nishoni hali tanlanmagan</LocalizedText>}
           </View>
-        </ProfileEffect>
+        </View>
 
         <Pressable style={styles.editButton} onPress={onEditPress} disabled={!onEditPress}>
           <Ionicons name="create-outline" size={17} color="#FFFFFF" />
