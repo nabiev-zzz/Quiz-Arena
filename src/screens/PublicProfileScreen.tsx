@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Tex
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedBadge from '../components/AnimatedBadge';
 import ProfileEffect from '../components/ProfileEffect';
+import ProfileAtmosphere from '../components/ProfileAtmosphere';
 import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
 import { followUser, getPublicUserProfile, unfollowUser, type PublicUser } from '../services/userService';
@@ -53,7 +54,9 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
   const initials = profile.displayName.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <View style={styles.screen}>
+    <ProfileAtmosphere value={profile.profileFrame} />
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Pressable onPress={onBack} style={styles.back}><Ionicons name="arrow-back" size={21} color={colors.text} /><LocalizedText style={styles.backText}>Orqaga</LocalizedText></Pressable>
       <GlassSurface intensity={isDark ? 34 : 42} style={styles.hero}>
         <View style={styles.identityRow}>
@@ -117,19 +120,21 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
         <View style={styles.rankText}><LocalizedText style={styles.rankName}>Profil ramkasi</LocalizedText><LocalizedText style={styles.rankHint}>{profile.profileFrame || 'Standart'}</LocalizedText></View>
       </GlassSurface>
     </ScrollView>
+    </View>
   );
 }
 
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isDark: boolean) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: colors.background },
+    screen: { flex: 1, backgroundColor: colors.background, position: 'relative' },
+    scroll: { flex: 1, backgroundColor: 'transparent' },
     content: { padding: 18, paddingBottom: 130 },
     loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
     back: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, marginBottom: 12 },
     backText: { color: colors.text, fontSize: 14, fontWeight: '700' },
     empty: { color: colors.textMuted, textAlign: 'center', marginTop: 40 },
     hero: { alignItems: 'center', padding: 22, borderRadius: 27, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: isDark ? 'rgba(35,31,57,0.46)' : 'rgba(255,255,255,0.54)' },
-    avatarEffectStage: { width: 142, height: 142, alignItems: 'center', justifyContent: 'center' },
+    avatarEffectStage: { width: 154, height: 154, alignItems: 'center', justifyContent: 'center' },
     identityRow: { flexDirection: 'row', alignItems: 'center', gap: 15, width: '100%' },
     identityText: { flex: 1, minWidth: 0, alignItems: 'flex-start' },
     avatarRing: { width: 92, height: 92, borderRadius: 46, padding: 4, borderWidth: 2, borderColor: 'rgba(157,133,232,0.65)', flexShrink: 0 },
@@ -153,7 +158,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     countNumber: { color: colors.text, fontSize: 19, fontWeight: '800' },
     countLabel: { color: colors.textMuted, fontSize: 11, marginTop: 3 },
     separator: { width: 1, height: 30, backgroundColor: colors.border },
-    followButton: { minWidth: 160, height: 44, borderRadius: 14, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    followButton: { width: '100%', height: 46, borderRadius: 14, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4 },
     followingButton: { backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border },
     followButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
     followingText: { color: colors.text },
