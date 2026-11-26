@@ -78,7 +78,7 @@ export default function SupportChatScreen({
 
   const openSupportEmail = () => {
     const subject = encodeURIComponent('ZELQEN CORE — Qo‘llab-quvvatlash');
-    const body = encodeURIComponent('Salom, ZELQEN CORE jamoasi!\\n\\nMurojaatim:\\n');
+    const body = encodeURIComponent('Salom, ZELQEN CORE jamoasi!\n\nMurojaatim:\n');
     const mailtoUrl = `mailto:zelqencoresupport@gmail.com?subject=${subject}&body=${body}`;
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=zelqencoresupport%40gmail.com&su=${subject}&body=${body}`;
     const url = Platform.OS === 'web' ? gmailUrl : mailtoUrl;
