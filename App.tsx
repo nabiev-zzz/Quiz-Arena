@@ -657,7 +657,7 @@ function AppContent() {
               )}
               <View style={styles.drawerProfileCopy}>
                 <LocalizedText style={[styles.drawerUserName, { color: textColor }]} numberOfLines={1}>{user.displayName}</LocalizedText>
-                <LocalizedText style={[styles.drawerUsername, { color: mutedColor }]} numberOfLines={1}>@{user.username}</LocalizedText>
+                <LocalizedText style={[styles.drawerUsername, { color: mutedColor }]} numberOfLines={1}>@{user.username}</LocalizedText>
                 <View style={styles.drawerStats}>
                   <LocalizedText style={styles.drawerStatText}>LVL {user.level}</LocalizedText>
                   <LocalizedText style={styles.drawerStatDivider}>·</LocalizedText>
