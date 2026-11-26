@@ -58,6 +58,7 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
           <View style={[styles.avatarRing, profile.profileFrame === 'aurora' ? styles.frameAurora : profile.profileFrame === 'royal' ? styles.frameRoyal : profile.profileFrame === 'ocean' ? styles.frameOcean : profile.profileFrame === 'neon3d' ? styles.frameNeon3d : profile.profileFrame === 'inferno3d' ? styles.frameInferno3d : profile.profileFrame === 'frost3d' ? styles.frameFrost3d : profile.profileFrame === 'galaxy3d' ? styles.frameGalaxy3d : null]}>
             {profile.avatarUrl ? <Image source={{ uri: profile.avatarUrl }} style={styles.avatar} /> : <View style={styles.avatarFallback}><LocalizedText style={styles.initials}>{initials || '?'}</LocalizedText></View>}
             {profile.avatarDecoration ? <View style={styles.decoration}><Ionicons name={profile.avatarDecoration === 'crown' ? 'ribbon' : profile.avatarDecoration === 'laurel' ? 'leaf' : 'sparkles'} size={17} color="#F3C96A" /></View> : null}
+            {profile.profileBadge ? <View style={styles.profileBadge}><Ionicons name={profile.profileBadge === 'legend' ? 'ribbon' : profile.profileBadge === 'champion' ? 'trophy' : profile.profileBadge === 'scholar' ? 'book' : 'flame'} size={15} color="#F5D27A" /></View> : null}
           </View>
           <View style={styles.identityText}>
             <LocalizedText style={styles.name}>{profile.displayName}</LocalizedText>
@@ -104,6 +105,10 @@ export default function PublicProfileScreen({ username, onBack }: Props) {
         <View style={styles.rankText}><LocalizedText style={styles.rankName}>Avatar bezagi</LocalizedText><LocalizedText style={styles.rankHint}>{profile.avatarDecoration || 'Standart'}</LocalizedText></View>
       </GlassSurface>
       <GlassSurface intensity={isDark ? 30 : 38} style={styles.cosmeticRow}>
+        <Ionicons name="medal-outline" size={21} color="#EFCB78" />
+        <View style={styles.rankText}><LocalizedText style={styles.rankName}>Profil nishoni</LocalizedText><LocalizedText style={styles.rankHint}>{profile.profileBadge || 'Hozircha yo‘q'}</LocalizedText></View>
+      </GlassSurface>
+      <GlassSurface intensity={isDark ? 30 : 38} style={styles.cosmeticRow}>
         <Ionicons name="albums-outline" size={21} color="#8BCDF7" />
         <View style={styles.rankText}><LocalizedText style={styles.rankName}>Profil ramkasi</LocalizedText><LocalizedText style={styles.rankHint}>{profile.profileFrame || 'Standart'}</LocalizedText></View>
       </GlassSurface>
@@ -134,6 +139,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     avatarFallback: { flex: 1, borderRadius: 50, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceElevated },
     initials: { color: colors.text, fontSize: 29, fontWeight: '800' },
     decoration: { position: 'absolute', right: -3, bottom: 0, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.glassBorder },
+    profileBadge: { position: 'absolute', left: -3, top: -3, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: '#44351D', borderWidth: 2, borderColor: '#D6B66A' },
     name: { color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'left' },
     username: { color: colors.primary, fontSize: 12, marginTop: 4, fontWeight: '700' },
     bio: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'left', marginTop: 8 },
