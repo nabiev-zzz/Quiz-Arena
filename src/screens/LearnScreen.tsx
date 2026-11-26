@@ -50,22 +50,34 @@ export default function LearnScreen({ initialSubject, onTopicSelect, onDocumentQ
 
   return (
     <Animated.ScrollView onScroll={dockScrollHandler} scrollEventThrottle={16} style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-      <Pressable onPress={onDocumentQuiz} style={styles.documentQuizBanner}>      <Pressable onPress={onSmartPractice} style={styles.smartPracticeBanner}>
-        <View style={styles.smartPracticeIcon}><Ionicons name="bulb-outline" size={22} color="#FFFFFF" /></View>
-        <View style={styles.documentQuizCopy}>
-          <LocalizedText style={styles.documentQuizTitle}>Smart Practice</LocalizedText>
-          <LocalizedText style={styles.documentQuizDescription}>Avvalgi xatolaringizdan shaxsiy mashq yarating</LocalizedText>
-        </View>
-        <Ionicons name="arrow-forward-circle" size={23} color="#D9D0FF" />
-      </Pressable>
-
-        <View style={styles.documentQuizIcon}><Ionicons name="document-text-outline" size={22} color="#FFFFFF" /></View>
-        <View style={styles.documentQuizCopy}>
-          <LocalizedText style={styles.documentQuizTitle}>Hujjatdan test yaratish</LocalizedText>
-          <LocalizedText style={styles.documentQuizDescription}>PDF yoki Word yuklang — AI savollar tayyorlaydi</LocalizedText>
-        </View>
-        <Ionicons name="arrow-forward-circle" size={23} color="#D9D0FF" />
-      </Pressable>
+      <View style={styles.quickActions}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Smart Practice — avvalgi xatolardan shaxsiy mashq yaratish"
+          onPress={onSmartPractice}
+          style={({ pressed }) => [styles.smartPracticeBanner, pressed && styles.pressed]}
+        >
+          <View style={styles.smartPracticeIcon}><Ionicons name="bulb-outline" size={21} color="#FFFFFF" /></View>
+          <View style={styles.documentQuizCopy}>
+            <LocalizedText style={styles.documentQuizTitle}>Smart Practice</LocalizedText>
+            <LocalizedText style={styles.documentQuizDescription}>Avvalgi xatolaringizdan shaxsiy mashq yarating</LocalizedText>
+          </View>
+          <Ionicons name="arrow-forward-circle" size={23} color="#D9D0FF" />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Hujjatdan test yaratish"
+          onPress={onDocumentQuiz}
+          style={({ pressed }) => [styles.documentQuizBanner, pressed && styles.pressed]}
+        >
+          <View style={styles.documentQuizIcon}><Ionicons name="document-text-outline" size={21} color="#FFFFFF" /></View>
+          <View style={styles.documentQuizCopy}>
+            <LocalizedText style={styles.documentQuizTitle}>Hujjatdan test yaratish</LocalizedText>
+            <LocalizedText style={styles.documentQuizDescription}>PDF yoki Word yuklang — AI savollar tayyorlaydi</LocalizedText>
+          </View>
+          <Ionicons name="arrow-forward-circle" size={23} color="#D9D0FF" />
+        </Pressable>
+      </View>
       {selectedSubject ? (
         <>
           <Pressable style={styles.backButton} onPress={() => { setSelectedSubject(null); setSearchQuery(''); }}>
@@ -151,15 +163,16 @@ export default function LearnScreen({ initialSubject, onTopicSelect, onDocumentQ
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 132 },
+    content: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 136 },
     header: { marginTop: 8, marginBottom: 19 },
-    smartPracticeBanner: { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 13, marginBottom: 17, borderRadius: 18, backgroundColor: '#173B3B', borderWidth: 1, borderColor: 'rgba(125,227,189,0.24)' },
-    smartPracticeIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#229B84' },
-    documentQuizBanner: { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 13, marginBottom: 17, borderRadius: 18, backgroundColor: '#2A1B4A', borderWidth: 1, borderColor: 'rgba(190,170,255,0.28)' },
-    documentQuizIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#7059D6' },
+    quickActions: { gap: 11, marginBottom: 27 },
+    smartPracticeBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderRadius: 17, backgroundColor: colors.surface, borderWidth: 1, borderColor: 'rgba(140,229,208,0.30)' },
+    smartPracticeIcon: { width: 43, height: 43, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#258F7C' },
+    documentQuizBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderRadius: 17, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.glassBorder },
+    documentQuizIcon: { width: 43, height: 43, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#7958C9' },
     documentQuizCopy: { flex: 1, gap: 4 },
-    documentQuizTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
-    documentQuizDescription: { color: '#D6CCF1', fontSize: 10, lineHeight: 15 },
+    documentQuizTitle: { color: colors.text, fontSize: 13, fontWeight: '900' },
+    documentQuizDescription: { color: colors.textMuted, fontSize: 10, lineHeight: 15 },
 
     eyebrow: { color: colors.primary, fontSize: 10, fontWeight: '900', letterSpacing: 1.8, marginBottom: 10 },
     title: { color: colors.text, fontSize: 27, lineHeight: 34, fontWeight: '900', letterSpacing: -0.7 },
@@ -170,7 +183,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     sectionTitle: { color: colors.textMuted, fontSize: 10, fontWeight: '900', letterSpacing: 1.1 },
     sectionCount: { color: colors.textMuted, fontSize: 10, fontWeight: '700' },
     subjectGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
-    subjectCard: { width: '48.5%', minHeight: 137, borderRadius: 13, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.surface, padding: 12 },
+    subjectCard: { width: '48.5%', minHeight: 148, borderRadius: 17, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.surface, padding: 14 },
     cardTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
     subjectIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
     subjectGlyph: { fontSize: 22, fontWeight: '800' },
@@ -185,7 +198,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     largeIcon: { fontSize: 31, fontWeight: '800' },
     detailCopy: { flex: 1, minWidth: 0 },
     topicList: { gap: 8 },
-    topicCard: { minHeight: 68, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 12, padding: 11, borderWidth: 1, borderColor: colors.glassBorder, gap: 10 },
+    topicCard: { minHeight: 72, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 15, padding: 13, borderWidth: 1, borderColor: colors.glassBorder, gap: 11 },
     topicNumber: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center' },
     numberText: { color: colors.primary, fontSize: 11, fontWeight: '900' },
     topicInfo: { flex: 1, minWidth: 0 },
