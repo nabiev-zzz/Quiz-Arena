@@ -49,5 +49,7 @@ export default function GlassCard({
 const styles = StyleSheet.create({
   card: {
     width: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(174, 190, 220, 0.08)',
   },
 });
