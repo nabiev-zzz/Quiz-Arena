@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import BookWingsAvatar from '../components/BookWingsAvatar';
 import LaurelWreathAvatar from '../components/LaurelWreathAvatar';
 import AnimatedBadge from '../components/AnimatedBadge';
+import ProfileEffect from '../components/ProfileEffect';
 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
@@ -15,7 +16,7 @@ type ShopFilter = 'all' | 'frames' | 'effects' | 'badges' | 'decorations' | 'ava
 const FILTERS: { id: ShopFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { id: 'all', label: 'Barchasi', icon: 'grid-outline' },
   { id: 'frames', label: 'Ramkalar', icon: 'ellipse-outline' },
-  { id: 'effects', label: '3D effektlar', icon: 'sparkles-outline' },
+  { id: 'effects', label: 'Profil effektlari', icon: 'sparkles-outline' },
   { id: 'badges', label: 'Nishonlar', icon: 'medal-outline' },
   { id: 'decorations', label: 'Bezaklar', icon: 'ribbon-outline' },
   { id: 'avatars', label: 'Jonli avatarlar', icon: 'book-outline' },
@@ -118,7 +119,7 @@ export default function ShopScreen({ onBack }: Props) {
           <View style={styles.bannerIcon}><Ionicons name="sparkles" size={25} color="#FFFFFF" /></View>
           <View style={{ flex: 1 }}>
             <LocalizedText style={styles.bannerTitle}>Profilingni bezat!</LocalizedText>
-            <LocalizedText style={styles.bannerText}>Nishonlar, ramkalar, 3D effektlar va jonli avatarlarni ZC orqali och.</LocalizedText>
+            <LocalizedText style={styles.bannerText}>Nishonlar, ramkalar, jonli profil effektlari va avatarlarni ZC orqali och.</LocalizedText>
           </View>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
@@ -143,6 +144,16 @@ export default function ShopScreen({ onBack }: Props) {
                       <LaurelWreathAvatar size={110} imageUri={user.avatarUrl} initials={user.displayName.trim().split(/\\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'U'} />
                     ) : item.kind === 'decoration' && item.value === 'book_wings' ? (
                       <BookWingsAvatar size={100} imageUri={user.avatarUrl} initials={user.displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'U'} />
+                    ) : isFrame && item.value.endsWith('3d') ? (
+                      <ProfileEffect value={item.value} style={styles.effectPreviewCard}>
+                        <View style={styles.effectPreviewContent}>
+                          <View style={[styles.effectPreviewAvatar, frameStyle(item.value)]}>
+                            {user.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} /> : <Ionicons name="person" size={22} color="#FFFFFF" />}
+                          </View>
+                          <LocalizedText style={styles.effectPreviewName}>{user.displayName}</LocalizedText>
+                          <LocalizedText style={styles.effectPreviewHandle}>@{user.username}</LocalizedText>
+                        </View>
+                      </ProfileEffect>
                     ) : isFrame ? (
                       <View style={[styles.avatarPreview, frameStyle(item.value)]}>
                         {user.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} /> : <Ionicons name="person" size={32} color="#FFFFFF" />}
@@ -152,7 +163,7 @@ export default function ShopScreen({ onBack }: Props) {
                         <Ionicons name={previewIcon(item)} size={32} color="#C5B4FF" />
                       </View>
                     )}
-                    {item.value.endsWith('3d') ? <View style={styles.threeDPill}><LocalizedText style={styles.threeDText}>3D EFFECT</LocalizedText></View> : null}
+                    {item.value.endsWith('3d') ? <View style={styles.threeDPill}><LocalizedText style={styles.threeDText}>PROFILE EFFECT</LocalizedText></View> : null}
                     {item.kind === 'badge' ? <View style={styles.examplePill}><LocalizedText style={styles.exampleText}>NISHON NAMUNASI</LocalizedText></View> : null}
                   </View>
                   <LocalizedText style={styles.productName} numberOfLines={1}>{item.name}</LocalizedText>
@@ -200,6 +211,11 @@ function makeStyles(c: ReturnType<typeof useTheme>['tokens']['colors'], isDark: 
     grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
     product: { width: '48.5%', minHeight: 235, padding: 11, borderRadius: 19, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border },
     previewStage: { height: 105, alignItems: 'center', justifyContent: 'center', marginBottom: 8, position: 'relative' },
+    effectPreviewCard: { width: 116, height: 91, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#171528' : '#F5F1FF', borderWidth: 1, borderColor: c.border, padding: 5 },
+    effectPreviewContent: { alignItems: 'center', justifyContent: 'center', gap: 1 },
+    effectPreviewAvatar: { width: 42, height: 42, borderRadius: 21, padding: 3, borderWidth: 2, borderColor: c.primary, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+    effectPreviewName: { color: c.text, fontSize: 8, fontWeight: '900', marginTop: 3 },
+    effectPreviewHandle: { color: c.textMuted, fontSize: 7 },
     avatarPreview: { width: 76, height: 76, borderRadius: 38, padding: 4, borderWidth: 3, borderColor: c.primary, backgroundColor: c.surfaceElevated, alignItems: 'center', justifyContent: 'center' },
     avatarImage: { width: '100%', height: '100%', borderRadius: 40 },
     frameAurora: { borderColor: '#A78BFA', backgroundColor: '#6D55C5' },
