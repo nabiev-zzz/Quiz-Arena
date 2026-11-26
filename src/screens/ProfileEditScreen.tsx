@@ -43,7 +43,7 @@ export default function ProfileEditScreen({ onBack, onCollectionPress }: { onBac
     } catch (error) { showLocalizedAlert('Xatolik', error instanceof Error ? error.message : 'Profilni saqlab bo‘lmadi.'); }
     finally { setSaving(false); }
   };
-  const initials = name.trim().split(/\\s+/).slice(0, 2).map(part => part[0]?.toUpperCase()).join('');
+  const initials = name.trim().split(/\s+/).slice(0, 2).map(part => part[0]?.toUpperCase()).join('');
   return <View style={s.screen}>
     <View style={s.header}>
       <Pressable onPress={onBack} style={s.back}><Ionicons name="arrow-back" size={22} color={c.text} /></Pressable>
