@@ -44,6 +44,7 @@ import DiscoverUsersScreen from './src/screens/DiscoverUsersScreen';
 import BattleScreen from './src/screens/BattleScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import PremiumScreen from './src/screens/PremiumScreen';
+import QaAdminScreen from './src/screens/QaAdminScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
 import RegisterScreen from './src/screens/auth/RegisterScreen';
 
@@ -142,6 +143,7 @@ function AppContent() {
   const [showDocumentQuiz, setShowDocumentQuiz] = useState(false);
   const [showSmartPractice, setShowSmartPractice] = useState(false);
   const [showShop, setShowShop] = useState(false);
+  const [showQaAdmin, setShowQaAdmin] = useState(false);
   const [selectedPublicUsername, setSelectedPublicUsername] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -626,6 +628,13 @@ function AppContent() {
                   <Ionicons name="chevron-forward" size={16} color={mutedColor} />
                 </Pressable>
               ))}
+              {user.role === 'admin' && (
+                <Pressable style={[styles.drawerCompactItem, { borderBottomColor: borderColor }]} onPress={() => { setShowNavigationDrawer(false); setShowQaAdmin(true); }}>
+                  <Ionicons name="shield-checkmark-outline" size={19} color="#A78BFA" />
+                  <LocalizedText style={[styles.drawerCompactTitle, { color: textColor }]}>QA boshqaruvi</LocalizedText>
+                  <Ionicons name="chevron-forward" size={16} color={mutedColor} />
+                </Pressable>
+              )}
               <Pressable style={[styles.drawerCompactItem, { borderBottomColor: borderColor }]} onPress={() => { setShowNavigationDrawer(false); openTab('profile'); setShowSettings(true); }}>
                 <Ionicons name="settings-outline" size={19} color={tokens.colors.primary} />
                 <LocalizedText style={[styles.drawerCompactTitle, { color: textColor }]}>Sozlamalar</LocalizedText>
@@ -658,7 +667,9 @@ function AppContent() {
         />
       </View>
 
-      {showDailyTasks ? (
+      {showQaAdmin && user.role === 'admin' ? (
+        <QaAdminScreen onBack={() => setShowQaAdmin(false)} />
+      ) : showDailyTasks ? (
         <DailyTasksScreen onBack={() => setShowDailyTasks(false)} />
       ) : supportScreen === 'chat' ? (
         <SupportChatScreen
