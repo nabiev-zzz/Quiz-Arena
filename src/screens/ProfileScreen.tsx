@@ -561,7 +561,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
                     <View style={styles.iconTile}><Ionicons name="trophy-outline" size={21} color={C.purple} /></View>
                     <View style={styles.rowBody}>
                       <LocalizedText style={styles.cardTitle}>{task.title}</LocalizedText>
-                      <LocalizedText style={styles.cardSubtitle}>{task.description}</LocalizedText>
+                      <LocalizedText style={styles.cardSubtitle}>{task.description}</LocalizedText>
                     </View>
                     <NativeText style={{ color: '#D9B65B', fontWeight: '900' }}>+{task.reward} ZC</NativeText>
                   </View>
@@ -668,7 +668,7 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     frameGalaxy3d: { backgroundColor: '#4338CA', borderColor: '#C4B5FD', borderWidth: 5, shadowColor: '#818CF8', shadowOpacity: 0.95, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 16 },
     profileBadgeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, backgroundColor: 'rgba(214,182,106,0.14)', borderWidth: 1, borderColor: '#B88F45' },
     profileBadgeText: { color: '#D6B66A', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
-    shopHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderRadius: 20, backgroundColor: C.surfaceRaised, borderWidth: 1, borderColor: C.border, marginBottom: 13 },
+    shopHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 17, borderRadius: 25, backgroundColor: C.surfaceRaised, borderWidth: 1, borderColor: C.border, marginBottom: 13 },
     shopHeroIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: C.purple },
     shopHeroTitle: { color: C.text, fontSize: 15, fontWeight: '900', letterSpacing: 1 },
     shopBalance: { alignItems: 'flex-end' },
@@ -680,7 +680,7 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     shopFilterText: { color: C.muted, fontSize: 11, fontWeight: '700' },
     shopFilterTextActive: { color: '#FFFFFF' },
     shopGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 11 },
-    shopProduct: { width: '48.5%', minHeight: 205, padding: 11, borderRadius: 21, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
+    shopProduct: { width: '48.5%', minHeight: 205, padding: 13, borderRadius: 25, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
     shopProductPreview: { height: 84, alignItems: 'center', justifyContent: 'center', marginBottom: 7, position: 'relative' },
     shopAvatarPreview: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, borderColor: C.purple, backgroundColor: C.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
     shop3dPill: { position: 'absolute', top: 0, right: 3, backgroundColor: '#8B5CF6', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
@@ -702,10 +702,10 @@ function makeStyles(C: { background: string; surface: string; surfaceRaised: str
     handleRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 5 },
     handle: { color: C.muted, fontSize: 13 },
     badges: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 7 },
-    editButton: { height: 48, borderRadius: 14, backgroundColor: C.purple, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 16 },
+    editButton: { height: 50, borderRadius: 17, backgroundColor: C.purple, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 16 },
     editButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-    tabs: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 3, padding: 4, borderRadius: 13, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, marginBottom: 17 },
-    tab: { flex: 1, minHeight: 42, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderRadius: 11 },
+    tabs: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 4, padding: 5, borderRadius: 19, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, marginBottom: 17 },
+    tab: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderRadius: 15 },
     tabActive: { backgroundColor: C.purple, },
     tabText: { color: C.subtle, fontSize: 11, fontWeight: '700' },
     tabTextActive: { color: '#FFFFFF', fontWeight: '900' },
