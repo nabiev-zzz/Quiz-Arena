@@ -406,30 +406,12 @@ function AppContent() {
         );
       }
 
-      if (showCosmeticCollection) {
-        return <CosmeticCollectionScreen onBack={() => { setShowCosmeticCollection(false); setShowProfileEdit(true); }} />;
-      }
-
-      if (showProfileEdit) {
-        return <ProfileEditScreen onBack={() => setShowProfileEdit(false)} onCollectionPress={() => { setShowProfileEdit(false); setShowCosmeticCollection(true); }} />;
-      }
-
       if (showShop) {
         return <ShopScreen onBack={() => setShowShop(false)} />;
       }
 
       if (showPremium) {
         return <PremiumScreen onBack={() => setShowPremium(false)} />;
-      }
-
-      if (showSettings) {
-        return (
-          <SettingsScreen
-            onBack={() => setShowSettings(false)}
-            onHelp={() => { setShowSettings(false); setSupportScreen('home'); }}
-            dockStretch={dockStretch}
-          />
-        );
       }
 
       return (
