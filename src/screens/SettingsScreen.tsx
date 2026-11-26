@@ -20,6 +20,54 @@ import {
   AppFontSize,
 } from '../context/AppSettingsContext';
 
+function SettingRow({
+  icon,
+  title,
+  description,
+  right,
+  onPress,
+  colors,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  description?: string;
+  right?: React.ReactNode;
+  onPress?: () => void;
+  colors: { card: string; border: string; text: string; muted: string; accent: string };
+}) {
+  return (
+    <Pressable
+      style={[
+        styles.row,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+        },
+      ]}
+      onPress={onPress}
+      disabled={!onPress}
+    >
+      <View style={styles.rowIcon}>
+        <Ionicons name={icon} size={21} color={colors.accent} />
+      </View>
+
+      <View style={styles.rowContent}>
+        <LocalizedText style={[styles.rowTitle, { color: colors.text }]}>
+          {title}
+        </LocalizedText>
+
+        {description ? (
+          <LocalizedText style={[styles.rowDescription, { color: colors.muted }]}>
+            {description}
+          </LocalizedText>
+        ) : null}
+      </View>
+
+      {right}
+    </Pressable>
+  );
+}
+
 interface SettingsScreenProps {
   onBack?: () => void;
   onHelp?: () => void;
@@ -57,10 +105,11 @@ export default function SettingsScreen({
       const nextY = event.contentOffset.y;
       const delta = nextY - lastDockScrollY.value;
       lastDockScrollY.value = nextY;
+      // eslint-disable-next-line react-hooks/immutability -- Reanimated shared values are mutable by design.
       dockStretch.value = withSpring(Math.max(-1, Math.min(1, delta / 30)), { damping: 11, stiffness: 160, mass: 0.7 });
     },
-    onEndDrag: () => { if (dockStretch) dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 }); },
-    onMomentumEnd: () => { if (dockStretch) dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 }); },
+    onEndDrag: () => { if (dockStretch) { /* eslint-disable-next-line react-hooks/immutability -- Reanimated shared values are mutable by design. */ dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 }); } },
+    onMomentumEnd: () => { if (dockStretch) { /* eslint-disable-next-line react-hooks/immutability -- Reanimated shared values are mutable by design. */ dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 }); } },
   });
 
   const colors = {
@@ -119,49 +168,7 @@ export default function SettingsScreen({
     );
   };
 
-  const SettingRow = ({
-    icon,
-    title,
-    description,
-    right,
-    onPress,
-  }: {
-    icon: keyof typeof Ionicons.glyphMap;
-    title: string;
-    description?: string;
-    right?: React.ReactNode;
-    onPress?: () => void;
-  }) => (
-    <Pressable
-      style={[
-        styles.row,
-        {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
-        },
-      ]}
-      onPress={onPress}
-      disabled={!onPress}
-    >
-      <View style={styles.rowIcon}>
-        <Ionicons name={icon} size={21} color={colors.accent} />
-      </View>
 
-      <View style={styles.rowContent}>
-        <LocalizedText style={[styles.rowTitle, { color: colors.text }]}>
-          {title}
-        </LocalizedText>
-
-        {description ? (
-          <LocalizedText style={[styles.rowDescription, { color: colors.muted }]}>
-            {description}
-          </LocalizedText>
-        ) : null}
-      </View>
-
-      {right}
-    </Pressable>
-  );
 
   return (
     <Animated.ScrollView
@@ -317,6 +324,7 @@ export default function SettingsScreen({
       </LocalizedText>
 
       <SettingRow
+        colors={colors}
         icon="notifications-outline"
         title="Bildirishnomalar"
         description="Ilova xabarlari"
@@ -333,6 +341,7 @@ export default function SettingsScreen({
       />
 
       <SettingRow
+        colors={colors}
         icon="volume-high-outline"
         title="Ovoz"
         description="Tovush effektlari"
@@ -349,6 +358,7 @@ export default function SettingsScreen({
       />
 
       <SettingRow
+        colors={colors}
         icon="phone-portrait-outline"
         title="Tebranish"
         description="Javob berishdagi tebranish"
@@ -369,6 +379,7 @@ export default function SettingsScreen({
       </LocalizedText>
 
       <SettingRow
+        colors={colors}
         icon="mail-outline"
         title="Tiklash email manzili"
         description={user?.email ? (user.emailVerified ? 'Tasdiqlangan: ' + user.email : 'Tasdiqlanmagan: ' + user.email) : 'Email manzili ulanmagan'}
@@ -381,6 +392,7 @@ export default function SettingsScreen({
         }
       />
       <SettingRow
+        colors={colors}
         icon="lock-closed-outline"
         title="Parolni o‘zgartirish"
         description="Hisobingiz parolini yangilang"
@@ -395,6 +407,7 @@ export default function SettingsScreen({
       />
 
       <SettingRow
+        colors={colors}
         icon="shield-checkmark-outline"
         title="Maxfiylik va xavfsizlik"
         description="Hisob va shaxsiy ma’lumotlar"
@@ -409,6 +422,7 @@ export default function SettingsScreen({
       />
 
       <SettingRow
+        colors={colors}
         icon="document-text-outline"
         title="Maxfiylik siyosati"
         description="Ma’lumotlardan foydalanish qoidalari"
@@ -472,8 +486,8 @@ export default function SettingsScreen({
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 14,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 128,
   },
   header: {
@@ -502,7 +516,7 @@ const styles = StyleSheet.create({
     marginBottom: 11,
   },
   groupCard: {
-    borderRadius: 21,
+    borderRadius: 25,
     borderWidth: 1,
     padding: 16,
     marginBottom: 5,
@@ -554,10 +568,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   row: {
-    minHeight: 70,
+    minHeight: 72,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 18,
+    borderRadius: 22,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 13,
