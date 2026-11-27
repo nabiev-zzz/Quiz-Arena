@@ -267,3 +267,13 @@ export async function removeToken(): Promise<void> {
   }
   await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
+
+export async function createTelegramBotAuthSession(): Promise<{ sessionId: string; botUrl: string; expiresIn: number }> {
+  return request('/api/auth/telegram/bot/session', { method: 'POST', body: JSON.stringify({}) });
+}
+
+export async function verifyTelegramBotAuthCode(sessionId: string, code: string): Promise<AuthResponse> {
+  return request<AuthResponse>('/api/auth/telegram/bot/verify', {
+    method: 'POST', body: JSON.stringify({ sessionId, code }),
+  });
+}
