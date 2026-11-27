@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { File, UploadType } from 'expo-file-system';
-import { API_BASE_URL, getToken } from './authService';
+import { API_BASE_URL, apiFetch, getToken } from './authService';
 
 export interface CommunityPerson {
   id: string;
@@ -52,7 +52,7 @@ export interface CommunityStory {
 async function request<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const token = await getToken();
   if (!token) throw new Error('Kirish talab qilinadi');
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await apiFetch(`${API_BASE_URL}${path}`, {
     method,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: body === undefined ? undefined : JSON.stringify(body),
