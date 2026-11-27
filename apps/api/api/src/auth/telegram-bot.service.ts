@@ -62,7 +62,7 @@ export class TelegramBotService implements OnModuleInit {
     const explicitUrl = this.config.get<string>('TELEGRAM_WEBHOOK_URL')?.trim();
     const railwayDomain = this.config.get<string>('RAILWAY_PUBLIC_DOMAIN')?.trim();
     const webhookUrl = explicitUrl
-      || (railwayDomain ? `https://${railwayDomain.replace(/^https?:\\/\\//, '')}/api/auth/telegram/webhook` : '');
+      || (railwayDomain ? `https://${railwayDomain.replace(/^https?:\/\//, '')}/api/auth/telegram/webhook` : '');
     if (!webhookUrl || !webhookUrl.startsWith('https://')) {
       this.logger.warn('TELEGRAM_WEBHOOK_URL yoki RAILWAY_PUBLIC_DOMAIN sozlanmagan.');
       return;
@@ -163,7 +163,6 @@ export class TelegramBotService implements OnModuleInit {
         'Telefon raqamingiz tasdiqlandi. QUIZ ARENA akkauntingiz tayyor. Ilovani ochish uchun quyidagi tugmani bosing. Havola 90 soniya amal qiladi.',
         {
           inline_keyboard: [[{ text: '🚀 QUIZ ARENA ilovasini ochish', url: result.deepLink }]],
-          remove_keyboard: true,
         },
       );
     } catch (error) {
