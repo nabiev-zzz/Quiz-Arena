@@ -51,18 +51,19 @@ const Snowflake = memo(function Snowflake({ flake }: { flake: FlakeConfig }) {
     };
   }, [flake.duration, progress]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity:
-      flake.opacity *
-      Math.max(0, 1 - Math.abs(progress.value - 0.5) * 2),
-    transform: [
-      { translateY: -36 + progress.value * 980 },
-      {
-        translateX:
-          Math.sin(progress.value * Math.PI * 2 + flake.phase) * flake.drift,
-      },
-    ],
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    const travel = (progress.value + ((flake.id * 0.618) % 1)) % 1;
+    return {
+      opacity: flake.opacity * Math.max(0, 1 - Math.abs(travel - 0.5) * 2),
+      transform: [
+        { translateY: -36 + travel * 980 },
+        {
+          translateX:
+            Math.sin(progress.value * Math.PI * 2 + flake.phase) * flake.drift,
+        },
+      ],
+    };
+  });
 
   return (
     <Animated.View
@@ -97,7 +98,7 @@ export default function Snowfall() {
 
 const styles = StyleSheet.create({
   layer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: 'hidden',
     zIndex: 0,
     elevation: 0,
@@ -109,6 +110,5 @@ const styles = StyleSheet.create({
     shadowColor: '#FFFFFF',
     shadowOpacity: 0.7,
     shadowRadius: 4,
-    elevation: 1,
   },
 });
