@@ -582,7 +582,7 @@ export class AuthService {
 
 
   async bindTelegramBotSession(sessionId: string, telegramUserId: number): Promise<void> {
-    if (!/^[A-Za-z0-9_-]{30,40}$/.test(sessionId) || !/^\d{6}$/.test(code)) {
+    if (!/^[A-Za-z0-9_-]{30,40}$/.test(sessionId)) throw new BadRequestException('Bot havolasi noto‘g‘ri');
     const session = await this.telegramSessions.createQueryBuilder('session').addSelect('session.sessionHash').where('session.sessionHash = :hash', { hash: this.telegramSessionHash(sessionId) }).getOne();
     if (!session || session.expiresAt.getTime() <= Date.now() || session.consumedAt) {
       throw new UnauthorizedException('Sessiya tugagan. Ilovadan qayta boshlang.');
