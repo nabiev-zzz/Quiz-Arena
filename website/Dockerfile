@@ -2,7 +2,7 @@ FROM node:22-alpine AS web-build
 RUN apk add --no-cache git
 # Pin the app source to the repository commit being deployed. Bump this value
 # whenever the Expo app changes; otherwise Docker may reuse a cached git-fetch layer.
-ARG APP_SOURCE_COMMIT=22ecda14b9e0cf3d1b9f1914bcd3323aead6eca0
+ARG APP_SOURCE_COMMIT=4206358cd56c550278e6e76dce245a3bc5ec772e
 RUN git init /workspace \
     && git -C /workspace remote add origin https://github.com/nabiev-zzz/Quiz-Arena.git \
     && git -C /workspace fetch --depth 1 origin "${APP_SOURCE_COMMIT}" \
