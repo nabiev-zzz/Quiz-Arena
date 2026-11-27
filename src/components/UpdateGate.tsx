@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Constants from 'expo-constants';
-import { API_BASE_URL } from '../config/api';
+import { API_BASE_URL, apiFetch } from '../config/api';
 
 type AppReleaseInfo = {
   latestVersion: string;
@@ -30,7 +30,7 @@ export default function UpdateGate() {
     let active = true;
     const check = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/app/version`, {
+        const response = await apiFetch(`${API_BASE_URL}/app/version`, {
           headers: { Accept: 'application/json' },
         });
         if (!response.ok) return;
