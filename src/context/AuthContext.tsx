@@ -171,7 +171,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const startTelegramLogin = async () => {
     await Linking.openURL(`${API_BASE_URL}/api/auth/telegram/start`);
   };
-    await Linking.openURL(`${API_BASE_URL}/api/auth/telegram/start`);
   };
 
   const updateProfile = async (input: UpdateProfileInput) => {
