@@ -60,6 +60,9 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   const [clipSubject, setClipSubject] = useState('Boshqa');
   const [selectedClip, setSelectedClip] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [clipUploadProgress, setClipUploadProgress] = useState<number | null>(null);
+  const [clipUploadStage, setClipUploadStage] = useState('');
+  const [clipUploadError, setClipUploadError] = useState('');
+  const [clipCaption, setClipCaption] = useState('');
   const [stories, setStories] = useState<CommunityStory[]>([]);
   const [content, setContent] = useState('');
   const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
@@ -184,7 +187,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     if (clipBusy) return;
     try {
       const asset = await pickVideo();
-      if (asset) { setSelectedClip(asset); setClipUploadProgress(null); setClipComposerVisible(true); }
+      if (asset) { setSelectedClip(asset); setClipUploadProgress(null); setClipUploadStage(''); setClipUploadError(''); setClipComposerVisible(true); }
     } catch (error) {
       showLocalizedAlert('Video tanlash', error instanceof Error ? error.message : 'Video tanlanmadi');
     }
@@ -198,20 +201,39 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
         return;
       }
       setClipBusy(true);
+      setClipUploadError('');
       setClipUploadProgress(0);
-      const media = await uploadCommunityMedia(selectedClip.uri, videoMime(selectedClip), setClipUploadProgress, selectedClip.fileSize, selectedClip.file);
-      const created = await createCommunityClip(content.trim(), media.mediaKey, media.mediaType, clipSubject);
+      setClipUploadStage('Yuklashga tayyorlanmoqda...');
+      const media = await uploadCommunityMedia(
+        selectedClip.uri,
+        videoMime(selectedClip),
+        (percent) => {
+          setClipUploadProgress(percent);
+          if (percent >= 99) setClipUploadStage('Video serverda tekshirilmoqda...');
+          else if (percent >= 3) setClipUploadStage('Video serverga yuborilmoqda...');
+          else setClipUploadStage('Server bilan aloqa o‘rnatilmoqda...');
+        },
+        selectedClip.fileSize,
+        selectedClip.file,
+      );
+      setClipUploadStage('Video joylanmoqda...');
+      setClipUploadProgress(100);
+      const created = await createCommunityClip(clipCaption.trim(), media.mediaKey, media.mediaType, clipSubject);
       setClips((current) => [created, ...current]);
       setPosts((current) => [created, ...current]);
-      setContent('');
+      setClipCaption('');
       setClipSubject('Boshqa');
       setSelectedClip(null);
       setClipUploadProgress(null);
+      setClipUploadStage('');
+      setClipUploadError('');
       setClipComposerVisible(false);
       setActiveSection('clips');
       showLocalizedAlert('Tayyor!', 'Video lavha muvaffaqiyatli joylandi.');
     } catch (error) {
-      showLocalizedAlert('Video joylanmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring');
+      const message = error instanceof Error ? error.message : 'Qayta urinib ko‘ring';
+      setClipUploadError(message);
+      setClipUploadStage('Yuklash yakunlanmadi');
     } finally { setClipBusy(false); }
   };
 
@@ -524,16 +546,17 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
 
       <Modal visible={clipComposerVisible} transparent animationType="slide" onRequestClose={() => { if (!clipBusy) setClipComposerVisible(false); }}>
         <View style={{flex:1,backgroundColor:'rgba(5,6,12,0.78)',justifyContent:'flex-end'}}>
-          <View style={{backgroundColor:c.surface,borderTopLeftRadius:24,borderTopRightRadius:24,padding:20,gap:12}}>
+          <ScrollView style={{backgroundColor:c.surface,borderTopLeftRadius:24,borderTopRightRadius:24,maxHeight:'90%'}} contentContainerStyle={{padding:20,gap:12}} keyboardShouldPersistTaps="handled">
             <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}><LocalizedText style={styles.feedTitle}>Yangi lavha</LocalizedText><Pressable onPress={() => { if (!clipBusy) setClipComposerVisible(false); }} disabled={clipBusy}><Ionicons name="close" size={23} color={c.text}/></Pressable></View>
-            {selectedClip ? <View style={styles.selectedClipCard}><Ionicons name="videocam" size={22} color={c.primary}/><View style={{flex:1}}><LocalizedText style={styles.selectedClipName} numberOfLines={1}>{selectedClip.fileName || 'Tanlangan video'}</LocalizedText><LocalizedText style={styles.selectedClipMeta}>{selectedClip.fileSize ? `${(selectedClip.fileSize/(1024*1024)).toFixed(1)} MB` : 'Video'} · {selectedClip.duration ? `${Math.round(selectedClip.duration/1000)} soniya` : '90 soniyagacha'}</LocalizedText></View><Pressable onPress={() => { if (!clipBusy) { setSelectedClip(null); setClipComposerVisible(false); } }}><Ionicons name="close-circle" size={20} color={c.textMuted}/></Pressable></View> : null}
-            <TextInput value={content} onChangeText={setContent} placeholder="Video tavsifi..." placeholderTextColor={c.textMuted} style={styles.clipCaptionInput} maxLength={2000} multiline/>
+            {selectedClip ? <View style={styles.selectedClipCard}><Ionicons name="videocam" size={22} color={c.primary}/><View style={{flex:1}}><LocalizedText style={styles.selectedClipName} numberOfLines={1}>{selectedClip.fileName || 'Tanlangan video'}</LocalizedText><LocalizedText style={styles.selectedClipMeta}>{selectedClip.fileSize ? `${(selectedClip.fileSize/(1024*1024)).toFixed(1)} MB` : 'Video'} · {selectedClip.duration ? `${Math.round(selectedClip.duration/1000)} soniya` : '90 soniyagacha'}</LocalizedText></View><Pressable onPress={() => { if (!clipBusy) { setSelectedClip(null); setClipUploadError(''); } }} disabled={clipBusy}><Ionicons name="close-circle" size={20} color={c.textMuted}/></Pressable></View> : <Pressable onPress={() => void chooseClip()} disabled={clipBusy} style={styles.chooseClipButton}><Ionicons name="videocam-outline" size={20} color={c.primary}/><LocalizedText style={styles.chooseClipText}>Galereyadan video tanlash</LocalizedText></Pressable>}
+            <View style={{gap:6}}><LocalizedText style={styles.clipFieldLabel}>Video izohi (ixtiyoriy)</LocalizedText><TextInput value={clipCaption} onChangeText={setClipCaption} placeholder="Videongiz haqida yozing..." placeholderTextColor={c.textMuted} style={styles.clipCaptionInput} maxLength={2000} multiline/><LocalizedText style={styles.feedCaption}>{clipCaption.length}/2000 belgi · Bu matn video ostida ko‘rinadi.</LocalizedText></View>
             <LocalizedText style={styles.feedCaption}>Mavzu</LocalizedText>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:6}}>{['Matematika','Fizika','Informatika','Kimyo','Biologiya','Tarix','Til o‘rganish','Boshqa'].map(subject=><Pressable key={subject} onPress={()=>setClipSubject(subject)} style={{paddingHorizontal:11,paddingVertical:8,borderRadius:16,backgroundColor:clipSubject===subject?c.primary:c.background}}><LocalizedText style={{fontSize:11,fontWeight:'800',color:clipSubject===subject?'#fff':c.textMuted}}>{subject}</LocalizedText></Pressable>)}</ScrollView>
-            {clipBusy && clipUploadProgress !== null ? <View style={styles.uploadProgressCard}><View style={styles.uploadProgressHeader}><LocalizedText style={styles.uploadProgressTitle}>{clipUploadProgress >= 99 ? 'Video tekshirilmoqda' : 'Video yuklanmoqda'}</LocalizedText><LocalizedText style={styles.uploadProgressPercent}>{clipUploadProgress}%</LocalizedText></View><View style={styles.uploadProgressTrack}><View style={[styles.uploadProgressFill,{width:`${clipUploadProgress}%`}]} /></View><LocalizedText style={styles.uploadProgressHint}>{clipUploadProgress >= 99 ? 'Fayl hajmi va yaxlitligi tekshirilmoqda.' : 'Internet tezligiga qarab biroz vaqt olishi mumkin.'}</LocalizedText></View> : null}
-            <Pressable onPress={() => void publishClip()} disabled={clipBusy || !selectedClip} style={[styles.publishClipButton,(!selectedClip||clipBusy)&&{opacity:0.5}]}>{clipBusy?<ActivityIndicator color="#fff"/>:<Ionicons name="cloud-upload-outline" size={18} color="#fff"/>}<LocalizedText style={styles.publishClipButtonText}>{clipBusy?'Yuklanmoqda...':'Lavhani joylash'}</LocalizedText></Pressable>
+            {clipBusy ? <View style={styles.uploadProgressCard}><View style={styles.uploadProgressHeader}><View style={{flex:1,flexDirection:'row',alignItems:'center',gap:8}}><ActivityIndicator size="small" color={c.primary}/><LocalizedText style={styles.uploadProgressTitle}>{clipUploadStage || 'Yuklash boshlandi...'}</LocalizedText></View><LocalizedText style={styles.uploadProgressPercent}>{clipUploadProgress ?? 0}%</LocalizedText></View><View style={styles.uploadProgressTrack}><View style={[styles.uploadProgressFill,{width:`${clipUploadProgress ?? 0}%`}]} /></View><LocalizedText style={styles.uploadProgressHint}>{(clipUploadProgress ?? 0) >= 99 ? 'Fayl serverda tekshirilmoqda va lavha joylanmoqda. Oynani yopmang.' : 'Video yuklanmoqda. Yuklash tugaguncha shu oynani ochiq qoldiring.'}</LocalizedText></View> : null}
+            {clipUploadError ? <View style={styles.uploadErrorCard}><Ionicons name="alert-circle-outline" size={20} color="#E06B6B"/><View style={{flex:1,gap:3}}><LocalizedText style={styles.uploadErrorTitle}>Video yuklanmadi</LocalizedText><LocalizedText style={styles.uploadErrorText}>{clipUploadError}</LocalizedText></View></View> : null}
+            <Pressable onPress={() => void publishClip()} disabled={clipBusy || !selectedClip} style={[styles.publishClipButton,(!selectedClip||clipBusy)&&{opacity:0.55}]}>{clipBusy?<ActivityIndicator color="#fff"/>:<Ionicons name="cloud-upload-outline" size={18} color="#fff"/>}<LocalizedText style={styles.publishClipButtonText}>{clipBusy?'Yuklanmoqda...':clipUploadError?'Qayta urinish':'Videoni yuklash va joylash'}</LocalizedText></Pressable>
             <LocalizedText style={styles.clipGuidance}>MP4 (H.264) tavsiya etiladi · MOV va WEBM ham qabul qilinadi · 90 soniyagacha · 30 MB gacha.</LocalizedText>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
 
@@ -596,6 +619,9 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     sectionTabTextActive: { color: '#FFFFFF' },
     clipsSection: { gap: 16, paddingBottom: 28 },
     clipGuidance: { color: c.textMuted, fontSize: 12, lineHeight: 18, marginTop: -6 },
+    chooseClipButton: { minHeight: 50, borderRadius: 13, borderWidth: 1, borderStyle: 'dashed', borderColor: c.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, backgroundColor: c.surface },
+    chooseClipText: { color: c.primary, fontSize: 13, fontWeight: '800' },
+    clipFieldLabel: { color: c.text, fontSize: 13, fontWeight: '800' },
     selectedClipCard: { flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: 15, padding: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
     selectedClipIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(137,111,255,0.16)' : 'rgba(137,111,255,0.1)' },
     selectedClipName: { color: c.text, fontSize: 14, fontWeight: '700' },
@@ -608,6 +634,9 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     uploadProgressTrack: { height: 8, borderRadius: 8, overflow: 'hidden', backgroundColor: c.background },
     uploadProgressFill: { height: '100%', borderRadius: 8, backgroundColor: c.primary },
     uploadProgressHint: { color: c.textMuted, fontSize: 12, lineHeight: 17 },
+    uploadErrorCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, padding: 12, borderRadius: 13, backgroundColor: 'rgba(224,107,107,0.10)', borderWidth: 1, borderColor: 'rgba(224,107,107,0.35)' },
+    uploadErrorTitle: { color: '#E06B6B', fontSize: 13, fontWeight: '900' },
+    uploadErrorText: { color: c.text, fontSize: 12, lineHeight: 17 },
     publishClipButton: { minHeight: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, backgroundColor: c.primary },
     publishClipButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
 
