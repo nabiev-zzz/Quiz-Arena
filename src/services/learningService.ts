@@ -1,4 +1,4 @@
-import { API_BASE_URL, getToken } from './authService';
+import { API_BASE_URL, apiFetch, getToken } from './authService';
 import type { Difficulty } from '../types';
 import type { Question } from '../data/questions';
 
@@ -84,7 +84,7 @@ async function learningRequest<T>(
   const token = await getToken();
   if (!token) throw new Error('Tizimga qayta kirishingiz kerak.');
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await apiFetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       Accept: 'application/json',
@@ -209,7 +209,7 @@ export async function createDocumentQuiz(
   form.append('difficulty', options.difficulty);
   form.append('language', options.language);
 
-  const response = await fetch(`${API_BASE_URL}/api/learning/document-quiz`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/learning/document-quiz`, {
     method: 'POST',
     headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
     body: form,
