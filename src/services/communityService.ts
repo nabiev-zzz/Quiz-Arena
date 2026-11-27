@@ -91,7 +91,7 @@ function putBlobWithProgress(url: string, blob: Blob, headers: Record<string, st
   });
 }
 
-export async function uploadCommunityMedia(uri: string, contentType: string, onProgress?: (percent: number) => void, expectedSize?: number) {
+export async function uploadCommunityMedia(uri: string, contentType: string, onProgress?: (percent: number) => void, expectedSize?: number, sourceFile?: Blob) {
   const token = await getToken();
   if (!token) throw new Error('Kirish talab qilinadi');
   const key = await request<{ fileName: string; mediaType: string; mediaKey: string; uploadUrl: string }>('/api/community/media/upload-key', 'POST', { contentType });
@@ -147,9 +147,12 @@ export async function uploadCommunityMedia(uri: string, contentType: string, onP
   }
 
   // Web uses a Blob and the authenticated proxy (avoids cross-origin storage PUT issues).
-  const local = await fetch(uri);
-  if (!local.ok) throw new Error('Tanlangan video faylini o‘qib bo‘lmadi');
-  const blob = await local.blob();
+  let blob = sourceFile;
+  if (!blob) {
+    const local = await fetch(uri);
+    if (!local.ok) throw new Error('Tanlangan video faylini o‘qib bo‘lmadi');
+    blob = await local.blob();
+  }
   if (!blob.size || blob.size > maxBytes) throw new Error(sizeError);
   if (expectedSize && blob.size !== expectedSize) throw new Error('Video fayli to‘liq o‘qilmadi. Uni qayta tanlang.');
   onProgress?.(3);
