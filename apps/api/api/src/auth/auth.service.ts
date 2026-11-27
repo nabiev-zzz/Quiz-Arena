@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { createHash, createHmac, createPublicKey, randomBytes, randomInt, verify as verifySignature } from 'node:crypto';
+import { createHash, createHmac, createPublicKey, randomBytes, randomInt, timingSafeEqual, verify as verifySignature } from 'node:crypto';
 
 import { User } from '../users/entities/user.entity';
 import { ZcStoreItem } from '../users/entities/zc-store-item.entity';
@@ -588,7 +588,7 @@ export class AuthService {
 
   async bindTelegramBotSession(sessionId: string, telegramUserId: number): Promise<void> {
     if (!/^[A-Za-z0-9_-]{30,40}$/.test(sessionId)) throw new BadRequestException('Bot havolasi noto‘g‘ri');
-    const session = await this.telegramSessions.findOne({ where: { sessionHash: this.telegramSessionHash(sessionId) } });
+    const session = await this.telegramSessions.createQueryBuilder('session').addSelect('session.sessionHash').where('session.sessionHash = :hash', { hash: this.telegramSessionHash(sessionId) }).getOne();
     if (!session || session.expiresAt.getTime() <= Date.now() || session.consumedAt) {
       throw new UnauthorizedException('Sessiya tugagan. Ilovadan qayta boshlang.');
     }
@@ -604,10 +604,9 @@ export class AuthService {
   async issueTelegramBotOtpForUser(input: {
     telegramUserId: number; phoneNumber: string; firstName?: string; lastName?: string; username?: string;
   }): Promise<string> {
-    const session = await this.telegramSessions.findOne({
-      where: { telegramUserId: String(input.telegramUserId), consumedAt: null },
-      order: { createdAt: 'DESC' },
-    });
+    const session = await this.telegramSessions.createQueryBuilder('session').addSelect('session.sessionHash')
+      .where('session.telegramUserId = :telegramUserId', { telegramUserId: String(input.telegramUserId) })
+      .andWhere('session.consumedAt IS NULL').orderBy('session.createdAt', 'DESC').getOne();
     if (!session || session.expiresAt.getTime() <= Date.now()) {
       throw new UnauthorizedException('Ilovadagi ro‘yxatdan o‘tish oynasidan qayta boshlang.');
     }
@@ -675,6 +674,7 @@ export class AuthService {
     }
     const session = await this.telegramSessions.createQueryBuilder('session')
       .addSelect('session.codeHash')
+      .addSelect('session.sessionHash')
       .where('session.sessionHash = :hash', { hash: this.telegramSessionHash(sessionId) })
       .getOne();
     if (!session || !session.codeHash || !session.telegramUserId || !session.phoneNumber ||
