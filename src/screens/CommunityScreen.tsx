@@ -150,6 +150,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     if (asset.mimeType === 'video/quicktime') return 'video/quicktime';
     if (asset.mimeType === 'video/webm') return 'video/webm';
     if (asset.mimeType === 'video/mp4') return 'video/mp4';
+    if (asset.file?.type === 'video/quicktime' || asset.file?.type === 'video/webm' || asset.file?.type === 'video/mp4') return asset.file.type;
     const fileName = (asset.fileName || asset.uri).toLowerCase().split('?')[0];
     if (fileName.endsWith('.mov')) return 'video/quicktime';
     if (fileName.endsWith('.webm')) return 'video/webm';
@@ -176,7 +177,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
       }
       setClipBusy(true);
       setClipUploadProgress(0);
-      const media = await uploadCommunityMedia(selectedClip.uri, videoMime(selectedClip), setClipUploadProgress, selectedClip.fileSize);
+      const media = await uploadCommunityMedia(selectedClip.uri, videoMime(selectedClip), setClipUploadProgress, selectedClip.fileSize, selectedClip.file);
       const created = await createCommunityClip(content.trim(), media.mediaKey, media.mediaType, clipSubject);
       setClips((current) => [created, ...current]);
       setPosts((current) => [created, ...current]);
