@@ -8,7 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { createHash, createHmac, createPublicKey, randomBytes, randomInt, timingSafeEqual, verify as verifySignature } from 'node:crypto';
 
@@ -587,7 +587,7 @@ export class AuthService {
     if (!session || session.expiresAt.getTime() <= Date.now() || session.consumedAt) {
       throw new UnauthorizedException('Sessiya tugagan. Ilovadan qayta boshlang.');
     }
-    const existing = await this.telegramSessions.findOne({ where: { telegramUserId: String(telegramUserId), consumedAt: null } });
+    const existing = await this.telegramSessions.findOne({ where: { telegramUserId: String(telegramUserId), consumedAt: IsNull() } });
     if (existing && existing.id !== session.id) {
       existing.consumedAt = new Date();
       await this.telegramSessions.save(existing);
