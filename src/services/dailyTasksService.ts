@@ -1,4 +1,4 @@
-import { API_BASE_URL, getToken } from './authService';
+import { API_BASE_URL, apiFetch, getToken } from './authService';
 
 export interface DailyTask {
   id: string;
@@ -19,7 +19,7 @@ export interface DailyTasksResponse {
 async function request<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const token = await getToken();
   if (!token) throw new Error('Avval hisobingizga kiring');
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await apiFetch(`${API_BASE_URL}${path}`, {
     method,
     headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
     ...(body ? { body: JSON.stringify(body) } : {}),
