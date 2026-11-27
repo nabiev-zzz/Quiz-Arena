@@ -57,6 +57,15 @@ export class CommunityService {
     return mediaKey ? this.storage.sign('GET', mediaKey, 86400) : null;
   }
 
+  async getClipPlaybackUrl(postId: string) {
+    const post = await this.posts.findOne({ where: { id: postId, status: 'active' } });
+    if (!post || !post.mediaKey || !post.mediaType?.startsWith('video/')) {
+      throw new NotFoundException('Lavha topilmadi');
+    }
+    const playbackKey = await this.storage.ensureCompatibleVideo(post.authorId, post.mediaKey);
+    return { url: await this.mediaUrl(playbackKey), mediaType: 'video/mp4' };
+  }
+
   async feed(viewerId: string, limit = 30) {
     const posts = await this.posts.find({
       where: { status: 'active' },
