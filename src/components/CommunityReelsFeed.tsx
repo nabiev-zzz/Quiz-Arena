@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { FlatList, Image, Pressable, Share, StyleSheet, View, useWindowDimensions } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { FlatList, Image, Pressable, Share, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,15 +24,11 @@ function Reel({ clip, active, height, onLike, onComments, onMiniTest, onUserPres
 }) {
   const [muted, setMuted] = useState(true);
   const [paused, setPaused] = useState(false);
-  const player = useVideoPlayer(clip.mediaUrl || '', (p) => { p.loop = true; p.muted = true; });
-  React.useEffect(() => {
-    player.muted = muted;
-    if (active && !paused) player.play(); else player.pause();
-  }, [active, muted, paused, player]);
+
   const togglePlayback = () => setPaused((value) => !value);
   return (
     <View style={[styles.reel, { height }]}>
-      {clip.mediaUrl ? <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} /> : <View style={styles.noVideo}><Ionicons name="videocam-off-outline" size={40} color="#FFFFFF"/><LocalizedText style={styles.emptyText}>Video mavjud emas</LocalizedText></View>}
+      {clip.mediaUrl && active ? <ActiveReelVideo uri={clip.mediaUrl} muted={muted} paused={paused} /> : <View style={styles.noVideo}><Ionicons name={clip.mediaUrl ? 'play-circle-outline' : 'videocam-off-outline'} size={40} color="#FFFFFF"/><LocalizedText style={styles.emptyText}>{clip.mediaUrl ? 'Keyingi lavha' : 'Video mavjud emas'}</LocalizedText></View>}
       <Pressable style={StyleSheet.absoluteFill} onPress={togglePlayback} />
       {paused && <View pointerEvents="none" style={styles.pauseMark}><Ionicons name="play" size={48} color="#FFFFFF" /></View>}
       <View pointerEvents="none" style={styles.shadeTop} />
@@ -57,16 +53,24 @@ function Reel({ clip, active, height, onLike, onComments, onMiniTest, onUserPres
   );
 }
 
+function ActiveReelVideo({ uri, muted, paused }: { uri: string; muted: boolean; paused: boolean }) {
+  const player = useVideoPlayer(uri, (instance) => { instance.loop = true; instance.muted = muted; });
+  useEffect(() => {
+    player.muted = muted;
+    if (paused) player.pause(); else player.play();
+  }, [player, muted, paused]);
+  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} surfaceType="textureView" />;
+}
+
 export default function CommunityReelsFeed(props: Props) {
-  const { height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const height = Math.max(320, windowHeight - insets.top - insets.bottom);
+  const [height, setHeight] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<FlatList<CommunityPost>>(null);
   const keyExtractor = (item: CommunityPost) => item.id;
   return (
-    <View style={styles.container}>
-      {props.loading ? <View style={styles.state}><LocalizedText style={styles.stateText}>Lavhalar yuklanmoqda...</LocalizedText></View> : props.error ? <View style={styles.state}><Ionicons name="cloud-offline-outline" size={36} color="#FFFFFF"/><LocalizedText style={styles.stateText}>Videolar yuklanmadi</LocalizedText><Pressable onPress={props.onRetry} style={styles.retry}><LocalizedText style={styles.retryText}>Qayta urinish</LocalizedText></Pressable></View> : props.clips.length === 0 ? <View style={styles.state}><Ionicons name="videocam-outline" size={48} color="#FFFFFF"/><LocalizedText style={styles.stateText}>Hali lavhalar yo‘q</LocalizedText><LocalizedText style={styles.emptyText}>Birinchi videoni siz joylang.</LocalizedText></View> : <FlatList ref={listRef} data={props.clips} keyExtractor={keyExtractor} renderItem={({ item, index }) => <Reel clip={item} active={index === activeIndex} height={height} onLike={props.onLike} onComments={props.onComments} onMiniTest={props.onMiniTest} onUserPress={props.onUserPress}/>} pagingEnabled snapToInterval={height} snapToAlignment="start" decelerationRate="fast" showsVerticalScrollIndicator={false} initialNumToRender={2} maxToRenderPerBatch={2} windowSize={3} getItemLayout={(_, index) => ({ length: height, offset: height * index, index })} onMomentumScrollEnd={(event) => setActiveIndex(Math.round(event.nativeEvent.contentOffset.y / height))} />}
+    <View style={styles.container} onLayout={(event) => { const next = Math.round(event.nativeEvent.layout.height); if (next > 0 && next !== height) setHeight(next); }}>
+      {props.loading ? <View style={styles.state}><LocalizedText style={styles.stateText}>Lavhalar yuklanmoqda...</LocalizedText></View> : props.error ? <View style={styles.state}><Ionicons name="cloud-offline-outline" size={36} color="#FFFFFF"/><LocalizedText style={styles.stateText}>Videolar yuklanmadi</LocalizedText><Pressable onPress={props.onRetry} style={styles.retry}><LocalizedText style={styles.retryText}>Qayta urinish</LocalizedText></Pressable></View> : props.clips.length === 0 ? <View style={styles.state}><Ionicons name="videocam-outline" size={48} color="#FFFFFF"/><LocalizedText style={styles.stateText}>Hali lavhalar yo‘q</LocalizedText><LocalizedText style={styles.emptyText}>Birinchi videoni siz joylang.</LocalizedText></View> : height > 0 ? <FlatList ref={listRef} style={{ flex: 1 }} data={props.clips} keyExtractor={keyExtractor} renderItem={({ item, index }) => <Reel clip={item} active={index === activeIndex} height={height} onLike={props.onLike} onComments={props.onComments} onMiniTest={props.onMiniTest} onUserPress={props.onUserPress}/>} pagingEnabled snapToInterval={height} snapToAlignment="start" decelerationRate="fast" showsVerticalScrollIndicator={false} initialNumToRender={2} maxToRenderPerBatch={2} windowSize={3} getItemLayout={(_, index) => ({ length: height, offset: height * index, index })} onMomentumScrollEnd={(event) => setActiveIndex(Math.round(event.nativeEvent.contentOffset.y / height))} /> : <View style={{flex:1,backgroundColor:'#05060A'}} />}
       <View style={[styles.header, { paddingTop: Math.max(10, insets.top + 4) }]}>
         <Pressable onPress={props.onBack} style={styles.headerButton}><Ionicons name="chevron-back" size={25} color="#FFFFFF"/></Pressable>
         <LocalizedText style={styles.headerTitle}>Lavhalar</LocalizedText>
