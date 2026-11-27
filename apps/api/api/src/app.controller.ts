@@ -10,7 +10,7 @@ export class AppController {
     return {
       latestVersion: '1.1.2',
       minSupportedVersion: '1.1.2',
-      androidUrl: 'https://github.com/nabiev-zzz/Quiz-Arena/releases/latest',
+      androidUrl: 'https://expo.dev/accounts/faxriyorkk/projects/QUIZ-ARENA/builds/7375d1b9-6b57-46d0-bdaf-52459e28eb99',
       releaseNotes: 'Hujjatdan AI test yaratish va Android fayl yuklash yaxshilandi.',
     };
   }
