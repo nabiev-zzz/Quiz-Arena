@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { createHash, createPublicKey, randomBytes, randomInt, verify as verifySignature } from 'node:crypto';
+import { createHash, createHmac, createPublicKey, randomBytes, randomInt, verify as verifySignature } from 'node:crypto';
 
 import { User } from '../users/entities/user.entity';
 import { ZcStoreItem } from '../users/entities/zc-store-item.entity';
@@ -308,13 +308,15 @@ export class AuthService {
 
   async getTelegramAuthorizationUrl(): Promise<string> {
     const { clientId, redirectUri } = this.getTelegramConfig();
-    const nonce = randomBytes(24).toString('base64url');
-    const codeVerifier = randomBytes(48).toString('base64url');
+    // Telegram enforces a short state parameter; never put a JWT/PKCE verifier in it.
+    const state = `${Math.floor(Date.now() / 1000).toString(36)}.${randomBytes(12).toString('base64url')}`;
+    const nonce = state;
+    const jwtSecret = this.config.get<string>('JWT_SECRET');
+    if (!jwtSecret) throw new ServiceUnavailableException('Auth xavfsizlik kaliti sozlanmagan');
+    const codeVerifier = createHmac('sha256', jwtSecret)
+      .update(`telegram-oauth:${state}`)
+      .digest('base64url');
     const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
-    const state = await this.jwtService.signAsync(
-      { purpose: 'telegram_oauth', nonce, codeVerifier },
-      { expiresIn: 600 },
-    );
     const url = new URL('https://oauth.telegram.org/auth');
     url.searchParams.set('client_id', clientId);
     url.searchParams.set('redirect_uri', redirectUri);
@@ -328,30 +330,27 @@ export class AuthService {
   }
 
   async handleTelegramCallback(code: string, state: string): Promise<string> {
-    let statePayload: { purpose?: string; nonce?: string; codeVerifier?: string };
-    try {
-      statePayload = await this.jwtService.verifyAsync(state);
-    } catch {
-      throw new UnauthorizedException('Telegram kirish so‘rovi muddati tugagan yoki noto‘g‘ri');
-    }
-    if (
-      statePayload.purpose !== 'telegram_oauth' ||
-      !statePayload.nonce ||
-      !statePayload.codeVerifier
-    ) {
-      throw new UnauthorizedException('Telegram kirish so‘rovi noto‘g‘ri');
-    }
-
-    if (!code || code.length > 2048 || !state) {
+    if (!code || code.length > 2048 || !state || state.length > 64) {
       throw new UnauthorizedException('Telegram kirish javobi noto‘g‘ri');
     }
+    const match = /^([0-9a-z]{1,12})\.([A-Za-z0-9_-]{16})$/.exec(state);
+    const issuedAt = match ? Number.parseInt(match[1], 36) : Number.NaN;
+    const now = Math.floor(Date.now() / 1000);
+    if (!match || !Number.isSafeInteger(issuedAt) || issuedAt > now + 30 || now - issuedAt > 600) {
+      throw new UnauthorizedException('Telegram kirish so‘rovi muddati tugagan yoki noto‘g‘ri');
+    }
+    const jwtSecret = this.config.get<string>('JWT_SECRET');
+    if (!jwtSecret) throw new ServiceUnavailableException('Auth xavfsizlik kaliti sozlanmagan');
+    const codeVerifier = createHmac('sha256', jwtSecret)
+      .update(`telegram-oauth:${state}`)
+      .digest('base64url');
     const { clientId, clientSecret, redirectUri } = this.getTelegramConfig();
     const body = new URLSearchParams({
       grant_type: 'authorization_code',
       code,
       redirect_uri: redirectUri,
       client_id: clientId,
-      code_verifier: statePayload.codeVerifier,
+      code_verifier: codeVerifier,
     });
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
     const tokenResponse = await fetch('https://oauth.telegram.org/token', {
@@ -370,7 +369,7 @@ export class AuthService {
       throw new UnauthorizedException('Telegram hisobini tasdiqlash amalga oshmadi');
     }
 
-    const result = await this.loginWithTelegram(tokenPayload.id_token, statePayload.nonce);
+    const result = await this.loginWithTelegram(tokenPayload.id_token, state);
     const rawCode = randomBytes(32).toString('base64url');
     const codeHash = createHash('sha256').update(rawCode).digest('hex');
     await this.oauthCodeRepository.save(this.oauthCodeRepository.create({
