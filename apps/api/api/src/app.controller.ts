@@ -10,7 +10,7 @@ export class AppController {
     return {
       latestVersion: '1.1.3',
       minSupportedVersion: '1.1.2',
-      androidUrl: 'https://expo.dev/accounts/faxriyorkk/projects/QUIZ-ARENA/builds/7375d1b9-6b57-46d0-bdaf-52459e28eb99',
+      androidUrl: 'https://expo.dev/artifacts/eas/jAU-hMzNCjrZbywkufm70xdot001tsrpagsgy00LSnI.apk',
       releaseNotes: 'Hujjatdan AI test yaratish, fayl yuklash jarayoni va test savollarini tahrirlash yaxshilandi.',
     };
   }
