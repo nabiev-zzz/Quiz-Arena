@@ -22,6 +22,7 @@ export interface CommunityPost {
   likesCount: number;
   commentsCount: number;
   isLiked: boolean;
+  isSaved?: boolean;
   isOwn: boolean;
 }
 
@@ -29,6 +30,9 @@ export interface CommunityComment {
   id: string;
   content: string;
   createdAt: string;
+  parentId?: string | null;
+  replies?: CommunityComment[];
+  repliesCount?: number;
   author: CommunityPerson;
 }
 
@@ -67,7 +71,9 @@ export const createCommunityPost = (content: string, mediaKey?: string, mediaTyp
 export const likeCommunityPost = (id: string) => request<{ isLiked: boolean; likesCount: number }>(`/api/community/posts/${encodeURIComponent(id)}/like`, 'POST');
 export const unlikeCommunityPost = (id: string) => request<{ isLiked: boolean; likesCount: number }>(`/api/community/posts/${encodeURIComponent(id)}/unlike`, 'POST');
 export const getCommunityComments = (id: string) => request<CommunityComment[]>(`/api/community/posts/${encodeURIComponent(id)}/comments`);
-export const addCommunityComment = (id: string, content: string) => request<CommunityComment>(`/api/community/posts/${encodeURIComponent(id)}/comments`, 'POST', { content });
+export const addCommunityComment = (id: string, content: string, parentId?: string) => request<CommunityComment>(`/api/community/posts/${encodeURIComponent(id)}/comments`, 'POST', { content, ...(parentId ? { parentId } : {}) });
+export const saveCommunityClip = (id: string) => request<{ isSaved: boolean }>(`/api/community/clips/${encodeURIComponent(id)}/save`, 'POST');
+export const unsaveCommunityClip = (id: string) => request<{ isSaved: boolean }>(`/api/community/clips/${encodeURIComponent(id)}/save`, 'DELETE');
 export const getCommunityStories = () => request<CommunityStory[]>('/api/community/stories');
 export const createCommunityStory = (mediaKey: string, mediaType: string, caption: string) =>
   request<CommunityStory>('/api/community/stories', 'POST', { mediaKey, mediaType, caption });

@@ -13,7 +13,7 @@ describe('Community clip mini-tests', () => {
   beforeEach(()=>{
     jest.clearAllMocks();
     db.transaction.mockImplementation((fn:(m:typeof manager)=>unknown)=>fn(manager));
-    service=new CommunityService({} as Repository<any>,{} as Repository<any>,{} as Repository<any>,{} as Repository<any>,{} as Repository<any>,{} as Repository<any>,{} as CommunityStorageService,db as unknown as DataSource,wallet as unknown as ZcWalletService);
+    service=new CommunityService({} as Repository<any>,{} as Repository<any>,{} as Repository<any>,{} as Repository<any>,{} as Repository<any>,{} as Repository<any>,{} as Repository<any>,{} as CommunityStorageService,db as unknown as DataSource,wallet as unknown as ZcWalletService);
   });
   it('does not expose the correct option to viewers',async()=>{
     db.query.mockResolvedValueOnce([{id:'quiz-1',author_id:'creator',correct_option:2,question:'2+2?',option_a:'2',option_b:'3',option_c:'4',option_d:'5'}]).mockResolvedValueOnce([]).mockResolvedValueOnce([{attempts_count:0}]);

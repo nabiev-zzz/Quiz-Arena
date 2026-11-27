@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Image, Modal, Pressable, RefreshControl, ScrollView,
+  ActivityIndicator, Image, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView,
   StyleSheet, TextInput, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +15,7 @@ import { communityTokens, type CommunityColors } from '../theme/communityTokens'
 import {
   addCommunityComment, createCommunityPost, createCommunityStory, getCommunityComments,
   getCommunityFeed, getCommunityStories, getCommunityClips, createCommunityClip, likeCommunityPost, markCommunityStoryViewed,
-  unlikeCommunityPost, uploadCommunityMedia, getCommunityClipQuiz, createCommunityClipQuiz, answerCommunityClipQuiz,
+  unlikeCommunityPost, uploadCommunityMedia, getCommunityClipQuiz, createCommunityClipQuiz, answerCommunityClipQuiz, saveCommunityClip, unsaveCommunityClip,
   type CommunityComment, type CommunityPost, type CommunityStory, type CommunityClipQuiz,
 } from '../services/communityService';
 
@@ -54,6 +54,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   const [clipsLoadingMore, setClipsLoadingMore] = useState(false);
   const [clipsServerOffset, setClipsServerOffset] = useState(0);
   const clipsLoadingMoreRef = useRef(false);
+  const commentSheetStartY = useRef(0);
   const [activeSection, setActiveSection] = useState<'dashboard' | 'feed' | 'clips' | 'groups' | 'questions' | 'library' | 'portfolio' | 'mentors' | 'marathons' | 'competitions'>('dashboard');
   const [clipBusy, setClipBusy] = useState(false);
   const [clipComposerVisible, setClipComposerVisible] = useState(false);
@@ -71,11 +72,14 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   const [refreshing, setRefreshing] = useState(false);
   const [posting, setPosting] = useState(false);
   const [busyPost, setBusyPost] = useState<string | null>(null);
+  const [busySave, setBusySave] = useState<string | null>(null);
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
   const [commentsLoadingId, setCommentsLoadingId] = useState<string | null>(null);
   const [comments, setComments] = useState<Record<string, CommunityComment[]>>({});
   const [commentDraft, setCommentDraft] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<CommunityComment | null>(null);
+  const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({});
   const [storyBusy, setStoryBusy] = useState(false);
   const [selectedStory, setSelectedStory] = useState<CommunityStory | null>(null);
   const [quizClip, setQuizClip] = useState<CommunityPost | null>(null);
@@ -103,6 +107,8 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     } finally { setLoading(false); setRefreshing(false); }
   }, []);
 
+  // Initial async fetch; state updates occur after the network request resolves.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
 
   const loadMoreClips = useCallback(async () => {
@@ -313,6 +319,24 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     } finally { setBusyPost(null); }
   };
 
+  const toggleSaveClip = async (clip: CommunityPost) => {
+    if (busySave) return;
+    setBusySave(clip.id);
+    const nextSaved = !clip.isSaved;
+    const update = (items: CommunityPost[]) => items.map((item) => item.id === clip.id ? { ...item, isSaved: nextSaved } : item);
+    setClips(update);
+    setPosts(update);
+    try {
+      if (nextSaved) await saveCommunityClip(clip.id);
+      else await unsaveCommunityClip(clip.id);
+    } catch (error) {
+      const rollback = (items: CommunityPost[]) => items.map((item) => item.id === clip.id ? { ...item, isSaved: clip.isSaved } : item);
+      setClips(rollback);
+      setPosts(rollback);
+      showLocalizedAlert('Saqlash', error instanceof Error ? error.message : 'Lavha saqlanmadi');
+    } finally { setBusySave(null); }
+  };
+
   const openComments = async (postId: string) => {
     if (expandedPost === postId) { setExpandedPost(null); return; }
     setExpandedPost(postId);
@@ -324,6 +348,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
 
   const openClipComments = async (postId: string) => {
     setExpandedPost(postId);
+    setReplyingTo(null);
     setCommentsLoadingId(postId);
     try {
       const loaded = await getCommunityComments(postId);
@@ -333,17 +358,24 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     } finally { setCommentsLoadingId((current) => current === postId ? null : current); }
   };
 
-  const sendComment = async (postId: string) => {
+  const sendComment = async (postId: string, parentId?: string) => {
     const text = commentDraft.trim();
     if (!text || sendingComment) return;
     setSendingComment(true);
     try {
-      const comment = await addCommunityComment(postId, text);
-      setComments((current) => ({ ...current, [postId]: [...(current[postId] || []), comment] }));
+      const comment = await addCommunityComment(postId, text, parentId);
+      setComments((current) => ({
+        ...current,
+        [postId]: parentId
+          ? (current[postId] || []).map((item) => item.id === parentId ? { ...item, replies: [...(item.replies || []), comment], repliesCount: (item.repliesCount || 0) + 1 } : item)
+          : [...(current[postId] || []), comment],
+      }));
       const increment = (items: CommunityPost[]) => items.map((item) => item.id === postId ? { ...item, commentsCount: item.commentsCount + 1 } : item);
       setPosts(increment);
       setClips(increment);
       setCommentDraft('');
+      setReplyingTo(null);
+      if (parentId) setExpandedReplies((current) => ({ ...current, [parentId]: true }));
     } catch (error) { showLocalizedAlert('Izoh yuborilmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring'); }
     finally { setSendingComment(false); }
   };
@@ -387,7 +419,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
           onBack={() => setActiveSection('dashboard')} onUpload={() => void chooseClip()}
           onRetry={() => void load()} refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(true); }}
           hasMore={clipsHasMore} loadingMore={clipsLoadingMore} onLoadMore={() => void loadMoreClips()}
-          onLike={(clip) => void toggleLike(clip)} onComments={(id) => void openClipComments(id)}
+          onLike={(clip) => void toggleLike(clip)} onSave={(clip) => void toggleSaveClip(clip)} onComments={(id) => void openClipComments(id)} overlayOpen={Boolean(expandedPost)}
           onMiniTest={(clip) => void openClipQuiz(clip)} onUserPress={onUserPress} />
       ) : <ScrollView
         style={styles.screen}
@@ -599,12 +631,37 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
           </View>
         </View>
       </Modal>
-      <Modal visible={activeSection === 'clips' && Boolean(expandedPost)} transparent animationType="slide" onRequestClose={() => setExpandedPost(null)}>
-        <View style={{flex:1,backgroundColor:'rgba(5,6,12,0.72)',justifyContent:'flex-end'}}><View style={{backgroundColor:c.surface,borderTopLeftRadius:24,borderTopRightRadius:24,padding:18,maxHeight:'72%',minHeight:'38%'}}>
-          <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><LocalizedText style={styles.feedTitle}>Izohlar</LocalizedText><Pressable onPress={() => setExpandedPost(null)}><Ionicons name="close" size={23} color={c.text}/></Pressable></View>
-          <ScrollView style={{flex:1}} keyboardShouldPersistTaps="handled">{expandedPost && commentsLoadingId === expandedPost ? <View style={{padding:24,alignItems:'center'}}><ActivityIndicator color={c.primary}/><LocalizedText style={styles.feedCaption}>Izohlar yuklanmoqda...</LocalizedText></View> : (expandedPost ? comments[expandedPost] || [] : []).map(comment=><View key={comment.id} style={{paddingVertical:9,borderBottomWidth:1,borderBottomColor:c.border}}><LocalizedText style={styles.commentAuthor}>@{comment.author.username}</LocalizedText><LocalizedText style={styles.commentText}>{comment.content}</LocalizedText></View>)}{expandedPost && commentsLoadingId !== expandedPost && (comments[expandedPost] || []).length===0 ? <LocalizedText style={styles.feedCaption}>Hozircha izoh yo‘q. Birinchi bo‘lib fikr bildiring.</LocalizedText> : null}</ScrollView>
-          <View style={styles.commentComposer}><TextInput value={commentDraft} onChangeText={setCommentDraft} placeholder="Izoh yozing..." placeholderTextColor={c.textMuted} style={styles.commentInput} maxLength={1000}/><Pressable onPress={() => expandedPost && void sendComment(expandedPost)} disabled={!commentDraft.trim()||sendingComment} style={styles.commentSend}><Ionicons name="send" size={16} color="#FFFFFF"/></Pressable></View>
-        </View></View>
+      <Modal visible={activeSection === 'clips' && Boolean(expandedPost)} transparent animationType="slide" onRequestClose={() => { setExpandedPost(null); setReplyingTo(null); }}>
+        <KeyboardAvoidingView style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(5,6,12,0.72)' }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => { setExpandedPost(null); setReplyingTo(null); }} />
+          <View style={{ backgroundColor: c.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18, paddingBottom: 22, maxHeight: '82%', minHeight: '42%' }}>
+            <View onTouchStart={(event) => { commentSheetStartY.current = event.nativeEvent.pageY; }} onTouchEnd={(event) => { if (event.nativeEvent.pageY - commentSheetStartY.current > 90) { setExpandedPost(null); setReplyingTo(null); } }} style={{ width: 42, height: 5, borderRadius: 4, alignSelf: 'center', backgroundColor: c.textMuted, opacity: 0.45, marginBottom: 12 }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <View><LocalizedText style={styles.feedTitle}>Izohlar</LocalizedText><LocalizedText style={styles.feedCaption}>{expandedPost ? (clips.find((item) => item.id === expandedPost)?.commentsCount ?? 0) : 0} ta izoh</LocalizedText></View>
+              <Pressable onPress={() => { setExpandedPost(null); setReplyingTo(null); }} accessibilityRole="button" accessibilityLabel="Izohlarni yopish"><Ionicons name="close" size={23} color={c.text}/></Pressable>
+            </View>
+            <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+              {expandedPost && commentsLoadingId === expandedPost ? <View style={{ padding: 24, alignItems: 'center' }}><ActivityIndicator color={c.primary}/><LocalizedText style={styles.feedCaption}>Izohlar yuklanmoqda...</LocalizedText></View> : null}
+              {(expandedPost ? comments[expandedPost] || [] : []).map((comment) => (
+                <View key={comment.id} style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.border }}>
+                  <LocalizedText style={styles.commentAuthor}>@{comment.author.username}</LocalizedText>
+                  <LocalizedText style={styles.commentText}>{comment.content}</LocalizedText>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 6 }}>
+                    <Pressable onPress={() => setReplyingTo(comment)}><LocalizedText style={styles.feedCaption}>Javob berish</LocalizedText></Pressable>
+                    {(comment.repliesCount || 0) > 0 ? <Pressable onPress={() => setExpandedReplies((current) => ({ ...current, [comment.id]: !current[comment.id] }))}><LocalizedText style={{ color: c.primary, fontSize: 11, fontWeight: '800' }}>{expandedReplies[comment.id] ? 'Javoblarni yashirish' : `${comment.repliesCount} ta javobni ko‘rish`}</LocalizedText></Pressable> : null}
+                  </View>
+                  {expandedReplies[comment.id] ? (comment.replies || []).map((reply) => <View key={reply.id} style={{ marginLeft: 18, marginTop: 9, paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: c.primary }}><LocalizedText style={styles.commentAuthor}>@{reply.author.username}</LocalizedText><LocalizedText style={styles.commentText}>{reply.content}</LocalizedText></View>) : null}
+                </View>
+              ))}
+              {expandedPost && commentsLoadingId !== expandedPost && (comments[expandedPost] || []).length === 0 ? <LocalizedText style={styles.feedCaption}>Hali izohlar yo‘q. Birinchi bo‘lib yozing.</LocalizedText> : null}
+            </ScrollView>
+            {replyingTo ? <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 7 }}><LocalizedText style={styles.feedCaption}>@{replyingTo.author.username} ga javob</LocalizedText><Pressable onPress={() => setReplyingTo(null)}><Ionicons name="close-circle" size={18} color={c.textMuted}/></Pressable></View> : null}
+            <View style={styles.commentComposer}>
+              <TextInput value={commentDraft} onChangeText={setCommentDraft} placeholder={replyingTo ? `@${replyingTo.author.username} ga javob yozing...` : 'Izoh yozing...'} placeholderTextColor={c.textMuted} style={styles.commentInput} maxLength={1000}/>
+              <Pressable onPress={() => expandedPost && void sendComment(expandedPost, replyingTo?.id)} disabled={!commentDraft.trim() || sendingComment} style={[styles.commentSend, (!commentDraft.trim() || sendingComment) && { opacity: 0.5 }]} accessibilityRole="button" accessibilityLabel="Izohni yuborish"><Ionicons name="send" size={16} color="#FFFFFF"/></Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
