@@ -191,7 +191,7 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
 
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
+    container: { flex: 1, backgroundColor: 'transparent' },
     content: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 136 },
     header: { marginTop: 8, marginBottom: 19 },
     eyebrow: { color: colors.primary, fontSize: 10, fontWeight: '900', letterSpacing: 1.8, marginBottom: 10 },
