@@ -85,7 +85,7 @@ function extractDocxText(buffer: Buffer): string {
       if (localHeaderOffset + 30 > buffer.length || buffer.readUInt32LE(localHeaderOffset) !== 0x04034b50) {
         throw new BadRequestException('DOCX hujjatining ichki fayli noto‘g‘ri.');
       }
-      const localNameLength = buffer.readUInt16LE(localHeaderOffset + 26);
+      const localNameLength = buffer.readUInt16LE(localHeaderOffset + 26);
       const localExtraLength = buffer.readUInt16LE(localHeaderOffset + 28);
       const dataStart = localHeaderOffset + 30 + localNameLength + localExtraLength;
       const compressed = buffer.subarray(dataStart, dataStart + compressedSize);
@@ -180,7 +180,7 @@ export class LearningService {
       documentText = extractDocxText(file.buffer);
     } else {
       documentText = file.buffer.toString('utf8');
-      if (documentText.includes('\u0000')) throw new BadRequestException('Matnli hujjat kodlanishi noto‘g‘ri.');
+      if (documentText.includes('\u0000')) throw new BadRequestException('Matnli hujjat kodlanishi noto‘g‘ri.');
     }
     documentText = documentText.trim().slice(0, 60_000);
     if (extension !== 'pdf' && documentText.length < 40) {
@@ -492,7 +492,7 @@ export class LearningService {
     if (Array.isArray(redisPool) && redisPool.length >= count) {
       const shuffled = [...redisPool];
       for (let index = shuffled.length - 1; index > 0; index -= 1) {
-        const target = Math.floor(Math.random() * (index + 1));
+        const target = Math.floor(Math.random() * (index + 1));
         [shuffled[index], shuffled[target]] = [shuffled[target], shuffled[index]];
       }
       return {
@@ -595,7 +595,7 @@ export class LearningService {
         })),
       };
     });
-    if (result.cachePool.length >= count) await this.questionCache?.set(cacheKey, result.cachePool);
+    if (result.cachePool.length >= count) await this.questionCache?.set(cacheKey, result.cachePool);
     return {
       questions: result.questions,
       source: result.source,
@@ -795,7 +795,7 @@ export class LearningService {
     const subjectId = String(input?.subjectId ?? '').trim();
     const subjectName = String(input?.subjectName ?? '').trim();
     const topicId = String(input?.topicId ?? '').trim();
-    const topicName = String(input?.topicName ?? '').trim();
+    const topicName = String(input?.topicName ?? '').trim();
 
     if (
       !subjectId || subjectId.length > 80 ||
