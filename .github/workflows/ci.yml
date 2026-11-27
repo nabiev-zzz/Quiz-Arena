@@ -51,6 +51,9 @@ jobs:
       VALKEY_PORT: 6379
       BATTLE_REDIS_PREFIX: quiz-arena:ci
       BATTLE_SHARED_STATE_REQUIRED: 'true'
+    defaults:
+      run:
+        working-directory: apps/api/api
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,14 +64,10 @@ jobs:
           cache: npm
           cache-dependency-path: apps/api/api/package-lock.json
       - name: Install dependencies
-        run: |
-          pwd
-          test -f apps/api/api/package-lock.json
-          cd apps/api/api
-          npm ci
+        run: npm ci
       - name: Build API
-        run: cd apps/api/api && npm run build
+        run: npm run build
       - name: API lint
-        run: cd apps/api/api && npm run lint
+        run: npm run lint
       - name: API unit tests
-        run: cd apps/api/api && npm test -- --runInBand
+        run: npm test -- --runInBand
