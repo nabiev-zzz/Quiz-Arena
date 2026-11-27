@@ -3,6 +3,37 @@ import { deflateRawSync } from 'node:zlib';
 import { getPlanEntitlements } from '../subscriptions/plan-entitlements';
 import { LearningService } from './learning.service';
 
+function makePdf(text = ''): Buffer {
+  const sentences = text.match(/[^.!?]+[.!?]?/g)?.map((value) => value.trim()).filter(Boolean) || [];
+  const stream = sentences.length
+    ? 'BT /F1 12 Tf 72 720 Td ' + sentences.map((sentence, index) => {
+      const escaped = sentence.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+      return `${index ? '0 -20 Td ' : ''}(${escaped}) Tj`;
+    }).join(' ') + ' ET'
+    : '';
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`,
+  ];
+  const chunks: Buffer[] = [Buffer.from('%PDF-1.4\n')];
+  const offsets = [0];
+  let position = chunks[0].length;
+  objects.forEach((object, index) => {
+    offsets.push(position);
+    const chunk = Buffer.from(`${index + 1} 0 obj\n${object}\nendobj\n`);
+    chunks.push(chunk);
+    position += chunk.length;
+  });
+  const xrefOffset = position;
+  const xref = ['xref', `0 ${objects.length + 1}`, '0000000000 65535 f ', ...offsets.slice(1).map((offset) => `${String(offset).padStart(10, '0')} 00000 n `)].join('\n');
+  const trailer = `\ntrailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  chunks.push(Buffer.from(`${xref}${trailer}`));
+  return Buffer.concat(chunks);
+}
+
 function makeDocx(text: string): Buffer {
   const fileName = Buffer.from('word/document.xml');
   const xml = Buffer.from('<w:document xmlns:w="urn:w"><w:body><w:p><w:r><w:t>' + text + '</w:t></w:r></w:p></w:body></w:document>');
@@ -130,15 +161,64 @@ describe('LearningService document quiz generation', () => {
     }));
   });
 
-  it('sends valid PDF bytes to the Gemini PDF generation path', async () => {
+  it('extracts searchable PDF text and sends it to the normal AI providers', async () => {
+    const pdfText = 'PDF_TEXT_TEST: Photosynthesis converts sunlight into chemical energy in green plants.';
+    const buffer = makePdf(pdfText);
     const result = await service.createDocumentQuiz('user-1', {
-      buffer: Buffer.from('%PDF-1.4 fake test pdf content'),
-      originalname: 'lesson.pdf', mimetype: 'application/pdf', size: 30,
+      buffer,
+      originalname: 'lesson.pdf', mimetype: 'application/pdf', size: buffer.length,
     }, { count: '1' }, { topicId: 'document-worker-pdf', _quotaReceipt: { allowed: true } }) as any;
+
+    expect(result.questionCount).toBe(1);
+    expect(aiService.generateQuestions).toHaveBeenCalledWith(expect.objectContaining({
+      topicDescription: expect.stringContaining('PDF_TEXT_TEST'),
+    }));
+    expect(aiService.generateQuestionsFromPdf).not.toHaveBeenCalled();
+  });
+
+  it('uses Gemini native PDF reading for scanned PDFs without a text layer', async () => {
+    const buffer = makePdf();
+    const result = await service.createDocumentQuiz('user-1', {
+      buffer,
+      originalname: 'scanned-lesson.pdf', mimetype: 'application/pdf', size: buffer.length,
+    }, { count: '1' }, { topicId: 'document-worker-scanned-pdf', _quotaReceipt: { allowed: true } }) as any;
 
     expect(result.questionCount).toBe(1);
     expect(aiService.generateQuestionsFromPdf).toHaveBeenCalledTimes(1);
     expect(aiService.generateQuestions).not.toHaveBeenCalled();
+  });
+
+  it('falls back to Gemini PDF understanding if text-based AI generation fails', async () => {
+    aiService.generateQuestions.mockRejectedValue(new Error('Text AI unavailable'));
+    const buffer = makePdf('PDF_FALLBACK_TEST: Water evaporates when heat changes liquid water into vapor.');
+    const result = await service.createDocumentQuiz('user-1', {
+      buffer,
+      originalname: 'fallback.pdf', mimetype: 'application/pdf', size: buffer.length,
+    }, { count: '1' }, { topicId: 'document-worker-pdf-fallback', _quotaReceipt: { allowed: true } }) as any;
+
+    expect(result.questionCount).toBe(1);
+    expect(aiService.generateQuestionsFromPdf).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps searchable PDF quiz generation available with a source-grounded fallback if AI is offline', async () => {
+    aiService.generateQuestions.mockRejectedValue(new Error('Text AI unavailable'));
+    aiService.generateQuestionsFromPdf.mockRejectedValue(new Error('Gemini PDF unavailable'));
+    const pdfText = [
+      'Photosynthesis converts sunlight into chemical energy inside green plant cells during normal growth.',
+      'Mitochondria produce energy through cellular respiration inside eukaryotic organisms.',
+      'Gravity attracts objects toward one another according to mass and distance.',
+      'Evaporation changes liquid water into vapor when temperature increases.',
+      'Condensation transforms water vapor into liquid droplets under cooler conditions.',
+    ].join(' ');
+    const buffer = makePdf(pdfText);
+    const result = await service.createDocumentQuiz('user-1', {
+      buffer,
+      originalname: 'science.pdf', mimetype: 'application/pdf', size: buffer.length,
+    }, { count: '3', difficulty: 'medium', language: 'en' }, { topicId: 'document-worker-pdf-rule-fallback', _quotaReceipt: { allowed: true } }) as any;
+
+    expect(result.source).toBe('rule-based');
+    expect(result.questionCount).toBe(3);
+    expect(result.questions.every((question) => question.options.length === 4)).toBe(true);
   });
 
   it('rejects unsupported formats before consuming quota', async () => {
