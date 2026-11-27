@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CommunityClipVideo from '../components/CommunityClipVideo';
+import CommunityReelsFeed from '../components/CommunityReelsFeed';
 import CommunityLearningHubScreen from './CommunityLearningHubScreen';
 import CommunityDashboardScreen, { CommunityBottomNavigation, CommunityCompetitionsScreen, type CommunitySectionKey } from './CommunityDashboardScreen';
 import * as ImagePicker from 'expo-image-picker';
@@ -51,6 +52,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   const [clips, setClips] = useState<CommunityPost[]>([]);
   const [activeSection, setActiveSection] = useState<'dashboard' | 'feed' | 'clips' | 'groups' | 'questions' | 'library' | 'portfolio' | 'mentors' | 'marathons' | 'competitions'>('dashboard');
   const [clipBusy, setClipBusy] = useState(false);
+  const [clipComposerVisible, setClipComposerVisible] = useState(false);
   const [clipSubject, setClipSubject] = useState('Boshqa');
   const [selectedClip, setSelectedClip] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [clipUploadProgress, setClipUploadProgress] = useState<number | null>(null);
@@ -158,7 +160,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     if (clipBusy) return;
     try {
       const asset = await pickVideo();
-      if (asset) { setSelectedClip(asset); setClipUploadProgress(null); }
+      if (asset) { setSelectedClip(asset); setClipUploadProgress(null); setClipComposerVisible(true); }
     } catch (error) {
       showLocalizedAlert('Video tanlash', error instanceof Error ? error.message : 'Video tanlanmadi');
     }
@@ -181,6 +183,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
       setClipSubject('Boshqa');
       setSelectedClip(null);
       setClipUploadProgress(null);
+      setClipComposerVisible(false);
       setActiveSection('clips');
       showLocalizedAlert('Tayyor!', 'Video lavha muvaffaqiyatli joylandi.');
     } catch (error) {
@@ -273,6 +276,16 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     } catch (error) { showLocalizedAlert('Izohlar', error instanceof Error ? error.message : 'Izohlar yuklanmadi'); }
   };
 
+  const openClipComments = async (postId: string) => {
+    setExpandedPost(postId);
+    try {
+      const loaded = await getCommunityComments(postId);
+      setComments((current) => ({ ...current, [postId]: loaded }));
+    } catch (error) {
+      showLocalizedAlert('Izohlar', error instanceof Error ? error.message : 'Izohlar yuklanmadi');
+    }
+  };
+
   const sendComment = async (postId: string) => {
     const text = commentDraft.trim();
     if (!text || sendingComment) return;
@@ -322,7 +335,13 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
-      <ScrollView
+      {activeSection === 'clips' ? (
+        <CommunityReelsFeed clips={clips} loading={loading} error={feedError}
+          onBack={() => setActiveSection('dashboard')} onUpload={() => void chooseClip()}
+          onRetry={() => void load()} onLike={(clip) => void toggleLike(clip)}
+          onComments={(id) => void openClipComments(id)} onMiniTest={(clip) => void openClipQuiz(clip)}
+          onUserPress={onUserPress} />
+      ) : <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -333,7 +352,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
           <Pressable onPress={() => setActiveSection('dashboard')} style={styles.iconButton}><Ionicons name="arrow-back" size={21} color={c.text} /></Pressable>
           <View style={{ flex: 1 }}>
             <LocalizedText style={styles.eyebrow}>ZELQEN SOCIAL</LocalizedText>
-            <LocalizedText style={styles.title}>{activeSection === 'clips' ? 'Lavhalar' : 'Lenta'}</LocalizedText>
+            <LocalizedText style={styles.title}>Lenta</LocalizedText>
           </View>
           <Pressable onPress={onMessages} style={styles.messagesButton} accessibilityLabel="Xabarlar">
             <Ionicons name="paper-plane-outline" size={17} color={c.primary} />
@@ -346,9 +365,9 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
             <Ionicons name="newspaper-outline" size={16} color={activeSection === 'feed' ? '#FFFFFF' : c.textMuted} />
             <LocalizedText style={[styles.sectionTabText, activeSection === 'feed' && styles.sectionTabTextActive]}>Lenta</LocalizedText>
           </Pressable>
-          <Pressable onPress={() => setActiveSection('clips')} style={[styles.sectionTab, activeSection === 'clips' && styles.sectionTabActive]}>
-            <Ionicons name="play-circle-outline" size={17} color={activeSection === 'clips' ? '#FFFFFF' : c.textMuted} />
-            <LocalizedText style={[styles.sectionTabText, activeSection === 'clips' && styles.sectionTabTextActive]}>Lavhalar</LocalizedText>
+          <Pressable onPress={() => setActiveSection('clips')} style={styles.sectionTab}>
+            <Ionicons name="play-circle-outline" size={17} color={c.textMuted} />
+            <LocalizedText style={styles.sectionTabText}>Lavhalar</LocalizedText>
           </Pressable>
         </ScrollView>
 
@@ -473,83 +492,24 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
         )}
         </>}
 
-        {activeSection === 'clips' && (
-          <View style={styles.clipsSection}>
-            <View style={styles.clipsIntro}>
-              <View style={{ flex: 1 }}>
-                <LocalizedText style={styles.clipsTitle}>Lavhalar</LocalizedText>
-                <LocalizedText style={styles.clipsSubtitle}>Qisqa dars va foydali videolar.</LocalizedText>
-              </View>
-              <Pressable onPress={() => void chooseClip()} disabled={clipBusy} style={[styles.createClipButton, clipBusy && { opacity: 0.65 }]}>
-                <Ionicons name="folder-open-outline" size={17} color="#FFFFFF" />
-                <LocalizedText style={styles.createClipText}>Videoni tanlash</LocalizedText>
-              </Pressable>
-            </View>
-            <LocalizedText style={styles.clipGuidance}>MP4 · 90 soniyagacha · 30 MB gacha.</LocalizedText>
-            {selectedClip && (
-              <View style={styles.selectedClipCard}>
-                <View style={styles.selectedClipIcon}><Ionicons name="videocam" size={22} color={c.primary} /></View>
-                <View style={{ flex: 1 }}>
-                  <LocalizedText style={styles.selectedClipName} numberOfLines={1}>{selectedClip.fileName || 'Tanlangan video'}</LocalizedText>
-                  <LocalizedText style={styles.selectedClipMeta}>{selectedClip.fileSize ? `${(selectedClip.fileSize / (1024 * 1024)).toFixed(1)} MB` : 'Hajmi aniqlanmoqda'} · {selectedClip.duration ? `${Math.round(selectedClip.duration / 1000)} soniya` : 'Video'}</LocalizedText>
-                </View>
-                <Pressable onPress={() => setSelectedClip(null)} disabled={clipBusy} style={styles.removeClipButton}><Ionicons name="close" size={18} color={c.textMuted} /></Pressable>
-              </View>
-            )}
-            <TextInput value={content} onChangeText={setContent} placeholder="Video haqida qisqa izoh (ixtiyoriy)" placeholderTextColor={c.textMuted} style={styles.clipCaptionInput} maxLength={2000} />
-            <LocalizedText style={styles.feedCaption}>Lavha mavzusi</LocalizedText>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:6,paddingVertical:8}}>{['Matematika','Fizika','Informatika','Kimyo','Biologiya','Tarix','Til o‘rganish','Boshqa'].map(subject=><Pressable key={subject} onPress={()=>setClipSubject(subject)} style={{paddingHorizontal:11,paddingVertical:7,borderRadius:16,backgroundColor:clipSubject===subject?c.primary:c.surface,borderWidth:1,borderColor:clipSubject===subject?c.primary:c.border}}><LocalizedText style={{fontSize:10,fontWeight:'800',color:clipSubject===subject?'#fff':c.textMuted}}>{subject}</LocalizedText></Pressable>)}</ScrollView>
-            {clipBusy && clipUploadProgress !== null && (
-              <View style={styles.uploadProgressCard}>
-                <View style={styles.uploadProgressHeader}>
-                  <LocalizedText style={styles.uploadProgressTitle}>{clipUploadProgress >= 100 ? 'Video saqlandi' : 'Video yuklanmoqda...'}</LocalizedText>
-                  <LocalizedText style={styles.uploadProgressPercent}>{clipUploadProgress}%</LocalizedText>
-                </View>
-                <View style={styles.uploadProgressTrack}><View style={[styles.uploadProgressFill, { width: `${clipUploadProgress}%` }]} /></View>
-                <LocalizedText style={styles.uploadProgressHint}>Ilovadan chiqib ketmang. Yuklash tugagach video avtomatik joylanadi.</LocalizedText>
-              </View>
-            )}
-            <Pressable onPress={() => void publishClip()} disabled={clipBusy || !selectedClip} style={[styles.publishClipButton, (clipBusy || !selectedClip) && { opacity: 0.48 }]}>
-              {clipBusy ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="cloud-upload-outline" size={18} color="#FFFFFF" />}
-              <LocalizedText style={styles.publishClipButtonText}>{clipBusy ? 'Yuklanmoqda...' : 'Yuklash va joylash'}</LocalizedText>
-            </Pressable>
-            {loading ? <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 30 }} /> : feedError ? <View style={styles.clipsEmpty}><Ionicons name="cloud-offline-outline" size={30} color={c.primary}/><LocalizedText style={styles.clipsEmptyTitle}>Lavhalar yuklanmadi</LocalizedText><Pressable onPress={()=>void load()} style={styles.emptyButton}><LocalizedText style={styles.emptyButtonText}>Qayta urinish</LocalizedText></Pressable></View> : clips.length === 0 ? (
-              <View style={styles.clipsEmpty}>
-                <Ionicons name="videocam-outline" size={38} color={c.primary} />
-                <LocalizedText style={styles.clipsEmptyTitle}>Hali videolar yo‘q</LocalizedText>
-                <LocalizedText style={styles.clipsEmptyText}>Birinchi videoni siz joylang.</LocalizedText>
-              </View>
-            ) : clips.map((clip) => (
-              <View key={clip.id} style={styles.clipCard}>
-                <View style={styles.clipAuthor}>{renderPerson(clip.author)}<LocalizedText style={styles.time}>{timeAgo(clip.createdAt)}</LocalizedText></View>
-                {clip.mediaUrl ? <CommunityClipVideo uri={clip.mediaUrl} /> : null}
-                {clip.subject&&<LocalizedText style={styles.feedCaption}>#{clip.subject}</LocalizedText>}{clip.content ? <LocalizedText numberOfLines={4} style={styles.clipCaption}>{clip.content}</LocalizedText> : null}
-                <Pressable onPress={() => void openClipQuiz(clip)} style={[styles.action,{alignSelf:'flex-start',marginTop:8,backgroundColor:c.primary+'14',paddingHorizontal:11,paddingVertical:8,borderRadius:10}]}><Ionicons name="help-circle-outline" size={17} color={c.primary}/><LocalizedText style={[styles.actionText,{color:c.primary,fontWeight:'800'}]}>Mini-test</LocalizedText></Pressable>
-                <View style={styles.clipActions}>
-                  <Pressable style={styles.action} onPress={() => void toggleLike(clip)} disabled={busyPost === clip.id}>
-                    <Ionicons name={clip.isLiked ? 'heart' : 'heart-outline'} size={20} color={clip.isLiked ? '#F05B82' : c.textMuted} />
-                    <LocalizedText style={styles.actionText}>{clip.likesCount}</LocalizedText>
-                  </Pressable>
-                  <Pressable style={styles.action} onPress={() => void openComments(clip.id)}>
-                    <Ionicons name="chatbubble-outline" size={18} color={c.textMuted} />
-                    <LocalizedText style={styles.actionText}>{clip.commentsCount} izoh</LocalizedText>
-                  </Pressable>
-                </View>
-                {expandedPost === clip.id && (
-                  <View style={styles.comments}>
-                    {(comments[clip.id] || []).map((comment) => <View key={comment.id} style={styles.comment}><LocalizedText style={styles.commentAuthor}>@{comment.author.username}</LocalizedText><LocalizedText numberOfLines={2} style={styles.commentText}>{comment.content}</LocalizedText></View>)}
-                    <View style={styles.commentComposer}>
-                      <TextInput value={commentDraft} onChangeText={setCommentDraft} placeholder="Izoh yozing..." placeholderTextColor={c.textMuted} style={styles.commentInput} maxLength={1000} />
-                      <Pressable onPress={() => void sendComment(clip.id)} disabled={!commentDraft.trim() || sendingComment} style={styles.commentSend}><Ionicons name="send" size={16} color="#FFFFFF" /></Pressable>
-                    </View>
-                  </View>
-                )}
-              </View>
-            ))}
+
+      </ScrollView>}
+      {activeSection !== 'clips' && <CommunityBottomNavigation active={activeSection} onNavigate={section => { if (section === 'home') setActiveSection('dashboard'); else if (section === 'messages') onMessages(); else setActiveSection(section); }} />}
+
+      <Modal visible={clipComposerVisible} transparent animationType="slide" onRequestClose={() => { if (!clipBusy) setClipComposerVisible(false); }}>
+        <View style={{flex:1,backgroundColor:'rgba(5,6,12,0.78)',justifyContent:'flex-end'}}>
+          <View style={{backgroundColor:c.surface,borderTopLeftRadius:24,borderTopRightRadius:24,padding:20,gap:12}}>
+            <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}><LocalizedText style={styles.feedTitle}>Yangi lavha</LocalizedText><Pressable onPress={() => { if (!clipBusy) setClipComposerVisible(false); }} disabled={clipBusy}><Ionicons name="close" size={23} color={c.text}/></Pressable></View>
+            {selectedClip ? <View style={styles.selectedClipCard}><Ionicons name="videocam" size={22} color={c.primary}/><View style={{flex:1}}><LocalizedText style={styles.selectedClipName} numberOfLines={1}>{selectedClip.fileName || 'Tanlangan video'}</LocalizedText><LocalizedText style={styles.selectedClipMeta}>{selectedClip.fileSize ? `${(selectedClip.fileSize/(1024*1024)).toFixed(1)} MB` : 'Video'} · {selectedClip.duration ? `${Math.round(selectedClip.duration/1000)} soniya` : '90 soniyagacha'}</LocalizedText></View><Pressable onPress={() => { if (!clipBusy) { setSelectedClip(null); setClipComposerVisible(false); } }}><Ionicons name="close-circle" size={20} color={c.textMuted}/></Pressable></View> : null}
+            <TextInput value={content} onChangeText={setContent} placeholder="Video tavsifi..." placeholderTextColor={c.textMuted} style={styles.clipCaptionInput} maxLength={2000} multiline/>
+            <LocalizedText style={styles.feedCaption}>Mavzu</LocalizedText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:6}}>{['Matematika','Fizika','Informatika','Kimyo','Biologiya','Tarix','Til o‘rganish','Boshqa'].map(subject=><Pressable key={subject} onPress={()=>setClipSubject(subject)} style={{paddingHorizontal:11,paddingVertical:8,borderRadius:16,backgroundColor:clipSubject===subject?c.primary:c.background}}><LocalizedText style={{fontSize:11,fontWeight:'800',color:clipSubject===subject?'#fff':c.textMuted}}>{subject}</LocalizedText></Pressable>)}</ScrollView>
+            {clipBusy && clipUploadProgress !== null ? <LocalizedText style={styles.feedCaption}>Yuklanmoqda: {clipUploadProgress}%</LocalizedText> : null}
+            <Pressable onPress={() => void publishClip()} disabled={clipBusy || !selectedClip} style={[styles.publishClipButton,(!selectedClip||clipBusy)&&{opacity:0.5}]}>{clipBusy?<ActivityIndicator color="#fff"/>:<Ionicons name="cloud-upload-outline" size={18} color="#fff"/>}<LocalizedText style={styles.publishClipButtonText}>{clipBusy?'Yuklanmoqda...':'Lavhani joylash'}</LocalizedText></Pressable>
+            <LocalizedText style={styles.clipGuidance}>MP4 tavsiya etiladi · 90 soniyagacha · 30 MB gacha.</LocalizedText>
           </View>
-        )}
-      </ScrollView>
-      <CommunityBottomNavigation active={activeSection} onNavigate={section => { if (section === 'home') setActiveSection('dashboard'); else if (section === 'messages') onMessages(); else setActiveSection(section); }} />
+        </View>
+      </Modal>
 
       <Modal visible={Boolean(selectedStory)} transparent animationType="fade" onRequestClose={() => setSelectedStory(null)}>
         {selectedStory && (
@@ -589,6 +549,13 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
             </ScrollView>:<View style={{paddingVertical:20,alignItems:'center'}}><Ionicons name="help-circle-outline" size={34} color={c.primary}/><LocalizedText style={styles.feedTitle}>Bu lavhada mini-test yo‘q</LocalizedText><LocalizedText style={styles.feedCaption}>Muallif hali test qo‘shmagan.</LocalizedText></View>}
           </View>
         </View>
+      </Modal>
+      <Modal visible={activeSection === 'clips' && Boolean(expandedPost)} transparent animationType="slide" onRequestClose={() => setExpandedPost(null)}>
+        <View style={{flex:1,backgroundColor:'rgba(5,6,12,0.72)',justifyContent:'flex-end'}}><View style={{backgroundColor:c.surface,borderTopLeftRadius:24,borderTopRightRadius:24,padding:18,maxHeight:'72%',minHeight:'38%'}}>
+          <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><LocalizedText style={styles.feedTitle}>Izohlar</LocalizedText><Pressable onPress={() => setExpandedPost(null)}><Ionicons name="close" size={23} color={c.text}/></Pressable></View>
+          <ScrollView style={{flex:1}} keyboardShouldPersistTaps="handled">{(expandedPost ? comments[expandedPost] || [] : []).map(comment=><View key={comment.id} style={{paddingVertical:9,borderBottomWidth:1,borderBottomColor:c.border}}><LocalizedText style={styles.commentAuthor}>@{comment.author.username}</LocalizedText><LocalizedText style={styles.commentText}>{comment.content}</LocalizedText></View>)}{expandedPost && (comments[expandedPost] || []).length===0 ? <LocalizedText style={styles.feedCaption}>Hozircha izoh yo‘q. Birinchi bo‘lib fikr bildiring.</LocalizedText> : null}</ScrollView>
+          <View style={styles.commentComposer}><TextInput value={commentDraft} onChangeText={setCommentDraft} placeholder="Izoh yozing..." placeholderTextColor={c.textMuted} style={styles.commentInput} maxLength={1000}/><Pressable onPress={() => expandedPost && void sendComment(expandedPost)} disabled={!commentDraft.trim()||sendingComment} style={styles.commentSend}><Ionicons name="send" size={16} color="#FFFFFF"/></Pressable></View>
+        </View></View>
       </Modal>
     </View>
   );
