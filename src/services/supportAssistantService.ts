@@ -1,11 +1,11 @@
-import { API_BASE_URL, getToken } from './authService';
+import { API_BASE_URL, apiFetch, getToken } from './authService';
 
 export interface SupportChatMessage { id: string; role: 'user' | 'assistant'; content: string; createdAt: string; }
 
 export async function sendSupportMessage(message: string, history: SupportChatMessage[], language: 'uz' | 'ru' | 'en' = 'uz', signal?: AbortSignal): Promise<string> {
   const token = await getToken();
   if (!token) throw new Error('Tizimga qayta kirishingiz kerak');
-  const response = await fetch(`${API_BASE_URL}/api/ai/support/chat`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/ai/support/chat`, {
     method: 'POST', signal,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ message: message.trim(), language, history: history.slice(-12).map(({ role, content }) => ({ role, content })) }),
