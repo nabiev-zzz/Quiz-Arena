@@ -20,7 +20,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "uz.quizarena.app",
-      "versionCode": 4
+      "versionCode": 6
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -50,6 +50,15 @@
     "owner": "faxriyorkk",
     "experiments": {
       "baseUrl": "/app"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/001475e3-4cec-4e58-8eda-d11da02f66c9",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     }
   }
 }
