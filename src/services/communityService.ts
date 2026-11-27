@@ -59,7 +59,7 @@ async function request<T>(path: string, method = 'GET', body?: unknown): Promise
 }
 
 export const getCommunityFeed = () => request<CommunityPost[]>('/api/community/posts?limit=40');
-export const getCommunityClips = () => request<CommunityPost[]>('/api/community/clips?limit=40');
+export const getCommunityClips = (limit = 40, offset = 0) => request<CommunityPost[]>(`/api/community/clips?limit=${Math.min(50, Math.max(1, limit))}&offset=${Math.max(0, offset)}`);
 export const createCommunityClip = (content: string, mediaKey: string, mediaType: string, subject?: string) =>
   request<CommunityPost>('/api/community/clips', 'POST', { content, mediaKey, mediaType, subject });
 export const createCommunityPost = (content: string, mediaKey?: string, mediaType?: string) =>
@@ -112,6 +112,12 @@ export async function uploadCommunityMedia(uri: string, contentType: string, onP
     if (fileSize > maxBytes) throw new Error(sizeError);
     if (expectedSize && fileSize !== expectedSize) throw new Error('Tanlangan video hajmi manba fayliga mos kelmadi. Videoni qayta tanlang.');
     onProgress?.(3);
+    const verifyVideo = async (mediaKey: string) => {
+      if (!isVideo) return;
+      onProgress?.(99);
+      const result = await request<{ verified: boolean; size: number }>('/api/community/media/verify', 'POST', { mediaKey, contentType, expectedSize: fileSize });
+      if (!result.verified || result.size !== fileSize) throw new Error('Video serverda to‘liq saqlanmadi. Qayta yuklang.');
+    };
 
     const uploadNative = async (url: string, headers: Record<string, string>) => file.upload(url, {
       httpMethod: 'PUT', uploadType: UploadType.BINARY_CONTENT, headers,
@@ -123,6 +129,7 @@ export async function uploadCommunityMedia(uri: string, contentType: string, onP
     try {
       const direct = await uploadNative(key.uploadUrl, mediaHeaders);
       if (direct.status >= 200 && direct.status < 300) {
+        await verifyVideo(key.mediaKey);
         onProgress?.(100);
         return { mediaKey: key.mediaKey, mediaType: key.mediaType };
       }
@@ -142,6 +149,7 @@ export async function uploadCommunityMedia(uri: string, contentType: string, onP
     if (typeof data.mediaKey !== 'string' || typeof data.mediaType !== 'string') {
       throw new Error('Server yuklangan faylni tasdiqlamadi. Qayta urinib ko‘ring.');
     }
+    await verifyVideo(data.mediaKey);
     onProgress?.(100);
     return { mediaKey: data.mediaKey, mediaType: data.mediaType };
   }
@@ -169,6 +177,11 @@ export async function uploadCommunityMedia(uri: string, contentType: string, onP
   }
   if (typeof data.mediaKey !== 'string' || typeof data.mediaType !== 'string') {
     throw new Error('Server yuklangan faylni tasdiqlamadi. Qayta urinib ko‘ring.');
+  }
+  if (isVideo) {
+    onProgress?.(99);
+    const result = await request<{ verified: boolean; size: number }>('/api/community/media/verify', 'POST', { mediaKey: data.mediaKey, contentType, expectedSize: blob.size });
+    if (!result.verified || result.size !== blob.size) throw new Error('Video serverda to‘liq saqlanmadi. Qayta yuklang.');
   }
   onProgress?.(100);
   return { mediaKey: data.mediaKey, mediaType: data.mediaType };

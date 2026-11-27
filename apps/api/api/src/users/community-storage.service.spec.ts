@@ -54,6 +54,47 @@ describe('CommunityStorageService video uploads', () => {
     }));
   });
 
+  it('verifies the exact stored video byte size before a clip is published', async () => {
+    Object.assign(process.env, {
+      COMMUNITY_S3_ENDPOINT: 'https://storage.example.test',
+      COMMUNITY_S3_BUCKET: 'zelqen-media',
+      COMMUNITY_S3_REGION: 'auto',
+      COMMUNITY_S3_ACCESS_KEY_ID: 'test-access',
+      COMMUNITY_S3_SECRET_ACCESS_KEY: 'test-secret',
+    });
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, {
+      status: 200,
+      headers: { 'content-length': '4096', 'content-type': 'video/mp4' },
+    }));
+    const service = new CommunityStorageService();
+    const result = await service.verify('user-123', 'community/user-123/123e4567-e89b-12d3-a456-426614174000.mp4', 'video/mp4', 4096);
+    expect(result).toEqual({ verified: true, size: 4096, mediaType: 'video/mp4' });
+    expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('X-Amz-Algorithm=AWS4-HMAC-SHA256'), { method: 'HEAD' });
+  });
+
+  it('rejects verification requests for another user media key', async () => {
+    const service = new CommunityStorageService();
+    await expect(service.verify('user-123', 'community/another-user/123e4567-e89b-12d3-a456-426614174000.mp4', 'video/mp4', 4096))
+      .rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects a video whose stored byte size differs from the original file', async () => {
+    Object.assign(process.env, {
+      COMMUNITY_S3_ENDPOINT: 'https://storage.example.test',
+      COMMUNITY_S3_BUCKET: 'zelqen-media',
+      COMMUNITY_S3_REGION: 'auto',
+      COMMUNITY_S3_ACCESS_KEY_ID: 'test-access',
+      COMMUNITY_S3_SECRET_ACCESS_KEY: 'test-secret',
+    });
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, {
+      status: 200,
+      headers: { 'content-length': '4000', 'content-type': 'video/mp4' },
+    }));
+    const service = new CommunityStorageService();
+    await expect(service.verify('user-123', 'community/user-123/123e4567-e89b-12d3-a456-426614174000.mp4', 'video/mp4', 4096))
+      .rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('rejects video uploads above the supported 30 MB limit', async () => {
     Object.assign(process.env, {
       COMMUNITY_S3_ENDPOINT: 'https://storage.example.test',
