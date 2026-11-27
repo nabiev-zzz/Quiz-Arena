@@ -419,7 +419,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: activeSection === 'clips' ? '#05060A' : c.background }}>
+    <View style={{ flex: 1, backgroundColor: activeSection === 'clips' ? '#05060A' : 'transparent' }}>
       {activeSection === 'clips' ? (
         <CommunityReelsFeed clips={clips} loading={loading} error={feedError}
           onBack={() => setActiveSection('dashboard')} onUpload={() => void chooseClip()}
