@@ -1,8 +1,14 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { createHash, createHmac, randomUUID } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import ffmpegPath from 'ffmpeg-static';
 
 @Injectable()
 export class CommunityStorageService {
+  private readonly conversions = new Map<string, Promise<string>>();
   private config() {
     const endpoint = process.env.COMMUNITY_S3_ENDPOINT;
     const bucket = process.env.COMMUNITY_S3_BUCKET;
@@ -61,7 +67,72 @@ export class CommunityStorageService {
     if (actualType && actualType !== contentType.toLowerCase()) {
       throw new BadRequestException('Yuklangan fayl formati asl faylga mos emas. Qayta yuklang.');
     }
+    if (contentType.startsWith('video/')) {
+      const playbackMediaKey = await this.ensureCompatibleVideo(userId, mediaKey);
+      return { verified: true, size: actualSize, mediaType: contentType, playbackMediaKey, playbackMediaType: 'video/mp4' };
+    }
     return { verified: true, size: actualSize, mediaType: contentType };
+  }
+
+  async ensureCompatibleVideo(userId: string, sourceKey: string): Promise<string> {
+    if (sourceKey.endsWith('.playable.mp4')) return sourceKey;
+    const conversionKey = `${userId}:${sourceKey}`;
+    const pending = this.conversions.get(conversionKey);
+    if (pending) return pending;
+    const conversion = this.createCompatibleVideo(userId, sourceKey).finally(() => this.conversions.delete(conversionKey));
+    this.conversions.set(conversionKey, conversion);
+    return conversion;
+  }
+
+  private async createCompatibleVideo(userId: string, sourceKey: string): Promise<string> {
+    const playbackKey = sourceKey.replace(/\.[^.]+$/, '.playable.mp4');
+    const existing = await fetch(this.sign('HEAD', playbackKey, 300), { method: 'HEAD' }).catch(() => null);
+    if (existing?.ok && Number(existing.headers.get('content-length')) > 0) return playbackKey;
+
+    const ffmpegBinary = ffmpegPath;
+    if (!ffmpegBinary) throw new InternalServerErrorException('Video formatini moslashtirish xizmati mavjud emas');
+    const sourceResponse = await fetch(this.sign('GET', sourceKey, 600));
+    if (!sourceResponse.ok) throw new InternalServerErrorException('Asl video faylni saqlash joyidan o‘qib bo‘lmadi');
+    const source = Buffer.from(await sourceResponse.arrayBuffer());
+    if (!source.length || source.length > 30 * 1024 * 1024) throw new BadRequestException('Asl video fayl hajmi noto‘g‘ri');
+
+    const directory = await mkdtemp(join(tmpdir(), 'zelqen-video-'));
+    const inputPath = join(directory, 'source-video');
+    const outputPath = join(directory, 'playable.mp4');
+    try {
+      await writeFile(inputPath, source);
+      await new Promise<void>((resolve, reject) => {
+        const child = spawn(ffmpegBinary, [
+          '-hide_banner', '-loglevel', 'error', '-y', '-i', inputPath,
+          '-map', '0:v:0', '-map', '0:a:0?', '-sn', '-dn',
+          '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p',
+          '-vf', "scale=w='min(1920,iw)':h='min(1920,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2",
+          '-c:a', 'aac', '-b:a', '128k', '-ac', '2',
+          '-movflags', '+faststart', '-max_muxing_queue_size', '1024', outputPath,
+        ], { stdio: 'ignore' });
+        const timeout = setTimeout(() => child.kill('SIGKILL'), 120_000);
+        child.once('error', (error: Error) => { clearTimeout(timeout); reject(error); });
+        child.once('close', (code: number | null) => {
+          clearTimeout(timeout);
+          if (code === 0) resolve();
+          else reject(new Error(`FFmpeg video conversion failed (exit ${code})`));
+        });
+      });
+      const playable = await readFile(outputPath);
+      if (!playable.length || playable.length > 120 * 1024 * 1024) throw new BadRequestException('Moslashtirilgan video hajmi ruxsat etilgan chegaradan oshdi');
+      const response = await fetch(this.sign('PUT', playbackKey, 600), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'video/mp4', 'Cache-Control': 'public, max-age=31536000, immutable' },
+        body: new Uint8Array(playable),
+      });
+      if (!response.ok) throw new InternalServerErrorException('Moslashtirilgan videoni saqlab bo‘lmadi');
+      return playbackKey;
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof InternalServerErrorException) throw error;
+      throw new BadRequestException('Bu video formati ochilmadi. MP4, H.264 formatidagi videoni tanlang.');
+    } finally {
+      await rm(directory, { recursive: true, force: true }).catch(() => undefined);
+    }
   }
 
   async upload(userId: string, fileName: string, contentType: string, buffer: Buffer) {

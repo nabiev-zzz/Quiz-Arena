@@ -221,7 +221,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
         videoMime(selectedClip),
         (percent) => {
           setClipUploadProgress(percent);
-          if (percent >= 99) setClipUploadStage('Video serverda tekshirilmoqda...');
+          if (percent >= 99) setClipUploadStage('Video ijro uchun moslashtirilmoqda...');
           else if (percent >= 3) setClipUploadStage('Video serverga yuborilmoqda...');
           else setClipUploadStage('Server bilan aloqa o‘rnatilmoqda...');
         },

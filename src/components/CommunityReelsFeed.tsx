@@ -11,7 +11,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, w
 import { followUser, getPublicUserProfile, unfollowUser, type PublicUser } from '../services/userService';
 import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import { getDirectConversations, sendDirectMessage, startDirectConversation, type DirectConversation } from '../services/directMessagesService';
-import type { CommunityPost } from '../services/communityService';
+import { getCommunityClipPlayback, type CommunityPost } from '../services/communityService';
 
 type Props = {
   clips: CommunityPost[]; loading: boolean; error: boolean; onBack: () => void; onUpload: () => void; onRetry: () => void;
@@ -200,6 +200,9 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
   onProgressChange: (progress: number) => void; onSkip: () => void;
 }) {
   const [firstFrame, setFirstFrame] = useState(false);
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
+  const [playbackReady, setPlaybackReady] = useState(false);
+  const [playbackRequestError, setPlaybackRequestError] = useState(false);
   const videoOpacity = useSharedValue(0);
   const posterOpacity = useSharedValue(1);
   const player = useVideoPlayer(uri, (instance) => {
@@ -214,7 +217,30 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
   const previousActiveRef = useRef(false);
   const videoStyle = useAnimatedStyle(() => ({ opacity: videoOpacity.value }));
   const posterStyle = useAnimatedStyle(() => ({ opacity: posterOpacity.value }));
-  // Always show the complete source frame; cover crops portrait videos on narrow screens.
+  const loadPlayback = useCallback(async () => {
+    setPlaybackReady(false);
+    setPlaybackRequestError(false);
+    setLoadTimedOut(false);
+    setFirstFrame(false);
+    videoOpacity.value = 0;
+    posterOpacity.value = 1;
+    try {
+      const playback = await getCommunityClipPlayback(clipId);
+      await player.replaceAsync(playback.url);
+      setPlaybackReady(true);
+    } catch {
+      setPlaybackRequestError(true);
+    }
+  }, [clipId, player, posterOpacity, videoOpacity]);
+  // Resolve a fresh, device-compatible MP4 URL on demand. This also repairs older clips lazily.
+  useEffect(() => {
+    if (active) void loadPlayback();
+    else {
+      setPlaybackReady(false);
+      player.pause();
+    }
+  }, [active, loadPlayback, player]);
+  // Always show the complete source frame; contain preserves every edge without cropping.
   const onTimeUpdate = useCallback(({ currentTime }: { currentTime: number }) => {
     if (!active) return;
     const duration = Number.isFinite(player.duration) ? player.duration : 0;
@@ -223,15 +249,26 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
   useEventListener(player, 'timeUpdate', onTimeUpdate);
 
   useEffect(() => {
+    if (!active || firstFrame || (playbackReady && status === 'error')) {
+      setLoadTimedOut(false);
+      return;
+    }
+    const timeout = setTimeout(() => setLoadTimedOut(true), 150_000);
+    return () => clearTimeout(timeout);
+  }, [active, firstFrame, status, uri, playbackReady]);
+
+  useEffect(() => {
     registerPlayer(clipId, player);
     return () => registerPlayer(clipId, null);
   }, [clipId, player, registerPlayer]);
   useEffect(() => { player.muted = muted; }, [muted, player]);
   useEffect(() => {
-    if (!active) {
+    if (!active || !playbackReady) {
       player.pause();
-      try { player.currentTime = 0; } catch { /* Player may still be initializing. */ }
-      previousActiveRef.current = false;
+      if (!active) {
+        try { player.currentTime = 0; } catch { /* Player may still be initializing. */ }
+        previousActiveRef.current = false;
+      }
       return;
     }
     if (!previousActiveRef.current) {
@@ -240,7 +277,7 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
     }
     if (paused || status === 'error') player.pause();
     else if (status === 'readyToPlay') player.play();
-  }, [active, paused, player, status]);
+  }, [active, paused, playbackReady, player, status]);
   useEffect(() => {
     if (firstFrame) {
       videoOpacity.value = withTiming(1, { duration: 180 });
@@ -249,11 +286,7 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
   }, [firstFrame, posterOpacity, videoOpacity]);
 
   const retry = () => {
-    setFirstFrame(false); videoOpacity.value = 0; posterOpacity.value = 1;
-    void player.replaceAsync(uri).then(() => {
-      try { player.currentTime = 0; } catch { /* Source may still be loading. */ }
-      if (active && !paused) player.play();
-    }).catch(() => undefined);
+    if (active) void loadPlayback();
   };
 
   if (!active) return null;
@@ -262,7 +295,7 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
       <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls={false} surfaceType="textureView" onFirstFrameRender={() => setFirstFrame(true)} />
     </Animated.View>
     {!firstFrame ? <Animated.View pointerEvents="none" style={[styles.posterPlaceholder, posterStyle]}><Ionicons name="play-circle" size={48} color="#FFFFFF"/><LocalizedText style={styles.posterTitle}>ZELQEN</LocalizedText><LocalizedText style={styles.statusText}>Lavha yuklanmoqda...</LocalizedText><ActivityIndicator color="#FFFFFF" /></Animated.View> : null}
-    {status === 'error' ? <View pointerEvents="box-none" style={styles.videoStatus}><Ionicons name="alert-circle-outline" size={36} color="#FFFFFF"/><LocalizedText style={styles.statusText}>Videoni ochib bo‘lmadi</LocalizedText><LocalizedText style={styles.statusHint}>Internet yoki video manzilini tekshiring.</LocalizedText><View style={styles.errorActions}><Pressable onPress={retry} style={styles.retry}><LocalizedText style={styles.retryText}>Qayta urinish</LocalizedText></Pressable><Pressable onPress={onSkip} style={styles.skipButton}><LocalizedText style={styles.retryText}>Keyingisi</LocalizedText></Pressable></View></View> : null}
+    {(playbackReady && status === 'error') || playbackRequestError || loadTimedOut ? <View pointerEvents="box-none" style={styles.videoStatus}><Ionicons name="alert-circle-outline" size={36} color="#FFFFFF"/><LocalizedText style={styles.statusText}>{loadTimedOut ? 'Video yuklanishi uzoq davom etdi' : 'Videoni ochib bo‘lmadi'}</LocalizedText><LocalizedText style={styles.statusHint}>Internetni tekshiring yoki qayta urinib ko‘ring.</LocalizedText><View style={styles.errorActions}><Pressable onPress={retry} style={styles.retry}><LocalizedText style={styles.retryText}>Qayta urinish</LocalizedText></Pressable><Pressable onPress={onSkip} style={styles.skipButton}><LocalizedText style={styles.retryText}>Keyingisi</LocalizedText></Pressable></View></View> : null}
   </>;
 }
 

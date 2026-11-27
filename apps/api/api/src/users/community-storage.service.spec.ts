@@ -67,8 +67,14 @@ describe('CommunityStorageService video uploads', () => {
       headers: { 'content-length': '4096', 'content-type': 'video/mp4' },
     }));
     const service = new CommunityStorageService();
+    jest.spyOn(service as unknown as { createCompatibleVideo: (userId: string, key: string) => Promise<string> }, 'createCompatibleVideo')
+      .mockResolvedValue('community/user-123/123e4567-e89b-12d3-a456-426614174000.playable.mp4');
     const result = await service.verify('user-123', 'community/user-123/123e4567-e89b-12d3-a456-426614174000.mp4', 'video/mp4', 4096);
-    expect(result).toEqual({ verified: true, size: 4096, mediaType: 'video/mp4' });
+    expect(result).toEqual({
+      verified: true, size: 4096, mediaType: 'video/mp4',
+      playbackMediaKey: 'community/user-123/123e4567-e89b-12d3-a456-426614174000.playable.mp4',
+      playbackMediaType: 'video/mp4',
+    });
     expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('X-Amz-Algorithm=AWS4-HMAC-SHA256'), { method: 'HEAD' });
   });
 
