@@ -20,7 +20,7 @@ export class CommunityLearningService {
   }
 
   async groups(viewerId: string, subject?: string) {
-    return this.db.query(`SELECT g.id,g.name,g.description,g.subject,g.visibility,g.created_at,u.id AS author_id,u.display_name,u.username,u."avatarUrl" AS avatar_url,(SELECT COUNT(*)::int FROM community_group_members m WHERE m.group_id=g.id) AS members_count,EXISTS(SELECT 1 FROM community_group_members m WHERE m.group_id=g.id AND m.user_id=$1) AS joined,EXISTS(SELECT 1 FROM community_group_members m WHERE m.group_id=g.id AND m.user_id=$1 AND m.role='owner') AS is_owner FROM community_groups g JOIN users u ON u.id=g.owner_id WHERE u.status='active' AND (g.visibility='public' OR EXISTS(SELECT 1 FROM community_group_members m WHERE m.group_id=g.id AND m.user_id=$1)) AND ($2::text IS NULL OR g.subject=$2) ORDER BY g.created_at DESC LIMIT 60`, [viewerId, subject || null]);
+    return this.db.query(`SELECT g.id,g.name,g.description,g.subject,g.visibility,g.created_at,u.id AS author_id,u."displayName" AS display_name,u.username,u."avatarUrl" AS avatar_url,(SELECT COUNT(*)::int FROM community_group_members m WHERE m.group_id=g.id) AS members_count,EXISTS(SELECT 1 FROM community_group_members m WHERE m.group_id=g.id AND m.user_id=$1) AS joined,EXISTS(SELECT 1 FROM community_group_members m WHERE m.group_id=g.id AND m.user_id=$1 AND m.role='owner') AS is_owner FROM community_groups g JOIN users u ON u.id=g.owner_id WHERE u.status='active' AND (g.visibility='public' OR EXISTS(SELECT 1 FROM community_group_members m WHERE m.group_id=g.id AND m.user_id=$1)) AND ($2::text IS NULL OR g.subject=$2) ORDER BY g.created_at DESC LIMIT 60`, [viewerId, subject || null]);
   }
   async createGroup(ownerId: string, input: { name?: string; description?: string; subject?: string; visibility?: string }) {
     const name=this.clean(input.name,90,'Guruh nomi'), description=this.clean(input.description,600,'Tavsif',false), subject=this.clean(input.subject,60,'Fan');
@@ -41,7 +41,7 @@ export class CommunityLearningService {
   }
 
   async questions(viewerId:string,subject?:string) {
-    const rows=await this.db.query(`SELECT q.id,q.subject,q.title,q.body,q.media_key,q.media_type,q.status,q.created_at,u.id AS author_id,u.display_name,u.username,u."avatarUrl" AS avatar_url,(SELECT COUNT(*)::int FROM community_answers a WHERE a.question_id=q.id) AS answers_count,q.best_answer_id,(q.author_id=$1) AS is_own FROM community_questions q JOIN users u ON u.id=q.author_id WHERE u.status='active' AND ($2::text IS NULL OR q.subject=$2) ORDER BY (q.status='open') DESC,q.created_at DESC LIMIT 80`,[viewerId,subject||null]);
+    const rows=await this.db.query(`SELECT q.id,q.subject,q.title,q.body,q.media_key,q.media_type,q.status,q.created_at,u.id AS author_id,u."displayName" AS display_name,u.username,u."avatarUrl" AS avatar_url,(SELECT COUNT(*)::int FROM community_answers a WHERE a.question_id=q.id) AS answers_count,q.best_answer_id,(q.author_id=$1) AS is_own FROM community_questions q JOIN users u ON u.id=q.author_id WHERE u.status='active' AND ($2::text IS NULL OR q.subject=$2) ORDER BY (q.status='open') DESC,q.created_at DESC LIMIT 80`,[viewerId,subject||null]);
     return rows.map((row:any)=>({...row,media_url:row.media_key?this.storage.sign('GET',row.media_key,900):null}));
   }
   async createQuestion(authorId:string,input:{subject?:string;title?:string;body?:string;mediaKey?:string;mediaType?:string}) {
@@ -55,7 +55,7 @@ export class CommunityLearningService {
   async answers(questionId:string) {
     const [exists]=await this.db.query('SELECT id FROM community_questions WHERE id=$1',[questionId]);
     if(!exists) throw new NotFoundException('Savol topilmadi');
-    return this.db.query(`SELECT a.id,a.body,a.is_best,a.created_at,u.id AS author_id,u.display_name,u.username,u."avatarUrl" AS avatar_url FROM community_answers a JOIN users u ON u.id=a.author_id WHERE a.question_id=$1 AND u.status='active' ORDER BY a.is_best DESC,a.created_at ASC`,[questionId]);
+    return this.db.query(`SELECT a.id,a.body,a.is_best,a.created_at,u.id AS author_id,u."displayName" AS display_name,u.username,u."avatarUrl" AS avatar_url FROM community_answers a JOIN users u ON u.id=a.author_id WHERE a.question_id=$1 AND u.status='active' ORDER BY a.is_best DESC,a.created_at ASC`,[questionId]);
   }
   async answer(userId:string,questionId:string,bodyValue:unknown) {
     const body=this.clean(bodyValue,2000,'Javob');
@@ -86,7 +86,7 @@ export class CommunityLearningService {
     return {accepted:true,answerId,xpAwarded:result.newlyAccepted?15:0,zcAwarded:5};
   }
   async resources(viewerId:string,subject?:string) {
-    return this.db.query(`SELECT r.id,r.title,r.description,r.subject,r.file_type,r.created_at,u.id AS author_id,u.display_name,u.username,u."avatarUrl" AS avatar_url,EXISTS(SELECT 1 FROM community_resource_saves s WHERE s.resource_id=r.id AND s.user_id=$1) AS saved,(SELECT COUNT(*)::int FROM community_resource_saves s WHERE s.resource_id=r.id) AS saves_count,COALESCE((SELECT ROUND(AVG(rt.rating)::numeric,1) FROM community_resource_ratings rt WHERE rt.resource_id=r.id),0) AS average_rating,(SELECT rt.rating FROM community_resource_ratings rt WHERE rt.resource_id=r.id AND rt.user_id=$1) AS my_rating,(SELECT COUNT(*)::int FROM community_resource_ratings rt WHERE rt.resource_id=r.id) AS ratings_count FROM community_resources r JOIN users u ON u.id=r.author_id WHERE u.status='active' AND ($2::text IS NULL OR r.subject=$2) ORDER BY r.created_at DESC LIMIT 80`,[viewerId,subject||null]);
+    return this.db.query(`SELECT r.id,r.title,r.description,r.subject,r.file_type,r.created_at,u.id AS author_id,u."displayName" AS display_name,u.username,u."avatarUrl" AS avatar_url,EXISTS(SELECT 1 FROM community_resource_saves s WHERE s.resource_id=r.id AND s.user_id=$1) AS saved,(SELECT COUNT(*)::int FROM community_resource_saves s WHERE s.resource_id=r.id) AS saves_count,COALESCE((SELECT ROUND(AVG(rt.rating)::numeric,1) FROM community_resource_ratings rt WHERE rt.resource_id=r.id),0) AS average_rating,(SELECT rt.rating FROM community_resource_ratings rt WHERE rt.resource_id=r.id AND rt.user_id=$1) AS my_rating,(SELECT COUNT(*)::int FROM community_resource_ratings rt WHERE rt.resource_id=r.id) AS ratings_count FROM community_resources r JOIN users u ON u.id=r.author_id WHERE u.status='active' AND ($2::text IS NULL OR r.subject=$2) ORDER BY r.created_at DESC LIMIT 80`,[viewerId,subject||null]);
   }
   async createResource(authorId:string,input:{title?:string;description?:string;subject?:string;fileKey?:string;fileType?:string}) {
     const title=this.clean(input.title,140,'Material nomi'),description=this.clean(input.description,600,'Tavsif',false),subject=this.clean(input.subject,60,'Fan'),fileKey=this.clean(input.fileKey,500,'Fayl'),fileType=this.clean(input.fileType,100,'Fayl turi');
@@ -110,7 +110,7 @@ export class CommunityLearningService {
   async groupMessages(userId:string,groupId:string) {
     const [member]=await this.db.query('SELECT id FROM community_group_members WHERE group_id=$1 AND user_id=$2',[groupId,userId]);
     if(!member) throw new BadRequestException('Guruh suhbatini ko‘rish uchun a’zo bo‘ling');
-    return this.db.query(`SELECT * FROM (SELECT m.id,m.body,m.created_at,u.id AS author_id,u.display_name,u.username,u."avatarUrl" AS avatar_url FROM community_group_messages m JOIN users u ON u.id=m.author_id WHERE m.group_id=$1 AND u.status='active' ORDER BY m.created_at DESC LIMIT 150) recent ORDER BY created_at ASC`,[groupId]);
+    return this.db.query(`SELECT * FROM (SELECT m.id,m.body,m.created_at,u.id AS author_id,u."displayName" AS display_name,u.username,u."avatarUrl" AS avatar_url FROM community_group_messages m JOIN users u ON u.id=m.author_id WHERE m.group_id=$1 AND u.status='active' ORDER BY m.created_at DESC LIMIT 150) recent ORDER BY created_at ASC`,[groupId]);
   }
   async sendGroupMessage(userId:string,groupId:string,rawBody:unknown) {
     const body=this.clean(rawBody,2000,'Xabar');
@@ -133,7 +133,7 @@ export class CommunityLearningService {
   async resourceComments(resourceId:string) {
     const [resource]=await this.db.query('SELECT id FROM community_resources WHERE id=$1',[resourceId]);
     if(!resource) throw new NotFoundException('Material topilmadi');
-    return this.db.query(`SELECT c.id,c.body,c.created_at,u.id AS author_id,u.display_name,u.username,u."avatarUrl" AS avatar_url FROM community_resource_comments c JOIN users u ON u.id=c.author_id WHERE c.resource_id=$1 AND u.status='active' ORDER BY c.created_at ASC LIMIT 100`,[resourceId]);
+    return this.db.query(`SELECT c.id,c.body,c.created_at,u.id AS author_id,u."displayName" AS display_name,u.username,u."avatarUrl" AS avatar_url FROM community_resource_comments c JOIN users u ON u.id=c.author_id WHERE c.resource_id=$1 AND u.status='active' ORDER BY c.created_at ASC LIMIT 100`,[resourceId]);
   }
   async addResourceComment(userId:string,resourceId:string,rawBody:unknown) {
     const body=this.clean(rawBody,1000,'Izoh');
@@ -144,7 +144,7 @@ export class CommunityLearningService {
   }
 
   async portfolio(viewerId:string) {
-    return this.db.query(`SELECT p.id,p.kind,p.title,p.description,p.link_url,p.created_at,u.id AS author_id,u.display_name,u.username,u."avatarUrl" AS avatar_url,(p.author_id=$1) AS is_own FROM community_portfolio_items p JOIN users u ON u.id=p.author_id WHERE u.status='active' ORDER BY p.created_at DESC LIMIT 100`,[viewerId]);
+    return this.db.query(`SELECT p.id,p.kind,p.title,p.description,p.link_url,p.created_at,u.id AS author_id,u."displayName" AS display_name,u.username,u."avatarUrl" AS avatar_url,(p.author_id=$1) AS is_own FROM community_portfolio_items p JOIN users u ON u.id=p.author_id WHERE u.status='active' ORDER BY p.created_at DESC LIMIT 100`,[viewerId]);
   }
   async createPortfolioItem(authorId:string,input:{kind?:string;title?:string;description?:string;linkUrl?:string}) {
     const kind=input.kind==='certificate'||input.kind==='skill'?input.kind:'project';
@@ -154,7 +154,7 @@ export class CommunityLearningService {
     return item;
   }
   async mentors() {
-    return this.db.query(`SELECT m.user_id,u.display_name,u.username,u."avatarUrl" AS avatar_url,u.xp,m.headline,m.subjects,m.bio,m.accepting,(SELECT COUNT(*)::int FROM community_mentorship_requests r WHERE r.mentor_id=m.user_id AND r.status='accepted') AS students_count FROM community_mentor_profiles m JOIN users u ON u.id=m.user_id WHERE u.status='active' AND m.accepting=true ORDER BY students_count DESC,u.xp DESC LIMIT 60`);
+    return this.db.query(`SELECT m.user_id,u."displayName" AS display_name,u.username,u."avatarUrl" AS avatar_url,u.xp,m.headline,m.subjects,m.bio,m.accepting,(SELECT COUNT(*)::int FROM community_mentorship_requests r WHERE r.mentor_id=m.user_id AND r.status='accepted') AS students_count FROM community_mentor_profiles m JOIN users u ON u.id=m.user_id WHERE u.status='active' AND m.accepting=true ORDER BY students_count DESC,u.xp DESC LIMIT 60`);
   }
   async becomeMentor(userId:string,input:{headline?:string;subjects?:string;bio?:string}) {
     const headline=this.clean(input.headline,140,'Mentor sarlavhasi'),subjects=this.clean(input.subjects,300,'Fanlar'),bio=this.clean(input.bio,600,'Tavsif',false);
@@ -170,7 +170,7 @@ export class CommunityLearningService {
     return request;
   }
   async mentorRequests(mentorId:string) {
-    return this.db.query(`SELECT r.id,r.message,r.status,r.created_at,u.id AS learner_id,u.display_name,u.username,u."avatarUrl" AS avatar_url FROM community_mentorship_requests r JOIN users u ON u.id=r.learner_id WHERE r.mentor_id=$1 ORDER BY r.created_at DESC LIMIT 60`,[mentorId]);
+    return this.db.query(`SELECT r.id,r.message,r.status,r.created_at,u.id AS learner_id,u."displayName" AS display_name,u.username,u."avatarUrl" AS avatar_url FROM community_mentorship_requests r JOIN users u ON u.id=r.learner_id WHERE r.mentor_id=$1 ORDER BY r.created_at DESC LIMIT 60`,[mentorId]);
   }
   async respondMentorRequest(mentorId:string,requestId:string,statusValue:unknown) {
     const status=statusValue==='accepted'?'accepted':statusValue==='declined'?'declined':null;
@@ -180,7 +180,7 @@ export class CommunityLearningService {
     return result[0];
   }
   async marathons(viewerId:string) {
-    return this.db.query(`SELECT m.id,m.title,m.description,m.subject,m.duration_days,m.starts_at,u.display_name AS creator_name,u.username AS creator_username,(SELECT COUNT(*)::int FROM community_marathon_members mm WHERE mm.marathon_id=m.id) AS members_count,EXISTS(SELECT 1 FROM community_marathon_members mm WHERE mm.marathon_id=m.id AND mm.user_id=$1) AS joined,COALESCE((SELECT mm.progress FROM community_marathon_members mm WHERE mm.marathon_id=m.id AND mm.user_id=$1),0) AS progress FROM community_marathons m JOIN users u ON u.id=m.creator_id WHERE u.status='active' ORDER BY m.starts_at DESC LIMIT 60`,[viewerId]);
+    return this.db.query(`SELECT m.id,m.title,m.description,m.subject,m.duration_days,m.starts_at,u."displayName" AS creator_name,u.username AS creator_username,(SELECT COUNT(*)::int FROM community_marathon_members mm WHERE mm.marathon_id=m.id) AS members_count,EXISTS(SELECT 1 FROM community_marathon_members mm WHERE mm.marathon_id=m.id AND mm.user_id=$1) AS joined,COALESCE((SELECT mm.progress FROM community_marathon_members mm WHERE mm.marathon_id=m.id AND mm.user_id=$1),0) AS progress FROM community_marathons m JOIN users u ON u.id=m.creator_id WHERE u.status='active' ORDER BY m.starts_at DESC LIMIT 60`,[viewerId]);
   }
   async createMarathon(creatorId:string,input:{title?:string;description?:string;subject?:string;durationDays?:number}) {
     const title=this.clean(input.title,140,'Marafon nomi'),description=this.clean(input.description,800,'Tavsif',false),subject=this.clean(input.subject,60,'Fan'),duration=Number(input.durationDays);
