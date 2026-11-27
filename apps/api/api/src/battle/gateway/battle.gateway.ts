@@ -16,6 +16,7 @@ import { Repository } from 'typeorm';
 import { Namespace, Socket } from 'socket.io';
 import { randomUUID } from 'node:crypto';
 import { FeatureUsageService } from '../../subscriptions/feature-usage.service';
+import { getAllowedCorsOrigins } from '../../cors.config';
 
 import { User } from '../../users/entities/user.entity';
 import {
@@ -82,7 +83,7 @@ interface ActiveBattle {
 @WebSocketGateway({
   namespace: '/battle',
   cors: {
-    origin: true,
+    origin: getAllowedCorsOrigins(),
     credentials: true,
   },
 })
@@ -131,7 +132,7 @@ export class BattleGateway
         nextTimer: null,
         disconnectTimers: new Map<string, ReturnType<typeof setTimeout>>(),
         readyPlayers: new Set(saved.readyPlayers || []),
-        disconnectedAt: { ...(saved.disconnectedAt || {}) },
+        disconnectedAt: { ...saved.disconnectedAt },
         resolving: saved.resolving,
         finishing: saved.finishing,
       };
@@ -254,7 +255,7 @@ export class BattleGateway
       nextTimer: null,
       disconnectTimers: new Map<string, ReturnType<typeof setTimeout>>(),
       readyPlayers: new Set(saved.readyPlayers || []),
-      disconnectedAt: { ...(saved.disconnectedAt || {}) },
+      disconnectedAt: { ...saved.disconnectedAt },
     };
   }
 

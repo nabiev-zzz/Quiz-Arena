@@ -256,13 +256,22 @@ export class LearningService {
     const payload = input.payload;
     const file = {
       buffer: input.fileBuffer,
-      originalname: String(payload.fileName || 'document'),
-      mimetype: String(payload.mimetype || 'application/octet-stream'),
-      size: Number(payload.size) || input.fileBuffer.length,
+      originalname: typeof payload.fileName === 'string' && payload.fileName.trim()
+        ? payload.fileName.trim().slice(0, 255)
+        : 'document',
+      mimetype: typeof payload.mimetype === 'string' && payload.mimetype.trim()
+        ? payload.mimetype.trim().toLowerCase().slice(0, 127)
+        : 'application/octet-stream',
+      // The persisted buffer is authoritative; never trust a client-supplied size.
+      size: input.fileBuffer.length,
     };
-    const options = (payload.input || {}) as { count?: number; difficulty?: string; language?: string };
+    const options = (payload.input && typeof payload.input === 'object' && !Array.isArray(payload.input))
+      ? payload.input as { count?: number; difficulty?: string; language?: string }
+      : {};
+    const topicId = typeof payload.topicId === 'string' ? payload.topicId.trim() : '';
+    if (!topicId) throw new BadRequestException('Hujjat testi uchun mavzu identifikatori noto‘g‘ri.');
     return this.createDocumentQuiz(input.userId, file, options, {
-      topicId: String(payload.topicId),
+      topicId,
       _quotaReceipt: payload._quotaReceipt,
     });
   }
@@ -299,7 +308,9 @@ export class LearningService {
         if (!isIncorrect || question.length < 5 || options.length < 2 || !Number.isInteger(correctAnswer) || correctAnswer < 0 || correctAnswer >= options.length) {
           continue;
         }
-        const identity = String(row.id || question.toLowerCase().slice(0, 120));
+        const identity = typeof row.id === 'string' || typeof row.id === 'number'
+          ? String(row.id)
+          : question.toLowerCase().slice(0, 120);
         if (seen.has(identity)) continue;
         seen.add(identity);
         mistakes.push({

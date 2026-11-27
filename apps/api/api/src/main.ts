@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { json, raw, urlencoded } from 'express';
 import { AppModule } from './app.module';
 import { RedisIoAdapter } from './battle/redis-io.adapter';
+import { getAllowedCorsOrigins, isAllowedCorsOrigin } from './cors.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
@@ -10,8 +11,13 @@ async function bootstrap() {
   app.use(json({ limit: '1mb' }));
   app.use(urlencoded({ extended: true, limit: '1mb' }));
 
+  const allowedOrigins = getAllowedCorsOrigins();
   app.enableCors({
-    origin: true,
+    origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
+      if (isAllowedCorsOrigin(origin, allowedOrigins)) return callback(null, true);
+      return callback(null, false);
+    },
+    credentials: true,
   });
 
   app.useGlobalPipes(

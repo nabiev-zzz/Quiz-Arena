@@ -5,8 +5,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Namespace, Socket } from 'socket.io';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { getAllowedCorsOrigins } from '../cors.config';
 
-@WebSocketGateway({ namespace: '/direct', cors: { origin: true, credentials: true } })
+@WebSocketGateway({ namespace: '/direct', cors: { origin: getAllowedCorsOrigins(), credentials: true } })
 @Injectable()
 export class DirectMessagesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Namespace;

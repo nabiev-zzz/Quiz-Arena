@@ -1,6 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { LearningService } from './learning.service';
-import { LearningQuestion } from './entities/learning-question.entity';
 
 describe('LearningService question-bank fallback', () => {
   it('serves a test from the database without calling AI when enough questions are cached', async () => {

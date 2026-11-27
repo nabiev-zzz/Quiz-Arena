@@ -206,7 +206,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
       } catch (ackError) {
         this.logger.warn(`AI job ${persistedJob.id} queued but enqueue acknowledgement failed: ${ackError instanceof Error ? ackError.message : String(ackError)}`);
       }
-    } catch (error) {
+    } catch {
       await this.jobs.update({ id: persistedJob.id }, {
         status: 'failed',
         error: 'AI navbatiga qo‘shib bo‘lmadi. Qayta urinib ko‘ring.',
