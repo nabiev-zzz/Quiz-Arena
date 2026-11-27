@@ -62,6 +62,7 @@ async function main(): Promise<void> {
               userId: stored.userId,
               payload: stored.payload,
               fileBuffer: stored.fileBuffer,
+              onProgress: async (step: string) => { await bullJob.updateProgress({ step, updatedAt: Date.now() }); },
             });
             break;
           case 'smart_practice':

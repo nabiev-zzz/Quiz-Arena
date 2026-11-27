@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -13,6 +13,7 @@ import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import { useTheme } from '../theme/ThemeContext';
 import type { Difficulty } from '../types';
 import { createDocumentQuiz, saveLearningAttempt } from '../services/learningService';
+import type { DocumentQuizPhase } from '../services/learningService';
 import type { DocumentQuizQuestion } from '../services/learningService';
 import { getPremiumStatus } from '../services/subscriptionService';
 
@@ -43,6 +44,9 @@ const ACCEPTED_TYPES = [
   'text/plain',
   'text/markdown',
   'text/csv',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'image/png',
+  'image/jpeg',
 ];
 
 export default function DocumentQuizScreen({ onBack, language }: Props) {
@@ -61,6 +65,10 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
   const [answers, setAnswers] = useState<number[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [savingHistory, setSavingHistory] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<'auto' | 'uz' | 'ru' | 'en'>('auto');
+  const [progressPhase, setProgressPhase] = useState<DocumentQuizPhase>('uploading');
+  const [errorMessage, setErrorMessage] = useState('');
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -86,10 +94,13 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
       if (result.canceled || !result.assets?.length) return;
       const asset = result.assets[0];
       const extension = asset.name.toLowerCase().split('.').pop();
-      if (!['pdf', 'docx', 'txt', 'md', 'csv'].includes(extension || '')) {
-        showLocalizedAlert('Format qo‘llab-quvvatlanmaydi', 'PDF, DOCX, TXT, MD yoki CSV fayl tanlang.');
+      if (!['pdf', 'docx', 'pptx', 'txt', 'md', 'csv', 'png', 'jpg', 'jpeg'].includes(extension || '')) {
+        showLocalizedAlert('Format qo‘llab-quvvatlanmaydi', 'PDF, DOCX, PPTX, TXT, MD, PNG yoki JPG fayl tanlang.');
         return;
       }
+      if (asset.size === 0) { showLocalizedAlert('Fayl bo‘sh', 'Iltimos, bo‘sh bo‘lmagan hujjat tanlang.'); return; }
+      if (typeof asset.size === 'number' && asset.size > maxFileSizeMb * 1024 * 1024) { showLocalizedAlert('Fayl juda katta', `Fayl hajmi ${maxFileSizeMb} MB dan oshmasligi kerak.`); return; }
+      setErrorMessage('');
       setFile({
         uri: asset.uri,
         name: asset.name,
@@ -107,8 +118,12 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
       return;
     }
     setPhase('loading');
+    setErrorMessage('');
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const timeout = setTimeout(() => controller.abort(), 10 * 60 * 1000);
     try {
-      const result = await createDocumentQuiz(file, { count, difficulty, language });
+      const result = await createDocumentQuiz(file, { count, difficulty, language: selectedLanguage }, { signal: controller.signal, onPhase: setProgressPhase });
       setQuestions(result.questions);
       setQuestionIndex(0);
       setAnswers([]);
@@ -116,9 +131,15 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
       setPhase('quiz');
     } catch (error) {
       setPhase('setup');
-      showLocalizedAlert('Test yaratilmadi', error instanceof Error ? error.message : 'AI hujjatni tahlil qila olmadi.');
+      const message = error instanceof Error ? error.message : 'AI hujjatni tahlil qila olmadi.';
+      if (message !== 'Bekor qilindi.') { setErrorMessage(message); showLocalizedAlert('Test yaratilmadi', message); }
+    } finally {
+      clearTimeout(timeout);
+      abortRef.current = null;
     }
   };
+
+  const cancelGeneration = () => { abortRef.current?.abort(); abortRef.current = null; setPhase('setup'); setErrorMessage('Yaratish bekor qilindi. Faylni qayta yuklamasdan yana urinishingiz mumkin.'); };
 
   const finishQuiz = async (completedAnswers: number[]) => {
     const correctAnswers = questions.reduce(
@@ -202,7 +223,7 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
               <LocalizedText style={s.heroTitle}>Hujjatingizni bilim sinoviga aylantiring</LocalizedText>
               <LocalizedText style={s.heroText}>PDF, Word yoki matnli hujjatni yuklang. AI mazmunni o‘qib, siz uchun yangi test yaratadi.</LocalizedText>
               <View style={s.formatRow}>
-                {['PDF', 'DOCX', 'TXT', 'MD', 'CSV'].map((item) => <View key={item} style={s.formatChip}><LocalizedText style={s.formatText}>{item}</LocalizedText></View>)}
+                {['PDF', 'DOCX', 'PPTX', 'TXT', 'MD', 'PNG', 'JPG'].map((item) => <View key={item} style={s.formatChip}><LocalizedText style={s.formatText}>{item}</LocalizedText></View>)}
               </View>
             </View>
 
@@ -210,7 +231,7 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
               <View style={s.uploadIcon}><Ionicons name="cloud-upload-outline" size={27} color={colors.primary} /></View>
               <View style={s.uploadCopy}>
                 <LocalizedText style={s.uploadTitle}>{file ? 'Hujjat tanlandi' : 'Hujjat tanlash'}</LocalizedText>
-                <LocalizedText style={s.muted}>{file ? file.name : `PDF, DOCX, TXT, MD yoki CSV · ${maxFileSizeMb} MB gacha`}</LocalizedText>
+                <LocalizedText style={s.muted}>{file ? file.name : `PDF, DOCX, PPTX, TXT, MD, PNG yoki JPG · ${maxFileSizeMb} MB gacha`}</LocalizedText>
               </View>
               <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
             </Pressable>
@@ -221,10 +242,20 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
                 <LocalizedText style={s.settingLabel}>Savollar soni</LocalizedText>
                 <LocalizedText style={s.countValue}>{count} / {maxQuestions}</LocalizedText>
               </View>
-              <View style={s.stepper}>
-                <Pressable onPress={() => setCount((value) => Math.max(1, value - 5))} style={s.stepButton}><Ionicons name="remove" size={20} color={colors.text} /></Pressable>
-                <View style={s.stepTrack}><View style={[s.stepFill, { width: `${Math.max(1, (count / maxQuestions) * 100)}%` }]} /></View>
-                <Pressable onPress={() => setCount((value) => Math.min(maxQuestions, value + 5))} style={s.stepButton}><Ionicons name="add" size={20} color={colors.text} /></Pressable>
+              <View style={s.difficultyRow}>
+                {[5, 10, 20, 30].filter((value) => value <= maxQuestions).map((value) => (
+                  <Pressable key={value} onPress={() => setCount(value)} style={[s.difficultyButton, count === value && s.difficultyActive]}>
+                    <LocalizedText style={[s.difficultyText, count === value && s.difficultyTextActive]}>{value}</LocalizedText>
+                  </Pressable>
+                ))}
+              </View>
+              <LocalizedText style={s.settingLabel}>Test tili</LocalizedText>
+              <View style={s.difficultyRow}>
+                {([{ value: 'auto', label: 'Hujjat tili' }, { value: 'uz', label: 'O‘zbekcha' }, { value: 'ru', label: 'Русский' }, { value: 'en', label: 'English' }] as const).map((item) => (
+                  <Pressable key={item.value} onPress={() => setSelectedLanguage(item.value)} style={[s.difficultyButton, selectedLanguage === item.value && s.difficultyActive]}>
+                    <LocalizedText style={[s.difficultyText, selectedLanguage === item.value && s.difficultyTextActive]}>{item.label}</LocalizedText>
+                  </Pressable>
+                ))}
               </View>
               <LocalizedText style={s.settingLabel}>Murakkablik darajasi</LocalizedText>
               <View style={s.difficultyRow}>
@@ -236,6 +267,7 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
               </View>
             </View>
 
+            {errorMessage ? <View style={s.explanationBox}><LocalizedText style={s.explanationText}>{errorMessage}</LocalizedText><Pressable onPress={() => void generate()} disabled={!file} style={s.secondaryButton}><LocalizedText style={s.secondaryButtonText}>Qayta urinish</LocalizedText></Pressable></View> : null}
             <Pressable onPress={() => void generate()} disabled={!file} style={[s.primaryButton, !file && s.disabledButton]}>
               <Ionicons name="sparkles" size={18} color="#FFFFFF" />
               <LocalizedText style={s.primaryButtonText}>AI bilan test yaratish</LocalizedText>
@@ -250,7 +282,13 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
             <View style={s.loadingIcon}><Ionicons name="sparkles" size={30} color="#FFFFFF" /></View>
             <ActivityIndicator size="large" color={colors.primary} />
             <LocalizedText style={s.loadingTitle}>Test tayyorlanmoqda</LocalizedText>
-            <LocalizedText style={s.muted}>Hujjat tahlil qilinmoqda. Tayyor bo‘lgach test avtomatik ochiladi.</LocalizedText>
+            {([{ value: 'uploading', label: 'Fayl yuklanmoqda' }, { value: 'reading', label: 'Hujjat o‘qilmoqda' }, { value: 'generating', label: 'Savollar yaratilmoqda' }, { value: 'done', label: 'Tayyor' }] as const).map((item) => {
+              const order = ['uploading', 'reading', 'generating', 'done'];
+              const active = order.indexOf(progressPhase) >= order.indexOf(item.value);
+              return <View key={item.value} style={s.savingRow}><Ionicons name={active ? 'checkmark-circle' : 'ellipse-outline'} size={17} color={active ? colors.primary : colors.textMuted} /><LocalizedText style={s.muted}>{item.label}</LocalizedText></View>;
+            })}
+            <LocalizedText style={s.muted}>Jarayon tugaguncha ilovani yopmang.</LocalizedText>
+            <Pressable onPress={cancelGeneration} style={s.secondaryButton}><LocalizedText style={s.secondaryButtonText}>Bekor qilish</LocalizedText></Pressable>
           </View>
         ) : null}
 
@@ -305,10 +343,24 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
             ) : (
               <View style={s.savedRow}><Ionicons name="checkmark-circle" size={17} color="#159B68" /><LocalizedText style={s.savedText}>Natija test tarixiga saqlandi</LocalizedText></View>
             )}
-            <Pressable onPress={reset} style={s.primaryButton}>
+            {questions.some((question, index) => answers[index] !== question.correctAnswer) ? (
+              <View style={s.panel}>
+                <LocalizedText style={s.panelTitle}>Xatolar tahlili</LocalizedText>
+                {questions.map((question, index) => answers[index] === question.correctAnswer ? null : (
+                  <View key={question.id} style={s.explanationBox}>
+                    <LocalizedText style={s.explanationTitle}>Savol {index + 1}</LocalizedText>
+                    <LocalizedText style={s.questionText}>{question.question}</LocalizedText>
+                    <LocalizedText style={s.explanationText}>To‘g‘ri javob: {question.options[question.correctAnswer]}</LocalizedText>
+                    <LocalizedText style={s.explanationText}>{question.explanation}</LocalizedText>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            <Pressable onPress={() => void generate()} style={s.primaryButton}>
               <Ionicons name="refresh" size={18} color="#FFFFFF" />
-              <LocalizedText style={s.primaryButtonText}>Yana test yaratish</LocalizedText>
+              <LocalizedText style={s.primaryButtonText}>Testni qayta yaratish</LocalizedText>
             </Pressable>
+            <Pressable onPress={reset} style={s.secondaryButton}><LocalizedText style={s.secondaryButtonText}>Boshqa hujjat tanlash</LocalizedText></Pressable>
             <Pressable onPress={onBack} style={s.secondaryButton}><LocalizedText style={s.secondaryButtonText}>Darslarga qaytish</LocalizedText></Pressable>
           </View>
         ) : null}

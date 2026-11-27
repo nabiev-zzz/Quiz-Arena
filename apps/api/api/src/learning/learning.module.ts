@@ -11,6 +11,7 @@ import { LearningService } from './learning.service';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { LearningQuestionCache } from './learning-question-cache.service';
 import { AiJobsModule } from '../ai/queue/ai-jobs.module';
+import { DocumentExtractionService } from './document-quiz/document-extraction.service';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { AiJobsModule } from '../ai/queue/ai-jobs.module';
     AiJobsModule,
   ],
   controllers: [LearningController],
-  providers: [LearningService, LearningQuestionCache],
+  providers: [LearningService, LearningQuestionCache, DocumentExtractionService],
   exports: [LearningService],
 })
 export class LearningModule {}

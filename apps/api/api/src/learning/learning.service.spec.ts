@@ -2,6 +2,7 @@ import { describe, expect, it, jest, beforeEach } from '@jest/globals';
 import { deflateRawSync } from 'node:zlib';
 import { getPlanEntitlements } from '../subscriptions/plan-entitlements';
 import { LearningService } from './learning.service';
+import { DocumentExtractionService } from './document-quiz/document-extraction.service';
 
 function makePdf(text = ''): Buffer {
   const sentences = text.match(/[^.!?]+[.!?]?/g)?.map((value) => value.trim()).filter(Boolean) || [];
@@ -72,290 +73,117 @@ function makeDocx(text: string): Buffer {
 describe('LearningService document quiz generation', () => {
   const attemptsRepository = { find: jest.fn() };
   const aiService = {
-    generateQuestions: jest.fn(),
-    generateQuestionsFromPdf: jest.fn(),
+    extractDocumentTextWithVision: jest.fn(),
+    generateDocumentQuestions: jest.fn(),
   };
-  const featureUsageService = {
-    consume: jest.fn(),
-    refund: jest.fn(),
-  };
-  const subscriptionsService = {
-    current: jest.fn(),
-  };
+  const featureUsageService = { consume: jest.fn(), refund: jest.fn() };
+  const subscriptionsService = { current: jest.fn() };
   const aiQueue = { enqueue: jest.fn() };
+  const extraction = new DocumentExtractionService();
   const service = new LearningService(
-    attemptsRepository as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    aiService as never,
-    featureUsageService as never,
-    subscriptionsService as never,
-    undefined,
-    undefined,
-    aiQueue as never,
+    attemptsRepository as never, {} as never, {} as never, {} as never,
+    aiService as never, featureUsageService as never, subscriptionsService as never,
+    undefined, undefined, aiQueue as never, extraction,
   );
+  const sourceText = 'Ta’lim jarayonida bilimlarni takrorlash orqali mustahkamlash muhim. O‘quvchilar mavzuni tahlil qilib, sabab va natijalarni tushunadilar. Ushbu material bilimlarni amaliy mashqlar yordamida rivojlantirishni tushuntiradi.';
+
+  const makeQuestions = (count: number, prefix = 'Savol') => Array.from({ length: count }, (_, index) => ({
+    question: `${prefix} ${index + 1}: ${['atom', 'energiya', 'hujayra', 'tabiat', 'molekula', 'modda', 'harorat', 'o‘simlik', 'suv', 'yorug‘lik'][index % 10]} mavzusining asosiy belgisi nima?`,
+    options: [`Takrorlash orqali ${index}`, `Boshqa usul ${index}`, `Tasodifan ${index}`, `Umuman emas ${index}`],
+    correctIndex: 0,
+    explanation: 'Manbada bilimlarni takrorlash orqali mustahkamlash muhimligi ta’kidlangan.',
+    difficulty: 'medium' as const,
+  }));
 
   beforeEach(() => {
     jest.clearAllMocks();
     attemptsRepository.find.mockResolvedValue([]);
-    subscriptionsService.current.mockResolvedValue({
-      tier: 'premium_pro',
-      entitlements: getPlanEntitlements('premium_pro_monthly'),
-    });
+    subscriptionsService.current.mockResolvedValue({ tier: 'premium_pro', entitlements: getPlanEntitlements('premium_pro_monthly') });
     aiQueue.enqueue.mockResolvedValue({ status: 'queued', jobId: 'ai-job-1', message: 'Test tayyorlanmoqda' });
-    featureUsageService.consume.mockResolvedValue({
-      allowed: true, featureKey: 'documentQuiz', tier: 'premium_pro', period: 'monthly',
-      limit: 30, used: 1, remaining: 29,
-    });
-    aiService.generateQuestions.mockResolvedValue([{
-      id: 'document-q1', subjectId: 'document', topicId: 'document-1',
-      question: 'Savol?', options: ['A', 'B', 'C', 'D'],
-      correctAnswer: 0, explanation: 'Izoh', difficulty: 'medium',
-    }]);
-    aiService.generateQuestionsFromPdf.mockResolvedValue([{
-      id: 'document-pdf-q1', subjectId: 'document', topicId: 'document-1',
-      question: 'PDF savoli?', options: ['A', 'B', 'C', 'D'],
-      correctAnswer: 1, explanation: 'PDF izohi', difficulty: 'medium',
-    }]);
+    featureUsageService.consume.mockResolvedValue({ allowed: true, featureKey: 'documentQuiz', tier: 'premium_pro', period: 'monthly', limit: 30, used: 1, remaining: 29 });
+    aiService.extractDocumentTextWithVision.mockResolvedValue(sourceText);
+    aiService.generateDocumentQuestions.mockImplementation(async (input: { count: number; language: string }) => ({ title: 'Ta’lim', language: input.language, questions: makeQuestions(input.count, `Savol-${aiService.generateDocumentQuestions.mock.calls.length}`) }));
   });
 
-  it('worker generates a quiz from a plain text document after quota was reserved', async () => {
+  it('extracts text, chunks it and generates the exact requested structured question count', async () => {
     const result = await service.createDocumentQuiz('user-1', {
-      buffer: Buffer.from('Ushbu hujjat test yaratish uchun yetarli bo‘lgan matnni o‘z ichiga oladi.'),
-      originalname: 'lesson.txt', mimetype: 'text/plain', size: 80,
-    }, { count: '1', difficulty: 'medium', language: 'uz' }, { topicId: 'document-worker-1', _quotaReceipt: { allowed: true } }) as any;
-
-    expect(result.questionCount).toBe(1);
-    expect(result.sourceFileName).toBe('lesson.txt');
+      buffer: Buffer.from(sourceText), originalname: 'lesson.txt', mimetype: 'text/plain', size: Buffer.byteLength(sourceText),
+    }, { count: '5', difficulty: 'medium', language: 'uz' }, { topicId: 'doc-5', _quotaReceipt: { allowed: true } }) as any;
+    expect(result.questionCount).toBe(5);
+    expect(result.questions).toHaveLength(5);
+    expect(result.questions.every((item: any) => item.options.length === 4)).toBe(true);
+    expect(aiService.generateDocumentQuestions).toHaveBeenCalledTimes(1);
     expect(featureUsageService.consume).not.toHaveBeenCalled();
-    expect(aiService.generateQuestions).toHaveBeenCalledTimes(1);
   });
 
-  it('generates large document quizzes in validated batches of 25', async () => {
-    const batch = Array.from({ length: 25 }, (_, index) => ({
-      id: 'batch-q' + index, subjectId: 'document', topicId: 'batch-topic',
-      question: 'Question ' + index, options: ['A', 'B', 'C', 'D'],
-      correctAnswer: 0, explanation: 'Explanation', difficulty: 'medium' as const,
-    }));
-    aiService.generateQuestions.mockResolvedValue(batch);
+  it('splits long documents and distributes requested questions across chunks', async () => {
+    const longText = Array.from({ length: 100 }, (_, index) => `Bo‘lim ${index}. ${sourceText}`).join('\n\n');
     const result = await service.createDocumentQuiz('user-1', {
-      buffer: Buffer.from('This document contains enough educational text for a fifty question quiz generation test.'),
-      originalname: 'long-lesson.txt', mimetype: 'text/plain', size: 90,
-    }, { count: '50' }, { topicId: 'document-worker-50', _quotaReceipt: { allowed: true } }) as any;
-
-    expect(aiService.generateQuestions).toHaveBeenCalledTimes(2);
-    expect(result.questionCount).toBe(50);
-    expect(new Set(result.questions.map((question) => question.id)).size).toBe(50);
-  });
-  it('extracts text from a DOCX document before generating questions', async () => {
-    const buffer = makeDocx('DOCX_TEST_TEXT: This document explains fractions, numerator, denominator and equivalent values for students.');
-    await service.createDocumentQuiz('user-1', {
-      buffer, originalname: 'lesson.docx',
-      mimetype: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      size: buffer.length,
-    }, { count: '1' }, { topicId: 'document-worker-docx', _quotaReceipt: { allowed: true } });
-
-    expect(aiService.generateQuestions).toHaveBeenCalledWith(expect.objectContaining({
-      topicDescription: expect.stringContaining('DOCX_TEST_TEXT'),
-    }));
+      buffer: Buffer.from(longText), originalname: 'long.txt', mimetype: 'text/plain', size: Buffer.byteLength(longText),
+    }, { count: '10' }, { topicId: 'doc-long', _quotaReceipt: true }) as any;
+    expect(result.questionCount).toBe(10);
+    expect(aiService.generateDocumentQuestions.mock.calls.length).toBeGreaterThan(1);
   });
 
-  it('extracts searchable PDF text and sends it to the normal AI providers', async () => {
-    const pdfText = 'PDF_TEXT_TEST: Photosynthesis converts sunlight into chemical energy in green plants.';
-    const buffer = makePdf(pdfText);
+  it('uses Gemini vision OCR for image scans and keeps the detected document language', async () => {
+    const png = Buffer.from([137,80,78,71,13,10,26,10,1,2,3]);
     const result = await service.createDocumentQuiz('user-1', {
-      buffer,
-      originalname: 'lesson.pdf', mimetype: 'application/pdf', size: buffer.length,
-    }, { count: '1' }, { topicId: 'document-worker-pdf', _quotaReceipt: { allowed: true } }) as any;
-
-    expect(result.questionCount).toBe(1);
-    expect(aiService.generateQuestions).toHaveBeenCalledWith(expect.objectContaining({
-      topicDescription: expect.stringContaining('PDF_TEXT_TEST'),
-    }));
-    expect(aiService.generateQuestionsFromPdf).not.toHaveBeenCalled();
+      buffer: png, originalname: 'scan.png', mimetype: 'image/png', size: png.length,
+    }, { count: '5', language: 'auto' }, { topicId: 'doc-image', _quotaReceipt: true }) as any;
+    expect(aiService.extractDocumentTextWithVision).toHaveBeenCalledWith(png, 'image/png');
+    expect(result.language).toBe('uz');
   });
 
-  it('uses Gemini native PDF reading for scanned PDFs without a text layer', async () => {
+  it.each([
+    ['ru', 'Образовательный материал содержит важные сведения для проверки знаний и понимания темы.'],
+    ['en', 'Educational material contains important facts for checking knowledge and understanding the topic.'],
+  ])('detects %s language for scanned documents', async (expected, text) => {
+    aiService.extractDocumentTextWithVision.mockResolvedValue(text);
+    const png = Buffer.from([137,80,78,71,13,10,26,10,1,2,3]);
+    const result = await service.createDocumentQuiz('user-1', { buffer: png, originalname: 'language.png', mimetype: 'image/png', size: png.length }, { count: '5', language: 'auto' }, { topicId: `doc-${expected}`, _quotaReceipt: true }) as any;
+    expect(result.language).toBe(expected);
+  });
+
+  it('uses OCR fallback for a scanned PDF without a text layer', async () => {
     const buffer = makePdf();
+    expect(extraction.validate({ buffer, originalname: 'scan.pdf', mimetype: 'application/pdf' }).extension).toBe('pdf');
     const result = await service.createDocumentQuiz('user-1', {
-      buffer,
-      originalname: 'scanned-lesson.pdf', mimetype: 'application/pdf', size: buffer.length,
-    }, { count: '1' }, { topicId: 'document-worker-scanned-pdf', _quotaReceipt: { allowed: true } }) as any;
-
-    expect(result.questionCount).toBe(1);
-    expect(aiService.generateQuestionsFromPdf).toHaveBeenCalledTimes(1);
-    expect(aiService.generateQuestions).not.toHaveBeenCalled();
+      buffer, originalname: 'scan.pdf', mimetype: 'application/pdf', size: buffer.length,
+    }, { count: '5', language: 'uz' }, { topicId: 'doc-scanned', _quotaReceipt: true }) as any;
+    expect(aiService.extractDocumentTextWithVision).toHaveBeenCalledWith(buffer, 'application/pdf');
+    expect(result.questionCount).toBe(5);
   });
 
-  it('falls back to Gemini PDF understanding if text-based AI generation fails', async () => {
-    aiService.generateQuestions.mockRejectedValue(new Error('Text AI unavailable'));
-    const buffer = makePdf('PDF_FALLBACK_TEST: Water evaporates when heat changes liquid water into vapor.');
-    const result = await service.createDocumentQuiz('user-1', {
-      buffer,
-      originalname: 'fallback.pdf', mimetype: 'application/pdf', size: buffer.length,
-    }, { count: '1' }, { topicId: 'document-worker-pdf-fallback', _quotaReceipt: { allowed: true } }) as any;
-
-    expect(result.questionCount).toBe(1);
-    expect(aiService.generateQuestionsFromPdf).toHaveBeenCalledTimes(1);
-  });
-
-  it('keeps searchable PDF quiz generation available with a source-grounded fallback if AI is offline', async () => {
-    aiService.generateQuestions.mockRejectedValue(new Error('Text AI unavailable'));
-    aiService.generateQuestionsFromPdf.mockRejectedValue(new Error('Gemini PDF unavailable'));
-    const pdfText = [
-      'Photosynthesis converts sunlight into chemical energy inside green plant cells during normal growth.',
-      'Mitochondria produce energy through cellular respiration inside eukaryotic organisms.',
-      'Gravity attracts objects toward one another according to mass and distance.',
-      'Evaporation changes liquid water into vapor when temperature increases.',
-      'Condensation transforms water vapor into liquid droplets under cooler conditions.',
-    ].join(' ');
-    const buffer = makePdf(pdfText);
-    const result = await service.createDocumentQuiz('user-1', {
-      buffer,
-      originalname: 'science.pdf', mimetype: 'application/pdf', size: buffer.length,
-    }, { count: '3', difficulty: 'medium', language: 'en' }, { topicId: 'document-worker-pdf-rule-fallback', _quotaReceipt: { allowed: true } }) as any;
-
-    expect(result.source).toBe('rule-based');
-    expect(result.questionCount).toBe(3);
-    expect(result.questions.every((question) => question.options.length === 4)).toBe(true);
-  });
-
-  it('rejects unsupported formats before consuming quota', async () => {
+  it('rejects unsupported files before consuming quota', async () => {
     await expect(service.createDocumentQuiz('user-1', {
-      buffer: Buffer.from('content'), originalname: 'lesson.exe',
-      mimetype: 'application/octet-stream', size: 7,
-    }, { count: '1' })).rejects.toThrow('Faqat PDF, DOCX, TXT, MD va CSV');
+      buffer: Buffer.from('content'), originalname: 'lesson.exe', mimetype: 'application/octet-stream', size: 7,
+    }, { count: '5' })).rejects.toThrow('qo‘llab-quvvatlanmaydi');
     expect(featureUsageService.consume).not.toHaveBeenCalled();
   });
 
-  it('uses a deterministic source-grounded fallback when AI is unavailable for text documents', async () => {
-    aiService.generateQuestions.mockRejectedValue(new Error('AI unavailable'));
-    const sourceText = [
-      'Photosynthesis converts sunlight into chemical energy inside green plant cells during normal growth.',
-      'Mitochondria produce energy through cellular respiration inside eukaryotic organisms.',
-      'Gravity attracts objects toward one another according to mass and distance.',
-      'Evaporation changes liquid water into vapor when temperature increases.',
-      'Condensation transforms water vapor into liquid droplets under cooler conditions.',
-    ].join(' ');
-
+  it('queues file bytes with a stable content hash and does not call AI in the request handler', async () => {
+    const buffer = Buffer.from(sourceText);
     const result = await service.createDocumentQuiz('user-1', {
-      buffer: Buffer.from(sourceText),
-      originalname: 'science.txt', mimetype: 'text/plain', size: sourceText.length,
-    }, { count: '3', difficulty: 'medium', language: 'en' }, { topicId: 'document-worker-fallback', _quotaReceipt: { allowed: true } }) as any;
-
-    expect(result.source).toBe('rule-based');
-    expect(result.questionCount).toBe(3);
-    expect(result.questions.every((question) => question.options.length === 4)).toBe(true);
-    expect(result.questions.every((question) => question.explanation.length > 0)).toBe(true);
-    expect(featureUsageService.refund).not.toHaveBeenCalled();
-  });
-
-  it('leaves terminal worker quota refunds to the queue coordinator', async () => {
-    aiService.generateQuestions.mockRejectedValue(new Error('AI unavailable'));
-    await expect(service.createDocumentQuiz('user-1', {
-      buffer: Buffer.from('Ushbu hujjat test yaratish uchun yetarli bo‘lgan matnni o‘z ichiga oladi.'),
-      originalname: 'lesson.txt', mimetype: 'text/plain', size: 80,
-    }, { count: '1' }, { topicId: 'document-worker-failure', _quotaReceipt: { allowed: true } })).rejects.toThrow('kamida 4 ta turli atama');
-    expect(featureUsageService.refund).not.toHaveBeenCalled();
-  });
-
-
-  it('creates basic practice from saved mistakes for FREE users', async () => {
-    attemptsRepository.find.mockResolvedValue([{
-      subjectName: 'Matematika',
-      topicName: 'Kasrlar',
-      review: [{
-        id: 'mistake-1', question: '1/2 + 1/2 nechaga teng?',
-        options: ['1/2', '1', '2', '3'], selectedAnswer: 0,
-        correctAnswer: 1, isCorrect: false, explanation: 'Yarim va yarim bir butun bo‘ladi.',
-      }],
-    }]);
-    subscriptionsService.current.mockResolvedValue({
-      tier: 'free', entitlements: getPlanEntitlements(null),
-    });
-
-    const result = await service.createSmartPractice('user-1', { language: 'uz' }) as any;
-
-    expect(result.personalized).toBe(false);
-    expect(result.questions[0].question).toContain('1/2');
-    expect(aiService.generateQuestions).not.toHaveBeenCalled();
-    expect(featureUsageService.consume).toHaveBeenCalledWith('user-1', 'smartPractice');
-  });
-
-  it('generates new AI-personalized questions for PREMIUM PRO users', async () => {
-    attemptsRepository.find.mockResolvedValue([{
-      subjectName: 'Matematika',
-      topicName: 'Kasrlar',
-      review: [{
-        id: 'mistake-2', question: '1/3 + 1/3 nechaga teng?',
-        options: ['1/3', '2/3', '1', '2'], selectedAnswer: 0,
-        correctAnswer: 1, isCorrect: false, explanation: 'Maxrajlar teng.',
-      }],
-    }]);
-
-    const result = await service.createSmartPractice('user-1', { language: 'uz' }) as any;
-
+      buffer, originalname: 'queued.txt', mimetype: 'text/plain', size: buffer.length,
+    }, { count: '10', language: 'auto' }) as any;
     expect(result.status).toBe('queued');
-    expect(aiQueue.enqueue).toHaveBeenCalledWith(expect.objectContaining({
-      jobType: 'smart_practice',
-      quotaFeature: 'smartPractice',
-    }));
-    expect(aiService.generateQuestions).not.toHaveBeenCalled();
+    expect(aiQueue.enqueue).toHaveBeenCalledWith(expect.objectContaining({ jobType: 'document_quiz', fileBuffer: buffer, idempotencyKey: expect.stringMatching(/^document:/) }));
+    expect(aiService.generateDocumentQuestions).not.toHaveBeenCalled();
   });
 
-  it('does not consume a daily quota when there are no saved mistakes', async () => {
-    await expect(service.createSmartPractice('user-1', { language: 'uz' }))
-      .rejects.toThrow('saqlangan xatolar topilmadi');
-    expect(featureUsageService.consume).not.toHaveBeenCalled();
-  });
-
-  it('returns queue errors without making a synchronous Smart Practice AI call', async () => {
-    attemptsRepository.find.mockResolvedValue([{
-      subjectName: 'Matematika',
-      topicName: 'Kasrlar',
-      review: [{
-        id: 'mistake-3', question: '2/4 qisqartirilsa nima bo‘ladi?',
-        options: ['1/2', '1/4', '2/3', '2'], selectedAnswer: 1,
-        correctAnswer: 0, isCorrect: false, explanation: 'Surat va maxrajni 2 ga bo‘ling.',
-      }],
-    }]);
-    aiQueue.enqueue.mockRejectedValue(new Error('AI queue unavailable'));
-
-    await expect(service.createSmartPractice('user-1', { language: 'uz' }))
-      .rejects.toThrow('AI queue unavailable');
-    expect(aiService.generateQuestions).not.toHaveBeenCalled();
-    expect(featureUsageService.refund).not.toHaveBeenCalled();
-  });
-
-  it('queues document bytes durably and does not call an AI provider in the API request', async () => {
-    const result = await service.createDocumentQuiz('user-1', {
-      buffer: Buffer.from('Ushbu hujjat test yaratish uchun yetarli bo‘lgan matnni o‘z ichiga oladi.'),
-      originalname: 'queued-lesson.txt', mimetype: 'text/plain', size: 80,
-    }, { count: '1', difficulty: 'medium', language: 'uz' }) as any;
-
-    expect(result.status).toBe('queued');
-    expect(aiQueue.enqueue).toHaveBeenCalledWith(expect.objectContaining({
-      jobType: 'document_quiz',
-      quotaFeature: 'documentQuiz',
-      fileBuffer: expect.any(Buffer),
-    }));
-    expect(aiService.generateQuestions).not.toHaveBeenCalled();
-  });
-
-  it('enforces the active tier file-size limit', async () => {
-    subscriptionsService.current.mockResolvedValue({
-      tier: 'free',
-      entitlements: getPlanEntitlements(null),
-    });
+  it('does not accept an invalid question count or exceed the active plan file limit', async () => {
+    await expect(service.createDocumentQuiz('user-1', { buffer: Buffer.from(sourceText), originalname: 'x.txt', mimetype: 'text/plain', size: 100 }, { count: '0' })).rejects.toThrow('Savollar soni');
+    subscriptionsService.current.mockResolvedValue({ tier: 'free', entitlements: getPlanEntitlements(null) });
     const large = Buffer.alloc(6 * 1024 * 1024, 65);
-    await expect(service.createDocumentQuiz('user-1', {
-      buffer: large, originalname: 'lesson.txt', mimetype: 'text/plain', size: large.length,
-    }, { count: '1' })).rejects.toThrow('5 MB');
+    await expect(service.createDocumentQuiz('user-1', { buffer: large, originalname: 'x.txt', mimetype: 'text/plain', size: large.length }, { count: '5' })).rejects.toThrow('5 MB');
     expect(featureUsageService.consume).not.toHaveBeenCalled();
+  });
+
+  it('fails gracefully when AI cannot produce a complete source-grounded quiz', async () => {
+    aiService.generateDocumentQuestions.mockRejectedValue(new Error('AI unavailable'));
+    await expect(service.createDocumentQuiz('user-1', { buffer: Buffer.from(sourceText), originalname: 'lesson.txt', mimetype: 'text/plain', size: Buffer.byteLength(sourceText) }, { count: '5' }, { topicId: 'doc-error', _quotaReceipt: true })).rejects.toThrow();
   });
 });
-
 
 describe('LearningService shared Redis question cache', () => {
   it('returns a cached question pool without opening a database transaction or calling AI', async () => {

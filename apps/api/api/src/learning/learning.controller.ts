@@ -1,6 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
+  Catch,
+  ExceptionFilter,
+  ArgumentsHost,
+  UseFilters,
   Get,
   Post,
   Patch,
@@ -20,6 +25,24 @@ import { AiGenerationQueueService } from '../ai/queue/ai-generation-queue.servic
 
 interface AuthenticatedRequest {
   user: { id: string };
+}
+
+@Catch()
+class DocumentUploadExceptionFilter implements ExceptionFilter {
+  catch(error: unknown, host: ArgumentsHost) {
+    const response = host.switchToHttp().getResponse();
+    const candidate = error as { code?: string; getStatus?: () => number; getResponse?: () => unknown; message?: string };
+    const tooLarge = candidate?.code === 'LIMIT_FILE_SIZE';
+    const status = tooLarge ? 413 : typeof candidate?.getStatus === 'function' ? candidate.getStatus() : candidate?.code ? 400 : 500;
+    const body = typeof candidate?.getResponse === 'function' ? candidate.getResponse() : undefined;
+    const bodyMessage = body && typeof body === 'object' && 'message' in body ? (body as { message?: unknown }).message : body;
+    const message = tooLarge ? 'Fayl hajmi 20 MB dan oshmasligi kerak.'
+      : typeof bodyMessage === 'string' ? bodyMessage
+      : Array.isArray(bodyMessage) ? bodyMessage.join('; ')
+      : status >= 500 ? 'Serverda xatolik yuz berdi. Keyinroq qayta urinib ko‘ring.'
+      : 'Faylni yuklashda xatolik yuz berdi. Qayta urinib ko‘ring.';
+    response.status(status).json({ statusCode: status, message });
+  }
 }
 
 @Controller('api/learning')
@@ -44,7 +67,8 @@ export class LearningController {
   }
 
   @Post('document-quiz')
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 15 * 1024 * 1024 } }))
+  @UseFilters(new DocumentUploadExceptionFilter())
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 20 * 1024 * 1024 } }))
   createDocumentQuiz(
     @Request() request: AuthenticatedRequest,
     @UploadedFile() file: { buffer: Buffer; originalname: string; mimetype: string; size: number },
@@ -77,6 +101,11 @@ export class LearningController {
   @Get('jobs/:jobId')
   getAiJobStatus(@Request() request: AuthenticatedRequest, @Param('jobId') jobId: string) {
     return this.aiQueue.getStatus(request.user.id, jobId);
+  }
+
+  @Delete('jobs/:jobId')
+  cancelAiJob(@Request() request: AuthenticatedRequest, @Param('jobId') jobId: string) {
+    return this.aiQueue.cancelJob(request.user.id, jobId);
   }
 
   @Get('attempts')

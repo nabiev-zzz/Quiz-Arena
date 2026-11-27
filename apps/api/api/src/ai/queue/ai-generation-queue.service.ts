@@ -291,14 +291,31 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
 
   async getStatus(userId: string, jobId: string) {
     const job = await this.getOwnedJob(userId, jobId);
+    const bullJob = this.queue ? await this.queue.getJob(job.id) : null;
     return {
       jobId: job.id,
       status: job.status,
+      progress: bullJob?.progress ?? { step: job.status === 'queued' ? 'uploading' : job.status },
       result: job.status === 'completed' ? job.result : undefined,
       error: job.status === 'failed' ? job.error : undefined,
       createdAt: job.createdAt,
       completedAt: job.completedAt,
     };
+  }
+
+  async cancelJob(userId: string, jobId: string): Promise<{ cancelled: boolean; message: string }> {
+    const job = await this.getOwnedJob(userId, jobId);
+    if (job.status === 'completed') return { cancelled: false, message: 'Test allaqachon tayyor.' };
+    if (job.status === 'failed') return { cancelled: true, message: 'Vazifa allaqachon to‘xtatilgan.' };
+    const bullJob = this.queue ? await this.queue.getJob(job.id) : null;
+    if (bullJob) {
+      const state = await bullJob.getState();
+      if (['waiting', 'delayed', 'waiting-children', 'paused'].includes(state)) {
+        try { await bullJob.remove(); } catch { /* Worker may have claimed it concurrently. */ }
+      }
+    }
+    await this.markFailedAndRefund(job.id, new Error('Foydalanuvchi test yaratishni bekor qildi.'));
+    return { cancelled: true, message: 'Test yaratish bekor qilindi.' };
   }
 
   async markActive(jobId: string): Promise<AiGenerationJob> {
@@ -315,6 +332,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
   async markCompleted(jobId: string, result: Record<string, unknown>): Promise<void> {
     const job = await this.jobs.findOne({ where: { id: jobId } });
     if (!job) throw new Error('AI generation job not found');
+    if (job.status === 'failed') return;
     job.status = 'completed';
     job.result = result;
     job.fileBuffer = null;
