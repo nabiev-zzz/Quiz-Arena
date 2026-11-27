@@ -480,6 +480,87 @@ export class AuthService {
     return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
   }
 
+
+  /**
+   * Complete a Telegram bot sign-in after Telegram has shared the sender's own
+   * contact. The webhook layer verifies Telegram's secret header and contact
+   * ownership before calling this method.
+   */
+  async completeTelegramBotLogin(input: {
+    telegramUserId: number;
+    phoneNumber: string;
+    firstName?: string;
+    lastName?: string;
+    username?: string;
+  }) {
+    const phone = this.otpService.normalizePhone(input.phoneNumber);
+    const telegramSubject = String(input.telegramUserId);
+    let userByTelegram = await this.userRepository.findOne({ where: { telegramSubject } });
+    let userByPhone = await this.userRepository.findOne({ where: { phoneNumber: phone } });
+
+    if (userByTelegram && userByPhone && userByTelegram.id !== userByPhone.id) {
+      throw new ConflictException('Telegram va telefon raqami ikki xil akkauntga tegishli');
+    }
+    if (userByPhone?.telegramSubject && userByPhone.telegramSubject !== telegramSubject) {
+      throw new ConflictException('Bu telefon raqami boshqa Telegram akkauntiga bog‘langan');
+    }
+    if (userByTelegram && userByTelegram.phoneNumber && userByTelegram.phoneNumber !== phone) {
+      throw new ConflictException('Bu Telegram akkaunti boshqa telefon raqamiga bog‘langan');
+    }
+
+    let user = userByTelegram ?? userByPhone;
+    if (user) {
+      if (user.status !== 'active') throw new UnauthorizedException('Hisobingiz bloklangan');
+      user.telegramSubject = telegramSubject;
+      user.phoneNumber = phone;
+      user.phoneVerifiedAt = new Date();
+      user = await this.userRepository.save(user);
+    } else {
+      const displayName = [input.firstName, input.lastName]
+        .filter(Boolean).join(' ').trim().slice(0, 100) || 'Telegram foydalanuvchisi';
+      const base = (input.username || `tg_${telegramSubject}`)
+        .toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 24);
+      const usernameBase = base.length >= 3 ? base : `tg_${telegramSubject.slice(-12)}`;
+      let username = usernameBase;
+      let suffix = 1;
+      while (await this.userRepository.findOne({ where: { username } })) {
+        const tail = `_${suffix++}`;
+        username = `${usernameBase.slice(0, 30 - tail.length)}${tail}`;
+      }
+      user = this.userRepository.create({
+        displayName,
+        username,
+        email: null,
+        phoneNumber: phone,
+        phoneVerifiedAt: new Date(),
+        telegramSubject,
+        passwordHash: await bcrypt.hash(randomBytes(32).toString('hex'), 12),
+        role: 'user',
+        status: 'active',
+      });
+      try {
+        user = await this.userRepository.save(user);
+      } catch (error) {
+        const raced = await this.userRepository.findOne({ where: { telegramSubject } });
+        if (!raced) throw error;
+        user = raced;
+      }
+    }
+
+    const rawCode = randomBytes(32).toString('base64url');
+    const codeHash = createHash('sha256').update(rawCode).digest('hex');
+    await this.oauthCodeRepository.save(this.oauthCodeRepository.create({
+      userId: user.id,
+      codeHash,
+      expiresAt: new Date(Date.now() + 90_000),
+      consumedAt: null,
+    }));
+    return {
+      deepLink: `quizarena://auth?provider=telegram&code=${encodeURIComponent(rawCode)}`,
+      user: this.getSafeUser(user),
+    };
+  }
+
   private getGoogleRedirectUri(): string {
     const redirectUri = this.config.get<string>('GOOGLE_REDIRECT_URI');
     if (!redirectUri) {
