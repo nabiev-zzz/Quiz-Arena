@@ -203,6 +203,8 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
   const [loadTimedOut, setLoadTimedOut] = useState(false);
   const [playbackReady, setPlaybackReady] = useState(false);
   const [playbackRequestError, setPlaybackRequestError] = useState(false);
+  const [videoSize, setVideoSize] = useState<{ width: number; height: number } | null>(null);
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
   const videoOpacity = useSharedValue(0);
   const posterOpacity = useSharedValue(1);
   const player = useVideoPlayer(uri, (instance) => {
@@ -214,14 +216,36 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
   });
   const { status } = useEvent(player, 'statusChange', { status: player.status });
   const track = useEvent(player, 'videoTrackChange', { videoTrack: player.videoTrack });
+  const trackWidth = track.videoTrack?.size.width ?? 0;
+  const trackHeight = track.videoTrack?.size.height ?? 0;
   const previousActiveRef = useRef(false);
   const videoStyle = useAnimatedStyle(() => ({ opacity: videoOpacity.value }));
   const posterStyle = useAnimatedStyle(() => ({ opacity: posterOpacity.value }));
+  // expo-video reports the decoded track dimensions. The server's existing FFmpeg
+  // playback derivative applies phone rotation before encoding, so these are display dimensions.
+  useEffect(() => {
+    if (trackWidth > 0 && trackHeight > 0) setVideoSize({ width: trackWidth, height: trackHeight });
+  }, [trackHeight, trackWidth]);
+  const onVideoViewportLayout = useCallback((event: { nativeEvent: { layout: { width: number; height: number } } }) => {
+    const { width, height } = event.nativeEvent.layout;
+    if (width > 0 && height > 0) setViewportSize((current) =>
+      current.width === width && current.height === height ? current : { width, height },
+    );
+  }, []);
+  const contentFit = viewportSize.width > 0 && viewportSize.height > 0 && videoSize && videoSize.height > videoSize.width
+    ? 'cover'
+    : 'contain';
+  const handleFirstFrameRender = useCallback(() => {
+    const size = player.videoTrack?.size;
+    if (size && size.width > 0 && size.height > 0) setVideoSize({ width: size.width, height: size.height });
+    setFirstFrame(true);
+  }, [player]);
   const loadPlayback = useCallback(async () => {
     setPlaybackReady(false);
     setPlaybackRequestError(false);
     setLoadTimedOut(false);
     setFirstFrame(false);
+    setVideoSize(null);
     videoOpacity.value = 0;
     posterOpacity.value = 1;
     try {
@@ -291,8 +315,8 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
 
   if (!active) return null;
   return <>
-    <Animated.View style={[StyleSheet.absoluteFill, videoStyle]}>
-      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls={false} surfaceType="textureView" onFirstFrameRender={() => setFirstFrame(true)} />
+    <Animated.View style={[StyleSheet.absoluteFill, videoStyle]} onLayout={onVideoViewportLayout}>
+      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit={contentFit} nativeControls={false} surfaceType="textureView" onFirstFrameRender={handleFirstFrameRender} />
     </Animated.View>
     {!firstFrame ? <Animated.View pointerEvents="none" style={[styles.posterPlaceholder, posterStyle]}><Ionicons name="play-circle" size={48} color="#FFFFFF"/><LocalizedText style={styles.posterTitle}>ZELQEN</LocalizedText><LocalizedText style={styles.statusText}>Lavha yuklanmoqda...</LocalizedText><ActivityIndicator color="#FFFFFF" /></Animated.View> : null}
     {(playbackReady && status === 'error') || playbackRequestError || loadTimedOut ? <View pointerEvents="box-none" style={styles.videoStatus}><Ionicons name="alert-circle-outline" size={36} color="#FFFFFF"/><LocalizedText style={styles.statusText}>{loadTimedOut ? 'Video yuklanishi uzoq davom etdi' : 'Videoni ochib bo‘lmadi'}</LocalizedText><LocalizedText style={styles.statusHint}>Internetni tekshiring yoki qayta urinib ko‘ring.</LocalizedText><View style={styles.errorActions}><Pressable onPress={retry} style={styles.retry}><LocalizedText style={styles.retryText}>Qayta urinish</LocalizedText></Pressable><Pressable onPress={onSkip} style={styles.skipButton}><LocalizedText style={styles.retryText}>Keyingisi</LocalizedText></Pressable></View></View> : null}
