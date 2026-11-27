@@ -12,6 +12,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import { useTheme } from '../theme/ThemeContext';
 import { communityTokens, type CommunityColors } from '../theme/communityTokens';
+import Snowfall from '../components/Snowfall';
 import {
   addCommunityComment, createCommunityPost, createCommunityStory, getCommunityComments,
   getCommunityFeed, getCommunityStories, getCommunityClips, createCommunityClip, likeCommunityPost, markCommunityStoryViewed,
@@ -419,7 +420,8 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: activeSection === 'clips' ? '#05060A' : 'transparent' }}>
+    <View style={{ flex: 1, backgroundColor: activeSection === 'clips' ? '#05060A' : c.background }}>
+      <Snowfall />
       {activeSection === 'clips' ? (
         <CommunityReelsFeed clips={clips} loading={loading} error={feedError}
           onBack={() => setActiveSection('dashboard')} onUpload={() => void chooseClip()}
