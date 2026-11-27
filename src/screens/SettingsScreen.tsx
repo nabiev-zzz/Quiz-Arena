@@ -174,7 +174,7 @@ export default function SettingsScreen({
     <Animated.ScrollView
       onScroll={dockScrollHandler}
       scrollEventThrottle={16}
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: 'transparent' }}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
