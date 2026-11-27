@@ -460,7 +460,7 @@ function AppContent() {
       if (selectedPublicUsername === '__community__') {
         return (
           <CommunityScreen
-            onBack={() => setSelectedPublicUsername(null)}
+            onBack={() => openTab('home')}
             onDiscoverUsers={() => setSelectedPublicUsername('__community_discover__')}
             onMessages={() => {
               setDirectMessageTargetId(null);
@@ -468,7 +468,7 @@ function AppContent() {
               setSelectedPublicUsername('__community_messages__');
             }}
             onChallenges={() => { setSelectedPublicUsername(null); openTab('battle'); }}
-            onDailyTasks={() => { setSelectedPublicUsername(null); setShowDailyTasks(true); }}
+            onDailyTasks={() => { openTab('home'); setShowDailyTasks(true); }}
             onTutor={() => { setSelectedPublicUsername(null); openTab('tutor'); }}
             onUserPress={(username) => setSelectedPublicUsername(username)}
           />
