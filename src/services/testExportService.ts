@@ -290,7 +290,8 @@ function fromBase64(value: string): Uint8Array {
 async function writeAndShare(name: string, extension: string, mimeType: string, content: string, encoding: 'utf8' | 'base64' = 'utf8') {
   if (Platform.OS === 'web') {
     const bytes = encoding === 'base64' ? fromBase64(content) : utf8(content);
-    const blob = new Blob([bytes], { type: mimeType });
+    const binary = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+    const blob = new Blob([binary], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
