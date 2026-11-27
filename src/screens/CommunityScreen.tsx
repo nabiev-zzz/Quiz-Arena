@@ -45,7 +45,7 @@ function imageMime(asset: ImagePicker.ImagePickerAsset) {
   return 'image/jpeg';
 }
 
-export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, onChallenges, onDailyTasks, onTutor, onUserPress }: Props) {
+export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, onDailyTasks, onTutor, onUserPress }: Props) {
   const { mode, isDark } = useTheme();
   const c = communityTokens[mode].colors;
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -119,7 +119,13 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
       const next = await getCommunityClips(40, clipsServerOffset);
       setClips((current) => {
         const known = new Set(current.map((clip) => clip.id));
-        return [...current, ...next.filter((clip) => !known.has(clip.id))];
+        const uniqueNext: CommunityPost[] = [];
+        for (const clip of next) {
+          if (known.has(clip.id)) continue;
+          known.add(clip.id);
+          uniqueNext.push(clip);
+        }
+        return [...current, ...uniqueNext];
       });
       setClipsServerOffset((current) => current + next.length);
       setClipsHasMore(next.length === 40);
@@ -419,7 +425,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
           onBack={() => setActiveSection('dashboard')} onUpload={() => void chooseClip()}
           onRetry={() => void load()} refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(true); }}
           hasMore={clipsHasMore} loadingMore={clipsLoadingMore} onLoadMore={() => void loadMoreClips()}
-          onLike={(clip) => void toggleLike(clip)} onSave={(clip) => void toggleSaveClip(clip)} onComments={(id) => void openClipComments(id)} overlayOpen={Boolean(expandedPost)}
+          onLike={(clip) => void toggleLike(clip)} onSave={(clip) => void toggleSaveClip(clip)} onComments={(id) => void openClipComments(id)} overlayOpen={Boolean(expandedPost || quizClip || clipComposerVisible)}
           onMiniTest={(clip) => void openClipQuiz(clip)} onUserPress={onUserPress} />
       ) : <ScrollView
         style={styles.screen}
