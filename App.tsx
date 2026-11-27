@@ -53,6 +53,7 @@ import PremiumScreen from './src/screens/PremiumScreen';
 import QaAdminScreen from './src/screens/QaAdminScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
 import RegisterScreen from './src/screens/auth/RegisterScreen';
+import TelegramRegistrationScreen from './src/screens/auth/TelegramRegistrationScreen';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import {
@@ -92,7 +93,9 @@ function AppContent() {
     requestEmailPasswordReset,
     resetEmailPassword,
     startGoogleLogin,
-    startTelegramLogin,
+    createTelegramRegistration,
+    verifyTelegramRegistration,
+    completeTelegramRegistration,
   } = useAuth();
   const { theme, language, ready } = useAppSettings();
   const insets = useSafeAreaInsets();
@@ -139,7 +142,7 @@ function AppContent() {
   };
 
   const [tab, setTab] = useState<Tab>('home');
-  const [authScreen, setAuthScreen] = useState<'login' | 'register'>('login');
+  const [authScreen, setAuthScreen] = useState<'login' | 'register' | 'telegram'>('login');
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -598,14 +601,22 @@ function AppContent() {
             onLogin={login}
             onRegisterPress={() => setAuthScreen('register')}
             onGoogleLogin={startGoogleLogin}
-            onTelegramLogin={startTelegramLogin}
+            onTelegramLogin={async () => { setAuthScreen('telegram'); }}
             onPasswordResetRequest={requestEmailPasswordReset}
             onPasswordReset={resetEmailPassword}
           />
-        ) : (
+        ) : authScreen === 'register' ? (
           <RegisterScreen
             onRegister={register}
             onLoginPress={() => setAuthScreen('login')}
+            onTelegramRegisterPress={() => setAuthScreen('telegram')}
+          />
+        ) : (
+          <TelegramRegistrationScreen
+            onCreateSession={createTelegramRegistration}
+            onVerify={verifyTelegramRegistration}
+            onContinue={completeTelegramRegistration}
+            onBack={() => setAuthScreen('register')}
           />
         )}
       </SafeAreaView>

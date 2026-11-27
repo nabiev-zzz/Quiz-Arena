@@ -127,12 +127,22 @@ export class TelegramBotService implements OnModuleInit {
     const sender = message?.from;
     if (!message || !sender || !Number.isSafeInteger(sender.id)) return;
 
-    if (message.text?.trim().split(/\s+/, 1)[0] === '/start') {
+    if (message.text?.trim().startsWith('/start')) {
+      const payloadPart = message.text.trim().split(/\s+/, 2)[1] || '';
+      const sessionId = payloadPart.startsWith('auth_') ? payloadPart.slice(5) : '';
+      if (sessionId) {
+        try {
+          await this.authService.bindTelegramBotSession(sessionId, sender.id);
+        } catch (error) {
+          await this.sendMessage(message.chat.id, error instanceof Error ? error.message : 'Sessiya tugagan. Ilovadan qayta boshlang.');
+          return;
+        }
+      }
       await this.sendMessage(
         message.chat.id,
-        'QUIZ ARENA ro‘yxatdan o‘tish xizmatiga xush kelibsiz! Davom etish uchun o‘z telefon raqamingizni yuboring.',
+        'QUIZ ARENA ro‘yxatdan o‘tish. Davom etish uchun o‘z telefon raqamingizni ulashing. Keyin shu chatga 6 xonali tasdiqlash kodi yuboramiz.',
         {
-          keyboard: [[{ text: '📱 Telefon raqamimni yuborish', request_contact: true }]],
+          keyboard: [[{ text: '📱 Telefon raqamimni ulashish', request_contact: true }]],
           resize_keyboard: true,
           one_time_keyboard: true,
         },
@@ -151,7 +161,7 @@ export class TelegramBotService implements OnModuleInit {
     }
 
     try {
-      const result = await this.authService.completeTelegramBotLogin({
+      const code = await this.authService.issueTelegramBotOtpForUser({
         telegramUserId: sender.id,
         phoneNumber: message.contact.phone_number,
         firstName: message.contact.first_name || sender.first_name,
@@ -160,10 +170,8 @@ export class TelegramBotService implements OnModuleInit {
       });
       await this.sendMessage(
         message.chat.id,
-        'Telefon raqamingiz tasdiqlandi. QUIZ ARENA akkauntingiz tayyor. Ilovani ochish uchun quyidagi tugmani bosing. Havola 90 soniya amal qiladi.',
-        {
-          inline_keyboard: [[{ text: '🚀 QUIZ ARENA ilovasini ochish', url: result.deepLink }]],
-        },
+        `QUIZ ARENA tasdiqlash kodingiz: ${code}\n\nBu kod 5 daqiqa amal qiladi. Kodni ilovadagi oynaga kiriting. Uni hech kimga bermang.`,
+        { remove_keyboard: true },
       );
     } catch (error) {
       const messageText = error instanceof Error

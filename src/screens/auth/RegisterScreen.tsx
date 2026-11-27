@@ -14,9 +14,10 @@ interface Props {
     password: string;
   }) => Promise<void>;
   onLoginPress: () => void;
+  onTelegramRegisterPress: () => void;
 }
 
-export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
+export default function RegisterScreen({ onRegister, onLoginPress, onTelegramRegisterPress }: Props) {
   const { tokens } = useTheme();
   const colors = tokens.colors;
   const styles = makeStyles(colors);
@@ -83,6 +84,9 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
           {loading ? <ActivityIndicator color="#FFFFFF" /> : <LocalizedText style={styles.buttonText}>Hisob yaratish</LocalizedText>}
         </Pressable>
 
+          <Pressable style={[styles.telegramButton, loading && styles.disabled]} disabled={loading} onPress={onTelegramRegisterPress}>
+            <LocalizedText style={styles.telegramButtonText}>✈  Telegram orqali ro‘yxatdan o‘tish</LocalizedText>
+          </Pressable>
         </View>
         <View style={styles.footer}>
           <LocalizedText style={styles.footerText}>Hisobingiz bormi? </LocalizedText>
@@ -112,6 +116,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     button: { height: 56, backgroundColor: colors.primary, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: 21 },
     buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
     disabled: { opacity: 0.55 },
+    telegramButton: { minHeight: 50, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(40,160,220,0.35)', backgroundColor: 'rgba(35,150,210,0.10)', alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+    telegramButtonText: { color: colors.text, fontSize: 13, fontWeight: '800' },
     footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
     footerText: { color: colors.textMuted, fontSize: 13 },
     link: { color: colors.primary, fontSize: 13, fontWeight: '800' },
