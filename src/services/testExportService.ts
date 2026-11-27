@@ -111,11 +111,13 @@ function csvCell(value: unknown): string {
 }
 
 function buildCsv(attempt: ExportAttempt): string {
-  const header = ['question_number', 'question', 'option_A', 'option_B', 'option_C', 'option_D', 'selected_answer', 'correct_answer', 'explanation', 'ai_explanation'];
+  const optionCount = Math.max(4, ...(attempt.review || []).map((item) => Array.isArray(item.options) ? item.options.length : 0));
+  const optionHeaders = Array.from({ length: optionCount }, (_, index) => `option_${answerLabel(index)}`);
+  const header = ['question_number', 'question', ...optionHeaders, 'selected_answer', 'correct_answer', 'explanation', 'ai_explanation'];
   const rows = (attempt.review || []).map((item, index) => {
     const options = Array.isArray(item.options) ? item.options : [];
     return [
-      index + 1, item.question, options[0] ?? '', options[1] ?? '', options[2] ?? '', options[3] ?? '',
+      index + 1, item.question, ...Array.from({ length: optionCount }, (_, optionIndex) => options[optionIndex] ?? ''),
       answerLabel(item.selectedAnswer), answerLabel(item.correctAnswer), item.explanation || '', item.aiExplanation || '',
     ].map(csvCell).join(',');
   });
@@ -259,7 +261,9 @@ function pptxFiles(attempt: ExportAttempt) {
   allSlides.forEach((slide, index) => {
     const shape = (id: number, name: string, text: string, y: number, height: number, size: number, bold: boolean) =>
       `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${escapeXml(name)}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="650000" y="${y}"/><a:ext cx="10800000" cy="${height}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap="square" anchor="ctr"/><a:lstStyle/><a:p><a:pPr/><a:r><a:rPr lang="uz-UZ" sz="${size}" b="${bold ? 1 : 0}"><a:solidFill><a:srgbClr val="${bold ? '5637A5' : '211B35'}"/></a:solidFill><a:latin typeface="Arial"/></a:rPr><a:t xml:space="preserve">${escapeXml(text)}</a:t></a:r><a:endParaRPr lang="uz-UZ"/></a:p></p:txBody></p:sp>`;
-    const bodyShapes = slide.body.map((line, lineIndex) => shape(lineIndex + 3, `Line ${lineIndex + 1}`, line, 1750000 + lineIndex * 690000, 560000, 1900, false)).join('');
+    const bodyGap = Math.min(560000, Math.floor(4_600_000 / Math.max(1, slide.body.length)));
+    const bodyFontSize = slide.body.length > 8 ? 1350 : 1750;
+    const bodyShapes = slide.body.map((line, lineIndex) => shape(lineIndex + 3, `Line ${lineIndex + 1}`, line, 1550000 + lineIndex * bodyGap, Math.max(280000, bodyGap - 40000), bodyFontSize, false)).join('');
     const slideXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>${shape(2, 'Title', slide.title, 650000, 900000, 2700, true)}${bodyShapes}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
     files.push({ name: `ppt/slides/slide${index + 1}.xml`, content: slideXml });
     files.push({ name: `ppt/slides/_rels/slide${index + 1}.xml.rels`, content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/></Relationships>' });
@@ -308,6 +312,7 @@ async function writeAndShare(name: string, extension: string, mimeType: string, 
 
 export async function exportLearningAttempt(attempt: ExportAttempt, format: TestExportFormat): Promise<void> {
   if (!attempt || !Array.isArray(attempt.review)) throw new Error('Test savollari eksport uchun topilmadi.');
+  if (!attempt.review.length) throw new Error('Bu testning savollar tahlili tarixda saqlanmagan. Faqat natija mavjud bo‘lgani uchun to‘liq eksport qilib bo‘lmaydi.');
   if (attempt.review.length && attempt.review.length !== attempt.totalQuestions) {
     throw new Error('Saqlangan savollar soni test natijasiga mos kelmaydi. Fayl eksport qilinmadi.');
   }
