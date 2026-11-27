@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { LocalizedText, showLocalizedAlert } from '../../i18n/LocalizedText';
 import { useTheme } from '../../theme/ThemeContext';
@@ -18,7 +18,7 @@ export default function TelegramRegistrationScreen({ onCreateSession, onVerify, 
   const [result, setResult] = useState<AuthResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const start = async () => {
+  const start = useCallback(async () => {
     try {
       setLoading(true);
       const session = await onCreateSession();
@@ -27,7 +27,11 @@ export default function TelegramRegistrationScreen({ onCreateSession, onVerify, 
     } catch (error) {
       showLocalizedAlert('Telegram', error instanceof Error ? error.message : 'Botni ochib bo‘lmadi');
     } finally { setLoading(false); }
-  };
+  }, [onCreateSession]);
+
+  useEffect(() => {
+    void start();
+  }, [start]);
 
   const verify = async () => {
     if (!/^\d{6}$/.test(code.trim())) {
