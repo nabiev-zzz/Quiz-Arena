@@ -119,6 +119,16 @@ export class AuthController {
     return this.authService.loginWithPhone(dto.phoneNumber, dto.code);
   }
 
+  @Post('telegram/bot/session')
+  createTelegramBotSession() {
+    return this.authService.createTelegramBotSession();
+  }
+
+  @Post('telegram/bot/verify')
+  verifyTelegramBotCode(@Body() dto: GoogleCodeExchangeDto & { sessionId: string }) {
+    return this.authService.verifyTelegramBotCode(dto.sessionId, dto.code);
+  }
+
   @Post('telegram/webhook')
   async telegramWebhook(
     @Headers('x-telegram-bot-api-secret-token') secret: string,
