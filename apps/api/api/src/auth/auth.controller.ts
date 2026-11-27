@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Headers,
   Get,
   Patch,
   Post,
@@ -12,6 +13,7 @@ import {
 import type { Response } from 'express';
 
 import { AuthService } from './auth.service';
+import { TelegramBotService } from './telegram-bot.service';
 import { EmailAuthService } from './email-auth.service';
 import { EmailCodeDto, EmailPasswordResetDto, EmailRequestDto } from './dto/email-auth.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -36,6 +38,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly emailAuthService: EmailAuthService,
+    private readonly telegramBotService: TelegramBotService,
   ) {}
 
   @Post('register')
@@ -114,6 +117,15 @@ export class AuthController {
   @Post('phone/login')
   loginWithPhone(@Body() dto: PhoneOtpVerifyDto) {
     return this.authService.loginWithPhone(dto.phoneNumber, dto.code);
+  }
+
+  @Post('telegram/webhook')
+  async telegramWebhook(
+    @Headers('x-telegram-bot-api-secret-token') secret: string,
+    @Body() update: unknown,
+  ) {
+    await this.telegramBotService.handleUpdate(secret, update);
+    return { ok: true };
   }
 
   @Get('telegram/start')
