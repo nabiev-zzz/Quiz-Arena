@@ -646,7 +646,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
 
 function makeStyles(C: { background: string; surface: string; surfaceRaised: string; border: string; purple: string; purpleSoft: string; text: string; muted: string; subtle: string }) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: C.background, position: 'relative' },
+    screen: { flex: 1, backgroundColor: 'transparent', position: 'relative' },
     container: { flex: 1, backgroundColor: 'transparent' },
     content: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 132 },
     loading: { flex: 1, backgroundColor: C.background, justifyContent: 'center', alignItems: 'center' },
