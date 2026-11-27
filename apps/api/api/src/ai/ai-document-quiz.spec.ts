@@ -38,8 +38,8 @@ describe('AiService document quiz generation', () => {
     const service = new AiService(config as never);
     const generator = jest.spyOn(service as any, 'generateDocumentWithGroq')
       .mockRejectedValueOnce(new Error('broken JSON'))
-      .mockRejectedValueOnce(new Error('invalid schema'))
-      .mockResolvedValueOnce(JSON.stringify(valid));
+      .mockImplementationOnce(async (prompt: string) => { expect(prompt).toContain('REPAIR ATTEMPT 1'); expect(prompt).toContain('broken JSON'); throw new Error('invalid schema'); })
+      .mockImplementationOnce(async (prompt: string) => { expect(prompt).toContain('REPAIR ATTEMPT 2'); return JSON.stringify(valid); });
     const result = await service.generateDocumentQuestions({ title: 'Test', sourceText: 'Bilimlarni takrorlash orqali mustahkamlash muhim. Bu o‘quv jarayonida foydali.', count: 1, language: 'uz', difficulty: 'easy' });
     expect(result.questions).toHaveLength(1);
     expect(generator).toHaveBeenCalledTimes(3);

@@ -2,8 +2,9 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import Redis from 'ioredis';
 
 /**
- * Redis cache for shared, non-personalized learning question pools.
+ * Redis cache for shared learning question pools and short-lived extracted document text.
  * Uses a dedicated keyspace and degrades to PostgreSQL when Redis is absent.
+ * Uploaded document text is held for only five minutes; originals are never cached here.
  * It is intentionally unrelated to BattleStateStore and Socket.IO.
  */
 @Injectable()
@@ -13,6 +14,7 @@ export class LearningQuestionCache implements OnModuleInit, OnModuleDestroy {
   private readonly prefix: string;
   private ready = false;
   private readonly ttlSeconds = 15 * 60;
+  private readonly documentTextTtlSeconds = 5 * 60;
 
   constructor() {
     const url = process.env.REDIS_URL?.trim() || process.env.VALKEY_URL?.trim();
@@ -62,6 +64,25 @@ export class LearningQuestionCache implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       this.logger.warn(`AI question cache read failed: ${error instanceof Error ? error.message : String(error)}`);
       return null;
+    }
+  }
+
+  async getDocumentText(fileHash: string): Promise<string | null> {
+    if (!this.ready) return null;
+    try {
+      return await this.redis.get(this.prefix + 'document-text:' + fileHash);
+    } catch (error) {
+      this.logger.warn(`Document text cache read failed: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  }
+
+  async setDocumentText(fileHash: string, text: string): Promise<void> {
+    if (!this.ready || !text) return;
+    try {
+      await this.redis.set(this.prefix + 'document-text:' + fileHash, text, 'EX', this.documentTextTtlSeconds);
+    } catch (error) {
+      this.logger.warn(`Document text cache write failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

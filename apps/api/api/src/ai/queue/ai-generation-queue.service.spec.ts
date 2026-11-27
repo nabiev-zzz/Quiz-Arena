@@ -44,6 +44,13 @@ describe('AiGenerationQueueService', () => {
     featureUsage.refund.mockResolvedValue(undefined);
   });
 
+  it('stops a worker when a user has cancelled the queued job', async () => {
+    jobRepository.findOne.mockResolvedValueOnce({ id: 'job-1', status: 'active' });
+    await expect(service.assertJobActive('job-1')).resolves.toBeUndefined();
+    jobRepository.findOne.mockResolvedValueOnce({ id: 'job-1', status: 'failed' });
+    await expect(service.assertJobActive('job-1')).rejects.toThrow('bekor qilindi');
+  });
+
   it('persists a durable job and reserves quota once before enqueueing', async () => {
     const result = await service.enqueue({
       userId: '11111111-1111-4111-8111-111111111111',

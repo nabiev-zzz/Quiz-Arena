@@ -1,279 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import * as DocumentPicker from 'expo-document-picker';
-import { Ionicons } from '@expo/vector-icons';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-
-import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
-import { useTheme } from '../theme/ThemeContext';
-import type { Difficulty } from '../types';
-import { createDocumentQuiz, saveLearningAttempt } from '../services/learningService';
-import type { DocumentQuizPhase } from '../services/learningService';
-import type { DocumentQuizQuestion } from '../services/learningService';
-import { getPremiumStatus } from '../services/subscriptionService';
-
-interface Props {
-  onBack: () => void;
-  language: 'uz' | 'ru' | 'en';
-}
-
-type SelectedFile = {
-  uri: string;
-  name: string;
-  mimeType?: string | null;
-  file?: Blob;
-};
-
-type Phase = 'setup' | 'loading' | 'quiz' | 'result';
-
-const DIFFICULTIES: Array<{ value: Difficulty; label: string }> = [
-  { value: 'easy', label: 'Oson' },
-  { value: 'medium', label: 'O‘rta' },
-  { value: 'hard', label: 'Qiyin' },
-  { value: 'expert', label: 'Ekspert' },
-];
-
-const ACCEPTED_TYPES = [
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'text/plain',
-  'text/markdown',
-  'text/csv',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'image/png',
-  'image/jpeg',
-];
-
-export default function DocumentQuizScreen({ onBack, language }: Props) {
-  const { tokens } = useTheme();
-  const colors = tokens.colors;
-  const s = useMemo(() => makeStyles(colors), [colors]);
-
-  const [file, setFile] = useState<SelectedFile | null>(null);
-  const [phase, setPhase] = useState<Phase>('setup');
-  const [count, setCount] = useState(10);
-  const [maxQuestions, setMaxQuestions] = useState(10);
-  const [maxFileSizeMb, setMaxFileSizeMb] = useState(5);
-  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
-  const [questions, setQuestions] = useState<DocumentQuizQuestion[]>([]);
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<number[]>([]);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [savingHistory, setSavingHistory] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState<'auto' | 'uz' | 'ru' | 'en'>('auto');
-  const [progressPhase, setProgressPhase] = useState<DocumentQuizPhase>('uploading');
-  const [errorMessage, setErrorMessage] = useState('');
-  const abortRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    getPremiumStatus()
-      .then((status) => {
-        if (!active) return;
-        const limit = status.entitlements.documentQuiz.maxQuestionsPerDocument;
-        setMaxQuestions(limit);
-        setMaxFileSizeMb(status.entitlements.documentQuiz.maxFileSizeMb);
-        setCount(Math.min(10, limit));
-      })
-      .catch(() => undefined);
-    return () => { active = false; };
-  }, []);
-
-  const pickDocument = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ACCEPTED_TYPES,
-        copyToCacheDirectory: true,
-        multiple: false,
-      });
-      if (result.canceled || !result.assets?.length) return;
-      const asset = result.assets[0];
-      const extension = asset.name.toLowerCase().split('.').pop();
-      if (!['pdf', 'docx', 'pptx', 'txt', 'md', 'csv', 'png', 'jpg', 'jpeg'].includes(extension || '')) {
-        showLocalizedAlert('Format qo‘llab-quvvatlanmaydi', 'PDF, DOCX, PPTX, TXT, MD, PNG yoki JPG fayl tanlang.');
-        return;
-      }
-      if (asset.size === 0) { showLocalizedAlert('Fayl bo‘sh', 'Iltimos, bo‘sh bo‘lmagan hujjat tanlang.'); return; }
-      if (typeof asset.size === 'number' && asset.size > maxFileSizeMb * 1024 * 1024) { showLocalizedAlert('Fayl juda katta', `Fayl hajmi ${maxFileSizeMb} MB dan oshmasligi kerak.`); return; }
-      setErrorMessage('');
-      setFile({
-        uri: asset.uri,
-        name: asset.name,
-        mimeType: asset.mimeType,
-        file: asset.file,
-      });
-    } catch (error) {
-      showLocalizedAlert('Hujjat tanlanmadi', error instanceof Error ? error.message : 'Faylni ochib bo‘lmadi.');
-    }
-  };
-
-  const generate = async () => {
-    if (!file) {
-      showLocalizedAlert('Hujjat tanlanmagan', 'Avval PDF, DOCX yoki matnli faylni tanlang.');
-      return;
-    }
-    setPhase('loading');
-    setErrorMessage('');
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const timeout = setTimeout(() => controller.abort(), 10 * 60 * 1000);
-    try {
-      const result = await createDocumentQuiz(file, { count, difficulty, language: selectedLanguage }, { signal: controller.signal, onPhase: setProgressPhase });
-      setQuestions(result.questions);
-      setQuestionIndex(0);
-      setAnswers([]);
-      setSelectedAnswer(null);
-      setPhase('quiz');
-    } catch (error) {
-      setPhase('setup');
-      const message = error instanceof Error ? error.message : 'AI hujjatni tahlil qila olmadi.';
-      if (message !== 'Bekor qilindi.') { setErrorMessage(message); showLocalizedAlert('Test yaratilmadi', message); }
-    } finally {
-      clearTimeout(timeout);
-      abortRef.current = null;
-    }
-  };
-
-  const cancelGeneration = () => { abortRef.current?.abort(); abortRef.current = null; setPhase('setup'); setErrorMessage('Yaratish bekor qilindi. Faylni qayta yuklamasdan yana urinishingiz mumkin.'); };
-
-  const finishQuiz = async (completedAnswers: number[]) => {
-    const correctAnswers = questions.reduce(
-      (total, question, index) => total + (completedAnswers[index] === question.correctAnswer ? 1 : 0),
-      0,
-    );
-    setPhase('result');
-    setSavingHistory(true);
-    try {
-      await saveLearningAttempt({
-        subjectId: 'document',
-        subjectName: 'Hujjatdan test',
-        topicId: questions[0]?.topicId || `document-${Date.now()}`,
-        topicName: file?.name || 'Yuklangan hujjat',
-        totalQuestions: questions.length,
-        correctAnswers,
-        review: questions.map((question, index) => ({
-          id: question.id,
-          question: question.question,
-          options: question.options,
-          selectedAnswer: completedAnswers[index],
-          correctAnswer: question.correctAnswer,
-          isCorrect: completedAnswers[index] === question.correctAnswer,
-          explanation: question.explanation,
-          aiExplanation: '',
-        })),
-      });
-    } catch (error) {
-      showLocalizedAlert('Tarixga saqlanmadi', error instanceof Error ? error.message : 'Natijani saqlashda xatolik yuz berdi.');
-    } finally {
-      setSavingHistory(false);
-    }
-  };
-
-  const nextQuestion = () => {
-    if (selectedAnswer === null) return;
-    const completed = [...answers, selectedAnswer];
-    setAnswers(completed);
-    if (questionIndex + 1 >= questions.length) {
-      void finishQuiz(completed);
-      return;
-    }
-    setQuestionIndex((value) => value + 1);
-    setSelectedAnswer(null);
-  };
-
-  const reset = () => {
-    setFile(null);
-    setQuestions([]);
-    setAnswers([]);
-    setSelectedAnswer(null);
-    setQuestionIndex(0);
-    setPhase('setup');
-  };
-
-  const currentQuestion = questions[questionIndex];
-  const correctCount = questions.reduce(
-    (total, question, index) => total + (answers[index] === question.correctAnswer ? 1 : 0),
-    0,
-  );
-  const percentage = questions.length ? Math.round((correctCount / questions.length) * 100) : 0;
-
-  return (
-    <View style={s.screen}>
-      <View style={s.header}>
-        <Pressable onPress={onBack} style={s.backButton} accessibilityRole="button">
-          <Ionicons name="chevron-back" size={21} color={colors.text} />
-        </Pressable>
-        <View style={s.headerCopy}>
-          <LocalizedText style={s.eyebrow}>QUIZ ARENA · AI</LocalizedText>
-          <LocalizedText style={s.headerTitle}>Hujjatdan test</LocalizedText>
-        </View>
-        <View style={s.headerIcon}><Ionicons name="document-text" size={21} color="#FFFFFF" /></View>
-      </View>
-
-      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-        {phase === 'setup' ? (
-          <>
-            <View style={s.hero}>
-              <View style={s.heroGlow} />
-              <LocalizedText style={s.heroTitle}>Hujjatingizni bilim sinoviga aylantiring</LocalizedText>
-              <LocalizedText style={s.heroText}>PDF, Word yoki matnli hujjatni yuklang. AI mazmunni o‘qib, siz uchun yangi test yaratadi.</LocalizedText>
-              <View style={s.formatRow}>
-                {['PDF', 'DOCX', 'PPTX', 'TXT', 'MD', 'PNG', 'JPG'].map((item) => <View key={item} style={s.formatChip}><LocalizedText style={s.formatText}>{item}</LocalizedText></View>)}
-              </View>
-            </View>
-
-            <Pressable onPress={() => void pickDocument()} style={s.uploadCard}>
-              <View style={s.uploadIcon}><Ionicons name="cloud-upload-outline" size={27} color={colors.primary} /></View>
-              <View style={s.uploadCopy}>
-                <LocalizedText style={s.uploadTitle}>{file ? 'Hujjat tanlandi' : 'Hujjat tanlash'}</LocalizedText>
-                <LocalizedText style={s.muted}>{file ? file.name : `PDF, DOCX, PPTX, TXT, MD, PNG yoki JPG · ${maxFileSizeMb} MB gacha`}</LocalizedText>
-              </View>
-              <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
-            </Pressable>
-
-            <View style={s.panel}>
-              <LocalizedText style={s.panelTitle}>Test sozlamalari</LocalizedText>
-              <View style={s.settingHeader}>
-                <LocalizedText style={s.settingLabel}>Savollar soni</LocalizedText>
-                <LocalizedText style={s.countValue}>{count} / {maxQuestions}</LocalizedText>
-              </View>
-              <View style={s.difficultyRow}>
-                {[5, 10, 20, 30].filter((value) => value <= maxQuestions).map((value) => (
-                  <Pressable key={value} onPress={() => setCount(value)} style={[s.difficultyButton, count === value && s.difficultyActive]}>
-                    <LocalizedText style={[s.difficultyText, count === value && s.difficultyTextActive]}>{value}</LocalizedText>
-                  </Pressable>
-                ))}
-              </View>
-              <LocalizedText style={s.settingLabel}>Test tili</LocalizedText>
-              <View style={s.difficultyRow}>
-                {([{ value: 'auto', label: 'Hujjat tili' }, { value: 'uz', label: 'O‘zbekcha' }, { value: 'ru', label: 'Русский' }, { value: 'en', label: 'English' }] as const).map((item) => (
-                  <Pressable key={item.value} onPress={() => setSelectedLanguage(item.value)} style={[s.difficultyButton, selectedLanguage === item.value && s.difficultyActive]}>
-                    <LocalizedText style={[s.difficultyText, selectedLanguage === item.value && s.difficultyTextActive]}>{item.label}</LocalizedText>
-                  </Pressable>
-                ))}
-              </View>
-              <LocalizedText style={s.settingLabel}>Murakkablik darajasi</LocalizedText>
-              <View style={s.difficultyRow}>
-                {DIFFICULTIES.map((item) => (
-                  <Pressable key={item.value} onPress={() => setDifficulty(item.value)} style={[s.difficultyButton, difficulty === item.value && s.difficultyActive]}>
-                    <LocalizedText style={[s.difficultyText, difficulty === item.value && s.difficultyTextActive]}>{item.label}</LocalizedText>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
-            {errorMessage ? <View style={s.explanationBox}><LocalizedText style={s.explanationText}>{errorMessage}</LocalizedText><Pressable onPress={() => void generate()} disabled={!file} style={s.secondaryButton}><LocalizedText style={s.secondaryButtonText}>Qayta urinish</LocalizedText></Pressable></View> : null}
-            <Pressable onPress={() => void generate()} disabled={!file} style={[s.primaryButton, !file && s.disabledButton]}>
-              <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-              <LocalizedText style={s.primaryButtonText}>AI bilan test yaratish</LocalizedText>
-              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-            </Pressable>
-            <LocalizedText style={s.footerNote}>Yaratilgan savollarni yechganingizdan so‘ng natija test tarixingizga saqlanadi.</LocalizedText>
+ni yechganingizdan so‘ng natija test tarixingizga saqlanadi.</LocalizedText>
           </>
         ) : null}
 
@@ -282,6 +7,7 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
             <View style={s.loadingIcon}><Ionicons name="sparkles" size={30} color="#FFFFFF" /></View>
             <ActivityIndicator size="large" color={colors.primary} />
             <LocalizedText style={s.loadingTitle}>Test tayyorlanmoqda</LocalizedText>
+            {progressPhase === 'uploading' ? <><LocalizedText style={s.muted}>Yuklash: {uploadProgress}%</LocalizedText><View style={s.progressTrack}><View style={[s.progressFill, { width: `${uploadProgress}%` }]} /></View></> : null}
             {([{ value: 'uploading', label: 'Fayl yuklanmoqda' }, { value: 'reading', label: 'Hujjat o‘qilmoqda' }, { value: 'generating', label: 'Savollar yaratilmoqda' }, { value: 'done', label: 'Tayyor' }] as const).map((item) => {
               const order = ['uploading', 'reading', 'generating', 'done'];
               const active = order.indexOf(progressPhase) >= order.indexOf(item.value);
@@ -290,6 +16,49 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
             <LocalizedText style={s.muted}>Jarayon tugaguncha ilovani yopmang.</LocalizedText>
             <Pressable onPress={cancelGeneration} style={s.secondaryButton}><LocalizedText style={s.secondaryButtonText}>Bekor qilish</LocalizedText></Pressable>
           </View>
+        ) : null}
+
+        {phase === 'review' ? (
+          <>
+            <View style={s.panel}>
+              <LocalizedText style={s.panelTitle}>Savollarni ko‘rib chiqing</LocalizedText>
+              <LocalizedText style={s.muted}>{file?.name} · {questions.length} ta savol. Testni boshlashdan oldin savollarni tahrirlashingiz, o‘chirishingiz yoki qayta yaratishingiz mumkin.</LocalizedText>
+            </View>
+            {questions.map((question, index) => (
+              <View key={question.id} style={s.questionCard}>
+                <LocalizedText style={s.questionNumber}>SAVOL {index + 1}</LocalizedText>
+                {editingQuestionId === question.id && editDraft ? (
+                  <>
+                    <TextInput value={editDraft.question} onChangeText={(value) => setEditDraft((draft) => draft ? { ...draft, question: value } : draft)} multiline style={s.editInput} placeholder="Savol matni" placeholderTextColor={colors.textMuted} />
+                    {editDraft.options.map((option, optionIndex) => (
+                      <TextInput key={`${question.id}-edit-${optionIndex}`} value={option} onChangeText={(value) => setEditDraft((draft) => draft ? { ...draft, options: draft.options.map((item, i) => i === optionIndex ? value : item) } : draft)} style={s.editInput} placeholder={`Variant ${String.fromCharCode(65 + optionIndex)}`} placeholderTextColor={colors.textMuted} />
+                    ))}
+                    <TextInput value={editDraft.explanation} onChangeText={(value) => setEditDraft((draft) => draft ? { ...draft, explanation: value } : draft)} multiline style={s.editInput} placeholder="Izoh" placeholderTextColor={colors.textMuted} />
+                    <View style={s.reviewActions}>
+                      <Pressable onPress={saveQuestionEdit} style={s.reviewActionPrimary}><LocalizedText style={s.reviewActionPrimaryText}>Saqlash</LocalizedText></Pressable>
+                      <Pressable onPress={() => { setEditingQuestionId(null); setEditDraft(null); }} style={s.reviewAction}><LocalizedText style={s.reviewActionText}>Bekor qilish</LocalizedText></Pressable>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <LocalizedText style={s.questionText}>{question.question}</LocalizedText>
+                    {question.options.map((option, optionIndex) => <LocalizedText key={`${question.id}-${optionIndex}`} style={s.optionText}>{String.fromCharCode(65 + optionIndex)}. {option}{optionIndex === question.correctAnswer ? ' ✓' : ''}</LocalizedText>)}
+                    <LocalizedText style={s.explanationText}>{question.explanation}</LocalizedText>
+                    <View style={s.reviewActions}>
+                      <Pressable onPress={() => beginQuestionEdit(question)} style={s.reviewAction}><LocalizedText style={s.reviewActionText}>Tahrirlash</LocalizedText></Pressable>
+                      <Pressable onPress={() => void regenerateQuestion(question)} disabled={regeneratingQuestionId !== null} style={s.reviewAction}><LocalizedText style={s.reviewActionText}>{regeneratingQuestionId === question.id ? 'Yaratilmoqda…' : 'Qayta yaratish'}</LocalizedText></Pressable>
+                      <Pressable onPress={() => deleteQuestion(question)} style={s.reviewAction}><LocalizedText style={s.reviewActionDanger}>O‘chirish</LocalizedText></Pressable>
+                    </View>
+                  </>
+                )}
+              </View>
+            ))}
+            <Pressable onPress={startQuiz} disabled={!questions.length || editingQuestionId !== null} style={[s.primaryButton, (!questions.length || editingQuestionId !== null) && s.disabledButton]}>
+              <LocalizedText style={s.primaryButtonText}>Testni boshlash ({questions.length} ta)</LocalizedText>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </Pressable>
+            <Pressable onPress={() => void generate()} style={s.secondaryButton}><LocalizedText style={s.secondaryButtonText}>Butun testni qayta yaratish</LocalizedText></Pressable>
+          </>
         ) : null}
 
         {phase === 'quiz' && currentQuestion ? (
@@ -405,6 +174,13 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     difficultyActive: { backgroundColor: colors.primary + '20', borderColor: colors.primary },
     difficultyText: { color: colors.textMuted, fontSize: 10, fontWeight: '700' },
     difficultyTextActive: { color: colors.primary, fontWeight: '900' },
+    editInput: { minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 10, color: colors.text, backgroundColor: colors.surfaceElevated, fontSize: 12 },
+    reviewActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 7 },
+    reviewAction: { paddingHorizontal: 11, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border },
+    reviewActionText: { color: colors.primary, fontSize: 10, fontWeight: '800' },
+    reviewActionDanger: { color: '#DC4C64', fontSize: 10, fontWeight: '800' },
+    reviewActionPrimary: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.primary },
+    reviewActionPrimaryText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
     primaryButton: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 17, backgroundColor: '#6653D8', paddingHorizontal: 16 },
     primaryButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
     disabledButton: { opacity: 0.45 },
