@@ -130,7 +130,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
       return null;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['videos'], allowsEditing: false, videoMaxDuration: 90, quality: 0.8,
+      mediaTypes: ['videos'], allowsEditing: false, videoMaxDuration: 90,
     });
     if (result.canceled) return null;
     const asset = result.assets[0];
@@ -150,10 +150,11 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     if (asset.mimeType === 'video/quicktime') return 'video/quicktime';
     if (asset.mimeType === 'video/webm') return 'video/webm';
     if (asset.mimeType === 'video/mp4') return 'video/mp4';
-    const fileName = (asset.fileName || asset.uri).toLowerCase();
+    const fileName = (asset.fileName || asset.uri).toLowerCase().split('?')[0];
     if (fileName.endsWith('.mov')) return 'video/quicktime';
     if (fileName.endsWith('.webm')) return 'video/webm';
-    return 'video/mp4';
+    if (fileName.endsWith('.mp4')) return 'video/mp4';
+    throw new Error('Faqat MP4, MOV yoki WEBM video formatlari qabul qilinadi.');
   };
 
   const chooseClip = async () => {
@@ -175,7 +176,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
       }
       setClipBusy(true);
       setClipUploadProgress(0);
-      const media = await uploadCommunityMedia(selectedClip.uri, videoMime(selectedClip), setClipUploadProgress);
+      const media = await uploadCommunityMedia(selectedClip.uri, videoMime(selectedClip), setClipUploadProgress, selectedClip.fileSize);
       const created = await createCommunityClip(content.trim(), media.mediaKey, media.mediaType, clipSubject);
       setClips((current) => [created, ...current]);
       setPosts((current) => [created, ...current]);
