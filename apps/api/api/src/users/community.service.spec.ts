@@ -22,7 +22,7 @@ describe('CommunityService clip interactions', () => {
   const saves = { createQueryBuilder: jest.fn(() => saveBuilder), delete: jest.fn().mockResolvedValue(undefined), exists: jest.fn() };
   const stories = {};
   const storyViews = {};
-  const storage = {};
+  const storage = { ensureCompatibleVideo: jest.fn(), sign: jest.fn() };
   const dataSource = {};
   const wallet = {};
   let service: CommunityService;
@@ -41,6 +41,26 @@ describe('CommunityService clip interactions', () => {
       dataSource as DataSource,
       wallet as ZcWalletService,
     );
+  });
+
+  it('lazily converts older clips to a compatible MP4 playback URL', async () => {
+    const legacyPost = {
+      id: 'clip-1',
+      status: 'active',
+      authorId: 'user-2',
+      mediaKey: 'community/user-2/123e4567-e89b-12d3-a456-426614174000.mov',
+      mediaType: 'video/quicktime',
+    } as CommunityPost;
+    posts.findOne.mockResolvedValue(legacyPost);
+    storage.ensureCompatibleVideo.mockResolvedValue('community/user-2/123e4567-e89b-12d3-a456-426614174000.playable.mp4');
+    storage.sign.mockReturnValue('https://media.example.test/clip.playable.mp4?signature=test');
+
+    await expect(service.getClipPlaybackUrl('clip-1')).resolves.toEqual({
+      url: 'https://media.example.test/clip.playable.mp4?signature=test',
+      mediaType: 'video/mp4',
+    });
+    expect(storage.ensureCompatibleVideo).toHaveBeenCalledWith('user-2', legacyPost.mediaKey);
+    expect(storage.sign).toHaveBeenCalledWith('GET', 'community/user-2/123e4567-e89b-12d3-a456-426614174000.playable.mp4', 86400);
   });
 
   it('saves a video clip idempotently', async () => {
