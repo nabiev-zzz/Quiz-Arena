@@ -128,7 +128,7 @@ export class TelegramBotService implements OnModuleInit {
     if (!message || !sender || !Number.isSafeInteger(sender.id)) return;
 
     if (message.text?.trim().startsWith('/start')) {
-      const payloadPart = message.text.trim().split(/\\s+/, 2)[1] || '';
+      const payloadPart = message.text.trim().split(/\s+/, 2)[1] || '';
       const sessionId = payloadPart.startsWith('auth_') ? payloadPart.slice(5) : '';
       if (sessionId) {
         try {
