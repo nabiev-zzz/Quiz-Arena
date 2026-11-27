@@ -1,4 +1,4 @@
-import { API_BASE_URL, getToken, type AuthUser } from './authService';
+import { API_BASE_URL, apiFetch, getToken, type AuthUser } from './authService';
 
 export interface PublicUser extends Pick<AuthUser,
   'id' | 'displayName' | 'username' | 'avatarUrl' | 'bio' | 'xp' |
@@ -15,7 +15,7 @@ export type UserSuggestion = Omit<PublicUser, 'followingCount' | 'isFriend' | 'i
 async function userRequest<T>(path: string, method = 'GET'): Promise<T> {
   const token = await getToken();
   if (!token) throw new Error('Kirish talab qilinadi');
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await apiFetch(`${API_BASE_URL}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
