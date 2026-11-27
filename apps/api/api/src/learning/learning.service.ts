@@ -998,3 +998,41 @@ function splitDocumentIntoChunks(text: string, maxChars: number, overlap: number
     } else current = current ? current + paragraphSeparator + paragraph : paragraph;
   }
   if (current.trim()) chunks.push(current.trim());
+  return chunks.length ? chunks : [text.slice(0, maxChars)];
+}
+
+function selectDocumentChunks(chunks: string[], count: number): string[] {
+  if (chunks.length <= count) return chunks;
+  const selected: string[] = [];
+  for (let index = 0; index < count; index += 1) selected.push(chunks[Math.floor(index * (chunks.length - 1) / Math.max(1, count - 1))]);
+  return selected;
+}
+
+function distributeQuestionCount(count: number, chunks: number): number[] {
+  const safeChunks = Math.max(1, chunks);
+  const base = Math.floor(count / safeChunks);
+  const remainder = count % safeChunks;
+  return Array.from({ length: safeChunks }, (_, index) => base + (index < remainder ? 1 : 0));
+}
+
+function normalizeDocumentQuestion(value: string): string {
+  return value.toLocaleLowerCase().replace(/[.,!?;:()[\]{}]/g, ' ').trim().split(' ').filter(Boolean).slice(0, 20).join(' ');
+}
+
+function areNearDuplicateQuestions(left: string, right: string): boolean {
+  const tokenize = (value: string) => new Set(value.toLocaleLowerCase().replace(/[.,!?;:()[\]{}]/g, ' ').trim().split(' ').filter((word) => word.length > 2));
+  const a = tokenize(left); const b = tokenize(right);
+  if (!a.size || !b.size) return false;
+  let intersection = 0;
+  for (const word of a) if (b.has(word)) intersection += 1;
+  return intersection / (a.size + b.size - intersection) >= 0.82;
+}
+
+function detectDocumentLanguage(text: string): 'uz' | 'ru' | 'en' {
+  const sample = text.slice(0, 12_000).toLocaleLowerCase();
+  if (/[ўқғҳ]/i.test(sample) || ['ta’lim', "ta'lim", 'o‘quv', 'bilim', 'takrorlash', 'mustahkamlash', 'uchun', 'hamda', 'таълим', 'ўқув', 'билим', 'такрорлаш', 'мустаҳкамлаш', 'учун', 'ҳамда'].some((word) => sample.includes(word))) return 'uz';
+  const cyrillic = (sample.match(/[а-яё]/gi) || []).length;
+  const latin = (sample.match(/[a-z]/gi) || []).length;
+  if (cyrillic > latin * 0.15) return 'ru';
+  return 'en';
+}
