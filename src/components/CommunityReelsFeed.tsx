@@ -485,7 +485,7 @@ export default function CommunityReelsFeed(props: Props) {
       onUserPress={props.onUserPress} overlayOpen={props.overlayOpen} appIsActive={appIsActive}
       registerPlayer={registerPlayer} onSkip={onSkip}
     />
-  ), [activeIndex, appIsActive, goodConnection, height, insets.bottom, muted, onSkip, props.onComments, props.onLike, props.onMiniTest, props.onSave, props.onUserPress, props.overlayOpen, registerPlayer]);
+  ), [activeIndex, appIsActive, goodConnection, height, insets.bottom, muted, onSkip, props.onComments, props.onLike, props.onMiniTest, props.onSave, props.onUserPress, props.overlayOpen, registerPlayer]);
 
   return (
     <View style={styles.container} onLayout={onListLayout}>
