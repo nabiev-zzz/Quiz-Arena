@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useEvent } from 'expo';
-import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, Share, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, Share, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -93,7 +93,11 @@ function ActiveReelVideo({ uri, muted, paused, onStatusChange, onProgressChange 
 
 export default function CommunityReelsFeed(props: Props) {
   const insets = useSafeAreaInsets();
+  const window = useWindowDimensions();
   const [height, setHeight] = useState(0);
+  // Some Android WebView layouts report a zero initial onLayout height.
+  // Use the available viewport until the measured container height arrives.
+  const viewportHeight = height || Math.max(1, window.height - insets.top - insets.bottom);
   const [activeIndex, setActiveIndex] = useState(0);
   const [muted, setMuted] = useState(true);
   const listRef = useRef<FlatList<CommunityPost>>(null);
@@ -105,14 +109,14 @@ export default function CommunityReelsFeed(props: Props) {
     listRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, [firstClipId]);
   useEffect(() => {
-    if (height > 0 && previousHeightRef.current > 0 && height !== previousHeightRef.current) {
-      listRef.current?.scrollToOffset({ offset: activeIndex * height, animated: false });
+    if (viewportHeight > 0 && previousHeightRef.current > 0 && viewportHeight !== previousHeightRef.current) {
+      listRef.current?.scrollToOffset({ offset: activeIndex * viewportHeight, animated: false });
     }
-    if (height > 0) previousHeightRef.current = height;
-  }, [height, activeIndex]);
+    if (viewportHeight > 0) previousHeightRef.current = viewportHeight;
+  }, [viewportHeight, activeIndex]);
   return (
     <View style={styles.container} onLayout={(event) => { const next = Math.round(event.nativeEvent.layout.height); if (next > 0 && next !== height) setHeight(next); }}>
-      {props.loading ? <View style={styles.state}><LocalizedText style={styles.stateText}>Lavhalar yuklanmoqda...</LocalizedText></View> : props.error ? <View style={styles.state}><Ionicons name="cloud-offline-outline" size={36} color="#FFFFFF"/><LocalizedText style={styles.stateText}>Videolar yuklanmadi</LocalizedText><Pressable onPress={props.onRetry} style={styles.retry}><LocalizedText style={styles.retryText}>Qayta urinish</LocalizedText></Pressable></View> : props.clips.length === 0 ? <View style={styles.state}><Ionicons name="videocam-outline" size={48} color="#FFFFFF"/><LocalizedText style={styles.stateText}>Hali lavhalar yo‘q</LocalizedText><LocalizedText style={styles.emptyText}>Birinchi videoni siz joylang.</LocalizedText></View> : height > 0 ? <FlatList ref={listRef} style={{ flex: 1 }} data={props.clips} removeClippedSubviews={true} keyExtractor={keyExtractor} renderItem={({ item, index }) => <Reel clip={item} active={index === activeIndex} height={height} muted={muted} onMutedChange={setMuted} onLike={props.onLike} onComments={props.onComments} onMiniTest={props.onMiniTest} onUserPress={props.onUserPress}/>} pagingEnabled snapToInterval={height} snapToAlignment="start" decelerationRate="fast" showsVerticalScrollIndicator={false} initialNumToRender={1} maxToRenderPerBatch={1} windowSize={3} refreshControl={<RefreshControl refreshing={props.refreshing} onRefresh={props.onRefresh} tintColor="#FFFFFF" colors={["#FFFFFF"]} />} onEndReached={() => { if (props.hasMore) props.onLoadMore(); }} onEndReachedThreshold={0.7} getItemLayout={(_, index) => ({ length: height, offset: height * index, index })} onMomentumScrollEnd={(event) => setActiveIndex(Math.min(props.clips.length - 1, Math.max(0, Math.round(event.nativeEvent.contentOffset.y / height))))} onScrollToIndexFailed={({ index }) => { setActiveIndex(Math.min(index, props.clips.length - 1)); listRef.current?.scrollToOffset({ offset: Math.max(0, index) * height, animated: false }); }} /> : <View style={{flex:1,backgroundColor:'#05060A'}} />}
+      {props.loading ? <View style={styles.state}><LocalizedText style={styles.stateText}>Lavhalar yuklanmoqda...</LocalizedText></View> : props.error ? <View style={styles.state}><Ionicons name="cloud-offline-outline" size={36} color="#FFFFFF"/><LocalizedText style={styles.stateText}>Videolar yuklanmadi</LocalizedText><Pressable onPress={props.onRetry} style={styles.retry}><LocalizedText style={styles.retryText}>Qayta urinish</LocalizedText></Pressable></View> : props.clips.length === 0 ? <View style={styles.state}><Ionicons name="videocam-outline" size={48} color="#FFFFFF"/><LocalizedText style={styles.stateText}>Hali lavhalar yo‘q</LocalizedText><LocalizedText style={styles.emptyText}>Birinchi videoni siz joylang.</LocalizedText></View> : <FlatList ref={listRef} style={{ flex: 1 }} data={props.clips} removeClippedSubviews={true} keyExtractor={keyExtractor} renderItem={({ item, index }) => <Reel clip={item} active={index === activeIndex} height={viewportHeight} muted={muted} onMutedChange={setMuted} onLike={props.onLike} onComments={props.onComments} onMiniTest={props.onMiniTest} onUserPress={props.onUserPress}/>} pagingEnabled snapToInterval={viewportHeight} snapToAlignment="start" decelerationRate="fast" showsVerticalScrollIndicator={false} initialNumToRender={1} maxToRenderPerBatch={1} windowSize={3} refreshControl={<RefreshControl refreshing={props.refreshing} onRefresh={props.onRefresh} tintColor="#FFFFFF" colors={["#FFFFFF"]} />} onEndReached={() => { if (props.hasMore) props.onLoadMore(); }} onEndReachedThreshold={0.7} getItemLayout={(_, index) => ({ length: viewportHeight, offset: viewportHeight * index, index })} onMomentumScrollEnd={(event) => setActiveIndex(Math.min(props.clips.length - 1, Math.max(0, Math.round(event.nativeEvent.contentOffset.y / viewportHeight))))} onScrollToIndexFailed={({ index }) => { setActiveIndex(Math.min(index, props.clips.length - 1)); listRef.current?.scrollToOffset({ offset: Math.max(0, index) * viewportHeight, animated: false }); }} />}
       {props.loadingMore ? <View pointerEvents="none" style={styles.loadMore}><ActivityIndicator color="#FFFFFF"/><LocalizedText style={styles.emptyText}>Yana lavhalar yuklanmoqda...</LocalizedText></View> : null}
       <View style={[styles.header, { paddingTop: Math.max(10, insets.top + 4) }]}>
         <Pressable onPress={props.onBack} style={styles.headerButton}><Ionicons name="chevron-back" size={25} color="#FFFFFF"/></Pressable>
