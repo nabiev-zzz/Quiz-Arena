@@ -189,39 +189,57 @@ export interface DocumentQuizResult {
 }
 
 export async function createDocumentQuiz(
-  file: { uri: string; name: string; mimeType?: string | null; file?: Blob },
+  file: { uri: string; name: string; mimeType?: string | null },
   options: { count: number; difficulty: Difficulty; language: 'uz' | 'ru' | 'en' },
 ): Promise<DocumentQuizResult> {
   const token = await getToken();
   if (!token) throw new Error('Tizimga qayta kirishingiz kerak.');
-
-  const form = new FormData();
-  if (file.file) {
-    form.append('file', file.file, file.name);
-  } else {
-    form.append('file', {
-      uri: file.uri,
-      name: file.name,
-      type: file.mimeType || 'application/octet-stream',
-    } as unknown as Blob);
+  if (!file.uri?.trim() || !file.name?.trim()) {
+    throw new Error('Tanlangan hujjat manzili topilmadi. Faylni qayta tanlang.');
   }
+
+  // React Native FormData accepts native file parts ({ uri, name, type }).
+  // Expo DocumentPicker's optional asset.file is a Blob on some platforms;
+  // appending that Blob causes "Unsupported FormDataPart implementation" on Android.
+  const extension = file.name.toLowerCase().split('.').pop();
+  const mimeByExtension: Record<string, string> = {
+    pdf: 'application/pdf',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    txt: 'text/plain',
+    md: 'text/markdown',
+    csv: 'text/csv',
+  };
+  const form = new FormData();
+  form.append('file', {
+    uri: file.uri,
+    name: file.name,
+    type: file.mimeType || mimeByExtension[extension || ''] || 'application/octet-stream',
+  } as unknown as Blob);
   form.append('count', String(options.count));
   form.append('difficulty', options.difficulty);
   form.append('language', options.language);
 
   const response = await apiFetch(`${API_BASE_URL}/api/learning/document-quiz`, {
     method: 'POST',
+    // Do not set Content-Type manually: fetch must add the multipart boundary.
     headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
     body: form,
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(typeof data.message === 'string' ? data.message : 'Hujjatdan test yaratib bo‘lmadi.');
+    const message = typeof data.message === 'string'
+      ? data.message
+      : Array.isArray(data.message) ? data.message.join(', ')
+      : 'Hujjatdan test yaratib bo‘lmadi.';
+    throw new Error(message);
   }
-  if (data.status === 'queued' || data.status === 'active') {
+  if ((data.status === 'queued' || data.status === 'active') && data.jobId) {
     return waitForLearningJob<DocumentQuizResult>(String(data.jobId));
   }
   if (data.status === 'completed' && data.result) return data.result as DocumentQuizResult;
+  if (!Array.isArray(data.questions) || data.questions.length === 0) {
+    throw new Error('AI hujjatdan savollar qaytarmadi. Boshqa hujjat tanlab ko‘ring.');
+  }
   return data as DocumentQuizResult;
 }
 

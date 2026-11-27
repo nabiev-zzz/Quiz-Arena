@@ -26,7 +26,6 @@ type SelectedFile = {
   uri: string;
   name: string;
   mimeType?: string | null;
-  file?: Blob;
 };
 
 type Phase = 'setup' | 'loading' | 'quiz' | 'result';
@@ -99,7 +98,6 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
         uri: asset.uri,
         name: asset.name,
         mimeType: asset.mimeType,
-        file: asset.file,
       });
     } catch (error) {
       showLocalizedAlert('Hujjat tanlanmadi', error instanceof Error ? error.message : 'Faylni ochib bo‘lmadi.');
