@@ -19,6 +19,7 @@ import { LoginDto } from './dto/login.dto';
 import { PhoneRegisterDto, PasswordResetDto } from './dto/phone-otp.dto';
 import { AuthOtpService } from './auth-otp.service';
 import { AuthOAuthCode } from './entities/auth-oauth-code.entity';
+import { TelegramBotAuthSession } from './entities/telegram-bot-auth-session.entity';
 
 export interface UpdateProfileInput {
   displayName?: string;
@@ -42,6 +43,8 @@ export class AuthService {
     private readonly oauthCodeRepository: Repository<AuthOAuthCode>,
     @InjectRepository(ZcStoreItem)
     private readonly zcStoreItems: Repository<ZcStoreItem>,
+    @InjectRepository(TelegramBotAuthSession)
+    private readonly telegramSessions: Repository<TelegramBotAuthSession>,
   ) {}
 
   private getRankTier(points: number): string {
@@ -558,6 +561,122 @@ export class AuthService {
       deepLink: `quizarena://auth?provider=telegram&code=${encodeURIComponent(rawCode)}`,
       user: this.getSafeUser(user),
     };
+  }
+
+
+  private telegramSessionHash(value: string): string {
+    return createHash('sha256').update(value).digest('hex');
+  }
+
+  private telegramOtpHash(sessionId: string, code: string): string {
+    const secret = this.config.getOrThrow<string>('JWT_SECRET');
+    return createHmac('sha256', secret).update(`telegram-bot:${sessionId}:${code}`).digest('hex');
+  }
+
+  async createTelegramBotSession() {
+    const sessionId = randomBytes(24).toString('base64url');
+    const sessionHash = this.telegramSessionHash(sessionId);
+    await this.telegramSessions.save(this.telegramSessions.create({
+      sessionHash, telegramUserId: null, phoneNumber: null, codeHash: null,
+      firstName: null, lastName: null, telegramUsername: null, attempts: 0,
+      expiresAt: new Date(Date.now() + 10 * 60_000), verifiedAt: null, consumedAt: null,
+    }));
+    const botUsername = this.config.get<string>('TELEGRAM_BOT_USERNAME') || 'quizarenaligininbot';
+    return { sessionId, botUrl: `https://t.me/${botUsername}?start=auth_${sessionId}`, expiresIn: 600 };
+  }
+
+  async issueTelegramBotOtp(input: {
+    sessionId: string; telegramUserId: number; phoneNumber: string;
+    firstName?: string; lastName?: string; username?: string;
+  }): Promise<string> {
+    if (!/^[A-Za-z0-9_-]{30,40}$/.test(input.sessionId)) throw new BadRequestException('Ro‘yxatdan o‘tish sessiyasi noto‘g‘ri');
+    const session = await this.telegramSessions.findOne({
+      where: { sessionHash: this.telegramSessionHash(input.sessionId) },
+    });
+    if (!session || session.expiresAt.getTime() <= Date.now() || session.consumedAt) {
+      throw new UnauthorizedException('Ro‘yxatdan o‘tish sessiyasi tugagan. Ilovadan qayta boshlang.');
+    }
+    const phone = this.otpService.normalizePhone(input.phoneNumber);
+    const existingTelegram = await this.userRepository.findOne({ where: { telegramSubject: String(input.telegramUserId) } });
+    if (existingTelegram?.phoneNumber && existingTelegram.phoneNumber !== phone) {
+      throw new ConflictException('Bu Telegram akkaunti boshqa telefon raqamiga bog‘langan');
+    }
+    const existingPhone = await this.userRepository.findOne({ where: { phoneNumber: phone } });
+    if (existingPhone?.telegramSubject && existingPhone.telegramSubject !== String(input.telegramUserId)) {
+      throw new ConflictException('Bu telefon raqami boshqa Telegram akkauntiga bog‘langan');
+    }
+    const code = String(randomInt(100000, 1_000_000));
+    session.telegramUserId = String(input.telegramUserId);
+    session.phoneNumber = phone;
+    session.codeHash = this.telegramOtpHash(input.sessionId, code);
+    session.firstName = input.firstName?.slice(0, 100) || null;
+    session.lastName = input.lastName?.slice(0, 100) || null;
+    session.telegramUsername = input.username?.slice(0, 64) || null;
+    session.attempts = 0;
+    session.verifiedAt = null;
+    session.expiresAt = new Date(Date.now() + 5 * 60_000);
+    await this.telegramSessions.save(session);
+    return code;
+  }
+
+  async verifyTelegramBotCode(sessionId: string, code: string) {
+    if (!/^[A-Za-z0-9_-]{30,40}$/.test(sessionId) || !/^\\d{6}$/.test(code)) {
+      throw new BadRequestException('Sessiya yoki 6 xonali kod noto‘g‘ri');
+    }
+    const session = await this.telegramSessions.createQueryBuilder('session')
+      .addSelect('session.codeHash')
+      .where('session.sessionHash = :hash', { hash: this.telegramSessionHash(sessionId) })
+      .getOne();
+    if (!session || !session.codeHash || !session.telegramUserId || !session.phoneNumber ||
+      session.expiresAt.getTime() <= Date.now() || session.consumedAt || session.attempts >= 5) {
+      throw new UnauthorizedException('Kod noto‘g‘ri yoki muddati tugagan. Qayta boshlang.');
+    }
+    const expected = Buffer.from(session.codeHash, 'hex');
+    const actual = Buffer.from(this.telegramOtpHash(sessionId, code), 'hex');
+    const valid = expected.length === actual.length && timingSafeEqual(expected, actual);
+    if (!valid) {
+      await this.telegramSessions.createQueryBuilder().update(TelegramBotAuthSession)
+        .set({ attempts: () => '"attempts" + 1' }).where('id = :id', { id: session.id })
+        .andWhere('attempts < 5').execute();
+      throw new UnauthorizedException('Tasdiqlash kodi noto‘g‘ri');
+    }
+
+    const telegramSubject = session.telegramUserId;
+    const phone = session.phoneNumber;
+    let user = await this.userRepository.findOne({ where: { telegramSubject } });
+    const byPhone = await this.userRepository.findOne({ where: { phoneNumber: phone } });
+    if (user && byPhone && user.id !== byPhone.id) throw new ConflictException('Telegram va telefon ikki xil akkauntga tegishli');
+    user = user || byPhone;
+    if (user) {
+      if (user.status !== 'active') throw new UnauthorizedException('Hisobingiz bloklangan');
+      if (user.telegramSubject && user.telegramSubject !== telegramSubject) throw new ConflictException('Telefon boshqa Telegram akkauntiga bog‘langan');
+      user.telegramSubject = telegramSubject;
+      user.phoneNumber = phone;
+      user.phoneVerifiedAt = new Date();
+      user = await this.userRepository.save(user);
+    } else {
+      const displayName = [session.firstName, session.lastName].filter(Boolean).join(' ').trim() || 'Telegram foydalanuvchisi';
+      const base = (session.telegramUsername || `tg_${telegramSubject}`).toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 24);
+      const usernameBase = base.length >= 3 ? base : `tg_${telegramSubject.slice(-12)}`;
+      let username = usernameBase;
+      let suffix = 1;
+      while (await this.userRepository.findOne({ where: { username } })) {
+        const tail = `_${suffix++}`;
+        username = `${usernameBase.slice(0, 30 - tail.length)}${tail}`;
+      }
+      user = await this.userRepository.save(this.userRepository.create({
+        displayName: displayName.slice(0, 100), username, email: null,
+        phoneNumber: phone, phoneVerifiedAt: new Date(), telegramSubject,
+        passwordHash: await bcrypt.hash(randomBytes(32).toString('hex'), 12),
+        role: 'user', status: 'active',
+      }));
+    }
+    const consumed = await this.telegramSessions.createQueryBuilder().update(TelegramBotAuthSession)
+      .set({ consumedAt: new Date(), verifiedAt: new Date() })
+      .where('id = :id', { id: session.id }).andWhere('"consumedAt" IS NULL')
+      .andWhere('attempts < 5').execute();
+    if (consumed.affected !== 1) throw new UnauthorizedException('Kod avval ishlatilgan yoki muddati tugagan');
+    return { accessToken: await this.createToken(user), user: this.getSafeUser(user) };
   }
 
   private getGoogleRedirectUri(): string {
