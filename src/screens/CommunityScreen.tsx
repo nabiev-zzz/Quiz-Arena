@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Image, Modal, Pressable, RefreshControl, ScrollView,
   StyleSheet, TextInput, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import CommunityClipVideo from '../components/CommunityClipVideo';
 import CommunityReelsFeed from '../components/CommunityReelsFeed';
+import CommunityClipVideo from '../components/CommunityClipVideo';
 import CommunityLearningHubScreen from './CommunityLearningHubScreen';
 import CommunityDashboardScreen, { CommunityBottomNavigation, CommunityCompetitionsScreen, type CommunitySectionKey } from './CommunityDashboardScreen';
 import * as ImagePicker from 'expo-image-picker';
@@ -50,6 +50,10 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   const c = communityTokens[mode].colors;
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [clips, setClips] = useState<CommunityPost[]>([]);
+  const [clipsHasMore, setClipsHasMore] = useState(false);
+  const [clipsLoadingMore, setClipsLoadingMore] = useState(false);
+  const [clipsServerOffset, setClipsServerOffset] = useState(0);
+  const clipsLoadingMoreRef = useRef(false);
   const [activeSection, setActiveSection] = useState<'dashboard' | 'feed' | 'clips' | 'groups' | 'questions' | 'library' | 'portfolio' | 'mentors' | 'marathons' | 'competitions'>('dashboard');
   const [clipBusy, setClipBusy] = useState(false);
   const [clipComposerVisible, setClipComposerVisible] = useState(false);
@@ -65,6 +69,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   const [posting, setPosting] = useState(false);
   const [busyPost, setBusyPost] = useState<string | null>(null);
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
+  const [commentsLoadingId, setCommentsLoadingId] = useState<string | null>(null);
   const [comments, setComments] = useState<Record<string, CommunityComment[]>>({});
   const [commentDraft, setCommentDraft] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
@@ -88,12 +93,31 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
       setPosts(feed);
       setStories(activeStories);
       setClips(videoClips);
+      setClipsServerOffset(videoClips.length);
+      setClipsHasMore(videoClips.length === 40);
     } catch {
       setFeedError(true);
     } finally { setLoading(false); setRefreshing(false); }
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  const loadMoreClips = useCallback(async () => {
+    if (clipsLoadingMoreRef.current || !clipsHasMore) return;
+    clipsLoadingMoreRef.current = true;
+    setClipsLoadingMore(true);
+    try {
+      const next = await getCommunityClips(40, clipsServerOffset);
+      setClips((current) => {
+        const known = new Set(current.map((clip) => clip.id));
+        return [...current, ...next.filter((clip) => !known.has(clip.id))];
+      });
+      setClipsServerOffset((current) => current + next.length);
+      setClipsHasMore(next.length === 40);
+    } catch (error) {
+      showLocalizedAlert('Lavhalar', error instanceof Error ? error.message : 'Keyingi videolar yuklanmadi');
+    } finally { clipsLoadingMoreRef.current = false; setClipsLoadingMore(false); }
+  }, [clipsHasMore, clipsServerOffset]);
 
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -147,10 +171,8 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   };
 
   const videoMime = (asset: ImagePicker.ImagePickerAsset) => {
-    if (asset.mimeType === 'video/quicktime') return 'video/quicktime';
-    if (asset.mimeType === 'video/webm') return 'video/webm';
-    if (asset.mimeType === 'video/mp4') return 'video/mp4';
     if (asset.file?.type === 'video/quicktime' || asset.file?.type === 'video/webm' || asset.file?.type === 'video/mp4') return asset.file.type;
+    if (asset.mimeType === 'video/quicktime' || asset.mimeType === 'video/webm' || asset.mimeType === 'video/mp4') return asset.mimeType;
     const fileName = (asset.fileName || asset.uri).toLowerCase().split('?')[0];
     if (fileName.endsWith('.mov')) return 'video/quicktime';
     if (fileName.endsWith('.webm')) return 'video/webm';
@@ -280,12 +302,13 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
 
   const openClipComments = async (postId: string) => {
     setExpandedPost(postId);
+    setCommentsLoadingId(postId);
     try {
       const loaded = await getCommunityComments(postId);
       setComments((current) => ({ ...current, [postId]: loaded }));
     } catch (error) {
       showLocalizedAlert('Izohlar', error instanceof Error ? error.message : 'Izohlar yuklanmadi');
-    }
+    } finally { setCommentsLoadingId((current) => current === postId ? null : current); }
   };
 
   const sendComment = async (postId: string) => {
@@ -340,9 +363,10 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
       {activeSection === 'clips' ? (
         <CommunityReelsFeed clips={clips} loading={loading} error={feedError}
           onBack={() => setActiveSection('dashboard')} onUpload={() => void chooseClip()}
-          onRetry={() => void load()} onLike={(clip) => void toggleLike(clip)}
-          onComments={(id) => void openClipComments(id)} onMiniTest={(clip) => void openClipQuiz(clip)}
-          onUserPress={onUserPress} />
+          onRetry={() => void load()} refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(true); }}
+          hasMore={clipsHasMore} loadingMore={clipsLoadingMore} onLoadMore={() => void loadMoreClips()}
+          onLike={(clip) => void toggleLike(clip)} onComments={(id) => void openClipComments(id)}
+          onMiniTest={(clip) => void openClipQuiz(clip)} onUserPress={onUserPress} />
       ) : <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
@@ -506,9 +530,9 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
             <TextInput value={content} onChangeText={setContent} placeholder="Video tavsifi..." placeholderTextColor={c.textMuted} style={styles.clipCaptionInput} maxLength={2000} multiline/>
             <LocalizedText style={styles.feedCaption}>Mavzu</LocalizedText>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:6}}>{['Matematika','Fizika','Informatika','Kimyo','Biologiya','Tarix','Til o‘rganish','Boshqa'].map(subject=><Pressable key={subject} onPress={()=>setClipSubject(subject)} style={{paddingHorizontal:11,paddingVertical:8,borderRadius:16,backgroundColor:clipSubject===subject?c.primary:c.background}}><LocalizedText style={{fontSize:11,fontWeight:'800',color:clipSubject===subject?'#fff':c.textMuted}}>{subject}</LocalizedText></Pressable>)}</ScrollView>
-            {clipBusy && clipUploadProgress !== null ? <LocalizedText style={styles.feedCaption}>Yuklanmoqda: {clipUploadProgress}%</LocalizedText> : null}
+            {clipBusy && clipUploadProgress !== null ? <View style={styles.uploadProgressCard}><View style={styles.uploadProgressHeader}><LocalizedText style={styles.uploadProgressTitle}>{clipUploadProgress >= 99 ? 'Video tekshirilmoqda' : 'Video yuklanmoqda'}</LocalizedText><LocalizedText style={styles.uploadProgressPercent}>{clipUploadProgress}%</LocalizedText></View><View style={styles.uploadProgressTrack}><View style={[styles.uploadProgressFill,{width:`${clipUploadProgress}%`}]} /></View><LocalizedText style={styles.uploadProgressHint}>{clipUploadProgress >= 99 ? 'Fayl hajmi va yaxlitligi tekshirilmoqda.' : 'Internet tezligiga qarab biroz vaqt olishi mumkin.'}</LocalizedText></View> : null}
             <Pressable onPress={() => void publishClip()} disabled={clipBusy || !selectedClip} style={[styles.publishClipButton,(!selectedClip||clipBusy)&&{opacity:0.5}]}>{clipBusy?<ActivityIndicator color="#fff"/>:<Ionicons name="cloud-upload-outline" size={18} color="#fff"/>}<LocalizedText style={styles.publishClipButtonText}>{clipBusy?'Yuklanmoqda...':'Lavhani joylash'}</LocalizedText></Pressable>
-            <LocalizedText style={styles.clipGuidance}>MP4 tavsiya etiladi · 90 soniyagacha · 30 MB gacha.</LocalizedText>
+            <LocalizedText style={styles.clipGuidance}>MP4 (H.264) tavsiya etiladi · MOV va WEBM ham qabul qilinadi · 90 soniyagacha · 30 MB gacha.</LocalizedText>
           </View>
         </View>
       </Modal>
@@ -555,7 +579,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
       <Modal visible={activeSection === 'clips' && Boolean(expandedPost)} transparent animationType="slide" onRequestClose={() => setExpandedPost(null)}>
         <View style={{flex:1,backgroundColor:'rgba(5,6,12,0.72)',justifyContent:'flex-end'}}><View style={{backgroundColor:c.surface,borderTopLeftRadius:24,borderTopRightRadius:24,padding:18,maxHeight:'72%',minHeight:'38%'}}>
           <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><LocalizedText style={styles.feedTitle}>Izohlar</LocalizedText><Pressable onPress={() => setExpandedPost(null)}><Ionicons name="close" size={23} color={c.text}/></Pressable></View>
-          <ScrollView style={{flex:1}} keyboardShouldPersistTaps="handled">{(expandedPost ? comments[expandedPost] || [] : []).map(comment=><View key={comment.id} style={{paddingVertical:9,borderBottomWidth:1,borderBottomColor:c.border}}><LocalizedText style={styles.commentAuthor}>@{comment.author.username}</LocalizedText><LocalizedText style={styles.commentText}>{comment.content}</LocalizedText></View>)}{expandedPost && (comments[expandedPost] || []).length===0 ? <LocalizedText style={styles.feedCaption}>Hozircha izoh yo‘q. Birinchi bo‘lib fikr bildiring.</LocalizedText> : null}</ScrollView>
+          <ScrollView style={{flex:1}} keyboardShouldPersistTaps="handled">{expandedPost && commentsLoadingId === expandedPost ? <View style={{padding:24,alignItems:'center'}}><ActivityIndicator color={c.primary}/><LocalizedText style={styles.feedCaption}>Izohlar yuklanmoqda...</LocalizedText></View> : (expandedPost ? comments[expandedPost] || [] : []).map(comment=><View key={comment.id} style={{paddingVertical:9,borderBottomWidth:1,borderBottomColor:c.border}}><LocalizedText style={styles.commentAuthor}>@{comment.author.username}</LocalizedText><LocalizedText style={styles.commentText}>{comment.content}</LocalizedText></View>)}{expandedPost && commentsLoadingId !== expandedPost && (comments[expandedPost] || []).length===0 ? <LocalizedText style={styles.feedCaption}>Hozircha izoh yo‘q. Birinchi bo‘lib fikr bildiring.</LocalizedText> : null}</ScrollView>
           <View style={styles.commentComposer}><TextInput value={commentDraft} onChangeText={setCommentDraft} placeholder="Izoh yozing..." placeholderTextColor={c.textMuted} style={styles.commentInput} maxLength={1000}/><Pressable onPress={() => expandedPost && void sendComment(expandedPost)} disabled={!commentDraft.trim()||sendingComment} style={styles.commentSend}><Ionicons name="send" size={16} color="#FFFFFF"/></Pressable></View>
         </View></View>
       </Modal>
