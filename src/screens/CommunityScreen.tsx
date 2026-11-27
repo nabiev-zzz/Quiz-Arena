@@ -130,7 +130,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
       return null;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['videos'], allowsEditing: false, videoMaxDuration: 90, quality: 0.8,
+      mediaTypes: ['videos'], allowsEditing: false, videoMaxDuration: 90,
     });
     if (result.canceled) return null;
     const asset = result.assets[0];
@@ -150,10 +150,11 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     if (asset.mimeType === 'video/quicktime') return 'video/quicktime';
     if (asset.mimeType === 'video/webm') return 'video/webm';
     if (asset.mimeType === 'video/mp4') return 'video/mp4';
-    const fileName = (asset.fileName || asset.uri).toLowerCase();
+    const fileName = (asset.fileName || asset.uri).toLowerCase().split('?')[0];
     if (fileName.endsWith('.mov')) return 'video/quicktime';
     if (fileName.endsWith('.webm')) return 'video/webm';
-    return 'video/mp4';
+    if (fileName.endsWith('.mp4')) return 'video/mp4';
+    throw new Error('Faqat MP4, MOV yoki WEBM video formatlari qabul qilinadi.');
   };
 
   const chooseClip = async () => {
@@ -175,7 +176,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
       }
       setClipBusy(true);
       setClipUploadProgress(0);
-      const media = await uploadCommunityMedia(selectedClip.uri, videoMime(selectedClip), setClipUploadProgress);
+      const media = await uploadCommunityMedia(selectedClip.uri, videoMime(selectedClip), setClipUploadProgress, selectedClip.fileSize);
       const created = await createCommunityClip(content.trim(), media.mediaKey, media.mediaType, clipSubject);
       setClips((current) => [created, ...current]);
       setPosts((current) => [created, ...current]);
@@ -537,7 +538,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
           <View style={{backgroundColor:c.surface,borderRadius:22,padding:18,maxHeight:'88%'}}>
             <View style={{flexDirection:'row',alignItems:'center',marginBottom:12}}><View style={{flex:1}}><LocalizedText style={styles.feedTitle}>Lavha mini-testi</LocalizedText><LocalizedText style={styles.feedCaption}>{quizClip?.content||'Bilimingizni sinab ko‘ring'}</LocalizedText></View><Pressable onPress={()=>setQuizClip(null)} style={styles.storyClose}><Ionicons name="close" size={21} color={c.text}/></Pressable></View>
             {quizLoading?<ActivityIndicator color={c.primary} style={{padding:24}}/>:quizClip?.isOwn&&(!clipQuiz||clipQuiz.canEdit)?<ScrollView keyboardShouldPersistTaps="handled">
-              <LocalizedText style={styles.commentAuthor}>SAVOL</LocalizedText><TextInput value={quizQuestion} onChangeText={setQuizQuestion} placeholder="Video bo‘yicha savol yozing" placeholderTextColor={c.textMuted} style={styles.commentInput}/>
+              <LocalizedText style={styles.commentAuthor}>SAVOL</LocalizedText><TextInput value={quizQuestion} onChangeText={setQuizQuestion} placeholder="Video bo‘yicha savol yozing" placeholderTextColor={c.textMuted} style={styles.commentInput}/>
               <LocalizedText style={[styles.commentAuthor,{marginTop:12}]}>4 TA JAVOB VARIANTI</LocalizedText>
               {quizOptions.map((option,index)=><View key={index} style={{flexDirection:'row',alignItems:'center',gap:8,marginTop:8}}><Pressable onPress={()=>setCorrectOption(index)} style={{width:30,height:30,borderRadius:15,alignItems:'center',justifyContent:'center',backgroundColor:correctOption===index?c.primary:c.background}}><LocalizedText style={{color:correctOption===index?'#fff':c.text,fontWeight:'900'}}>{String.fromCharCode(65+index)}</LocalizedText></Pressable><TextInput value={option} onChangeText={value=>setQuizOptions(current=>current.map((item,i)=>i===index?value:item))} placeholder={`${String.fromCharCode(65+index)} variant`} placeholderTextColor={c.textMuted} style={[styles.commentInput,{flex:1}]}/></View>)}
               <LocalizedText style={styles.feedCaption}>To‘g‘ri javobni chapdagi harfni bosib belgilang.</LocalizedText>
