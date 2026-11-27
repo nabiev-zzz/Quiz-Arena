@@ -189,7 +189,7 @@ export default function ShopScreen({ onBack }: Props) {
 function makeStyles(c: ReturnType<typeof useTheme>['tokens']['colors'], isDark: boolean) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: 'transparent' },
-    center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.background },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
     header: { minHeight: 68, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: 1, borderBottomColor: c.border },
     backButton: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface },
     headerTitleWrap: { flex: 1 },
