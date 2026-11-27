@@ -1,5 +1,5 @@
 
-import { API_BASE_URL, getToken } from './authService';
+import { API_BASE_URL, apiFetch, getToken } from './authService';
 
 export interface AiTutorMessage {
   id: string;
@@ -29,7 +29,7 @@ async function tutorRequest<T>(
     throw new Error('Tizimga qayta kirishingiz kerak');
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await apiFetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

@@ -1,4 +1,4 @@
-import { API_BASE_URL, getToken } from './authService';
+import { API_BASE_URL, apiFetch, getToken } from './authService';
 
 export interface ZcStoreProduct {
   id: string;
@@ -18,7 +18,7 @@ export interface ZcStoreCatalog {
 async function storeRequest<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const token = await getToken();
   if (!token) throw new Error('Avval hisobingizga kiring');
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await apiFetch(`${API_BASE_URL}${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${token}`,

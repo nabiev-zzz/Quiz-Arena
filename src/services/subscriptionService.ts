@@ -1,4 +1,4 @@
-import { API_BASE_URL, getToken } from './authService';
+import { API_BASE_URL, apiFetch, getToken } from './authService';
 
 export type SubscriptionTier = 'free' | 'premium' | 'premium_pro' | 'legenda_plus';
 
@@ -47,7 +47,7 @@ export interface CheckoutResult {
 }
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getToken();
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await apiFetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
