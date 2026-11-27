@@ -13,6 +13,7 @@ import {
 import type { Response } from 'express';
 
 import { AuthService } from './auth.service';
+import { TelegramBotVerifyDto } from './dto/telegram-bot-verify.dto';
 import { TelegramBotService } from './telegram-bot.service';
 import { EmailAuthService } from './email-auth.service';
 import { EmailCodeDto, EmailPasswordResetDto, EmailRequestDto } from './dto/email-auth.dto';
@@ -125,7 +126,7 @@ export class AuthController {
   }
 
   @Post('telegram/bot/verify')
-  verifyTelegramBotCode(@Body() dto: GoogleCodeExchangeDto & { sessionId: string }) {
+  verifyTelegramBotCode(@Body() dto: TelegramBotVerifyDto) {
     return this.authService.verifyTelegramBotCode(dto.sessionId, dto.code);
   }
 
