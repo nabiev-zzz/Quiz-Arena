@@ -47,6 +47,10 @@ export class CommunityService {
     return this.storage.upload(userId, fileName, contentType, buffer);
   }
 
+  verifyMedia(userId: string, mediaKey: string, contentType: string, expectedSize: number) {
+    return this.storage.verify(userId, mediaKey, contentType, expectedSize);
+  }
+
   private async mediaUrl(mediaKey?: string | null) {
     return mediaKey ? this.storage.sign('GET', mediaKey, 86400) : null;
   }
@@ -99,14 +103,16 @@ export class CommunityService {
     };
   }
 
-  async clips(viewerId: string, limit = 30) {
+  async clips(viewerId: string, limit = 30, offset = 0) {
     const posts = await this.posts.createQueryBuilder('post')
       .leftJoinAndSelect('post.author', 'author')
       .where('post.status = :status', { status: 'active' })
       .andWhere('author.status = :authorStatus', { authorStatus: 'active' })
       .andWhere('post.mediaType LIKE :videoType', { videoType: 'video/%' })
       .orderBy('post.createdAt', 'DESC')
-      .take(Math.min(Math.max(limit, 1), 50))
+      .addOrderBy('post.id', 'DESC')
+      .skip(Math.min(Math.max(Math.floor(offset), 0), 10000))
+      .take(Math.min(Math.max(Math.floor(limit), 1), 50))
       .getMany();
     return Promise.all(posts.map(async (post) => {
       const [likesCount, commentsCount, liked, mediaUrl] = await Promise.all([
