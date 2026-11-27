@@ -7,6 +7,7 @@ import { ZcTransaction } from './entities/zc-transaction.entity';
 import { ZcStoreItem } from './entities/zc-store-item.entity';
 import { UsersController } from './users.controller';
 import { CommunityController } from './community.controller';
+import { CommunityPlaybackController } from './community-playback.controller';
 import { CommunityLearningController } from './community-learning.controller';
 import { CommunityLearningService } from './community-learning.service';
 import { CommunityService } from './community.service';
@@ -36,7 +37,7 @@ import { DirectMessagesGateway } from './direct-messages.gateway';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, UserFollow, ZcTransaction, ZcStoreItem, DailyTaskProgress, UserNotification, CommunityPost, CommunityPostLike, CommunityPostComment, CommunityPostSave, CommunityStory, CommunityStoryView, DirectConversation, DirectMessage]), AuthModule],
-  controllers: [DirectMessagesController, CommunityLearningController, CommunityController, UsersController, ZcWalletController, ZcStoreController, DailyTasksController, NotificationsController],
+  controllers: [DirectMessagesController, CommunityLearningController, CommunityController, CommunityPlaybackController, UsersController, ZcWalletController, ZcStoreController, DailyTasksController, NotificationsController],
   providers: [CommunityStorageService, CommunityLearningService, CommunityService, UsersService, ZcWalletService, ZcStoreService, DailyTasksService, NotificationsService, DirectMessagesService, DirectMessagesGateway],
   exports: [UsersService, ZcWalletService, ZcStoreService, DailyTasksService],
 })

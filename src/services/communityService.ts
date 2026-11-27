@@ -64,7 +64,10 @@ async function request<T>(path: string, method = 'GET', body?: unknown): Promise
 
 export const getCommunityFeed = () => request<CommunityPost[]>('/api/community/posts?limit=40');
 export const getCommunityClips = (limit = 40, offset = 0) => request<CommunityPost[]>(`/api/community/clips?limit=${Math.min(50, Math.max(1, limit))}&offset=${Math.max(0, offset)}`);
-export const getCommunityClipPlayback = (id: string) => request<{ url: string; mediaType: string }>(`/api/community/clips/${encodeURIComponent(id)}/playback`);
+export const getCommunityClipPlayback = async (id: string) => {
+  const playback = await request<{ url: string; mediaType: string }>(`/api/community/clips/${encodeURIComponent(id)}/playback`);
+  return { ...playback, url: playback.url.startsWith('http') ? playback.url : `${API_BASE_URL}${playback.url}` };
+};
 export const createCommunityClip = (content: string, mediaKey: string, mediaType: string, subject?: string) =>
   request<CommunityPost>('/api/community/clips', 'POST', { content, mediaKey, mediaType, subject });
 export const createCommunityPost = (content: string, mediaKey?: string, mediaType?: string) =>
