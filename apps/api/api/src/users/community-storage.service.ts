@@ -135,6 +135,23 @@ export class CommunityStorageService {
     }
   }
 
+  async fetchVideoStream(mediaKey: string, range?: string) {
+    const headers: Record<string, string> = {};
+    if (range && /^bytes=\d*-\d*$/.test(range)) headers.Range = range;
+    const response = await fetch(this.sign('GET', mediaKey, 600), { headers });
+    if (!response.ok && response.status !== 206) {
+      throw new InternalServerErrorException('Video oqimini saqlash joyidan olib bo‘lmadi');
+    }
+    return {
+      status: response.status,
+      body: response.body,
+      contentType: response.headers.get('content-type') || 'video/mp4',
+      contentLength: response.headers.get('content-length'),
+      contentRange: response.headers.get('content-range'),
+      acceptRanges: response.headers.get('accept-ranges') || 'bytes',
+    };
+  }
+
   async upload(userId: string, fileName: string, contentType: string, buffer: Buffer) {
     const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm', 'application/pdf': 'pdf', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
     const extension = extensions[contentType];

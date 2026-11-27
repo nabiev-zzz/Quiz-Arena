@@ -57,13 +57,21 @@ export class CommunityService {
     return mediaKey ? this.storage.sign('GET', mediaKey, 86400) : null;
   }
 
-  async getClipPlaybackUrl(postId: string) {
+  async getClipPlaybackAsset(postId: string) {
     const post = await this.posts.findOne({ where: { id: postId, status: 'active' } });
     if (!post || !post.mediaKey || !post.mediaType?.startsWith('video/')) {
       throw new NotFoundException('Lavha topilmadi');
     }
     const playbackKey = await this.storage.ensureCompatibleVideo(post.authorId, post.mediaKey);
-    return { url: await this.mediaUrl(playbackKey), mediaType: 'video/mp4' };
+    return { userId: post.authorId, mediaKey: playbackKey };
+  }
+
+  async getClipPlaybackStream(userId: string, postId: string, mediaKey: string, range?: string) {
+    const post = await this.posts.findOne({ where: { id: postId, authorId: userId, status: 'active' } });
+    if (!post || !post.mediaKey || !post.mediaType?.startsWith('video/')) throw new NotFoundException('Lavha topilmadi');
+    const expectedKey = await this.storage.ensureCompatibleVideo(post.authorId, post.mediaKey);
+    if (expectedKey !== mediaKey) throw new NotFoundException('Video havolasi yaroqsiz');
+    return this.storage.fetchVideoStream(mediaKey, range);
   }
 
   async feed(viewerId: string, limit = 30) {

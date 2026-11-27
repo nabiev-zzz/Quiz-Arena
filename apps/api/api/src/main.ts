@@ -18,6 +18,8 @@ async function bootstrap() {
       return callback(null, false);
     },
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Range'],
+    exposedHeaders: ['Accept-Ranges', 'Content-Length', 'Content-Range', 'Content-Type'],
   });
 
   app.useGlobalPipes(

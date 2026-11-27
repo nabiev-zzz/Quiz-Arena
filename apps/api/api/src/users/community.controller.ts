@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Headers, Param, Post, Put, Query, Request, UseGuards } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CommunityService } from './community.service';
 interface AuthRequest { user: { id: string }; body?: Buffer }
@@ -6,7 +7,7 @@ interface AuthRequest { user: { id: string }; body?: Buffer }
 @Controller('api/community')
 @UseGuards(JwtAuthGuard)
 export class CommunityController {
-  constructor(private readonly community: CommunityService) {}
+  constructor(private readonly community: CommunityService, private readonly jwt: JwtService) {}
   @Post('media/upload-key')
   uploadKey(@Request() request: AuthRequest, @Body() body: { contentType?: string }) { return this.community.createUploadFileName(request.user.id, body?.contentType ?? ''); }
   @Post('media/verify')
@@ -20,7 +21,11 @@ export class CommunityController {
   @Get('clips')
   clips(@Request() request: AuthRequest, @Query('limit') limit?: string, @Query('offset') offset?: string) { return this.community.clips(request.user.id, Number(limit) || 30, Number(offset) || 0); }
   @Get('clips/:id/playback')
-  clipPlayback(@Param('id') id: string) { return this.community.getClipPlaybackUrl(id); }
+  async clipPlayback(@Param('id') id: string) {
+    const asset = await this.community.getClipPlaybackAsset(id);
+    const token = await this.jwt.signAsync({ purpose: 'community-clip-playback', postId: id, mediaKey: asset.mediaKey, sub: asset.userId }, { expiresIn: 600 });
+    return { url: `/api/community/media/playback/${token}`, mediaType: 'video/mp4' };
+  }
   @Post('clips')
   createClip(@Request() request: AuthRequest, @Body() body: { content?: string; mediaKey?: string; mediaType?: string; subject?: string }) {
     return this.community.createClip(request.user.id, body?.content ?? '', body?.mediaKey ?? '', body?.mediaType ?? '', body?.subject);

@@ -78,6 +78,25 @@ describe('CommunityStorageService video uploads', () => {
     expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('X-Amz-Algorithm=AWS4-HMAC-SHA256'), { method: 'HEAD' });
   });
 
+
+  it('proxies byte-range video requests to storage and preserves partial response headers', async () => {
+    Object.assign(process.env, {
+      COMMUNITY_S3_ENDPOINT: 'https://storage.example.test',
+      COMMUNITY_S3_BUCKET: 'zelqen-media',
+      COMMUNITY_S3_REGION: 'auto',
+      COMMUNITY_S3_ACCESS_KEY_ID: 'test-access',
+      COMMUNITY_S3_SECRET_ACCESS_KEY: 'test-secret',
+    });
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(new Uint8Array([1, 2, 3]), {
+      status: 206,
+      headers: { 'content-type': 'video/mp4', 'content-length': '3', 'content-range': 'bytes 0-2/10', 'accept-ranges': 'bytes' },
+    }));
+    const service = new CommunityStorageService();
+    const result = await service.fetchVideoStream('community/user-123/clip.playable.mp4', 'bytes=0-2');
+    expect(result).toMatchObject({ status: 206, contentType: 'video/mp4', contentLength: '3', contentRange: 'bytes 0-2/10', acceptRanges: 'bytes' });
+    expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('clip.playable.mp4'), { headers: { Range: 'bytes=0-2' } });
+  });
+
   it('rejects verification requests for another user media key', async () => {
     const service = new CommunityStorageService();
     await expect(service.verify('user-123', 'community/another-user/123e4567-e89b-12d3-a456-426614174000.mp4', 'video/mp4', 4096))

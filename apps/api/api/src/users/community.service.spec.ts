@@ -22,7 +22,7 @@ describe('CommunityService clip interactions', () => {
   const saves = { createQueryBuilder: jest.fn(() => saveBuilder), delete: jest.fn().mockResolvedValue(undefined), exists: jest.fn() };
   const stories = {};
   const storyViews = {};
-  const storage = { ensureCompatibleVideo: jest.fn(), sign: jest.fn() };
+  const storage = { ensureCompatibleVideo: jest.fn(), sign: jest.fn(), fetchVideoStream: jest.fn() };
   const dataSource = {};
   const wallet = {};
   let service: CommunityService;
@@ -43,7 +43,7 @@ describe('CommunityService clip interactions', () => {
     );
   });
 
-  it('lazily converts older clips to a compatible MP4 playback URL', async () => {
+  it('lazily converts older clips to a compatible MP4 playback asset', async () => {
     const legacyPost = {
       id: 'clip-1',
       status: 'active',
@@ -53,14 +53,29 @@ describe('CommunityService clip interactions', () => {
     } as CommunityPost;
     posts.findOne.mockResolvedValue(legacyPost);
     storage.ensureCompatibleVideo.mockResolvedValue('community/user-2/123e4567-e89b-12d3-a456-426614174000.playable.mp4');
-    storage.sign.mockReturnValue('https://media.example.test/clip.playable.mp4?signature=test');
-
-    await expect(service.getClipPlaybackUrl('clip-1')).resolves.toEqual({
-      url: 'https://media.example.test/clip.playable.mp4?signature=test',
-      mediaType: 'video/mp4',
+    await expect(service.getClipPlaybackAsset('clip-1')).resolves.toEqual({
+      userId: 'user-2',
+      mediaKey: 'community/user-2/123e4567-e89b-12d3-a456-426614174000.playable.mp4',
     });
     expect(storage.ensureCompatibleVideo).toHaveBeenCalledWith('user-2', legacyPost.mediaKey);
-    expect(storage.sign).toHaveBeenCalledWith('GET', 'community/user-2/123e4567-e89b-12d3-a456-426614174000.playable.mp4', 86400);
+  });
+
+
+  it('streams only the current owner-scoped playable asset and forwards byte ranges', async () => {
+    const playableKey = 'community/user-2/123e4567-e89b-12d3-a456-426614174000.playable.mp4';
+    posts.findOne.mockResolvedValue(Object.assign({}, post, { mediaKey: 'community/user-2/123e4567-e89b-12d3-a456-426614174000.mov' }) as CommunityPost);
+    storage.ensureCompatibleVideo.mockResolvedValue(playableKey);
+    storage.fetchVideoStream.mockResolvedValue({ status: 206, contentRange: 'bytes 0-99/1000' });
+    await service.getClipPlaybackStream('user-2', 'clip-1', playableKey, 'bytes=0-99');
+    expect(storage.fetchVideoStream).toHaveBeenCalledWith(playableKey, 'bytes=0-99');
+  });
+
+  it('rejects playback tokens that point to another media object', async () => {
+    posts.findOne.mockResolvedValue(Object.assign({}, post, { mediaKey: 'community/user-2/source.mov' }) as CommunityPost);
+    storage.ensureCompatibleVideo.mockResolvedValue('community/user-2/expected.playable.mp4');
+    await expect(service.getClipPlaybackStream('user-2', 'clip-1', 'community/user-2/other.playable.mp4'))
+      .rejects.toThrow('Video havolasi yaroqsiz');
+    expect(storage.fetchVideoStream).not.toHaveBeenCalled();
   });
 
   it('saves a video clip idempotently', async () => {
