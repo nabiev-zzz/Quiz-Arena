@@ -1,4 +1,4 @@
-import { API_BASE_URL, getToken } from './authService';
+import { API_BASE_URL, apiFetch, getToken } from './authService';
 
 export interface ZcTransactionItem {
   id: string;
@@ -19,7 +19,7 @@ export interface ZcHistoryResponse {
 export async function getZcHistory(limit = 10): Promise<ZcHistoryResponse> {
   const token = await getToken();
   if (!token) throw new Error('Avval hisobingizga kiring');
-  const response = await fetch(
+  const response = await apiFetch(
     `${API_BASE_URL}/api/wallet/zc/history?limit=${Math.min(Math.max(limit, 1), 100)}`,
     { headers: { Authorization: `Bearer ${token}` } },
   );
