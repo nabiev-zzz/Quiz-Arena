@@ -127,7 +127,7 @@ export class TelegramBotService implements OnModuleInit {
     const sender = message?.from;
     if (!message || !sender || !Number.isSafeInteger(sender.id)) return;
 
-    if (message.text?.trim().split(/\\s+/, 1)[0] === '/start') {
+    if (message.text?.trim().split(/\s+/, 1)[0] === '/start') {
       await this.sendMessage(
         message.chat.id,
         'QUIZ ARENA ro‘yxatdan o‘tish xizmatiga xush kelibsiz! Davom etish uchun o‘z telefon raqamingizni yuboring.',
