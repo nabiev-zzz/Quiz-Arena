@@ -136,7 +136,7 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
               <Ionicons name={historyExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={colors.primary} />
             </Pressable>
             {historyExpanded ? (
-              history.length ? history.slice(0, 5).map((item) => (
+              history.length ? history.slice(0, 100).map((item) => (
                 <View key={item.id} style={styles.historyItem}>
                   <View style={{ flex: 1 }}>
                     <LocalizedText style={styles.historyTitle} numberOfLines={1}>{item.topicName}</LocalizedText>
