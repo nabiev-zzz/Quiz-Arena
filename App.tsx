@@ -93,7 +93,6 @@ function AppContent() {
     requestEmailPasswordReset,
     resetEmailPassword,
     startGoogleLogin,
-    startTelegramLogin,
     createTelegramRegistration,
     verifyTelegramRegistration,
     completeTelegramRegistration,
