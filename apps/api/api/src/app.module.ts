@@ -40,6 +40,7 @@ import { CreateAuthOtps20261124150000 } from './database/migrations/CreateAuthOt
 import { CreateAuthOAuthCodes20261124151000 } from './database/migrations/CreateAuthOAuthCodes';
 import { CreateAuthEmailCodes20261124170000 } from './database/migrations/CreateAuthEmailCodes';
 import { AddTelegramIdentity20261124190000 } from './database/migrations/AddTelegramIdentity';
+import { CreateTelegramBotAuthSessions20261128120000 } from './database/migrations/CreateTelegramBotAuthSessions';
 import { AddAvatarImageSupport20261124230000 } from './database/migrations/AddAvatarImageSupport';
 import { CreateFeatureUsage20261124203000 } from './database/migrations/CreateFeatureUsage';
 import { CreateAiGenerationJobs20261125100000 } from './database/migrations/CreateAiGenerationJobs';
@@ -93,6 +94,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         CreateAuthOAuthCodes20261124151000,
         CreateAuthEmailCodes20261124170000,
         AddTelegramIdentity20261124190000,
+        CreateTelegramBotAuthSessions20261128120000,
         AddAvatarImageSupport20261124230000,
         CreateFeatureUsage20261124203000,
         CreateAiGenerationJobs20261125100000,
