@@ -46,7 +46,7 @@ export default function QaAdminScreen({ onBack }: { onBack: () => void }) {
     finally { setLoading(false); }
   };
   const field = (label: string, value: string, set: (v: string) => void, placeholder: string) => <View style={styles.field}><Text style={[styles.label,{color:tokens.colors.textMuted}]}>{label}</Text><TextInput value={value} onChangeText={set} keyboardType="numeric" placeholder={placeholder} placeholderTextColor={tokens.colors.textMuted} style={[styles.input,{color:tokens.colors.text,borderColor:tokens.colors.glassBorder,backgroundColor:tokens.colors.surface}]} /></View>;
-  return <ScrollView style={{flex:1,backgroundColor:tokens.colors.background}} contentContainerStyle={styles.container}>
+  return <ScrollView style={{flex:1,backgroundColor:'transparent'}} contentContainerStyle={styles.container}>
     <View style={styles.header}><Pressable onPress={onBack} style={[styles.back,{backgroundColor:tokens.colors.surface}]}><Ionicons name="arrow-back" size={21} color={tokens.colors.text}/></Pressable><Text style={[styles.title,{color:tokens.colors.text}]}>Admin boshqaruvi</Text></View>
     <View style={[styles.card,{backgroundColor:tokens.colors.surface,borderColor:tokens.colors.glassBorder}]}>
       <Text style={[styles.heading,{color:tokens.colors.text}]}>Akkauntni topish</Text>
