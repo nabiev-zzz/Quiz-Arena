@@ -19,6 +19,8 @@ export class CommunityController {
   }
   @Get('clips')
   clips(@Request() request: AuthRequest, @Query('limit') limit?: string, @Query('offset') offset?: string) { return this.community.clips(request.user.id, Number(limit) || 30, Number(offset) || 0); }
+  @Get('clips/:id/playback')
+  clipPlayback(@Param('id') id: string) { return this.community.getClipPlaybackUrl(id); }
   @Post('clips')
   createClip(@Request() request: AuthRequest, @Body() body: { content?: string; mediaKey?: string; mediaType?: string; subject?: string }) {
     return this.community.createClip(request.user.id, body?.content ?? '', body?.mediaKey ?? '', body?.mediaType ?? '', body?.subject);
