@@ -602,7 +602,7 @@ function AppContent() {
             onLogin={login}
             onRegisterPress={() => setAuthScreen('register')}
             onGoogleLogin={startGoogleLogin}
-            onTelegramLogin={() => setAuthScreen('telegram')}
+            onTelegramLogin={async () => { setAuthScreen('telegram'); }}
             onPasswordResetRequest={requestEmailPasswordReset}
             onPasswordReset={resetEmailPassword}
           />
