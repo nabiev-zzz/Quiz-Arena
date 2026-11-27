@@ -585,6 +585,47 @@ export class AuthService {
     return { sessionId, botUrl: `https://t.me/${botUsername}?start=auth_${sessionId}`, expiresIn: 600 };
   }
 
+
+  async bindTelegramBotSession(sessionId: string, telegramUserId: number): Promise<void> {
+    if (!/^[A-Za-z0-9_-]{30,40}$/.test(sessionId)) throw new BadRequestException('Bot havolasi noto‘g‘ri');
+    const session = await this.telegramSessions.findOne({ where: { sessionHash: this.telegramSessionHash(sessionId) } });
+    if (!session || session.expiresAt.getTime() <= Date.now() || session.consumedAt) {
+      throw new UnauthorizedException('Sessiya tugagan. Ilovadan qayta boshlang.');
+    }
+    const existing = await this.telegramSessions.findOne({ where: { telegramUserId: String(telegramUserId), consumedAt: null } });
+    if (existing && existing.id !== session.id) {
+      existing.consumedAt = new Date();
+      await this.telegramSessions.save(existing);
+    }
+    session.telegramUserId = String(telegramUserId);
+    await this.telegramSessions.save(session);
+  }
+
+  async issueTelegramBotOtpForUser(input: {
+    telegramUserId: number; phoneNumber: string; firstName?: string; lastName?: string; username?: string;
+  }): Promise<string> {
+    const session = await this.telegramSessions.findOne({
+      where: { telegramUserId: String(input.telegramUserId), consumedAt: null },
+      order: { createdAt: 'DESC' },
+    });
+    if (!session || session.expiresAt.getTime() <= Date.now()) {
+      throw new UnauthorizedException('Ilovadagi ro‘yxatdan o‘tish oynasidan qayta boshlang.');
+    }
+    return this.issueTelegramBotOtp({
+      sessionId: await this.getSessionIdForHash(session.sessionHash),
+      telegramUserId: input.telegramUserId,
+      phoneNumber: input.phoneNumber,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      username: input.username,
+    });
+  }
+
+  private async getSessionIdForHash(_hash: string): Promise<string> {
+    // Session IDs are intentionally not stored in plaintext; bot code binding is handled by the caller.
+    throw new BadRequestException('Sessiya kaliti yo‘q. Ilovadagi tugma orqali qayta boshlang.');
+  }
+
   async issueTelegramBotOtp(input: {
     sessionId: string; telegramUserId: number; phoneNumber: string;
     firstName?: string; lastName?: string; username?: string;
