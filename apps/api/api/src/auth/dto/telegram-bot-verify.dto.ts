@@ -6,6 +6,6 @@ export class TelegramBotVerifyDto {
   sessionId: string;
 
   @IsString()
-  @Matches(/^\\d{6}$/)
+  @Matches(/^\d{6}$/)
   code: string;
 }
