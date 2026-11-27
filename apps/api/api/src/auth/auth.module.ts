@@ -11,6 +11,7 @@ import { AuthOAuthCode } from './entities/auth-oauth-code.entity';
 import { AuthEmailCode } from './entities/auth-email-code.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { TelegramBotService } from './telegram-bot.service';
 import { AuthOtpService } from './auth-otp.service';
 import { EmailAuthService } from './email-auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -28,7 +29,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthOtpService, EmailAuthService, JwtStrategy],
+  providers: [AuthService, AuthOtpService, EmailAuthService, TelegramBotService, JwtStrategy],
   exports: [AuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}
