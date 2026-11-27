@@ -269,7 +269,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
 
 function makeStyles(c: CommunityColors, isDark: boolean) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: c.background },
+    screen: { flex: 1, backgroundColor: 'transparent' },
     header: { minHeight: 80, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 9, paddingBottom: 11, borderBottomWidth: 1, borderBottomColor: c.glassBorder, backgroundColor: c.background },
     back: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
     headerIdentity: { flex: 1, minWidth: 0, gap: 2 },
