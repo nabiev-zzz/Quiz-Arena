@@ -1,6 +1,6 @@
 
 import { io, Socket } from 'socket.io-client';
-import { API_BASE_URL } from '../config/api';
+import { API_BASE_URL, apiFetch } from '../config/api';
 import { getToken } from './authService';
 
 export type BattleMode = 'casual' | 'ranked' | 'private';
@@ -168,7 +168,7 @@ async function authenticatedRequest<T>(
     throw new Error('Tizimga qayta kiring. Token topilmadi.');
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await apiFetch(`${API_BASE_URL}${endpoint}`, {
     method: 'GET',
     headers: {
       Accept: 'application/json',
