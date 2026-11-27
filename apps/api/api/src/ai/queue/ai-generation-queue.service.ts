@@ -1,4 +1,208 @@
-edJob.id }, { queueEnqueuedAt: new Date() });
+import { HttpException, HttpStatus, Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Queue } from 'bullmq';
+import Redis from 'ioredis';
+import { createHash } from 'node:crypto';
+import { In, IsNull, Repository } from 'typeorm';
+import { FeatureUsageService } from '../../subscriptions/feature-usage.service';
+import { AiGenerationJob, AiGenerationJobType } from '../entities/ai-generation-job.entity';
+
+function boundedInteger(value: string | undefined, fallback: number, min: number, max: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed)
+    ? Math.min(max, Math.max(min, Math.floor(parsed)))
+    : fallback;
+}
+
+export const AI_GENERATION_QUEUE = 'ai-generation';
+export const AI_GENERATION_PREFIX = `quiz-arena:${process.env.NODE_ENV || 'development'}:ai-bull`;
+
+export function createAiQueueRedisConnection(): Redis {
+  const url = process.env.AI_QUEUE_REDIS_URL?.trim() || process.env.REDIS_URL?.trim() || process.env.VALKEY_URL?.trim();
+  const host = process.env.AI_QUEUE_REDIS_HOST?.trim() || process.env.VALKEY_HOST?.trim();
+  if (url) {
+    return new Redis(url, {
+      lazyConnect: true,
+      connectTimeout: 5000,
+      maxRetriesPerRequest: null,
+      enableReadyCheck: true,
+      retryStrategy: (times) => times > 2 ? null : Math.min(times * 250, 1000),
+    });
+  }
+  if (!host) throw new Error('AI queue uchun REDIS_URL, VALKEY_URL yoki VALKEY_HOST sozlanmagan.');
+  return new Redis({
+    host,
+    port: Number(process.env.AI_QUEUE_REDIS_PORT || process.env.VALKEY_PORT || 6379),
+    password: process.env.AI_QUEUE_REDIS_PASSWORD || process.env.VALKEY_PASSWORD || undefined,
+    lazyConnect: true,
+    connectTimeout: 5000,
+    maxRetriesPerRequest: null,
+    enableReadyCheck: true,
+    retryStrategy: (times) => times > 2 ? null : Math.min(times * 250, 1000),
+  });
+}
+
+@Injectable()
+export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(AiGenerationQueueService.name);
+  private redis: Redis | null = null;
+  private queue: Queue | null = null;
+
+  constructor(
+    @InjectRepository(AiGenerationJob)
+    private readonly jobs: Repository<AiGenerationJob>,
+    private readonly featureUsage: FeatureUsageService,
+  ) {}
+
+  async onModuleInit(): Promise<void> {
+    if (!process.env.AI_QUEUE_REDIS_URL?.trim() && !process.env.AI_QUEUE_REDIS_HOST?.trim() && !process.env.REDIS_URL?.trim() && !process.env.VALKEY_URL?.trim() && !process.env.VALKEY_HOST?.trim()) {
+      this.logger.warn('AI BullMQ navbati sozlanmagan; AI generation so‘rovlari 503 bilan qaytariladi.');
+      return;
+    }
+    try {
+      this.redis = createAiQueueRedisConnection();
+      await this.redis.connect();
+      await this.redis.ping();
+      this.queue = new Queue(AI_GENERATION_QUEUE, {
+        connection: this.redis,
+        prefix: AI_GENERATION_PREFIX,
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 3000 },
+          removeOnComplete: { age: 24 * 60 * 60, count: 2000 },
+          removeOnFail: { age: 7 * 24 * 60 * 60, count: 5000 },
+        },
+      });
+      await this.queue.waitUntilReady();
+      this.logger.log('AI BullMQ navbati tayyor (Battle navbatidan alohida namespace).');
+      if (process.env.AI_WORKER_PROCESS === 'true') await this.reconcilePendingJobs();
+    } catch (error) {
+      this.queue = null;
+      if (this.redis) this.redis.disconnect();
+      this.redis = null;
+      this.logger.error(`AI BullMQ ulanmagan: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    if (this.queue) await this.queue.close();
+    if (this.redis) {
+      if (this.redis.status === 'ready') await this.redis.quit();
+      else this.redis.disconnect();
+    }
+  }
+
+  async enqueue(input: {
+    userId: string | null;
+    jobType: AiGenerationJobType;
+    payload: Record<string, unknown>;
+    fileBuffer?: Buffer;
+    quotaFeature?: string;
+    idempotencyKey?: string;
+  }): Promise<{ status: 'queued' | 'active' | 'completed'; jobId: string; message: string; result?: Record<string, unknown> | null; usage?: unknown }> {
+    if (!this.queue) {
+      throw new ServiceUnavailableException('AI navbati vaqtincha ishlamayapti. Iltimos, birozdan keyin qayta urinib ko‘ring.');
+    }
+
+    const idempotencyKey = input.idempotencyKey
+      ? createHash('sha256').update(input.idempotencyKey).digest('hex')
+      : null;
+    const ownerWhere = input.userId ? { userId: input.userId } : { userId: IsNull() };
+    if (idempotencyKey) {
+      const existing = await this.jobs.findOne({ where: { ...ownerWhere, idempotencyKey } });
+      if (existing && ['queued', 'active', 'completed'].includes(existing.status)) {
+        return {
+          status: existing.status as 'queued' | 'active' | 'completed',
+          jobId: existing.id,
+          message: existing.status === 'completed' ? 'Natija tayyor.' : 'Test tayyorlanmoqda',
+          result: existing.result,
+        };
+      }
+      if (existing?.status === 'failed') {
+        const oldBullJob = await this.queue.getJob(existing.id);
+        if (oldBullJob) await oldBullJob.remove();
+        await this.jobs.update({ id: existing.id }, { idempotencyKey: null });
+      }
+    }
+
+    const waitingCount = await this.queue.getWaitingCount();
+    const maxWaiting = boundedInteger(process.env.AI_QUEUE_MAX_WAITING, 100_000, 100, 1_000_000);
+    if (waitingCount >= maxWaiting) {
+      throw new ServiceUnavailableException('AI navbati band. So‘rovingizni birozdan keyin qayta yuboring.');
+    }
+    if (input.userId) {
+      const maxPendingPerUser = boundedInteger(process.env.AI_MAX_PENDING_JOBS_PER_USER, 5, 1, 20);
+      const pendingCount = await this.jobs.count({
+        where: { userId: input.userId, status: In(['queued', 'active']) },
+      });
+      if (pendingCount >= maxPendingPerUser) {
+        throw new HttpException('Sizda bajarilayotgan AI so‘rovlari ko‘p. Avval mavjud natijalarni kuting.', HttpStatus.TOO_MANY_REQUESTS);
+      }
+    }
+
+    const job = this.jobs.create({
+      userId: input.userId,
+      jobType: input.jobType,
+      status: 'queued',
+      payload: input.payload,
+      fileBuffer: input.fileBuffer ?? null,
+      result: null,
+      error: null,
+      quotaFeature: input.quotaFeature ?? null,
+      quotaConsumed: false,
+      quotaRefunded: false,
+      idempotencyKey,
+      attempts: 0,
+      priority: 50,
+      queueEnqueuedAt: null,
+    });
+    let persistedJob: AiGenerationJob;
+    try {
+      persistedJob = await this.jobs.save(job);
+    } catch (error) {
+      // A concurrent identical request may have won the unique idempotency key.
+      if (idempotencyKey) {
+        const existing = await this.jobs.findOne({ where: { ...ownerWhere, idempotencyKey } });
+        if (existing) return { status: existing.status as 'queued' | 'active' | 'completed', jobId: existing.id, message: existing.status === 'completed' ? 'Natija tayyor.' : 'Test tayyorlanmoqda', result: existing.result };
+      }
+      throw error;
+    }
+
+    let usage: unknown;
+    if (input.quotaFeature) {
+      if (!input.userId) {
+        await this.jobs.update({ id: persistedJob.id }, { status: 'failed', error: 'Quota owner missing.', fileBuffer: null, completedAt: new Date() });
+        throw new Error('Quota bilan AI job yaratish uchun userId talab qilinadi.');
+      }
+      try {
+        usage = await this.featureUsage.consume(input.userId, input.quotaFeature);
+      } catch (error) {
+        await this.jobs.update({ id: persistedJob.id }, { status: 'failed', error: 'Quota tekshiruvi bajarilmadi.', fileBuffer: null, completedAt: new Date() });
+        throw error;
+      }
+      if (!(usage as { allowed?: boolean }).allowed) {
+        await this.jobs.update({ id: persistedJob.id }, { status: 'failed', error: 'Tarif limitingiz tugagan.', fileBuffer: null, completedAt: new Date() });
+        throw new HttpException('Ushbu AI funksiyasi uchun tarif limitingiz tugagan.', HttpStatus.TOO_MANY_REQUESTS);
+      }
+      await this.jobs.update({ id: persistedJob.id }, { quotaConsumed: true, payload: { ...input.payload, _jobId: persistedJob.id, ...(usage ? { _quotaReceipt: usage } : {}) } });
+    } else {
+      await this.jobs.update({ id: persistedJob.id }, { payload: { ...input.payload, _jobId: persistedJob.id } });
+    }
+
+    try {
+      const tier = (usage as { tier?: string } | undefined)?.tier;
+      const tierPriority = tier === 'premium_pro' ? 1 : tier === 'premium' ? 10 : 20;
+      const taskOffset = input.jobType === 'ai_tutor' ? 0
+        : input.jobType === 'topic_questions' ? 1
+        : input.jobType === 'smart_practice' ? 2
+        : input.jobType === 'ai_generate' ? 3
+        : input.jobType === 'document_quiz' ? 4
+        : 0;
+      const priority = input.userId ? tierPriority + taskOffset : 100;
+      await this.jobs.update({ id: persistedJob.id }, { priority });
+      await this.queue.add(input.jobType, { jobId: persistedJob.id }, { jobId: persistedJob.id, priority });
+      try {
+        await this.jobs.update({ id: persistedJob.id }, { queueEnqueuedAt: new Date() });
       } catch (ackError) {
         this.logger.warn(`AI job ${persistedJob.id} queued but enqueue acknowledgement failed: ${ackError instanceof Error ? ackError.message : String(ackError)}`);
       }
