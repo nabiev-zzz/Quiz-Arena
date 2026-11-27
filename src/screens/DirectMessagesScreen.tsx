@@ -34,14 +34,17 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
   const [draft, setDraft] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const socketRef = useRef<Socket | null>(null);
 
-  const loadConversations = useCallback(async () => {
+  const loadConversations = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
+    setLoadError(false);
     try { setConversations(await getDirectConversations()); }
-    catch (error) { showLocalizedAlert('Xabarlar', error instanceof Error ? error.message : 'Suhbatlar yuklanmadi'); }
-    finally { setLoading(false); }
+    catch { setLoadError(true); }
+    finally { if (!quiet) setLoading(false); }
   }, []);
 
   const loadMessages = useCallback(async (conversationId: string) => {
@@ -61,7 +64,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
       if (!alive) { client.disconnect(); return; }
       socketRef.current = client;
       client.on('direct:message', (message: DirectMessage) => {
-        void loadConversations();
+        void loadConversations(true);
         setActive((current) => {
           if (current?.id === message.conversationId) {
             setMessages((rows) => rows.some((row) => row.id === message.id) ? rows : [...rows, message]);
@@ -81,7 +84,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      void loadConversations();
+      void loadConversations(true);
       if (active) void loadMessages(active.id);
     }, 5000);
     return () => clearInterval(timer);
@@ -120,7 +123,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
       const message = await sendDirectMessage(active.id, text);
       setMessages((rows) => rows.some((row) => row.id === message.id) ? rows : [...rows, message]);
       setDraft('');
-      void loadConversations();
+      void loadConversations(true);
     } catch (error) { showLocalizedAlert('Xabar yuborilmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring'); }
     finally { setSending(false); }
   };
@@ -214,7 +217,6 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
           <View style={styles.listIntro}>
             <View style={styles.listIntroCopy}>
               <LocalizedText style={styles.listHeading}>Suhbatlaringiz</LocalizedText>
-              <LocalizedText style={styles.listSubheading}>Barcha shaxsiy xabarlar bir joyda.</LocalizedText>
             </View>
             <View style={styles.totalPill}>
               <LocalizedText style={styles.totalNumber}>{conversations.length}</LocalizedText>
@@ -228,9 +230,9 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
           </View>
           <View style={styles.sectionHeader}>
             <LocalizedText style={styles.sectionTitle}>Oxirgi suhbatlar</LocalizedText>
-            <LocalizedText style={styles.sectionHint}>YANGILANIB TURADI</LocalizedText>
+            <LocalizedText style={styles.sectionHint}>SO‘NGGI</LocalizedText>
           </View>
-          {loading ? <ActivityIndicator color={c.primary} style={{ marginTop: 35 }} /> : filteredConversations.map((conversation) => (
+          {loading ? <ActivityIndicator color={c.primary} style={{ marginTop: 35 }} /> : loadError ? <View style={styles.empty}><View style={styles.emptyIcon}><Ionicons name="cloud-offline-outline" size={30} color={c.primary}/></View><LocalizedText style={styles.emptyTitle}>Xabarlar yuklanmadi</LocalizedText><LocalizedText style={styles.emptyText}>Internetni tekshirib, qayta urinib ko‘ring.</LocalizedText><Pressable onPress={()=>void loadConversations()} style={styles.clearSearch}><LocalizedText style={styles.clearSearchText}>Qayta urinish</LocalizedText></Pressable></View> : filteredConversations.map((conversation) => (
             <Pressable key={conversation.id} style={({ pressed }) => [styles.conversation, pressed && styles.conversationPressed]} onPress={() => openConversation(conversation)} accessibilityRole="button">
               <View style={styles.conversationAvatar}>
                 {personAvatar(conversation.otherUser, 54)}
@@ -251,11 +253,11 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
               <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
             </Pressable>
           ))}
-          {!loading && filteredConversations.length === 0 && (
+          {!loading && !loadError && filteredConversations.length === 0 && (
             <View style={styles.empty}>
               <View style={styles.emptyIcon}><Ionicons name={search ? 'search-outline' : 'paper-plane-outline'} size={30} color={c.primary} /></View>
               <LocalizedText style={styles.emptyTitle}>{search ? 'Hech narsa topilmadi' : 'Hali suhbatlar yo‘q'}</LocalizedText>
-              <LocalizedText style={styles.emptyText}>{search ? 'Boshqa ism yoki kalit so‘z bilan qidirib ko‘ring.' : 'Hamjamiyatdagi foydalanuvchi profilini oching va “Xabar yuborish” tugmasini bosing.'}</LocalizedText>
+              <LocalizedText style={styles.emptyText}>{search ? 'Boshqa so‘z bilan qidiring.' : 'Profil orqali xabar yuboring.'}</LocalizedText>
               {search.length > 0 && <Pressable onPress={() => setSearch('')} style={styles.clearSearch}><LocalizedText style={styles.clearSearchText}>Qidiruvni tozalash</LocalizedText></Pressable>}
             </View>
           )}
@@ -271,16 +273,16 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     header: { minHeight: 80, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 9, paddingBottom: 11, borderBottomWidth: 1, borderBottomColor: c.glassBorder, backgroundColor: c.background },
     back: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
     headerIdentity: { flex: 1, minWidth: 0, gap: 2 },
-    eyebrow: { color: c.primary, fontSize: 9, fontWeight: '900', letterSpacing: 1.7 },
+    eyebrow: { color: c.primary, fontSize: 11, fontWeight: '800', letterSpacing: 1.1 },
     title: { color: c.text, fontSize: 21, fontWeight: '900', letterSpacing: -0.55 },
     headerChatMark: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(139,92,246,0.15)' : 'rgba(139,92,246,0.09)' },
     avatarShell: { overflow: 'hidden', backgroundColor: c.surfaceElevated },
     avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#30284B' : '#EEE9FF' },
     avatarInitial: { color: c.primary, fontWeight: '900' },
-    personHandle: { color: c.textMuted, fontSize: 11, marginTop: 1 },
+    personHandle: { color: c.textMuted, fontSize: 12, marginTop: 1 },
     chatContext: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 9 },
     contextIcon: { width: 23, height: 23, borderRadius: 8, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
-    contextText: { color: c.textMuted, fontSize: 10, fontWeight: '600' },
+    contextText: { color: c.textMuted, fontSize: 12, fontWeight: '600' },
     messageList: { flex: 1 },
     messageContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 22, flexGrow: 1, justifyContent: 'flex-end' },
     messageRow: { width: '100%', flexDirection: 'row', marginBottom: 10 },
@@ -289,15 +291,15 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     bubble: { maxWidth: '84%', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 9, borderRadius: 23 },
     myBubble: { backgroundColor: c.primary, borderBottomRightRadius: 6 },
     theirBubble: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder, borderBottomLeftRadius: 6 },
-    messageText: { color: c.text, fontSize: 14, lineHeight: 21 },
+    messageText: { color: c.text, fontSize: 15, lineHeight: 22 },
     myMessageText: { color: '#FFFFFF' },
     messageMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 5 },
-    messageTime: { color: c.textMuted, fontSize: 10 },
+    messageTime: { color: c.textMuted, fontSize: 11 },
     myMessageTime: { color: 'rgba(255,255,255,0.76)' },
     firstMessage: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, paddingVertical: 45 },
     firstIcon: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(139,92,246,0.16)' : 'rgba(139,92,246,0.09)' },
     firstTitle: { color: c.text, fontSize: 17, fontWeight: '900', marginTop: 15 },
-    firstHint: { color: c.textMuted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 6 },
+    firstHint: { color: c.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 6 },
     composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: 15, paddingTop: 13, paddingBottom: Platform.OS === 'ios' ? 14 : 12, borderTopWidth: 1, borderTopColor: c.glassBorder, backgroundColor: c.surface },
     inputShell: { flex: 1, minHeight: 48, maxHeight: 125, justifyContent: 'center', borderRadius: 20, paddingHorizontal: 14, backgroundColor: c.background, borderWidth: 1, borderColor: c.glassBorder },
     input: { minHeight: 42, maxHeight: 108, paddingVertical: 10, color: c.text, fontSize: 14, lineHeight: 19 },
@@ -308,15 +310,15 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     listIntro: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
     listIntroCopy: { flex: 1, gap: 4 },
     listHeading: { color: c.text, fontSize: 19, fontWeight: '900', letterSpacing: -0.4 },
-    listSubheading: { color: c.textMuted, fontSize: 12 },
+    listSubheading: { color: c.textMuted, fontSize: 14 },
     totalPill: { minWidth: 58, height: 38, borderRadius: 14, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: isDark ? 'rgba(139,92,246,0.16)' : 'rgba(139,92,246,0.09)', borderWidth: 1, borderColor: c.glassBorder },
     totalNumber: { color: c.primary, fontSize: 14, fontWeight: '900' },
-    totalLabel: { color: c.textMuted, fontSize: 10, fontWeight: '700' },
+    totalLabel: { color: c.textMuted, fontSize: 12, fontWeight: '600' },
     searchBox: { minHeight: 49, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
-    searchInput: { flex: 1, minWidth: 0, height: 47, color: c.text, fontSize: 12 },
+    searchInput: { flex: 1, minWidth: 0, height: 47, color: c.text, fontSize: 14 },
     sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 25, marginBottom: 10 },
-    sectionTitle: { color: c.text, fontSize: 14, fontWeight: '800' },
-    sectionHint: { color: c.textMuted, fontSize: 8, fontWeight: '800', letterSpacing: 1 },
+    sectionTitle: { color: c.text, fontSize: 15, fontWeight: '700' },
+    sectionHint: { color: c.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 0.4 },
     conversation: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 13, paddingVertical: 14, marginBottom: 10, borderRadius: 23, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
     conversationPressed: { opacity: 0.78, transform: [{ scale: 0.992 }] },
     conversationAvatar: { position: 'relative' },
@@ -324,18 +326,18 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     conversationBody: { flex: 1, minWidth: 0 },
     conversationTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
     conversationBottom: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
-    personName: { color: c.text, fontSize: 13, fontWeight: '800', flex: 1 },
-    time: { color: c.textMuted, fontSize: 10, fontWeight: '600' },
+    personName: { color: c.text, fontSize: 15, fontWeight: '700', flex: 1 },
+    time: { color: c.textMuted, fontSize: 12, fontWeight: '600' },
     unreadTime: { color: c.primary, fontWeight: '800' },
-    preview: { flex: 1, color: c.textMuted, fontSize: 11 },
+    preview: { flex: 1, color: c.textMuted, fontSize: 13 },
     unreadPreview: { color: c.text, fontWeight: '700' },
     unread: { minWidth: 21, height: 21, paddingHorizontal: 6, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: c.primary },
-    unreadText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
+    unreadText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
     empty: { alignItems: 'center', paddingHorizontal: 30, paddingTop: 54, paddingBottom: 36 },
     emptyIcon: { width: 72, height: 72, borderRadius: 25, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(139,92,246,0.16)' : 'rgba(139,92,246,0.09)', borderWidth: 1, borderColor: c.glassBorder },
-    emptyTitle: { color: c.text, fontSize: 16, fontWeight: '900', marginTop: 16 },
-    emptyText: { color: c.textMuted, fontSize: 12, lineHeight: 19, textAlign: 'center', marginTop: 7 },
+    emptyTitle: { color: c.text, fontSize: 17, fontWeight: '800', marginTop: 16 },
+    emptyText: { color: c.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 7 },
     clearSearch: { marginTop: 16, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: isDark ? 'rgba(139,92,246,0.17)' : 'rgba(139,92,246,0.09)' },
-    clearSearchText: { color: c.primary, fontSize: 12, fontWeight: '800' },
+    clearSearchText: { color: c.primary, fontSize: 13, fontWeight: '700' },
   });
 }
