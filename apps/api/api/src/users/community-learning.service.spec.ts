@@ -21,6 +21,36 @@ describe('CommunityLearningService', () => {
     service = new CommunityLearningService(db as unknown as DataSource, storage as unknown as CommunityStorageService, wallet as unknown as ZcWalletService);
   });
 
+  it('uses the mapped PostgreSQL displayName column in every community user join', async () => {
+    db.query.mockImplementation(async (...args: unknown[]) => {
+      const sql = String(args[0]);
+      if (sql.includes('SELECT id FROM community_group_members')) return [{ id: 'member-1' }];
+      if (sql.includes('SELECT id FROM community_resources')) return [{ id: 'resource-1' }];
+      if (sql.includes('SELECT id FROM community_questions')) return [{ id: 'question-1' }];
+      return [];
+    });
+
+    await service.groups('user-1');
+    await service.questions('user-1');
+    await service.answers('question-1');
+    await service.resources('user-1');
+    await service.groupMessages('user-1', 'group-1');
+    await service.resourceComments('resource-1');
+    await service.portfolio('user-1');
+    await service.mentors();
+    await service.mentorRequests('mentor-1');
+    await service.marathons('user-1');
+
+    const joinedQueries = db.query.mock.calls
+      .map(([sql]) => String(sql))
+      .filter((sql) => sql.includes('JOIN users u'));
+    expect(joinedQueries.length).toBeGreaterThanOrEqual(10);
+    for (const sql of joinedQueries) {
+      expect(sql).toContain('u."displayName"');
+      expect(sql).not.toContain('u.display_name');
+    }
+  });
+
   it('rejects empty questions before touching the database', async () => {
     await expect(service.createQuestion('user-1', { subject: 'Fizika', title: ' ', body: 'Savol' })).rejects.toBeInstanceOf(BadRequestException);
     expect(db.query).not.toHaveBeenCalled();
