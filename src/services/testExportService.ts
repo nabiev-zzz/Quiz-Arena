@@ -267,9 +267,36 @@ function pptxFiles(attempt: ExportAttempt) {
   return files;
 }
 
+function fromBase64(value: string): Uint8Array {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const clean = value.replace(/[^A-Za-z0-9+/=]/g, '');
+  const output: number[] = [];
+  for (let index = 0; index < clean.length; index += 4) {
+    const a = alphabet.indexOf(clean[index]);
+    const b = alphabet.indexOf(clean[index + 1]);
+    const c = alphabet.indexOf(clean[index + 2]);
+    const d = alphabet.indexOf(clean[index + 3]);
+    output.push((a << 2) | (b >> 4));
+    if (clean[index + 2] !== '=') output.push(((b & 15) << 4) | (c >> 2));
+    if (clean[index + 3] !== '=') output.push(((c & 3) << 6) | d);
+  }
+  return new Uint8Array(output);
+}
+
 async function writeAndShare(name: string, extension: string, mimeType: string, content: string, encoding: 'utf8' | 'base64' = 'utf8') {
   if (Platform.OS === 'web') {
-    throw new Error('Brauzerda ushbu fayl turini eksport qilish uchun ulashish oynasi mavjud emas. PDF uchun PDF eksportini tanlang.');
+    const bytes = encoding === 'base64' ? fromBase64(content) : utf8(content);
+    const blob = new Blob([bytes], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${name}.${extension}`;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return;
   }
   const directory = FileSystem.cacheDirectory;
   if (!directory) throw new Error('Fayl saqlash joyi topilmadi.');
