@@ -17,7 +17,7 @@ export class CommunityStorageService {
   }
   private hmac(key: Buffer | string, value: string) { return createHmac('sha256', key).update(value).digest(); }
   createKey(userId: string, extension: string) { return `community/${userId}/${randomUUID()}.${extension}`; }
-  sign(method: 'GET' | 'PUT', key: string, expiresSeconds = 900) {
+  sign(method: 'GET' | 'PUT' | 'HEAD', key: string, expiresSeconds = 900) {
     const { endpoint, bucket, region, accessKey, secretKey } = this.config();
     const base = new URL(endpoint);
     const canonicalUri = `${base.pathname.replace(/\/$/, '')}/${key.split('/').map((part) => this.encode(part)).join('/')}`;
@@ -40,6 +40,30 @@ export class CommunityStorageService {
     const signature = createHmac('sha256', kSigning).update(stringToSign).digest('hex');
     return `${base.protocol}//${host}${canonicalUri}?${canonicalQuery}&X-Amz-Signature=${signature}`;
   }
+  async verify(userId: string, mediaKey: string, contentType: string, expectedSize: number) {
+    const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm', 'application/pdf': 'pdf', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
+    const extension = extensions[contentType];
+    const prefix = `community/${userId}/`;
+    if (!extension || !mediaKey.startsWith(prefix) || !new RegExp(`^[a-f0-9-]{36}\\.${extension}$`, 'i').test(mediaKey.slice(prefix.length))) {
+      throw new BadRequestException('Media fayl egasi yoki turi noto‘g‘ri');
+    }
+    const maxBytes = contentType.startsWith('video/') ? 30 * 1024 * 1024 : contentType.startsWith('application/') ? 15 * 1024 * 1024 : 8 * 1024 * 1024;
+    if (!Number.isSafeInteger(expectedSize) || expectedSize <= 0 || expectedSize > maxBytes) {
+      throw new BadRequestException('Media fayl hajmi noto‘g‘ri');
+    }
+    const response = await fetch(this.sign('HEAD', mediaKey, 300), { method: 'HEAD' });
+    if (!response.ok) throw new BadRequestException('Server faylni to‘liq qabul qilmagan. Qayta yuklang.');
+    const actualSize = Number(response.headers.get('content-length'));
+    const actualType = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+    if (!Number.isSafeInteger(actualSize) || actualSize !== expectedSize) {
+      throw new BadRequestException('Yuklangan fayl hajmi asl faylga mos emas. Qayta yuklang.');
+    }
+    if (actualType && actualType !== contentType.toLowerCase()) {
+      throw new BadRequestException('Yuklangan fayl formati asl faylga mos emas. Qayta yuklang.');
+    }
+    return { verified: true, size: actualSize, mediaType: contentType };
+  }
+
   async upload(userId: string, fileName: string, contentType: string, buffer: Buffer) {
     const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm', 'application/pdf': 'pdf', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
     const extension = extensions[contentType];
