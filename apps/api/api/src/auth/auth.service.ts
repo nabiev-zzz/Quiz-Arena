@@ -587,7 +587,7 @@ export class AuthService {
 
 
   async bindTelegramBotSession(sessionId: string, telegramUserId: number): Promise<void> {
-    if (!/^[A-Za-z0-9_-]{30,40}$/.test(sessionId)) throw new BadRequestException('Bot havolasi noto‘g‘ri');
+    if (!/^[A-Za-z0-9_-]{30,40}$/.test(sessionId) || !/^\d{6}$/.test(code)) {
     const session = await this.telegramSessions.createQueryBuilder('session').addSelect('session.sessionHash').where('session.sessionHash = :hash', { hash: this.telegramSessionHash(sessionId) }).getOne();
     if (!session || session.expiresAt.getTime() <= Date.now() || session.consumedAt) {
       throw new UnauthorizedException('Sessiya tugagan. Ilovadan qayta boshlang.');
@@ -638,7 +638,7 @@ export class AuthService {
     sessionId: string; telegramUserId: number; phoneNumber: string;
     firstName?: string; lastName?: string; username?: string;
   }): Promise<string> {
-    if (!/^[A-Za-z0-9_-]{30,40}$/.test(input.sessionId)) throw new BadRequestException('Ro‘yxatdan o‘tish sessiyasi noto‘g‘ri');
+    if (!/^[A-Za-z0-9_-]{30,40}$/.test(sessionId) || !/^\d{6}$/.test(code)) {
     const session = await this.telegramSessions.findOne({
       where: { sessionHash: this.telegramSessionHash(input.sessionId) },
     });
@@ -669,7 +669,7 @@ export class AuthService {
   }
 
   async verifyTelegramBotCode(sessionId: string, code: string) {
-    if (!/^[A-Za-z0-9_-]{30,40}$/.test(sessionId) || !/^\\d{6}$/.test(code)) {
+    if (!/^[A-Za-z0-9_-]{30,40}$/.test(sessionId) || !/^\d{6}$/.test(code)) {
       throw new BadRequestException('Sessiya yoki 6 xonali kod noto‘g‘ri');
     }
     const session = await this.telegramSessions.createQueryBuilder('session')
