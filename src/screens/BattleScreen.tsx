@@ -1940,7 +1940,7 @@ function makeStyles(colors: typeof COLORS, dark: boolean) {
   return StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
       overflow: 'hidden',
     },
     ambientGlowOne: {
