@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { File, UploadType } from 'expo-file-system';
 import { API_BASE_URL, getToken } from './authService';
 
 export interface CommunityPerson {
@@ -90,33 +91,68 @@ function putBlobWithProgress(url: string, blob: Blob, headers: Record<string, st
   });
 }
 
-export async function uploadCommunityMedia(uri: string, contentType: string, onProgress?: (percent: number) => void) {
+export async function uploadCommunityMedia(uri: string, contentType: string, onProgress?: (percent: number) => void, expectedSize?: number) {
   const token = await getToken();
   if (!token) throw new Error('Kirish talab qilinadi');
   const key = await request<{ fileName: string; mediaType: string; mediaKey: string; uploadUrl: string }>('/api/community/media/upload-key', 'POST', { contentType });
   onProgress?.(1);
-  const local = await fetch(uri);
-  if (!local.ok) throw new Error('Tanlangan video faylini o‘qib bo‘lmadi');
-  const blob = await local.blob();
   const isVideo = contentType.startsWith('video/');
   const isDocument = contentType.startsWith('application/');
   const maxBytes = isVideo ? 30 * 1024 * 1024 : isDocument ? 15 * 1024 * 1024 : 8 * 1024 * 1024;
-  if (!blob.size || blob.size > maxBytes) throw new Error(isVideo ? 'Video hajmi 30 MB dan oshmasin' : isDocument ? 'Hujjat hajmi 15 MB dan oshmasin' : 'Rasm hajmi 8 MB dan oshmasin');
-  onProgress?.(3);
-
+  const sizeError = isVideo ? 'Video hajmi 30 MB dan oshmasin' : isDocument ? 'Hujjat hajmi 15 MB dan oshmasin' : 'Rasm hajmi 8 MB dan oshmasin';
   const mediaHeaders = { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=31536000, immutable' };
-  if (Platform.OS !== 'web' && key.uploadUrl && key.mediaKey) {
+
+  if (Platform.OS !== 'web') {
+    // Native file:// and content:// URIs must be uploaded as the original file.
+    // fetch(uri).blob() can silently produce truncated/empty blobs on Android.
+    const file = new File(uri);
+    if (!file.exists) throw new Error('Tanlangan fayl qurilmada topilmadi. Videoni qayta tanlang.');
+    const fileSize = file.size;
+    if (!fileSize) throw new Error('Video faylining asl hajmini aniqlab bo‘lmadi. Videoni galereyadan qayta tanlang.');
+    if (fileSize > maxBytes) throw new Error(sizeError);
+    if (expectedSize && fileSize !== expectedSize) throw new Error('Tanlangan video hajmi manba fayliga mos kelmadi. Videoni qayta tanlang.');
+    onProgress?.(3);
+
+    const uploadNative = async (url: string, headers: Record<string, string>) => file.upload(url, {
+      httpMethod: 'PUT', uploadType: UploadType.BINARY_CONTENT, headers,
+      onProgress: ({ bytesSent, totalBytes }) => {
+        if (totalBytes > 0) onProgress?.(Math.min(98, 3 + Math.round((bytesSent / totalBytes) * 95)));
+      },
+    });
+
     try {
-      const direct = await putBlobWithProgress(key.uploadUrl, blob, mediaHeaders, onProgress);
+      const direct = await uploadNative(key.uploadUrl, mediaHeaders);
       if (direct.status >= 200 && direct.status < 300) {
         onProgress?.(100);
         return { mediaKey: key.mediaKey, mediaType: key.mediaType };
       }
     } catch {
-      // Fall back to the authenticated API proxy if the storage endpoint rejects direct mobile upload.
+      // Retry through the authenticated API proxy below; the original file is still streamed natively.
     }
+
+    const proxy = await uploadNative(
+      `${API_BASE_URL}/api/community/media/upload/${encodeURIComponent(key.fileName)}`,
+      { ...mediaHeaders, Authorization: `Bearer ${token}` },
+    );
+    let data: Record<string, unknown> = {};
+    try { data = JSON.parse(proxy.body || '{}') as Record<string, unknown>; } catch { /* handled below */ }
+    if (proxy.status < 200 || proxy.status >= 300) {
+      throw new Error(typeof data.message === 'string' ? data.message : 'Media faylni yuklab bo‘lmadi');
+    }
+    if (typeof data.mediaKey !== 'string' || typeof data.mediaType !== 'string') {
+      throw new Error('Server yuklangan faylni tasdiqlamadi. Qayta urinib ko‘ring.');
+    }
+    onProgress?.(100);
+    return { mediaKey: data.mediaKey, mediaType: data.mediaType };
   }
 
+  // Web uses a Blob and the authenticated proxy (avoids cross-origin storage PUT issues).
+  const local = await fetch(uri);
+  if (!local.ok) throw new Error('Tanlangan video faylini o‘qib bo‘lmadi');
+  const blob = await local.blob();
+  if (!blob.size || blob.size > maxBytes) throw new Error(sizeError);
+  if (expectedSize && blob.size !== expectedSize) throw new Error('Video fayli to‘liq o‘qilmadi. Uni qayta tanlang.');
+  onProgress?.(3);
   const proxy = await putBlobWithProgress(
     `${API_BASE_URL}/api/community/media/upload/${encodeURIComponent(key.fileName)}`,
     blob,
