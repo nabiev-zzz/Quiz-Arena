@@ -24,6 +24,9 @@ import {
   requestEmailVerification,
   verifyEmailUser,
   requestEmailPasswordReset,
+  createTelegramBotAuthSession,
+  verifyTelegramBotAuthCode,
+  saveToken,
   resetPasswordWithEmail,
 } from '../services/authService';
 
@@ -45,6 +48,9 @@ interface AuthContextValue {
   linkPhone: (phoneNumber: string, code: string) => Promise<void>;
   startGoogleLogin: () => Promise<void>;
   startTelegramLogin: () => Promise<void>;
+  createTelegramRegistration: typeof createTelegramBotAuthSession;
+  verifyTelegramRegistration: typeof verifyTelegramBotAuthCode;
+  completeTelegramRegistration: (result: { accessToken: string; user: AuthUser }) => Promise<void>;
   updateProfile: (input: UpdateProfileInput) => Promise<void>;
   refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
@@ -157,7 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await Linking.openURL(`${API_BASE_URL}/api/auth/google/start`);
   };
 
-  const startTelegramLogin = async () => {
+  const completeTelegramRegistration = async (result: { accessToken: string; user: AuthUser }) => {\n    await saveToken(result.accessToken);\n    setUser(result.user);\n  };\n\n  const startTelegramLogin = async () => {
     await Linking.openURL(`${API_BASE_URL}/api/auth/telegram/start`);
   };
 
@@ -185,7 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         requestPhoneLink,
         linkPhone,
         startGoogleLogin,
-        startTelegramLogin,
+        startTelegramLogin,\n        createTelegramRegistration: createTelegramBotAuthSession,\n        verifyTelegramRegistration: verifyTelegramBotAuthCode,\n        completeTelegramRegistration,
         updateProfile,
         refreshUser,
         logout,
