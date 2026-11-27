@@ -214,7 +214,7 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
   const previousActiveRef = useRef(false);
   const videoStyle = useAnimatedStyle(() => ({ opacity: videoOpacity.value }));
   const posterStyle = useAnimatedStyle(() => ({ opacity: posterOpacity.value }));
-  const contentFit: 'contain' | 'cover' = track.videoTrack?.size?.width && track.videoTrack.size.height && track.videoTrack.size.width / track.videoTrack.size.height > 0.72 ? 'contain' : 'cover';
+  // Always show the complete source frame; cover crops portrait videos on narrow screens.
   const onTimeUpdate = useCallback(({ currentTime }: { currentTime: number }) => {
     if (!active) return;
     const duration = Number.isFinite(player.duration) ? player.duration : 0;
@@ -259,7 +259,7 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
   if (!active) return null;
   return <>
     <Animated.View style={[StyleSheet.absoluteFill, videoStyle]}>
-      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit={contentFit} nativeControls={false} surfaceType="textureView" onFirstFrameRender={() => setFirstFrame(true)} />
+      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls={false} surfaceType="textureView" onFirstFrameRender={() => setFirstFrame(true)} />
     </Animated.View>
     {!firstFrame ? <Animated.View pointerEvents="none" style={[styles.posterPlaceholder, posterStyle]}><Ionicons name="play-circle" size={48} color="#FFFFFF"/><LocalizedText style={styles.posterTitle}>ZELQEN</LocalizedText><LocalizedText style={styles.statusText}>Lavha yuklanmoqda...</LocalizedText><ActivityIndicator color="#FFFFFF" /></Animated.View> : null}
     {status === 'error' ? <View pointerEvents="box-none" style={styles.videoStatus}><Ionicons name="alert-circle-outline" size={36} color="#FFFFFF"/><LocalizedText style={styles.statusText}>Videoni ochib bo‘lmadi</LocalizedText><LocalizedText style={styles.statusHint}>Internet yoki video manzilini tekshiring.</LocalizedText><View style={styles.errorActions}><Pressable onPress={retry} style={styles.retry}><LocalizedText style={styles.retryText}>Qayta urinish</LocalizedText></Pressable><Pressable onPress={onSkip} style={styles.skipButton}><LocalizedText style={styles.retryText}>Keyingisi</LocalizedText></Pressable></View></View> : null}
