@@ -15,6 +15,9 @@ export class CommunityPostComment {
   @JoinColumn({ name: 'postId' })
   post: CommunityPost;
 
+  @Column({ type: 'uuid', nullable: true })
+  parentId: string | null;
+
   @Column({ type: 'uuid' })
   authorId: string;
 

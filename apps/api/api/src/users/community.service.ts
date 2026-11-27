@@ -1,10 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CommunityPost } from './entities/community-post.entity';
 import { CommunityPostLike } from './entities/community-post-like.entity';
 import { CommunityPostComment } from './entities/community-post-comment.entity';
+import { CommunityPostSave } from './entities/community-post-save.entity';
 import { CommunityStory } from './entities/community-story.entity';
 import { CommunityStoryView } from './entities/community-story-view.entity';
 import { CommunityStorageService } from './community-storage.service';
@@ -17,6 +18,7 @@ export class CommunityService {
     @InjectRepository(CommunityPost) private readonly posts: Repository<CommunityPost>,
     @InjectRepository(CommunityPostLike) private readonly likes: Repository<CommunityPostLike>,
     @InjectRepository(CommunityPostComment) private readonly comments: Repository<CommunityPostComment>,
+    @InjectRepository(CommunityPostSave) private readonly saves: Repository<CommunityPostSave>,
     @InjectRepository(CommunityStory) private readonly stories: Repository<CommunityStory>,
     @InjectRepository(CommunityStoryView) private readonly storyViews: Repository<CommunityStoryView>,
     private readonly storage: CommunityStorageService,
@@ -63,10 +65,11 @@ export class CommunityService {
       take: Math.min(Math.max(limit, 1), 50),
     });
     return Promise.all(posts.filter((post) => post.author?.status === 'active').map(async (post) => {
-      const [likesCount, commentsCount, liked, mediaUrl] = await Promise.all([
+      const [likesCount, commentsCount, liked, saved, mediaUrl] = await Promise.all([
         this.likes.count({ where: { postId: post.id } }),
         this.comments.count({ where: { postId: post.id } }),
         this.likes.exists({ where: { postId: post.id, userId: viewerId } }),
+        this.saves.exists({ where: { postId: post.id, userId: viewerId } }),
         this.mediaUrl(post.mediaKey),
       ]);
       return {
@@ -79,6 +82,7 @@ export class CommunityService {
         likesCount,
         commentsCount,
         isLiked: liked,
+        isSaved: saved,
         isOwn: post.authorId === viewerId,
       };
     }));
@@ -115,15 +119,16 @@ export class CommunityService {
       .take(Math.min(Math.max(Math.floor(limit), 1), 50))
       .getMany();
     return Promise.all(posts.map(async (post) => {
-      const [likesCount, commentsCount, liked, mediaUrl] = await Promise.all([
+      const [likesCount, commentsCount, liked, saved, mediaUrl] = await Promise.all([
         this.likes.count({ where: { postId: post.id } }),
         this.comments.count({ where: { postId: post.id } }),
         this.likes.exists({ where: { postId: post.id, userId: viewerId } }),
+        this.saves.exists({ where: { postId: post.id, userId: viewerId } }),
         this.mediaUrl(post.mediaKey),
       ]);
       return {
         id: post.id, content: post.content, createdAt: post.createdAt, mediaUrl, mediaType: post.mediaType, subject: post.subject,
-        author: this.safePerson(post.author), likesCount, commentsCount, isLiked: liked, isOwn: post.authorId === viewerId,
+        author: this.safePerson(post.author), likesCount, commentsCount, isLiked: liked, isSaved: saved, isOwn: post.authorId === viewerId,
       };
     }));
   }
@@ -140,7 +145,7 @@ export class CommunityService {
     const post = await this.posts.save(this.posts.create({ authorId, content, mediaKey, mediaType, subject: subject || null }));
     return {
       id: post.id, content, createdAt: post.createdAt, mediaUrl: await this.mediaUrl(mediaKey), mediaType, subject: post.subject,
-      author: this.safePerson(author), likesCount: 0, commentsCount: 0, isLiked: false, isOwn: true,
+      author: this.safePerson(author), likesCount: 0, commentsCount: 0, isLiked: false, isSaved: false, isOwn: true,
     };
   }
 
@@ -198,6 +203,20 @@ export class CommunityService {
     return { viewed: true, viewsCount: await this.storyViews.count({ where: { storyId } }) };
   }
 
+  async saveClip(userId: string, postId: string) {
+    const post = await this.posts.findOne({ where: { id: postId, status: 'active' } });
+    if (!post || !post.mediaType?.startsWith('video/')) throw new NotFoundException('Lavha topilmadi');
+    await this.saves.createQueryBuilder().insert().values({ postId, userId }).orIgnore().execute();
+    return { isSaved: true };
+  }
+
+  async unsaveClip(userId: string, postId: string) {
+    const post = await this.posts.findOne({ where: { id: postId, status: 'active' } });
+    if (!post || !post.mediaType?.startsWith('video/')) throw new NotFoundException('Lavha topilmadi');
+    await this.saves.delete({ postId, userId });
+    return { isSaved: false };
+  }
+
   async toggleLike(userId: string, postId: string, liked: boolean) {
     const post = await this.posts.findOne({ where: { id: postId, status: 'active' } });
     if (!post) throw new NotFoundException('Post topilmadi');
@@ -213,23 +232,33 @@ export class CommunityService {
     const postExists = await this.posts.exists({ where: { id: postId, status: 'active' } });
     if (!postExists) throw new NotFoundException('Post topilmadi');
     const comments = await this.comments.find({
-      where: { postId }, relations: { author: true }, order: { createdAt: 'ASC' }, take: 100,
+      where: { postId }, relations: { author: true }, order: { createdAt: 'ASC' }, take: 200,
     });
-    return comments.filter((item) => item.author?.status === 'active').map((item) => ({
-      id: item.id, content: item.content, createdAt: item.createdAt, author: this.safePerson(item.author),
-    }));
+    const active = comments.filter((item) => item.author?.status === 'active');
+    const toDto = (item: CommunityPostComment) => ({
+      id: item.id, content: item.content, createdAt: item.createdAt, parentId: item.parentId ?? null,
+      author: this.safePerson(item.author),
+    });
+    return active.filter((item) => !item.parentId).map((item) => {
+      const replies = active.filter((reply) => reply.parentId === item.id).map(toDto);
+      return { ...toDto(item), replies, repliesCount: replies.length };
+    });
   }
 
-  async addComment(authorId: string, postId: string, rawContent: string) {
+  async addComment(authorId: string, postId: string, rawContent: string, parentId?: string) {
     const content = typeof rawContent === 'string' ? rawContent.trim() : '';
     if (!content) throw new BadRequestException('Izoh matnini kiriting');
     if (content.length > 1000) throw new BadRequestException('Izoh 1000 belgidan oshmasin');
     const post = await this.posts.findOne({ where: { id: postId, status: 'active' } });
     if (!post) throw new NotFoundException('Post topilmadi');
+    if (parentId) {
+      const parent = await this.comments.findOne({ where: { id: parentId, postId, parentId: IsNull() } });
+      if (!parent) throw new NotFoundException('Javob berilayotgan izoh topilmadi');
+    }
     const author = await this.users.findOne({ where: { id: authorId, status: 'active' } });
     if (!author) throw new NotFoundException('Foydalanuvchi topilmadi');
-    const comment = await this.comments.save(this.comments.create({ postId, authorId, content }));
-    return { id: comment.id, content: comment.content, createdAt: comment.createdAt, author: this.safePerson(author) };
+    const comment = await this.comments.save(this.comments.create({ postId, authorId, content, parentId: parentId || null }));
+    return { id: comment.id, content: comment.content, createdAt: comment.createdAt, parentId: comment.parentId, author: this.safePerson(author) };
   }
 
   async getClipQuiz(viewerId:string,postId:string) {

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Post, Put, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Post, Put, Query, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CommunityService } from './community.service';
 interface AuthRequest { user: { id: string }; body?: Buffer }
@@ -23,6 +23,10 @@ export class CommunityController {
   createClip(@Request() request: AuthRequest, @Body() body: { content?: string; mediaKey?: string; mediaType?: string; subject?: string }) {
     return this.community.createClip(request.user.id, body?.content ?? '', body?.mediaKey ?? '', body?.mediaType ?? '', body?.subject);
   }
+  @Post('clips/:id/save')
+  saveClip(@Request() request: AuthRequest, @Param('id') id: string) { return this.community.saveClip(request.user.id, id); }
+  @Delete('clips/:id/save')
+  unsaveClip(@Request() request: AuthRequest, @Param('id') id: string) { return this.community.unsaveClip(request.user.id, id); }
   @Get('clips/:id/quiz')
   getClipQuiz(@Request() request: AuthRequest, @Param('id') id: string) { return this.community.getClipQuiz(request.user.id,id); }
   @Post('clips/:id/quiz')
@@ -50,7 +54,7 @@ export class CommunityController {
   @Get('posts/:id/comments')
   comments(@Param('id') id: string) { return this.community.listComments(id); }
   @Post('posts/:id/comments')
-  addComment(@Request() request: AuthRequest, @Param('id') id: string, @Body() body: { content?: string }) {
-    return this.community.addComment(request.user.id, id, body?.content ?? '');
+  addComment(@Request() request: AuthRequest, @Param('id') id: string, @Body() body: { content?: string; parentId?: string }) {
+    return this.community.addComment(request.user.id, id, body?.content ?? '', body?.parentId);
   }
 }

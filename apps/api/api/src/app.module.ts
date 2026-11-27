@@ -20,6 +20,7 @@ import { AddUserZcBalance20261125230000 } from './database/migrations/AddUserZcB
 import { CreateZcTransactions20261126010000 } from './database/migrations/CreateZcTransactions';
 import { CreateUserNotifications20261126150000 } from './database/migrations/CreateUserNotifications';
 import { CreateCommunitySocial20261126180000 } from './database/migrations/CreateCommunitySocial';
+import { AddCommunityClipInteractions20261127050000 } from './database/migrations/AddCommunityClipInteractions20261127050000';
 import { CreateCommunityLearningHub20261126210000 } from './database/migrations/CreateCommunityLearningHub';
 import { AddCommunityMediaAndStories20261126190000 } from './database/migrations/AddCommunityMediaAndStories';
 import { CreateDirectMessages20261126200000 } from './database/migrations/CreateDirectMessages';
@@ -100,6 +101,7 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         AddAiGenerationJobPriority20261125103000,
         AddAiQueueEnqueuedAt20261125104000,
         AllowAdminGrantSubscriptionProvider20261126130000,
+        AddCommunityClipInteractions20261127050000,
       ],
       migrationsRun: process.env.AI_WORKER_PROCESS !== 'true',
       migrationsTableName: 'typeorm_migrations',
