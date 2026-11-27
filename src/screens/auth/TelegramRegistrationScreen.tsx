@@ -30,7 +30,7 @@ export default function TelegramRegistrationScreen({ onCreateSession, onVerify, 
   };
 
   const verify = async () => {
-    if (!/^\\d{6}$/.test(code.trim())) {
+    if (!/^\d{6}$/.test(code.trim())) {
       showLocalizedAlert('Kod', 'Telegram chatiga kelgan 6 xonali kodni kiriting.');
       return;
     }
