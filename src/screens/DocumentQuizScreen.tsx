@@ -111,6 +111,9 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
       showLocalizedAlert('Hujjat tanlanmagan', 'Avval PDF, DOCX yoki matnli faylni tanlang.');
       return;
     }
+    setSavedAttemptId(null);
+    setShowExportOptions(false);
+    setExportError('');
     setPhase('loading');
     try {
       const result = await createDocumentQuiz(file, { count, difficulty, language });
@@ -186,6 +189,9 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
   };
 
   const reset = () => {
+    setSavedAttemptId(null);
+    setShowExportOptions(false);
+    setExportError('');
     setFile(null);
     setQuestions([]);
     setAnswers([]);
