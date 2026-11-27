@@ -89,6 +89,8 @@ export default function QuizScreen({
   const loadQuestions = useCallback(async () => {
     savedAttemptKey.current = null;
     setAttemptId(null);
+    setShowExportOptions(false);
+    setExportError('');
     setShowQuestionReview(false);
     setAttemptSaved(false);
     setAttemptSaveError(false);
