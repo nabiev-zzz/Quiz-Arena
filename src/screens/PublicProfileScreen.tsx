@@ -193,7 +193,7 @@ export default function PublicProfileScreen({ username, onBack, onMessagePress }
 
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isDark: boolean) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: colors.background, position: 'relative' },
+    screen: { flex: 1, backgroundColor: 'transparent', position: 'relative' },
     scroll: { flex: 1, backgroundColor: 'transparent' },
     content: { padding: 19, paddingBottom: 132 },
     loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
