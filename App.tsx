@@ -847,13 +847,15 @@ function AppContent() {
         )}
       </Animated.ScrollView>
       )}
-      <LiquidDock
-        items={navigation}
-        activeKey={tab === 'tutor' ? 'home' : tab}
-        onSelect={(key) => openTab(key as Tab)}
-        bottomInset={bottomInset}
-        scrollStretch={dockStretch}
-      />
+      {!(tab === 'profile' && selectedPublicUsername !== null) && (
+        <LiquidDock
+          items={navigation}
+          activeKey={tab === 'tutor' ? 'home' : tab}
+          onSelect={(key) => openTab(key as Tab)}
+          bottomInset={bottomInset}
+          scrollStretch={dockStretch}
+        />
+      )}
     </SafeAreaView>
   );
 }
