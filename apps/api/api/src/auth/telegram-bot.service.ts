@@ -170,7 +170,7 @@ export class TelegramBotService implements OnModuleInit {
       });
       await this.sendMessage(
         message.chat.id,
-        `QUIZ ARENA tasdiqlash kodingiz: ${code}\\n\\nBu kod 5 daqiqa amal qiladi. Kodni ilovadagi oynaga kiriting. Uni hech kimga bermang.`,
+        `QUIZ ARENA tasdiqlash kodingiz: ${code}\n\nBu kod 5 daqiqa amal qiladi. Kodni ilovadagi oynaga kiriting. Uni hech kimga bermang.`,
         { remove_keyboard: true },
       );
     } catch (error) {
