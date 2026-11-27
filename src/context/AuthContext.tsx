@@ -163,7 +163,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await Linking.openURL(`${API_BASE_URL}/api/auth/google/start`);
   };
 
-  const completeTelegramRegistration = async (result: { accessToken: string; user: AuthUser }) => {\n    await saveToken(result.accessToken);\n    setUser(result.user);\n  };\n\n  const startTelegramLogin = async () => {
+  const completeTelegramRegistration = async (result: { accessToken: string; user: AuthUser }) => {
+    await saveToken(result.accessToken);
+    setUser(result.user);
+  };
+
+  const startTelegramLogin = async () => {
+    await Linking.openURL(`${API_BASE_URL}/api/auth/telegram/start`);
+  };
     await Linking.openURL(`${API_BASE_URL}/api/auth/telegram/start`);
   };
 
