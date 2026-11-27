@@ -828,6 +828,11 @@ function AppContent() {
           initialSection={tab === 'ranking' ? 'leaderboard' : 'battle'}
           dockStretch={dockStretch}
         />
+      ) : tab === 'profile' && selectedPublicUsername === '__community__' ? (
+        // Community (especially the full-screen Reels feed) must own the viewport.
+        // Nesting it in the home Animated.ScrollView gives its FlatList an unbounded
+        // height, which makes each video page grow beyond the phone screen.
+        renderOtherTab()
       ) : (
       <Animated.ScrollView
         onScroll={dockScrollHandler}
