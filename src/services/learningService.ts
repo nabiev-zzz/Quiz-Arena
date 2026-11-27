@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { API_BASE_URL, getToken } from './authService';
 import type { Difficulty } from '../types';
 import type { Question } from '../data/questions';
@@ -196,7 +197,11 @@ export async function createDocumentQuiz(
   if (!token) throw new Error('Tizimga qayta kirishingiz kerak.');
 
   const form = new FormData();
-  if (file.file) {
+  // Expo DocumentPicker may expose a browser File on web, but Android/iOS
+  // must use React Native's native { uri, name, type } multipart part.
+  // Passing the picker File/Blob through native FormData can throw
+  // 'Unsupported FormDataPart implementation' before the request is sent.
+  if (Platform.OS === 'web' && file.file) {
     form.append('file', file.file, file.name);
   } else {
     form.append('file', {
