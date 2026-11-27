@@ -835,7 +835,7 @@ function AppContent() {
         style={[styles.scroll, { backgroundColor }]}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: 116 + bottomInset },
+          { paddingBottom: (tab === 'profile' && selectedPublicUsername !== null ? 24 : 116) + bottomInset },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
