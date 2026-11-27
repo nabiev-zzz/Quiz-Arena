@@ -68,7 +68,7 @@ export default function DiscoverUsersScreen({ onBack, onUserPress }: Props) {
 
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isDark: boolean) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: colors.background },
+    screen: { flex: 1, backgroundColor: 'transparent' },
     content: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 140 },
     back: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 42, marginBottom: 17 },
     backText: { color: colors.text, fontSize: 13, fontWeight: '700' },
