@@ -19,7 +19,8 @@ import {
 import type { Question } from '../data/questions';
 import type { Difficulty, Subject, Topic } from '../types';
 import { useTheme } from '../theme/ThemeContext';
-import { getTopicQuestions, saveLearningAttempt, updateLearningAttemptReview } from '../services/learningService';
+import { getLearningHistoryItem, getTopicQuestions, saveLearningAttempt, updateLearningAttemptReview } from '../services/learningService';
+import { exportLearningAttempt, TEST_EXPORT_FORMATS, type TestExportFormat } from '../services/testExportService';
 import { sendTutorMessage } from '../services/aiTutorService';
 
 interface QuizScreenProps {
@@ -75,6 +76,9 @@ export default function QuizScreen({
   const [attemptSaved, setAttemptSaved] = useState(false);
   const [attemptSaveError, setAttemptSaveError] = useState(false);
   const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [showExportOptions, setShowExportOptions] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<TestExportFormat | null>(null);
+  const [exportError, setExportError] = useState('');
   const [showQuestionReview, setShowQuestionReview] = useState(false);
   const [answers, setAnswers] = useState<Array<number | null>>([]);
   const [explainingQuestionIds, setExplainingQuestionIds] = useState<Record<string, boolean>>({});
@@ -85,6 +89,8 @@ export default function QuizScreen({
   const loadQuestions = useCallback(async () => {
     savedAttemptKey.current = null;
     setAttemptId(null);
+    setShowExportOptions(false);
+    setExportError('');
     setShowQuestionReview(false);
     setAttemptSaved(false);
     setAttemptSaveError(false);
@@ -244,6 +250,20 @@ export default function QuizScreen({
     setCurrentIndex((previous) => previous + 1);
   };
 
+  const handleExport = async (format: TestExportFormat) => {
+    if (!attemptId || exportingFormat) return;
+    setExportingFormat(format);
+    setExportError('');
+    try {
+      const attempt = await getLearningHistoryItem(attemptId);
+      await exportLearningAttempt(attempt, format);
+    } catch (exportFailure) {
+      setExportError(exportFailure instanceof Error ? exportFailure.message : 'Eksport qilishda xatolik yuz berdi.');
+    } finally {
+      setExportingFormat(null);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -354,6 +374,25 @@ export default function QuizScreen({
           <Pressable onPress={() => void saveFinishedAttempt()}>
             <LocalizedText style={styles.retryAttemptText}>Natija saqlanmadi. Qayta urinish</LocalizedText>
           </Pressable>
+        ) : null}
+
+        <Pressable style={styles.primaryButton} disabled={!attemptSaved || savingAttempt || !!exportingFormat} onPress={() => setShowExportOptions((value) => !value)}>
+          <Ionicons name="download-outline" size={17} color="#FFFFFF" />
+          <LocalizedText style={styles.buttonText}>{showExportOptions ? 'Eksport formatlarini yopish' : 'Testni eksport qilish'}</LocalizedText>
+        </Pressable>
+        {showExportOptions ? (
+          <View style={styles.exportPanel}>
+            <LocalizedText style={styles.sectionTitle}>Fayl formatini tanlang</LocalizedText>
+            <View style={styles.choiceRow}>
+              {TEST_EXPORT_FORMATS.map((format) => (
+                <Pressable key={format.value} style={[styles.choiceChip, exportingFormat === format.value && styles.selectedChoiceChip]} disabled={!attemptSaved || !!exportingFormat} onPress={() => void handleExport(format.value)}>
+                  <LocalizedText style={[styles.choiceText, exportingFormat === format.value && styles.selectedChoiceText]}>{exportingFormat === format.value ? 'Tayyorlanmoqda…' : format.label}</LocalizedText>
+                </Pressable>
+              ))}
+            </View>
+            {!!exportError && <LocalizedText style={styles.exportError}>{exportError}</LocalizedText>}
+            <LocalizedText style={styles.muted}>Eksport faqat sizning saqlangan testingiz uchun. Savollar tartibi, matni va javoblar xaritasi saqlanadi.</LocalizedText>
+          </View>
         ) : null}
 
         <Pressable
@@ -508,6 +547,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     padding: 25,
     gap: 14,
   },
+  exportPanel: { width: '100%', gap: 10, padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  exportError: { color: colors.danger, fontSize: 11, lineHeight: 16 },
   savedAttemptText: {
     color: '#159B68',
     fontSize: 12,

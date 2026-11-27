@@ -1,11 +1,13 @@
 import { LocalizedText, LocalizedTextInput } from '../i18n/LocalizedText';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 import { StyleSheet, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { subjects } from '../data/subjects';
 import type { Subject, Topic } from '../types';
 import { useTheme } from '../theme/ThemeContext';
+import { getLearningHistory, getLearningHistoryItem, type LearningHistorySummary } from '../services/learningService';
+import { exportLearningAttempt, TEST_EXPORT_FORMATS, type TestExportFormat } from '../services/testExportService';
 
 interface LearnScreenProps {
   initialSubject?: Subject | null;
@@ -22,6 +24,10 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
   const lastDockScrollY = useSharedValue(0);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(initialSubject ?? null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [history, setHistory] = useState<LearningHistorySummary[]>([]);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [historyExportKey, setHistoryExportKey] = useState<string | null>(null);
+  const [historyExportError, setHistoryExportError] = useState('');
 
   const dockScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -34,6 +40,29 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
     onEndDrag: () => { if (dockStretch) dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 }); },
     onMomentumEnd: () => { if (dockStretch) dockStretch.value = withSpring(0, { damping: 11, stiffness: 160, mass: 0.7 }); },
   });
+
+  useEffect(() => {
+    let active = true;
+    getLearningHistory().then((items) => {
+      if (active) setHistory(items);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  const exportHistoryItem = async (attemptId: string, format: TestExportFormat) => {
+    const key = `${attemptId}:${format}`;
+    if (historyExportKey) return;
+    setHistoryExportKey(key);
+    setHistoryExportError('');
+    try {
+      const attempt = await getLearningHistoryItem(attemptId);
+      await exportLearningAttempt(attempt, format);
+    } catch (failure) {
+      setHistoryExportError(failure instanceof Error ? failure.message : 'Eksport qilishda xatolik yuz berdi.');
+    } finally {
+      setHistoryExportKey(null);
+    }
+  };
 
   const filteredSubjects = useMemo(() => {
     const query = normalize(searchQuery);
@@ -98,6 +127,36 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
             <LocalizedText style={styles.title}>Fanlar</LocalizedText>
             <LocalizedText style={styles.subtitle}>O‘zingizga kerakli fanni tanlang va bilim sari yo‘l oling.</LocalizedText>
           </View>
+          <View style={styles.historyPanel}>
+            <Pressable style={styles.historyHeader} onPress={() => setHistoryExpanded((value) => !value)}>
+              <View style={{ flex: 1 }}>
+                <LocalizedText style={styles.sectionTitle}>TESTLAR TARIXI</LocalizedText>
+                <LocalizedText style={styles.historySubtitle}>{history.length} ta saqlangan test · avvalgi natijalarni eksport qilish</LocalizedText>
+              </View>
+              <Ionicons name={historyExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={colors.primary} />
+            </Pressable>
+            {historyExpanded ? (
+              history.length ? history.slice(0, 100).map((item) => (
+                <View key={item.id} style={styles.historyItem}>
+                  <View style={{ flex: 1 }}>
+                    <LocalizedText style={styles.historyTitle} numberOfLines={1}>{item.topicName}</LocalizedText>
+                    <LocalizedText style={styles.historySubtitle}>{item.subjectName} · {item.correctAnswers}/{item.totalQuestions} · {Math.round(Number(item.accuracy))}%</LocalizedText>
+                  </View>
+                  <View style={styles.historyFormats}>
+                    {TEST_EXPORT_FORMATS.map((format) => {
+                      const key = `${item.id}:${format.value}`;
+                      return (
+                        <Pressable key={format.value} style={styles.historyFormatChip} disabled={!!historyExportKey} onPress={() => void exportHistoryItem(item.id, format.value)}>
+                          <LocalizedText style={styles.historyFormatText}>{historyExportKey === key ? '…' : format.label}</LocalizedText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              )) : <LocalizedText style={styles.historySubtitle}>Hozircha saqlangan test yo‘q.</LocalizedText>
+            ) : null}
+            {!!historyExportError && <LocalizedText style={styles.historyError}>{historyExportError}</LocalizedText>}
+          </View>
           <View style={styles.searchBox}>
             <Ionicons name="search-outline" size={19} color={colors.textMuted} />
             <LocalizedTextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Fanlarni qidiring..." placeholderTextColor={colors.textMuted} style={styles.searchInput} returnKeyType="search" autoCorrect={false} />
@@ -151,6 +210,15 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     subjectName: { color: colors.text, fontSize: 13, fontWeight: '800', marginBottom: 4 },
     subjectDescription: { color: colors.textMuted, fontSize: 10, lineHeight: 14, minHeight: 28 },
     subjectCount: { color: colors.primary, fontSize: 10, fontWeight: '800', marginTop: 9 },
+    historyPanel: { marginBottom: 18, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.surface, gap: 11 },
+    historyHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    historySubtitle: { color: colors.textMuted, fontSize: 10, lineHeight: 15, marginTop: 3 },
+    historyItem: { paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border, gap: 8 },
+    historyTitle: { color: colors.text, fontSize: 12, fontWeight: '800' },
+    historyFormats: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    historyFormatChip: { paddingHorizontal: 9, paddingVertical: 6, borderRadius: 9, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border },
+    historyFormatText: { color: colors.primary, fontSize: 9, fontWeight: '900' },
+    historyError: { color: colors.danger, fontSize: 10, lineHeight: 15 },
     footerHint: { color: colors.textMuted, fontSize: 10, textAlign: 'center', marginTop: 18, marginBottom: 10 },
     backButton: { minHeight: 38, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 13, paddingRight: 18 },
     backText: { color: colors.primary, fontSize: 13, fontWeight: '800' },
