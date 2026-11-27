@@ -12,7 +12,8 @@ import {
 import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import { useTheme } from '../theme/ThemeContext';
 import type { Difficulty } from '../types';
-import { createDocumentQuiz, saveLearningAttempt } from '../services/learningService';
+import { createDocumentQuiz, getLearningHistoryItem, saveLearningAttempt } from '../services/learningService';
+import { exportLearningAttempt, TEST_EXPORT_FORMATS, type TestExportFormat } from '../services/testExportService';
 import type { DocumentQuizQuestion } from '../services/learningService';
 import { getPremiumStatus } from '../services/subscriptionService';
 
@@ -61,6 +62,10 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
   const [answers, setAnswers] = useState<number[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [savingHistory, setSavingHistory] = useState(false);
+  const [savedAttemptId, setSavedAttemptId] = useState<string | null>(null);
+  const [showExportOptions, setShowExportOptions] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<TestExportFormat | null>(null);
+  const [exportError, setExportError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -128,7 +133,7 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
     setPhase('result');
     setSavingHistory(true);
     try {
-      await saveLearningAttempt({
+      const saved = await saveLearningAttempt({
         subjectId: 'document',
         subjectName: 'Hujjatdan test',
         topicId: questions[0]?.topicId || `document-${Date.now()}`,
@@ -146,10 +151,25 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
           aiExplanation: '',
         })),
       });
+      setSavedAttemptId(saved.id);
     } catch (error) {
       showLocalizedAlert('Tarixga saqlanmadi', error instanceof Error ? error.message : 'Natijani saqlashda xatolik yuz berdi.');
     } finally {
       setSavingHistory(false);
+    }
+  };
+
+  const handleExport = async (format: TestExportFormat) => {
+    if (!savedAttemptId || exportingFormat) return;
+    setExportingFormat(format);
+    setExportError('');
+    try {
+      const attempt = await getLearningHistoryItem(savedAttemptId);
+      await exportLearningAttempt(attempt, format);
+    } catch (failure) {
+      setExportError(failure instanceof Error ? failure.message : 'Eksport qilishda xatolik yuz berdi.');
+    } finally {
+      setExportingFormat(null);
     }
   };
 
@@ -305,6 +325,24 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
             ) : (
               <View style={s.savedRow}><Ionicons name="checkmark-circle" size={17} color="#159B68" /><LocalizedText style={s.savedText}>Natija test tarixiga saqlandi</LocalizedText></View>
             )}
+            <Pressable onPress={() => setShowExportOptions((value) => !value)} disabled={!savedAttemptId || savingHistory || !!exportingFormat} style={s.primaryButton}>
+              <Ionicons name="download-outline" size={18} color="#FFFFFF" />
+              <LocalizedText style={s.primaryButtonText}>{showExportOptions ? 'Eksport formatlarini yopish' : 'Testni eksport qilish'}</LocalizedText>
+            </Pressable>
+            {showExportOptions ? (
+              <View style={s.panel}>
+                <LocalizedText style={s.panelTitle}>Fayl formatini tanlang</LocalizedText>
+                <View style={s.reviewActions}>
+                  {TEST_EXPORT_FORMATS.map((format) => (
+                    <Pressable key={format.value} onPress={() => void handleExport(format.value)} disabled={!!exportingFormat} style={s.reviewAction}>
+                      <LocalizedText style={s.reviewActionText}>{exportingFormat === format.value ? 'Tayyorlanmoqda…' : format.label}</LocalizedText>
+                    </Pressable>
+                  ))}
+                </View>
+                {!!exportError && <LocalizedText style={s.reviewActionDanger}>{exportError}</LocalizedText>}
+                <LocalizedText style={s.muted}>Saqlangan test savollari, variantlari va javoblari asl tartibda eksport qilinadi.</LocalizedText>
+              </View>
+            ) : null}
             <Pressable onPress={reset} style={s.primaryButton}>
               <Ionicons name="refresh" size={18} color="#FFFFFF" />
               <LocalizedText style={s.primaryButtonText}>Yana test yaratish</LocalizedText>
