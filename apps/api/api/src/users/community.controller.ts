@@ -9,12 +9,16 @@ export class CommunityController {
   constructor(private readonly community: CommunityService) {}
   @Post('media/upload-key')
   uploadKey(@Request() request: AuthRequest, @Body() body: { contentType?: string }) { return this.community.createUploadFileName(request.user.id, body?.contentType ?? ''); }
+  @Post('media/verify')
+  verifyMedia(@Request() request: AuthRequest, @Body() body: { mediaKey?: string; contentType?: string; expectedSize?: number }) {
+    return this.community.verifyMedia(request.user.id, body?.mediaKey ?? '', body?.contentType ?? '', Number(body?.expectedSize));
+  }
   @Put('media/upload/:fileName')
   uploadMedia(@Request() request: AuthRequest, @Param('fileName') fileName: string, @Headers('content-type') contentType: string) {
     return this.community.uploadMedia(request.user.id, fileName, contentType, request.body as Buffer);
   }
   @Get('clips')
-  clips(@Request() request: AuthRequest, @Query('limit') limit?: string) { return this.community.clips(request.user.id, Number(limit) || 30); }
+  clips(@Request() request: AuthRequest, @Query('limit') limit?: string, @Query('offset') offset?: string) { return this.community.clips(request.user.id, Number(limit) || 30, Number(offset) || 0); }
   @Post('clips')
   createClip(@Request() request: AuthRequest, @Body() body: { content?: string; mediaKey?: string; mediaType?: string; subject?: string }) {
     return this.community.createClip(request.user.id, body?.content ?? '', body?.mediaKey ?? '', body?.mediaType ?? '', body?.subject);
