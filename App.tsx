@@ -841,7 +841,7 @@ function AppContent() {
       <Animated.ScrollView
         onScroll={dockScrollHandler}
         scrollEventThrottle={16}
-        style={[styles.scroll, { backgroundColor }]}
+        style={styles.scroll}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: (tab === 'profile' && selectedPublicUsername !== null ? 24 : 116) + bottomInset },
