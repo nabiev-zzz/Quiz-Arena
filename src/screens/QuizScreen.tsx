@@ -541,7 +541,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   center: {
     flex: 1,
     minHeight: 450,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 25,
