@@ -61,10 +61,14 @@ jobs:
           cache: npm
           cache-dependency-path: apps/api/api/package-lock.json
       - name: Install dependencies
-        run: npm ci --prefix apps/api/api
+        run: |
+          pwd
+          test -f apps/api/api/package-lock.json
+          cd apps/api/api
+          npm ci
       - name: Build API
-        run: npm --prefix apps/api/api run build
+        run: cd apps/api/api && npm run build
       - name: API lint
-        run: npm --prefix apps/api/api run lint
+        run: cd apps/api/api && npm run lint
       - name: API unit tests
-        run: npm --prefix apps/api/api test -- --runInBand
+        run: cd apps/api/api && npm test -- --runInBand
