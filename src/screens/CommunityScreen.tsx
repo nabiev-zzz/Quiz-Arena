@@ -58,6 +58,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   const [content, setContent] = useState('');
   const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [loading, setLoading] = useState(true);
+  const [feedError, setFeedError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [posting, setPosting] = useState(false);
   const [busyPost, setBusyPost] = useState<string | null>(null);
@@ -79,13 +80,14 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
+    setFeedError(false);
     try {
       const [feed, activeStories, videoClips] = await Promise.all([getCommunityFeed(), getCommunityStories(), getCommunityClips()]);
       setPosts(feed);
       setStories(activeStories);
       setClips(videoClips);
-    } catch (error) {
-      showLocalizedAlert('Hamjamiyat', error instanceof Error ? error.message : 'Lenta yuklanmadi');
+    } catch {
+      setFeedError(true);
     } finally { setLoading(false); setRefreshing(false); }
   }, []);
 
@@ -331,28 +333,13 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
           <Pressable onPress={() => setActiveSection('dashboard')} style={styles.iconButton}><Ionicons name="arrow-back" size={21} color={c.text} /></Pressable>
           <View style={{ flex: 1 }}>
             <LocalizedText style={styles.eyebrow}>ZELQEN SOCIAL</LocalizedText>
-            <LocalizedText style={styles.title}>Hamjamiyat</LocalizedText>
+            <LocalizedText style={styles.title}>{activeSection === 'clips' ? 'Lavhalar' : 'Lenta'}</LocalizedText>
           </View>
           <Pressable onPress={onMessages} style={styles.messagesButton} accessibilityLabel="Xabarlar">
             <Ionicons name="paper-plane-outline" size={17} color={c.primary} />
           </Pressable>
-          <Pressable onPress={() => setActiveSection('competitions')} style={styles.messagesButton} accessibilityLabel="Hamjamiyat bellashuvlari">
-            <Ionicons name="trophy-outline" size={17} color={c.primary} />
-          </Pressable>
-          <Pressable onPress={onDailyTasks} style={styles.messagesButton} accessibilityLabel="Kunlik vazifalar"><Ionicons name="calendar-outline" size={17} color={c.primary}/></Pressable>
-          <Pressable onPress={onTutor} style={styles.messagesButton} accessibilityLabel="AI Ustoz"><Ionicons name="sparkles-outline" size={17} color={c.primary}/></Pressable>
-          <Pressable onPress={onDiscoverUsers} style={styles.messagesButton} accessibilityLabel="Foydalanuvchilarni topish">
-            <Ionicons name="people-outline" size={17} color={c.primary} />
-          </Pressable>
         </View>
 
-        <View style={styles.intro}>
-          <View style={styles.introIcon}><Ionicons name="planet-outline" size={21} color="#FFFFFF" /></View>
-          <View style={{ flex: 1 }}>
-            <LocalizedText style={styles.introTitle}>Bilimdonlar bir joyda</LocalizedText>
-            <LocalizedText style={styles.introSubtitle}>Fikr ulashing, savol bering va bir-biringizdan o‘rganing.</LocalizedText>
-          </View>
-        </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sectionTabs}>
           <Pressable onPress={() => setActiveSection('feed')} style={[styles.sectionTab, activeSection === 'feed' && styles.sectionTabActive]}>
@@ -363,24 +350,12 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
             <Ionicons name="play-circle-outline" size={17} color={activeSection === 'clips' ? '#FFFFFF' : c.textMuted} />
             <LocalizedText style={[styles.sectionTabText, activeSection === 'clips' && styles.sectionTabTextActive]}>Lavhalar</LocalizedText>
           </Pressable>
-          <Pressable onPress={() => setActiveSection('groups')} style={styles.sectionTab}>
-            <Ionicons name="people-outline" size={16} color={c.textMuted} />
-            <LocalizedText style={styles.sectionTabText}>Guruhlar</LocalizedText>
-          </Pressable>
-          <Pressable onPress={() => setActiveSection('questions')} style={styles.sectionTab}>
-            <Ionicons name="help-circle-outline" size={16} color={c.textMuted} />
-            <LocalizedText style={styles.sectionTabText}>Savol-javob</LocalizedText>
-          </Pressable>
-          <Pressable onPress={() => setActiveSection('library')} style={styles.sectionTab}>
-            <Ionicons name="library-outline" size={16} color={c.textMuted} />
-            <LocalizedText style={styles.sectionTabText}>Kutubxona</LocalizedText>
-          </Pressable>
         </ScrollView>
 
         {activeSection === 'feed' && <>
         <View style={styles.storySection}>
           <View style={styles.storyHeading}>
-            <LocalizedText style={styles.feedTitle}>Stories</LocalizedText>
+            <LocalizedText style={styles.feedTitle}>Hikoyalar</LocalizedText>
             <LocalizedText style={styles.feedCaption}>24 soat davomida ko‘rinadi</LocalizedText>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storyList}>
@@ -388,7 +363,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
               <View style={[styles.storyRing, styles.addStoryRing]}>
                 {storyBusy ? <ActivityIndicator color={c.primary} /> : <Ionicons name="add" size={28} color={c.primary} />}
               </View>
-              <LocalizedText style={styles.storyName}>Story qo‘shish</LocalizedText>
+              <LocalizedText style={styles.storyName}>Hikoya qo‘shish</LocalizedText>
             </Pressable>
             {stories.map((story) => (
               <Pressable key={story.id} style={styles.storyItem} onPress={() => void openStory(story)}>
@@ -409,7 +384,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
             <TextInput
               value={content}
               onChangeText={setContent}
-              placeholder="Bugun nimalarni o‘rgandingiz?"
+              placeholder="Post yozing..."
               placeholderTextColor={c.textMuted}
               multiline
               maxLength={2000}
@@ -444,17 +419,17 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
         </View>
 
         <View style={styles.feedHeading}>
-          <LocalizedText style={styles.feedTitle}>Yangiliklar lentasi</LocalizedText>
-          <LocalizedText style={styles.feedCaption}>Eng so‘nggi postlar</LocalizedText>
+          <LocalizedText style={styles.feedTitle}>Lenta</LocalizedText>
+          <LocalizedText style={styles.feedCaption}>So‘nggi postlar</LocalizedText>
         </View>
 
-        {loading ? <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 32 }} /> : posts.map((post) => (
+        {loading ? <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 32 }} /> : feedError ? <View style={styles.empty}><Ionicons name="cloud-offline-outline" size={30} color={c.primary}/><LocalizedText style={styles.emptyTitle}>Lenta yuklanmadi</LocalizedText><LocalizedText style={styles.emptyText}>Internetni tekshirib, qayta urinib ko‘ring.</LocalizedText><Pressable onPress={()=>void load()} style={styles.emptyButton}><LocalizedText style={styles.emptyButtonText}>Qayta urinish</LocalizedText></Pressable></View> : posts.map((post) => (
           <View key={post.id} style={styles.post}>
             <View style={styles.postHeader}>
               {renderPerson(post.author)}
               <LocalizedText style={styles.time}>{timeAgo(post.createdAt)}</LocalizedText>
             </View>
-            {post.content ? <LocalizedText style={styles.postContent}>{post.content}</LocalizedText> : null}
+            {post.content ? <LocalizedText numberOfLines={5} style={styles.postContent}>{post.content}</LocalizedText> : null}
             {post.mediaUrl ? (post.mediaType?.startsWith('video/') ? <CommunityClipVideo uri={post.mediaUrl} /> : <Image source={{ uri: post.mediaUrl }} style={styles.postImage} resizeMode="cover" />) : null}
             <View style={styles.postActions}>
               <Pressable style={styles.action} onPress={() => void toggleLike(post)} disabled={busyPost === post.id}>
@@ -473,7 +448,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
                 {(comments[post.id] || []).map((comment) => (
                   <View key={comment.id} style={styles.comment}>
                     <LocalizedText style={styles.commentAuthor}>@{comment.author.username}</LocalizedText>
-                    <LocalizedText style={styles.commentText}>{comment.content}</LocalizedText>
+                    <LocalizedText numberOfLines={2} style={styles.commentText}>{comment.content}</LocalizedText>
                   </View>
                 ))}
                 {(comments[post.id] || []).length === 0 && <LocalizedText style={styles.noComments}>Hozircha izoh yo‘q. Birinchi bo‘lib yozing.</LocalizedText>}
@@ -502,15 +477,15 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
           <View style={styles.clipsSection}>
             <View style={styles.clipsIntro}>
               <View style={{ flex: 1 }}>
-                <LocalizedText style={styles.clipsTitle}>Qisqa videolar</LocalizedText>
-                <LocalizedText style={styles.clipsSubtitle}>90 soniyagacha videolarni ulashing va tomosha qiling.</LocalizedText>
+                <LocalizedText style={styles.clipsTitle}>Lavhalar</LocalizedText>
+                <LocalizedText style={styles.clipsSubtitle}>Qisqa dars va foydali videolar.</LocalizedText>
               </View>
               <Pressable onPress={() => void chooseClip()} disabled={clipBusy} style={[styles.createClipButton, clipBusy && { opacity: 0.65 }]}>
                 <Ionicons name="folder-open-outline" size={17} color="#FFFFFF" />
                 <LocalizedText style={styles.createClipText}>Videoni tanlash</LocalizedText>
               </Pressable>
             </View>
-            <LocalizedText style={styles.clipGuidance}>1. Galereyadan video tanlang. 2. Izoh yozing. 3. Yuklashni bosing. MP4 tavsiya etiladi · 90 soniyagacha · 30 MB gacha.</LocalizedText>
+            <LocalizedText style={styles.clipGuidance}>MP4 · 90 soniyagacha · 30 MB gacha.</LocalizedText>
             {selectedClip && (
               <View style={styles.selectedClipCard}>
                 <View style={styles.selectedClipIcon}><Ionicons name="videocam" size={22} color={c.primary} /></View>
@@ -538,7 +513,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
               {clipBusy ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="cloud-upload-outline" size={18} color="#FFFFFF" />}
               <LocalizedText style={styles.publishClipButtonText}>{clipBusy ? 'Yuklanmoqda...' : 'Yuklash va joylash'}</LocalizedText>
             </Pressable>
-            {loading ? <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 30 }} /> : clips.length === 0 ? (
+            {loading ? <ActivityIndicator size="large" color={c.primary} style={{ marginTop: 30 }} /> : feedError ? <View style={styles.clipsEmpty}><Ionicons name="cloud-offline-outline" size={30} color={c.primary}/><LocalizedText style={styles.clipsEmptyTitle}>Lavhalar yuklanmadi</LocalizedText><Pressable onPress={()=>void load()} style={styles.emptyButton}><LocalizedText style={styles.emptyButtonText}>Qayta urinish</LocalizedText></Pressable></View> : clips.length === 0 ? (
               <View style={styles.clipsEmpty}>
                 <Ionicons name="videocam-outline" size={38} color={c.primary} />
                 <LocalizedText style={styles.clipsEmptyTitle}>Hali videolar yo‘q</LocalizedText>
@@ -548,7 +523,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
               <View key={clip.id} style={styles.clipCard}>
                 <View style={styles.clipAuthor}>{renderPerson(clip.author)}<LocalizedText style={styles.time}>{timeAgo(clip.createdAt)}</LocalizedText></View>
                 {clip.mediaUrl ? <CommunityClipVideo uri={clip.mediaUrl} /> : null}
-                {clip.subject&&<LocalizedText style={styles.feedCaption}>#{clip.subject}</LocalizedText>}{clip.content ? <LocalizedText style={styles.clipCaption}>{clip.content}</LocalizedText> : null}
+                {clip.subject&&<LocalizedText style={styles.feedCaption}>#{clip.subject}</LocalizedText>}{clip.content ? <LocalizedText numberOfLines={4} style={styles.clipCaption}>{clip.content}</LocalizedText> : null}
                 <Pressable onPress={() => void openClipQuiz(clip)} style={[styles.action,{alignSelf:'flex-start',marginTop:8,backgroundColor:c.primary+'14',paddingHorizontal:11,paddingVertical:8,borderRadius:10}]}><Ionicons name="help-circle-outline" size={17} color={c.primary}/><LocalizedText style={[styles.actionText,{color:c.primary,fontWeight:'800'}]}>Mini-test</LocalizedText></Pressable>
                 <View style={styles.clipActions}>
                   <Pressable style={styles.action} onPress={() => void toggleLike(clip)} disabled={busyPost === clip.id}>
@@ -562,7 +537,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
                 </View>
                 {expandedPost === clip.id && (
                   <View style={styles.comments}>
-                    {(comments[clip.id] || []).map((comment) => <View key={comment.id} style={styles.comment}><LocalizedText style={styles.commentAuthor}>@{comment.author.username}</LocalizedText><LocalizedText style={styles.commentText}>{comment.content}</LocalizedText></View>)}
+                    {(comments[clip.id] || []).map((comment) => <View key={comment.id} style={styles.comment}><LocalizedText style={styles.commentAuthor}>@{comment.author.username}</LocalizedText><LocalizedText numberOfLines={2} style={styles.commentText}>{comment.content}</LocalizedText></View>)}
                     <View style={styles.commentComposer}>
                       <TextInput value={commentDraft} onChangeText={setCommentDraft} placeholder="Izoh yozing..." placeholderTextColor={c.textMuted} style={styles.commentInput} maxLength={1000} />
                       <Pressable onPress={() => void sendComment(clip.id)} disabled={!commentDraft.trim() || sendingComment} style={styles.commentSend}><Ionicons name="send" size={16} color="#FFFFFF" /></Pressable>
@@ -624,31 +599,31 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     sectionTabs: { flexDirection: 'row', backgroundColor: c.surface, borderRadius: 16, padding: 4, marginBottom: 18, gap: 5 },
     sectionTab: { flex: 1, minHeight: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
     sectionTabActive: { backgroundColor: c.primary },
-    sectionTabText: { color: c.textMuted, fontSize: 13, fontWeight: '700' },
+    sectionTabText: { color: c.textMuted, fontSize: 14, fontWeight: '700' },
     sectionTabTextActive: { color: '#FFFFFF' },
     clipsSection: { gap: 16, paddingBottom: 28 },
-    clipGuidance: { color: c.textMuted, fontSize: 11, lineHeight: 17, marginTop: -8 },
+    clipGuidance: { color: c.textMuted, fontSize: 12, lineHeight: 18, marginTop: -6 },
     selectedClipCard: { flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: 15, padding: 12, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
     selectedClipIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(137,111,255,0.16)' : 'rgba(137,111,255,0.1)' },
-    selectedClipName: { color: c.text, fontSize: 12, fontWeight: '800' },
-    selectedClipMeta: { color: c.textMuted, fontSize: 10, marginTop: 4 },
+    selectedClipName: { color: c.text, fontSize: 14, fontWeight: '700' },
+    selectedClipMeta: { color: c.textMuted, fontSize: 12, marginTop: 4 },
     removeClipButton: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: c.background },
     uploadProgressCard: { borderRadius: 15, padding: 13, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder, gap: 9 },
     uploadProgressHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    uploadProgressTitle: { color: c.text, fontSize: 12, fontWeight: '800' },
-    uploadProgressPercent: { color: c.primary, fontSize: 12, fontWeight: '900' },
+    uploadProgressTitle: { color: c.text, fontSize: 14, fontWeight: '700' },
+    uploadProgressPercent: { color: c.primary, fontSize: 13, fontWeight: '800' },
     uploadProgressTrack: { height: 8, borderRadius: 8, overflow: 'hidden', backgroundColor: c.background },
     uploadProgressFill: { height: '100%', borderRadius: 8, backgroundColor: c.primary },
-    uploadProgressHint: { color: c.textMuted, fontSize: 10, lineHeight: 15 },
+    uploadProgressHint: { color: c.textMuted, fontSize: 12, lineHeight: 17 },
     publishClipButton: { minHeight: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, backgroundColor: c.primary },
     publishClipButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
 
-    clipCaptionInput: { minHeight: 44, borderRadius: 12, paddingHorizontal: 13, color: c.text, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, fontSize: 13 },
+    clipCaptionInput: { minHeight: 48, borderRadius: 12, paddingHorizontal: 13, color: c.text, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, fontSize: 14 },
     clipsIntro: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
     clipsTitle: { color: c.text, fontSize: 19, fontWeight: '800' },
-    clipsSubtitle: { color: c.textMuted, fontSize: 12, marginTop: 3, lineHeight: 17 },
+    clipsSubtitle: { color: c.textMuted, fontSize: 13, marginTop: 3, lineHeight: 18 },
     createClipButton: { backgroundColor: c.primary, borderRadius: 13, minHeight: 42, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 5 },
-    createClipText: { color: '#FFFFFF', fontWeight: '800', fontSize: 12 },
+    createClipText: { color: '#FFFFFF', fontWeight: '800', fontSize: 13 },
     clipsEmpty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, gap: 9, backgroundColor: c.surface, borderRadius: 20 },
     clipsEmptyTitle: { color: c.text, fontSize: 16, fontWeight: '800' },
     clipsEmptyText: { color: c.textMuted, fontSize: 13 },
@@ -657,18 +632,18 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     clipCaption: { color: c.text, fontSize: 14, lineHeight: 20 },
     clipActions: { flexDirection: 'row', alignItems: 'center', gap: 20, paddingHorizontal: 4 },
     screen: { flex: 1, backgroundColor: c.background },
-    content: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 150 },
-    header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 18 },
-    iconButton: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
-    eyebrow: { color: c.primary, fontSize: 9, fontWeight: '900', letterSpacing: 1.7 },
+    content: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 112 },
+    header: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 14 },
+    iconButton: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
+    eyebrow: { color: c.primary, fontSize: 11, fontWeight: '800', letterSpacing: 1.1 },
     title: { color: c.text, fontSize: 25, fontWeight: '900', letterSpacing: -0.7 },
-    messagesButton: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
+    messagesButton: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
     discoverButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 40, borderRadius: 14, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
-    discoverText: { color: c.primary, fontSize: 11, fontWeight: '800' },
+    discoverText: { color: c.primary, fontSize: 13, fontWeight: '700' },
     intro: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 26, padding: 17, marginBottom: 14, backgroundColor: isDark ? 'rgba(116,91,220,0.16)' : 'rgba(116,91,220,0.09)', borderWidth: 1, borderColor: c.glassBorder },
     introIcon: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: c.primary },
-    introTitle: { color: c.text, fontSize: 14, fontWeight: '900' },
-    introSubtitle: { color: c.textMuted, fontSize: 11, lineHeight: 16, marginTop: 3 },
+    introTitle: { color: c.text, fontSize: 16, fontWeight: '800' },
+    introSubtitle: { color: c.textMuted, fontSize: 13, lineHeight: 18, marginTop: 3 },
     storySection: { marginBottom: 16 },
     storyHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 },
     storyList: { gap: 13, paddingVertical: 2, paddingRight: 10 },
@@ -679,52 +654,52 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     storySeen: { borderWidth: 1.5, borderColor: c.textMuted },
     storyAvatar: { width: 50, height: 50, borderRadius: 25 },
     storyFallback: { width: 50, height: 50, borderRadius: 25, backgroundColor: c.surfaceElevated, alignItems: 'center', justifyContent: 'center' },
-    storyName: { color: c.textMuted, fontSize: 9, maxWidth: 66 },
+    storyName: { color: c.textMuted, fontSize: 11, maxWidth: 72 },
     composer: { padding: 16, borderRadius: 26, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder, marginBottom: 22 },
     composerTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
     composerAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(137,111,255,0.18)' : 'rgba(137,111,255,0.12)' },
-    input: { flex: 1, minHeight: 62, maxHeight: 150, color: c.text, fontSize: 13, lineHeight: 19, paddingTop: 8 },
+    input: { flex: 1, minHeight: 62, maxHeight: 150, color: c.text, fontSize: 15, lineHeight: 21, paddingTop: 8 },
     imagePreviewWrap: { marginTop: 10, borderRadius: 15, overflow: 'hidden', alignSelf: 'flex-start', width: '100%', maxHeight: 220 },
     imagePreview: { width: '100%', height: 200, borderRadius: 15 },
     removeImage: { position: 'absolute', top: 8, right: 8, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.65)' },
     composerBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: c.glassBorder, paddingTop: 11, marginTop: 8 },
     composerTools: { flexDirection: 'row', alignItems: 'center', gap: 14 },
     attachButton: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 34 },
-    attachText: { color: c.primary, fontSize: 10, fontWeight: '800' },
-    counter: { color: c.textMuted, fontSize: 10 },
+    attachText: { color: c.primary, fontSize: 12, fontWeight: '700' },
+    counter: { color: c.textMuted, fontSize: 12 },
     publishButton: { height: 37, borderRadius: 13, paddingHorizontal: 15, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: c.primary },
-    publishText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
+    publishText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
     feedHeading: { marginBottom: 10 },
     feedTitle: { color: c.text, fontSize: 17, fontWeight: '900' },
-    feedCaption: { color: c.textMuted, fontSize: 10, marginTop: 3 },
-    post: { padding: 16, borderRadius: 26, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder, marginBottom: 11 },
+    feedCaption: { color: c.textMuted, fontSize: 12, marginTop: 3 },
+    post: { padding: 14, borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder, marginBottom: 11 },
     postHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     person: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9 },
     avatar: { width: 40, height: 40, borderRadius: 20 },
     avatarFallback: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceElevated },
     avatarInitial: { color: c.text, fontSize: 12, fontWeight: '900' },
-    name: { color: c.text, fontSize: 12, fontWeight: '900' },
-    handle: { color: c.primary, fontSize: 10, marginTop: 2 },
-    time: { color: c.textMuted, fontSize: 9 },
-    postContent: { color: c.text, fontSize: 13, lineHeight: 20, marginTop: 14, marginBottom: 13 },
+    name: { color: c.text, fontSize: 14, fontWeight: '800' },
+    handle: { color: c.primary, fontSize: 12, marginTop: 2 },
+    time: { color: c.textMuted, fontSize: 11 },
+    postContent: { color: c.text, fontSize: 15, lineHeight: 22, marginTop: 12, marginBottom: 12 },
     postImage: { width: '100%', aspectRatio: 4 / 3, borderRadius: 20, marginTop: 10, marginBottom: 12, backgroundColor: c.background },
     postActions: { flexDirection: 'row', alignItems: 'center', gap: 17, borderTopWidth: 1, borderTopColor: c.glassBorder, paddingTop: 11 },
     action: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 28 },
-    actionText: { color: c.textMuted, fontSize: 10, fontWeight: '700' },
+    actionText: { color: c.textMuted, fontSize: 12, fontWeight: '700' },
     ownLabel: { color: c.textMuted, fontSize: 8, fontWeight: '900', letterSpacing: 0.7 },
     comments: { borderTopWidth: 1, borderTopColor: c.glassBorder, marginTop: 10, paddingTop: 10 },
     comment: { paddingVertical: 6 },
-    commentAuthor: { color: c.primary, fontSize: 10, fontWeight: '900' },
-    commentText: { color: c.text, fontSize: 11, lineHeight: 16, marginTop: 2 },
-    noComments: { color: c.textMuted, fontSize: 10, paddingVertical: 7 },
+    commentAuthor: { color: c.primary, fontSize: 12, fontWeight: '800' },
+    commentText: { color: c.text, fontSize: 13, lineHeight: 19, marginTop: 2 },
+    noComments: { color: c.textMuted, fontSize: 12, paddingVertical: 7 },
     commentComposer: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
-    commentInput: { flex: 1, height: 40, borderRadius: 13, paddingHorizontal: 12, color: c.text, backgroundColor: c.background, fontSize: 11 },
+    commentInput: { flex: 1, minHeight: 44, borderRadius: 13, paddingHorizontal: 12, color: c.text, backgroundColor: c.background, fontSize: 14 },
     commentSend: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: c.primary },
     empty: { alignItems: 'center', padding: 30, borderRadius: 25, backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder, marginTop: 6 },
     emptyTitle: { color: c.text, fontSize: 15, fontWeight: '900', marginTop: 12 },
-    emptyText: { color: c.textMuted, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 5 },
+    emptyText: { color: c.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 5 },
     emptyButton: { marginTop: 14, paddingHorizontal: 16, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: c.primary },
-    emptyButtonText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
+    emptyButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
     storyViewer: { flex: 1, backgroundColor: '#08080C', justifyContent: 'center' },
     storyViewerImage: { width: '100%', height: '100%', position: 'absolute' },
     storyViewerTop: { position: 'absolute', top: 55, left: 18, right: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
