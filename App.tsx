@@ -835,7 +835,7 @@ function AppContent() {
         style={[styles.scroll, { backgroundColor }]}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: 116 + bottomInset },
+          { paddingBottom: (tab === 'profile' && selectedPublicUsername !== null ? 24 : 116) + bottomInset },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -847,13 +847,15 @@ function AppContent() {
         )}
       </Animated.ScrollView>
       )}
-      <LiquidDock
-        items={navigation}
-        activeKey={tab === 'tutor' ? 'home' : tab}
-        onSelect={(key) => openTab(key as Tab)}
-        bottomInset={bottomInset}
-        scrollStretch={dockStretch}
-      />
+      {!(tab === 'profile' && selectedPublicUsername !== null) && (
+        <LiquidDock
+          items={navigation}
+          activeKey={tab === 'tutor' ? 'home' : tab}
+          onSelect={(key) => openTab(key as Tab)}
+          bottomInset={bottomInset}
+          scrollStretch={dockStretch}
+        />
+      )}
     </SafeAreaView>
   );
 }
