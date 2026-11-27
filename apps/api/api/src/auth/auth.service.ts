@@ -611,19 +611,28 @@ export class AuthService {
     if (!session || session.expiresAt.getTime() <= Date.now()) {
       throw new UnauthorizedException('Ilovadagi ro‘yxatdan o‘tish oynasidan qayta boshlang.');
     }
-    return this.issueTelegramBotOtp({
-      sessionId: await this.getSessionIdForHash(session.sessionHash),
-      telegramUserId: input.telegramUserId,
-      phoneNumber: input.phoneNumber,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      username: input.username,
-    });
-  }
-
-  private async getSessionIdForHash(_hash: string): Promise<string> {
-    // Session IDs are intentionally not stored in plaintext; bot code binding is handled by the caller.
-    throw new BadRequestException('Sessiya kaliti yo‘q. Ilovadagi tugma orqali qayta boshlang.');
+    const phone = this.otpService.normalizePhone(input.phoneNumber);
+    const telegramSubject = String(input.telegramUserId);
+    const existingTelegram = await this.userRepository.findOne({ where: { telegramSubject } });
+    if (existingTelegram?.phoneNumber && existingTelegram.phoneNumber !== phone) {
+      throw new ConflictException('Bu Telegram akkaunti boshqa telefon raqamiga bog‘langan');
+    }
+    const existingPhone = await this.userRepository.findOne({ where: { phoneNumber: phone } });
+    if (existingPhone?.telegramSubject && existingPhone.telegramSubject !== telegramSubject) {
+      throw new ConflictException('Bu telefon raqami boshqa Telegram akkauntiga bog‘langan');
+    }
+    const code = String(randomInt(100000, 1_000_000));
+    session.phoneNumber = phone;
+    session.codeHash = createHmac('sha256', this.config.getOrThrow<string>('JWT_SECRET'))
+      .update(`telegram-bot:${session.sessionHash}:${code}`).digest('hex');
+    session.firstName = input.firstName?.slice(0, 100) || null;
+    session.lastName = input.lastName?.slice(0, 100) || null;
+    session.telegramUsername = input.username?.slice(0, 64) || null;
+    session.attempts = 0;
+    session.verifiedAt = null;
+    session.expiresAt = new Date(Date.now() + 5 * 60_000);
+    await this.telegramSessions.save(session);
+    return code;
   }
 
   async issueTelegramBotOtp(input: {
@@ -649,7 +658,7 @@ export class AuthService {
     const code = String(randomInt(100000, 1_000_000));
     session.telegramUserId = String(input.telegramUserId);
     session.phoneNumber = phone;
-    session.codeHash = this.telegramOtpHash(input.sessionId, code);
+    session.codeHash = createHmac('sha256', this.config.getOrThrow<string>('JWT_SECRET')).update(`telegram-bot:${session.sessionHash}:${code}`).digest('hex');
     session.firstName = input.firstName?.slice(0, 100) || null;
     session.lastName = input.lastName?.slice(0, 100) || null;
     session.telegramUsername = input.username?.slice(0, 64) || null;
@@ -673,7 +682,7 @@ export class AuthService {
       throw new UnauthorizedException('Kod noto‘g‘ri yoki muddati tugagan. Qayta boshlang.');
     }
     const expected = Buffer.from(session.codeHash, 'hex');
-    const actual = Buffer.from(this.telegramOtpHash(sessionId, code), 'hex');
+    const actual = Buffer.from(createHmac('sha256', this.config.getOrThrow<string>('JWT_SECRET')).update(`telegram-bot:${session.sessionHash}:${code}`).digest('hex'), 'hex');
     const valid = expected.length === actual.length && timingSafeEqual(expected, actual);
     if (!valid) {
       await this.telegramSessions.createQueryBuilder().update(TelegramBotAuthSession)
