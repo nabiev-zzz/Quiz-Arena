@@ -18,7 +18,7 @@ export const TEST_EXPORT_FORMATS: Array<{ value: TestExportFormat; label: string
 ];
 
 type ExportAttempt = Pick<LearningHistoryItem,
-  'id' | 'subjectName' | 'topicName' | 'totalQuestions' | 'correctAnswers' | 'accuracy' | 'completedAt' | 'review'
+  'id' | 'subjectId' | 'subjectName' | 'topicId' | 'topicName' | 'totalQuestions' | 'correctAnswers' | 'accuracy' | 'completedAt' | 'review'
 >;
 
 const escapeHtml = (value: unknown) => String(value ?? '')
@@ -308,7 +308,13 @@ async function writeAndShare(name: string, extension: string, mimeType: string, 
   const uri = directory + name + '.' + extension;
   await FileSystem.writeAsStringAsync(uri, content, { encoding });
   if (!(await Sharing.isAvailableAsync())) throw new Error('Bu qurilmada fayl ulashish imkoniyati mavjud emas.');
-  await Sharing.shareAsync(uri, { mimeType, dialogTitle: 'Testni eksport qilish', UTI: extension });
+  const utiByExtension: Record<string, string> = {
+    html: 'public.html', txt: 'public.plain-text', csv: 'public.comma-separated-values-text',
+    json: 'public.json', md: 'net.daringfireball.markdown',
+    docx: 'org.openxmlformats.wordprocessingml.document',
+    pptx: 'org.openxmlformats.presentationml.presentation',
+  };
+  await Sharing.shareAsync(uri, { mimeType, dialogTitle: 'Testni eksport qilish', UTI: utiByExtension[extension] || 'public.data' });
 }
 
 export async function exportLearningAttempt(attempt: ExportAttempt, format: TestExportFormat): Promise<void> {
@@ -332,7 +338,15 @@ export async function exportLearningAttempt(attempt: ExportAttempt, format: Test
   if (format === 'html') return writeAndShare(baseName, 'html', 'text/html', buildHtml(attempt));
   if (format === 'txt') return writeAndShare(baseName, 'txt', 'text/plain', buildText(attempt));
   if (format === 'csv') return writeAndShare(baseName, 'csv', 'text/csv', buildCsv(attempt));
-  if (format === 'json') return writeAndShare(baseName, 'json', 'application/json', JSON.stringify(attempt, null, 2));
+  if (format === 'json') {
+    const safePayload = {
+      id: attempt.id, subjectId: attempt.subjectId, subjectName: attempt.subjectName,
+      topicId: attempt.topicId, topicName: attempt.topicName, totalQuestions: attempt.totalQuestions,
+      correctAnswers: attempt.correctAnswers, accuracy: attempt.accuracy,
+      completedAt: attempt.completedAt, review: attempt.review,
+    };
+    return writeAndShare(baseName, 'json', 'application/json', JSON.stringify(safePayload, null, 2));
+  }
   if (format === 'md') return writeAndShare(baseName, 'md', 'text/markdown', buildMarkdown(attempt));
   const bytes = zipStore(format === 'docx' ? docxFiles(attempt) : pptxFiles(attempt));
   return writeAndShare(
