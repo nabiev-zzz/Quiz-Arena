@@ -203,7 +203,7 @@ export default function SmartPracticeScreen({ onBack, language }: Props) {
 
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: colors.background },
+    screen: { flex: 1, backgroundColor: 'transparent' },
     header: { minHeight: 72, paddingHorizontal: 17, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
     back: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceElevated },
     headerIcon: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#6653D8' },
