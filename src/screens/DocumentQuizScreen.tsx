@@ -338,14 +338,14 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
             {showExportOptions ? (
               <View style={s.panel}>
                 <LocalizedText style={s.panelTitle}>Fayl formatini tanlang</LocalizedText>
-                <View style={s.reviewActions}>
+                <View style={s.exportActions}>
                   {TEST_EXPORT_FORMATS.map((format) => (
-                    <Pressable key={format.value} onPress={() => void handleExport(format.value)} disabled={!!exportingFormat} style={s.reviewAction}>
-                      <LocalizedText style={s.reviewActionText}>{exportingFormat === format.value ? 'Tayyorlanmoqda…' : format.label}</LocalizedText>
+                    <Pressable key={format.value} onPress={() => void handleExport(format.value)} disabled={!!exportingFormat} style={s.exportAction}>
+                      <LocalizedText style={s.exportActionText}>{exportingFormat === format.value ? 'Tayyorlanmoqda…' : format.label}</LocalizedText>
                     </Pressable>
                   ))}
                 </View>
-                {!!exportError && <LocalizedText style={s.reviewActionDanger}>{exportError}</LocalizedText>}
+                {!!exportError && <LocalizedText style={s.exportError}>{exportError}</LocalizedText>}
                 <LocalizedText style={s.muted}>Saqlangan test savollari, variantlari va javoblari asl tartibda eksport qilinadi.</LocalizedText>
               </View>
             ) : null}
@@ -397,6 +397,10 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     difficultyActive: { backgroundColor: colors.primary + '20', borderColor: colors.primary },
     difficultyText: { color: colors.textMuted, fontSize: 10, fontWeight: '700' },
     difficultyTextActive: { color: colors.primary, fontWeight: '900' },
+    exportActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 7 },
+    exportAction: { paddingHorizontal: 11, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border },
+    exportActionText: { color: colors.primary, fontSize: 10, fontWeight: '800' },
+    exportError: { color: '#DC4C64', fontSize: 10, lineHeight: 15 },
     primaryButton: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 17, backgroundColor: '#6653D8', paddingHorizontal: 16 },
     primaryButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
     disabledButton: { opacity: 0.45 },
