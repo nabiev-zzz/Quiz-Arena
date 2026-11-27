@@ -435,6 +435,13 @@ export default function CommunityReelsFeed(props: Props) {
   }, [playableClips.length, props.clips.length, props.hasMore, props.loading, requestMore]);
 
   const keyExtractor = useCallback((item: CommunityPost) => item.id, []);
+  // Use the FlatList's actual viewport, not an ancestor's measured height.
+  // Android can lay out the feed inside a smaller content area than the screen,
+  // so paging by the outer container height can expose the next reel at once.
+  const onListLayout = useCallback((event: { nativeEvent: { layout: { height: number } } }) => {
+    const next = Math.round(event.nativeEvent.layout.height);
+    if (next > 0 && next !== heightRef.current) setHeight(next);
+  }, []);
   const getItemLayout = useCallback((_: ArrayLike<CommunityPost> | null | undefined, index: number) => ({ length: height, offset: height * index, index }), [height]);
   const renderItem = useCallback(({ item, index }: { item: CommunityPost; index: number }) => (
     <Reel
@@ -448,16 +455,14 @@ export default function CommunityReelsFeed(props: Props) {
   ), [activeIndex, appIsActive, goodConnection, height, insets.bottom, muted, onSkip, props.onComments, props.onLike, props.onMiniTest, props.onSave, props.onUserPress, props.overlayOpen, registerPlayer]);
 
   return (
-    <View style={styles.container} onLayout={(event) => {
-      const next = Math.round(event.nativeEvent.layout.height);
-      if (next > 0 && next !== height) setHeight(next);
-    }}>
+    <View style={styles.container} onLayout={onListLayout}>
       {height <= 0 ? <View style={styles.state}><ActivityIndicator color="#FFFFFF"/><LocalizedText style={styles.stateText}>Lavhalar tayyorlanmoqda...</LocalizedText></View>
         : props.loading ? <View style={styles.state}><View style={styles.skeletonPoster}/><View style={styles.skeletonLine}/><View style={styles.skeletonLineShort}/><ActivityIndicator color="#FFFFFF"/></View>
         : props.error ? <View style={styles.state}><Ionicons name="cloud-offline-outline" size={36} color="#FFFFFF"/><LocalizedText style={styles.stateText}>Videolar yuklanmadi</LocalizedText><Pressable onPress={props.onRetry} style={styles.retry}><LocalizedText style={styles.retryText}>Qayta urinish</LocalizedText></Pressable></View>
         : playableClips.length === 0 ? <View style={styles.state}><Ionicons name="videocam-outline" size={48} color="#FFFFFF"/><LocalizedText style={styles.stateText}>{props.clips.length ? 'Hozircha ko‘rish mumkin bo‘lgan lavha yo‘q' : 'Hali lavhalar yo‘q'}</LocalizedText><LocalizedText style={styles.emptyText}>{props.clips.length ? 'Mavjud bo‘lmagan videolar o‘tkazib yuborildi.' : 'Birinchi videoni siz joylang.'}</LocalizedText></View>
         : <FlatList
           ref={listRef} style={styles.list} data={playableClips} removeClippedSubviews={false}
+          onLayout={onListLayout}
           keyExtractor={keyExtractor} renderItem={renderItem} pagingEnabled snapToInterval={height}
           snapToAlignment="start" decelerationRate="fast" disableIntervalMomentum
           showsVerticalScrollIndicator={false} initialNumToRender={1} maxToRenderPerBatch={2}
