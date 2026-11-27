@@ -58,6 +58,8 @@ async function request<T>(path: string, method = 'GET', body?: unknown): Promise
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await response.json().catch(() => ({}));
+  if (response.status === 401) throw new Error('Kirish sessiyasi tugagan. Akkauntingizga qayta kiring.');
+  if (response.status === 403) throw new Error('Bu amalni bajarish uchun ruxsat yo‘q.');
   if (!response.ok) throw new Error(typeof data.message === 'string' ? data.message : 'Hamjamiyat serverida xatolik');
   return data as T;
 }

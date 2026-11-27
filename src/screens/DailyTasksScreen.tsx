@@ -63,7 +63,7 @@ export default function DailyTasksScreen({ onBack }: Props) {
   const C = { background: tokens.colors.background, surface: tokens.colors.surface, border: tokens.colors.glassBorder, text: tokens.colors.text, muted: tokens.colors.textMuted, primary: tokens.colors.primary };
 
   return (
-    <View style={[styles.screen, { backgroundColor: C.background }]}>
+    <View style={styles.screen}>
       <View style={[styles.header, { borderBottomColor: C.border }]}>
         <Pressable onPress={onBack} style={[styles.backButton, { backgroundColor: C.surface, borderColor: C.border }]} accessibilityRole="button" accessibilityLabel="Orqaga">
           <Ionicons name="arrow-back" size={21} color={C.text} />

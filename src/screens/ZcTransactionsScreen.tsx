@@ -23,7 +23,7 @@ export default function ZcTransactionsScreen({ onBack }: { onBack: () => void })
   }, [user?.id, refresh]);
   useEffect(() => { void load(); }, [load]);
   const balance = Math.max(0, Number(user?.zcBalance ?? 0));
-  return <View style={[s.screen,{backgroundColor:c.background}]}>
+  return <View style={s.screen}>
     <View style={[s.header,{borderBottomColor:c.border}]}>
       <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel="Orqaga" style={[s.back,{backgroundColor:c.surface}]}><Ionicons name="arrow-back" size={21} color={c.text}/></Pressable>
       <View style={{flex:1}}><LocalizedText style={[s.eyebrow,{color:c.textMuted}]}>ZELQEN CREDITS</LocalizedText><LocalizedText style={[s.title,{color:c.text}]}>Tranzaksiyalar</LocalizedText></View>

@@ -646,10 +646,10 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
 
 function makeStyles(C: { background: string; surface: string; surfaceRaised: string; border: string; purple: string; purpleSoft: string; text: string; muted: string; subtle: string }) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: C.background, position: 'relative' },
+    screen: { flex: 1, backgroundColor: 'transparent', position: 'relative' },
     container: { flex: 1, backgroundColor: 'transparent' },
     content: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 132 },
-    loading: { flex: 1, backgroundColor: C.background, justifyContent: 'center', alignItems: 'center' },
+    loading: { flex: 1, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
     header: { height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
     headerButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { color: C.muted, fontSize: 11, fontWeight: '800', letterSpacing: 2 },

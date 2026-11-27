@@ -62,6 +62,7 @@ import {
 
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import LiquidDock, { type LiquidDockItem } from './src/components/LiquidDock';
+import Snowfall from './src/components/Snowfall';
 // @ts-ignore Keep the animated splash as the requested plain JavaScript component.
 import AnimatedSplash from './src/components/AnimatedSplash';
 
@@ -459,7 +460,7 @@ function AppContent() {
       if (selectedPublicUsername === '__community__') {
         return (
           <CommunityScreen
-            onBack={() => setSelectedPublicUsername(null)}
+            onBack={() => openTab('home')}
             onDiscoverUsers={() => setSelectedPublicUsername('__community_discover__')}
             onMessages={() => {
               setDirectMessageTargetId(null);
@@ -467,7 +468,7 @@ function AppContent() {
               setSelectedPublicUsername('__community_messages__');
             }}
             onChallenges={() => { setSelectedPublicUsername(null); openTab('battle'); }}
-            onDailyTasks={() => { setSelectedPublicUsername(null); setShowDailyTasks(true); }}
+            onDailyTasks={() => { openTab('home'); setShowDailyTasks(true); }}
             onTutor={() => { setSelectedPublicUsername(null); openTab('tutor'); }}
             onUserPress={(username) => setSelectedPublicUsername(username)}
           />
@@ -574,6 +575,7 @@ function AppContent() {
         edges={['top', 'bottom']}
       >
         <StatusBar style={isDark ? 'light' : 'dark'} />
+        <Snowfall />
         <ActivityIndicator size="large" color="#A88FFF" />
         <LocalizedText style={[styles.loadingText, { color: mutedColor }]}>
           ZELQEN CORE yuklanmoqda...
@@ -589,6 +591,7 @@ function AppContent() {
         edges={['top', 'bottom']}
       >
         <StatusBar style={isDark ? 'light' : 'dark'} />
+        <Snowfall />
 
         {authScreen === 'login' ? (
           <LoginScreen
@@ -617,6 +620,7 @@ function AppContent() {
       edges={['top', 'left', 'right']}
     >
       <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Snowfall />
 
       <Modal
         visible={showNavigationDrawer}
@@ -837,7 +841,7 @@ function AppContent() {
       <Animated.ScrollView
         onScroll={dockScrollHandler}
         scrollEventThrottle={16}
-        style={[styles.scroll, { backgroundColor }]}
+        style={styles.scroll}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: (tab === 'profile' && selectedPublicUsername !== null ? 24 : 116) + bottomInset },

@@ -193,10 +193,10 @@ export default function PublicProfileScreen({ username, onBack, onMessagePress }
 
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isDark: boolean) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: colors.background, position: 'relative' },
+    screen: { flex: 1, backgroundColor: 'transparent', position: 'relative' },
     scroll: { flex: 1, backgroundColor: 'transparent' },
     content: { padding: 19, paddingBottom: 132 },
-    loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
     back: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, marginBottom: 12 },
     backText: { color: colors.text, fontSize: 14, fontWeight: '700' },
     empty: { color: colors.textMuted, textAlign: 'center', marginTop: 40 },

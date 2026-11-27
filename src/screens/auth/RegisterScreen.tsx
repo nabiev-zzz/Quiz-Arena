@@ -95,7 +95,7 @@ export default function RegisterScreen({ onRegister, onLoginPress }: Props) {
 
 function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
+    container: { flex: 1, backgroundColor: 'transparent' },
     content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 30 },
     brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 26 },
     brandMark: { width: 42, height: 42, borderRadius: 15, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },

@@ -80,7 +80,7 @@ export default function PremiumScreen({ onBack }: Props) {
 
   const c = tokens.colors;
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={s.content}>
+    <ScrollView style={{ flex: 1, backgroundColor: 'transparent' }} contentContainerStyle={s.content}>
       <View style={s.header}>
         <Pressable onPress={onBack} style={[s.back, { backgroundColor: c.surfaceGlass }]}><Ionicons name="arrow-back" size={21} color={c.text} /></Pressable>
         <LocalizedText style={[s.heading, { color: c.text }]}>ZELQEN CORE Premium</LocalizedText>
