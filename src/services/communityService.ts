@@ -64,6 +64,7 @@ async function request<T>(path: string, method = 'GET', body?: unknown): Promise
 
 export const getCommunityFeed = () => request<CommunityPost[]>('/api/community/posts?limit=40');
 export const getCommunityClips = (limit = 40, offset = 0) => request<CommunityPost[]>(`/api/community/clips?limit=${Math.min(50, Math.max(1, limit))}&offset=${Math.max(0, offset)}`);
+export const getCommunityClipPlayback = (id: string) => request<{ url: string; mediaType: string }>(`/api/community/clips/${encodeURIComponent(id)}/playback`);
 export const createCommunityClip = (content: string, mediaKey: string, mediaType: string, subject?: string) =>
   request<CommunityPost>('/api/community/clips', 'POST', { content, mediaKey, mediaType, subject });
 export const createCommunityPost = (content: string, mediaKey?: string, mediaType?: string) =>
@@ -118,11 +119,12 @@ export async function uploadCommunityMedia(uri: string, contentType: string, onP
     if (fileSize > maxBytes) throw new Error(sizeError);
     if (expectedSize && fileSize !== expectedSize) throw new Error('Tanlangan video hajmi manba fayliga mos kelmadi. Videoni qayta tanlang.');
     onProgress?.(3);
-    const verifyVideo = async (mediaKey: string) => {
-      if (!isVideo) return;
+    const verifyVideo = async (mediaKey: string): Promise<{ mediaKey: string; mediaType: string }> => {
+      if (!isVideo) return { mediaKey, mediaType: key.mediaType };
       onProgress?.(99);
-      const result = await request<{ verified: boolean; size: number }>('/api/community/media/verify', 'POST', { mediaKey, contentType, expectedSize: fileSize });
-      if (!result.verified || result.size !== fileSize) throw new Error('Video serverda to‘liq saqlanmadi. Qayta yuklang.');
+      const result = await request<{ verified: boolean; size: number; playbackMediaKey?: string; playbackMediaType?: string }>('/api/community/media/verify', 'POST', { mediaKey, contentType, expectedSize: fileSize });
+      if (!result.verified || result.size !== fileSize || !result.playbackMediaKey || result.playbackMediaType !== 'video/mp4') throw new Error('Video serverda to‘liq saqlanmadi yoki ijro uchun moslashtirilmadi. Qayta yuklang.');
+      return { mediaKey: result.playbackMediaKey, mediaType: result.playbackMediaType };
     };
 
     const uploadNative = async (url: string, headers: Record<string, string>) => file.upload(url, {
@@ -132,15 +134,17 @@ export async function uploadCommunityMedia(uri: string, contentType: string, onP
       },
     });
 
+    let directStatus = 0;
     try {
       const direct = await uploadNative(key.uploadUrl, mediaHeaders);
-      if (direct.status >= 200 && direct.status < 300) {
-        await verifyVideo(key.mediaKey);
-        onProgress?.(100);
-        return { mediaKey: key.mediaKey, mediaType: key.mediaType };
-      }
+      directStatus = direct.status;
     } catch {
       // Retry through the authenticated API proxy below; the original file is still streamed natively.
+    }
+    if (directStatus >= 200 && directStatus < 300) {
+      const playable = await verifyVideo(key.mediaKey);
+      onProgress?.(100);
+      return playable;
     }
 
     const proxy = await uploadNative(
@@ -155,9 +159,9 @@ export async function uploadCommunityMedia(uri: string, contentType: string, onP
     if (typeof data.mediaKey !== 'string' || typeof data.mediaType !== 'string') {
       throw new Error('Server yuklangan faylni tasdiqlamadi. Qayta urinib ko‘ring.');
     }
-    await verifyVideo(data.mediaKey);
+    const playable = await verifyVideo(data.mediaKey);
     onProgress?.(100);
-    return { mediaKey: data.mediaKey, mediaType: data.mediaType };
+    return playable;
   }
 
   // Web uses a Blob and the authenticated proxy (avoids cross-origin storage PUT issues).
@@ -184,13 +188,17 @@ export async function uploadCommunityMedia(uri: string, contentType: string, onP
   if (typeof data.mediaKey !== 'string' || typeof data.mediaType !== 'string') {
     throw new Error('Server yuklangan faylni tasdiqlamadi. Qayta urinib ko‘ring.');
   }
+  let finalMediaKey = data.mediaKey;
+  let finalMediaType = data.mediaType;
   if (isVideo) {
     onProgress?.(99);
-    const result = await request<{ verified: boolean; size: number }>('/api/community/media/verify', 'POST', { mediaKey: data.mediaKey, contentType, expectedSize: blob.size });
-    if (!result.verified || result.size !== blob.size) throw new Error('Video serverda to‘liq saqlanmadi. Qayta yuklang.');
+    const result = await request<{ verified: boolean; size: number; playbackMediaKey?: string; playbackMediaType?: string }>('/api/community/media/verify', 'POST', { mediaKey: finalMediaKey, contentType, expectedSize: blob.size });
+    if (!result.verified || result.size !== blob.size || !result.playbackMediaKey || result.playbackMediaType !== 'video/mp4') throw new Error('Video serverda to‘liq saqlanmadi yoki ijro uchun moslashtirilmadi. Qayta yuklang.');
+    finalMediaKey = result.playbackMediaKey;
+    finalMediaType = result.playbackMediaType;
   }
   onProgress?.(100);
-  return { mediaKey: data.mediaKey, mediaType: data.mediaType };
+  return { mediaKey: finalMediaKey, mediaType: finalMediaType };
 }
 
 export interface LearningGroup { id:string; name:string; description:string; subject:string; visibility:'public'|'private'; members_count:number; joined:boolean; is_owner:boolean; display_name:string; username:string; avatar_url:string|null; }
