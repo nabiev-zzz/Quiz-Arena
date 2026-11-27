@@ -245,7 +245,27 @@ export interface LearningMentorRequest { id:string; message:string; status:strin
 export const getLearningMentorRequests=()=>request<LearningMentorRequest[]>(`${learningPath}/mentors/requests`);
 export const respondLearningMentorRequest=(id:string,status:'accepted'|'declined')=>request<{id:string;status:string}>(`${learningPath}/mentors/requests/${encodeURIComponent(id)}`,'PATCH',{status});
 export interface CommunityClipQuiz { id:string; question:string; options:string[]; attempted:boolean; selectedOption:number|null; isCorrect:boolean|null; isOwner?:boolean; canEdit?:boolean; correctOption?:number; }
-export const getCommunityClipQuiz=(id:string)=>request<CommunityClipQuiz|null>(`/api/community/clips/${encodeURIComponent(id)}/quiz`);
+export const getCommunityClipQuiz = async (id: string): Promise<CommunityClipQuiz | null> => {
+  const raw = await request<unknown>(`/api/community/clips/${encodeURIComponent(id)}/quiz`);
+  if (!raw || typeof raw !== 'object') return null;
+  const value = raw as Record<string, unknown>;
+  if (!Array.isArray(value.options) || value.options.length !== 4 || value.options.some((option) => typeof option !== 'string' || !option.trim())) return null;
+  if (typeof value.id !== 'string' || typeof value.question !== 'string' || !value.question.trim()) return null;
+  const options = value.options as string[];
+  const selected = value.selectedOption == null ? NaN : Number(value.selectedOption);
+  const correct = value.correctOption == null ? NaN : Number(value.correctOption);
+  return {
+    id: value.id,
+    question: value.question,
+    options,
+    attempted: value.attempted === true,
+    selectedOption: Number.isInteger(selected) && selected >= 0 && selected < 4 ? selected : null,
+    isCorrect: typeof value.isCorrect === 'boolean' ? value.isCorrect : null,
+    isOwner: value.isOwner === true,
+    canEdit: value.canEdit === true,
+    ...(Number.isInteger(correct) && correct >= 0 && correct < 4 ? { correctOption: correct } : {}),
+  };
+};
 export const createCommunityClipQuiz=(id:string,body:{question:string;options:string[];correctOption:number})=>request<{id:string;question:string;options:string[]}>(`/api/community/clips/${encodeURIComponent(id)}/quiz`,'POST',body);
 export const answerCommunityClipQuiz=(id:string,selectedOption:number)=>request<{isCorrect:boolean;xpAwarded:number;zcAwarded:number}>(`/api/community/clips/${encodeURIComponent(id)}/quiz/answer`,'POST',{selectedOption});
 export interface LearningGroupTask { id:string; title:string; description:string; due_at:string|null; creator_username:string; completed_count:number; completed:boolean; }
