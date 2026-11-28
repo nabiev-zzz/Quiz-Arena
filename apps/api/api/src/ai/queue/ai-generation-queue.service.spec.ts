@@ -96,6 +96,23 @@ describe('AiGenerationQueueService', () => {
     expect(queue.add).not.toHaveBeenCalled();
   });
 
+  it('returns a recently completed identical request without consuming quota twice', async () => {
+    jobRepository.findOne.mockResolvedValue({ id: 'recent-job', status: 'completed', createdAt: new Date(), result: { questions: [] } });
+    const result = await service.enqueue({ userId: '11111111-1111-4111-8111-111111111111', jobType: 'document_quiz', quotaFeature: 'documentQuiz', idempotencyKey: 'same-document', payload: {} });
+    expect(result).toMatchObject({ status: 'completed', jobId: 'recent-job' });
+    expect(featureUsage.consume).not.toHaveBeenCalled();
+    expect(jobRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('allows an intentional regeneration after the duplicate-submit window', async () => {
+    jobRepository.findOne.mockResolvedValue({ id: 'old-job', status: 'completed', createdAt: new Date(Date.now() - 31_000), result: { questions: [] } });
+    const result = await service.enqueue({ userId: '11111111-1111-4111-8111-111111111111', jobType: 'document_quiz', quotaFeature: 'documentQuiz', idempotencyKey: 'same-document', payload: {}, fileBuffer: Buffer.from('same document') });
+    expect(result).toMatchObject({ status: 'queued', jobId: 'job-1' });
+    expect(jobRepository.update).toHaveBeenCalledWith({ id: 'old-job' }, { idempotencyKey: null });
+    expect(featureUsage.consume).toHaveBeenCalledTimes(1);
+    expect(queue.add).toHaveBeenCalledTimes(1);
+  });
+
   it('does not enqueue or consume quota when the plan limit is exhausted', async () => {
     featureUsage.consume.mockResolvedValue({
       allowed: false,
