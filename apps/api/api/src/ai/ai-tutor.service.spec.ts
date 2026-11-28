@@ -38,7 +38,7 @@ describe('AiTutorService tier-aware progress context', () => {
     }]);
   });
 
-  it('shares verified totals but hides detailed mistake analysis from FREE users', async () => {
+  it('shares verified totals and detailed mistake analysis with FREE users during free access', async () => {
     subscriptions.current.mockResolvedValue({
       tier: 'free',
       entitlements: getPlanEntitlements(null),
@@ -52,8 +52,9 @@ describe('AiTutorService tier-aware progress context', () => {
       correctAnswers: 3,
       accuracy: 60,
     });
-    expect(progress.learningStats).not.toHaveProperty('weakTopics');
-    expect(progress.entitlements.detailedErrorAnalysis).toBe(false);
+    expect(progress.learningStats.weakTopics).toEqual([{ subjectName: 'Matematika', topicName: 'Kasrlar', mistakes: 1 }]);
+    expect(progress.learningStats.recentMistakes).toHaveLength(1);
+    expect(progress.entitlements.detailedErrorAnalysis).toBe(true);
   });
 
   it('provides weak-topic and mistake details to PREMIUM PRO users', async () => {
