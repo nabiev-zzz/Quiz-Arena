@@ -110,13 +110,22 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     const ownerWhere = input.userId ? { userId: input.userId } : { userId: IsNull() };
     if (idempotencyKey) {
       const existing = await this.jobs.findOne({ where: { ...ownerWhere, idempotencyKey } });
-      if (existing && ['queued', 'active', 'completed'].includes(existing.status)) {
+      const recentlySubmitted = existing?.createdAt
+        ? Date.now() - new Date(existing.createdAt).getTime() < 2 * 60 * 1000
+        : true;
+      if (existing && ['queued', 'active'].includes(existing.status)) {
         return {
-          status: existing.status as 'queued' | 'active' | 'completed',
+          status: existing.status as 'queued' | 'active',
           jobId: existing.id,
-          message: existing.status === 'completed' ? 'Natija tayyor.' : 'Test tayyorlanmoqda',
+          message: 'Test tayyorlanmoqda',
           result: existing.result,
         };
+      }
+      if (existing?.status === 'completed' && recentlySubmitted) {
+        return { status: 'completed', jobId: existing.id, message: 'Natija tayyor.', result: existing.result };
+      }
+      if (existing?.status === 'completed') {
+        await this.jobs.update({ id: existing.id }, { idempotencyKey: null });
       }
       if (existing?.status === 'failed') {
         const oldBullJob = await this.queue.getJob(existing.id);
