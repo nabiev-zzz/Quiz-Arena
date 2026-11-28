@@ -26,6 +26,9 @@ type SelectedFile = {
   uri: string;
   name: string;
   mimeType?: string | null;
+  /** Browser File returned by Expo DocumentPicker on web. */
+  file?: Blob | null;
+  size?: number | null;
 };
 
 type Phase = 'setup' | 'loading' | 'quiz' | 'result';
@@ -43,6 +46,9 @@ const ACCEPTED_TYPES = [
   'text/plain',
   'text/markdown',
   'text/csv',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'image/png',
+  'image/jpeg',
 ];
 
 export default function DocumentQuizScreen({ onBack, language }: Props) {
@@ -90,14 +96,20 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
       if (result.canceled || !result.assets?.length) return;
       const asset = result.assets[0];
       const extension = asset.name.toLowerCase().split('.').pop();
-      if (!['pdf', 'docx', 'txt', 'md', 'csv'].includes(extension || '')) {
-        showLocalizedAlert('Format qo‘llab-quvvatlanmaydi', 'PDF, DOCX, TXT, MD yoki CSV fayl tanlang.');
+      if (!['pdf', 'docx', 'pptx', 'txt', 'md', 'csv', 'png', 'jpg', 'jpeg'].includes(extension || '')) {
+        showLocalizedAlert('Format qo‘llab-quvvatlanmaydi', 'PDF, DOCX, PPTX, TXT, MD, CSV, PNG yoki JPG fayl tanlang.');
+        return;
+      }
+      if (typeof asset.size === 'number' && asset.size > maxFileSizeMb * 1024 * 1024) {
+        showLocalizedAlert('Fayl hajmi katta', `Fayl ${maxFileSizeMb} MB dan kichik bo‘lishi kerak.`);
         return;
       }
       setFile({
         uri: asset.uri,
         name: asset.name,
         mimeType: asset.mimeType,
+        file: asset.file,
+        size: asset.size,
       });
     } catch (error) {
       showLocalizedAlert('Hujjat tanlanmadi', error instanceof Error ? error.message : 'Faylni ochib bo‘lmadi.');
@@ -224,9 +236,9 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
             <View style={s.hero}>
               <View style={s.heroGlow} />
               <LocalizedText style={s.heroTitle}>Hujjatingizni bilim sinoviga aylantiring</LocalizedText>
-              <LocalizedText style={s.heroText}>PDF, Word yoki matnli hujjatni yuklang. AI mazmunni o‘qib, siz uchun yangi test yaratadi.</LocalizedText>
+              <LocalizedText style={s.heroText}>PDF, Word, PowerPoint yoki rasmli hujjatni yuklang. AI mazmunni o‘qib, siz uchun yangi test yaratadi.</LocalizedText>
               <View style={s.formatRow}>
-                {['PDF', 'DOCX', 'TXT', 'MD', 'CSV'].map((item) => <View key={item} style={s.formatChip}><LocalizedText style={s.formatText}>{item}</LocalizedText></View>)}
+                {['PDF', 'DOCX', 'PPTX', 'TXT', 'MD', 'CSV', 'PNG', 'JPG'].map((item) => <View key={item} style={s.formatChip}><LocalizedText style={s.formatText}>{item}</LocalizedText></View>)}
               </View>
             </View>
 
@@ -234,7 +246,7 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
               <View style={s.uploadIcon}><Ionicons name="cloud-upload-outline" size={27} color={colors.primary} /></View>
               <View style={s.uploadCopy}>
                 <LocalizedText style={s.uploadTitle}>{file ? 'Hujjat tanlandi' : 'Hujjat tanlash'}</LocalizedText>
-                <LocalizedText style={s.muted}>{file ? file.name : `PDF, DOCX, TXT, MD yoki CSV · ${maxFileSizeMb} MB gacha`}</LocalizedText>
+                <LocalizedText style={s.muted}>{file ? file.name : `PDF, DOCX, PPTX, TXT, MD, CSV, PNG yoki JPG · ${maxFileSizeMb} MB gacha`}</LocalizedText>
               </View>
               <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
             </Pressable>
