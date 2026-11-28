@@ -75,15 +75,17 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
 
   useEffect(() => {
     let active = true;
-    Promise.all([getPremiumStatus(), getFeatureUsage('documentQuiz')])
-      .then(([status, usage]) => {
+    getPremiumStatus()
+      .then((status) => {
         if (!active) return;
         const questionLimit = status.entitlements.documentQuiz.maxQuestionsPerDocument;
         setMaxQuestions(questionLimit);
         setMaxFileSizeMb(status.entitlements.documentQuiz.maxFileSizeMb);
         setCount(Math.min(10, questionLimit));
-        setDocumentUsage(usage);
       })
+      .catch(() => undefined);
+    getFeatureUsage('documentQuiz')
+      .then((usage) => { if (active) setDocumentUsage(usage); })
       .catch(() => undefined);
     return () => { active = false; };
   }, []);
