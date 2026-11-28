@@ -152,11 +152,11 @@ export default function LiquidDock({
               styles.liquidPill,
               {
                 backgroundColor: isDark
-                  ? 'rgba(167,139,250,0.22)'
-                  : 'rgba(121,88,201,0.12)',
+                  ? 'rgba(229,185,92,0.20)'
+                  : 'rgba(168,50,75,0.10)',
                 borderColor: isDark
-                  ? 'rgba(196,181,253,0.38)'
-                  : 'rgba(121,88,201,0.24)',
+                  ? 'rgba(244,217,143,0.38)'
+                  : 'rgba(168,50,75,0.22)',
               },
               indicatorStyle,
             ]}
