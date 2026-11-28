@@ -843,10 +843,10 @@ function AppContent() {
           initialSection={tab === 'ranking' ? 'leaderboard' : 'battle'}
           dockStretch={dockStretch}
         />
-      ) : tab === 'profile' && selectedPublicUsername === '__community__' ? (
-        // Community (especially the full-screen Reels feed) must own the viewport.
-        // Nesting it in the home Animated.ScrollView gives its FlatList an unbounded
-        // height, which makes each video page grow beyond the phone screen.
+      ) : tab === 'profile' && (selectedPublicUsername === '__community__' || selectedPublicUsername === '__community_messages__') ? (
+        // Community, Reels, and direct messages must own the full viewport.
+        // Nesting chat in the home Animated.ScrollView constrains its height and
+        // leaves a large blank area below the conversation on mobile web.
         renderOtherTab()
       ) : (
       <Animated.ScrollView
