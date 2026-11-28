@@ -45,8 +45,8 @@ function formatCount(value: number) {
   return String(Math.max(0, value));
 }
 
-const Reel = memo(function Reel({ clip, index, active, shouldMountPlayer, height, bottomInset, muted, onMutedChange, onLike, onSave, onComments, onMiniTest, onUserPress, overlayOpen, appIsActive, registerPlayer, onSkip }: {
-  clip: CommunityPost; index: number; active: boolean; shouldMountPlayer: boolean; height: number; bottomInset: number; muted: boolean;
+const Reel = memo(function Reel({ clip, index, active, shouldMountPlayer, height, topInset, bottomInset, muted, onMutedChange, onLike, onSave, onComments, onMiniTest, onUserPress, overlayOpen, appIsActive, registerPlayer, onSkip }: {
+  clip: CommunityPost; index: number; active: boolean; shouldMountPlayer: boolean; height: number; topInset: number; bottomInset: number; muted: boolean;
   onMutedChange: (muted: boolean) => void; onLike: Props['onLike']; onSave: Props['onSave']; onComments: Props['onComments'];
   onMiniTest: Props['onMiniTest']; onUserPress: Props['onUserPress']; overlayOpen: boolean; appIsActive: boolean;
   registerPlayer: RegisterPlayer; onSkip: (index: number) => void;
@@ -160,7 +160,7 @@ const Reel = memo(function Reel({ clip, index, active, shouldMountPlayer, height
       {tapFeedback ? <View pointerEvents="none" style={styles.pauseMark}><Ionicons name={tapFeedback === 'play' ? 'play' : 'pause'} size={52} color="#FFFFFF" /></View> : null}
       {heartVisible ? <Animated.View pointerEvents="none" style={[styles.heartMark, heartAnimatedStyle]}><Ionicons name="heart" size={92} color="#FFFFFF" /></Animated.View> : null}
       <View pointerEvents="none" style={styles.shadeTop} /><View pointerEvents="none" style={styles.shadeBottom} />
-      <Pressable onPress={() => onMutedChange(!muted)} style={[styles.muteButton, { top: 72 + bottomInset * 0.15 }]} accessibilityRole="button" accessibilityLabel={muted ? 'Ovozni yoqish' : 'Ovozni o‘chirish'}><Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={20} color="#FFFFFF" /></Pressable>
+      <Pressable onPress={() => onMutedChange(!muted)} style={[styles.muteButton, { top: topInset + 56 }]} accessibilityRole="button" accessibilityLabel={muted ? 'Ovozni yoqish' : 'Ovozni o‘chirish'}><Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={20} color="#FFFFFF" /></Pressable>
       <View style={[styles.actions, { bottom: bottomInset + Math.max(104, height * 0.17) }]}>
         <Pressable onPress={handleLike} style={styles.action} accessibilityRole="button" accessibilityLabel={clip.isLiked ? 'Laykni olib tashlash' : 'Layk qo‘yish'} accessibilityState={{ selected: clip.isLiked }}><Animated.View style={likeAnimatedStyle}><Ionicons name={clip.isLiked ? 'heart' : 'heart-outline'} size={31} color={clip.isLiked ? '#FF4778' : '#FFFFFF'} /></Animated.View><LocalizedText style={styles.actionCount}>{formatCount(clip.likesCount)}</LocalizedText></Pressable>
         <Pressable onPress={() => onComments(clip.id)} style={styles.action}><Ionicons name="chatbubble-ellipses-outline" size={29} color="#FFFFFF"/><LocalizedText style={styles.actionCount}>{formatCount(clip.commentsCount)}</LocalizedText></Pressable>
@@ -264,6 +264,13 @@ function ReelVideoPlayer({ clipId, active, muted, paused, registerPlayer, onProg
   // Reveal on the first decoded frame; do not wait for optional track-size
   // metadata or a second layout pass, which can leave Android on a black poster.
   const canRevealVideo = firstFrameRendered;
+  // Some Android decoder/surface combinations omit onFirstFrameRender even
+  // though the player has reached readyToPlay. Avoid leaving the poster stuck.
+  useEffect(() => {
+    if (!active || !playbackReady || status !== 'readyToPlay' || firstFrameRendered) return;
+    const fallback = setTimeout(() => setFirstFrameRendered(true), 1800);
+    return () => clearTimeout(fallback);
+  }, [active, firstFrameRendered, playbackReady, status]);
   const handleFirstFrameRender = useCallback(() => {
     const nextSize = getDisplayVideoSize(player.videoTrack?.size);
     if (nextSize) {
@@ -351,7 +358,7 @@ function ReelVideoPlayer({ clipId, active, muted, paused, registerPlayer, onProg
   if (!active) return null;
   return <>
     <Animated.View style={[StyleSheet.absoluteFill, videoStyle]} onLayout={onVideoViewportLayout}>
-      <VideoView player={player} style={[StyleSheet.absoluteFill, styles.videoSurface]} contentFit={contentFit ?? 'cover'} nativeControls={false} surfaceType="textureView" onFirstFrameRender={handleFirstFrameRender} />
+      <VideoView player={player} style={[StyleSheet.absoluteFill, styles.videoSurface]} contentFit={contentFit ?? 'contain'} nativeControls={false} surfaceType="textureView" onFirstFrameRender={handleFirstFrameRender} />
     </Animated.View>
     {!canRevealVideo ? <Animated.View pointerEvents="none" style={[styles.posterPlaceholder, posterStyle]}><Ionicons name="play-circle" size={48} color="#FFFFFF"/><LocalizedText style={styles.posterTitle}>ZELQEN</LocalizedText><LocalizedText style={styles.statusText}>Lavha yuklanmoqda...</LocalizedText><ActivityIndicator color="#FFFFFF" /></Animated.View> : null}
     {(playbackReady && status === 'error') || playbackRequestError || loadTimedOut ? <View pointerEvents="box-none" style={styles.videoStatus}><Ionicons name="alert-circle-outline" size={36} color="#FFFFFF"/><LocalizedText style={styles.statusText}>{loadTimedOut ? 'Video yuklanishi uzoq davom etdi' : 'Videoni ochib bo‘lmadi'}</LocalizedText><LocalizedText style={styles.statusHint}>Internetni tekshiring yoki qayta urinib ko‘ring.</LocalizedText><View style={styles.errorActions}><Pressable onPress={retry} style={styles.retry}><LocalizedText style={styles.retryText}>Qayta urinish</LocalizedText></Pressable><Pressable onPress={onSkip} style={styles.skipButton}><LocalizedText style={styles.retryText}>Keyingisi</LocalizedText></Pressable></View></View> : null}
@@ -539,7 +546,7 @@ export default function CommunityReelsFeed(props: Props) {
     <Reel
       clip={item} index={index} active={index === activeIndex}
       shouldMountPlayer={index === activeIndex || (goodConnection && index === activeIndex + 1)}
-      height={height} bottomInset={insets.bottom} muted={muted} onMutedChange={setMuted}
+      height={height} topInset={insets.top} bottomInset={insets.bottom} muted={muted} onMutedChange={setMuted}
       onLike={props.onLike} onSave={props.onSave} onComments={props.onComments} onMiniTest={props.onMiniTest}
       onUserPress={props.onUserPress} overlayOpen={props.overlayOpen} appIsActive={appIsActive}
       registerPlayer={registerPlayer} onSkip={onSkip}
@@ -571,7 +578,7 @@ export default function CommunityReelsFeed(props: Props) {
         />}
       {props.loadingMore ? <View pointerEvents="none" style={styles.loadMore}><ActivityIndicator color="#FFFFFF"/><LocalizedText style={styles.emptyText}>Yana lavhalar yuklanmoqda...</LocalizedText></View> : null}
       {playableClips.length > 0 && activeIndex >= playableClips.length - 1 && !props.hasMore && !props.loadingMore ? <View pointerEvents="none" style={styles.endHint}><Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF"/><LocalizedText style={styles.endHintText}>Barcha lavhalarni ko‘rdingiz</LocalizedText></View> : null}
-      <View style={[styles.header, { paddingTop: 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable onPress={props.onBack} style={styles.headerButton}><Ionicons name="chevron-back" size={25} color="#FFFFFF"/></Pressable>
         <LocalizedText style={styles.headerTitle}>Lavhalar</LocalizedText>
         <Pressable onPress={props.onUpload} style={styles.headerButton}><Ionicons name="add" size={27} color="#FFFFFF"/></Pressable>
