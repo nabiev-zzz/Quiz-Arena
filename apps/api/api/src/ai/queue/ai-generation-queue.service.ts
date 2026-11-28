@@ -314,12 +314,52 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getStatus(userId: string, jobId: string) {
-    const job = await this.getOwnedJob(userId, jobId);
-    const bullJob = this.queue ? await this.queue.getJob(job.id) : null;
+    let job = await this.getOwnedJob(userId, jobId);
+    let bullJob = this.queue ? await this.queue.getJob(job.id) : null;
+
+    // PostgreSQL is the public source of truth, but a worker can finish the
+    // BullMQ job immediately before its DB completion write succeeds. Repair
+    // that split-brain state during polling instead of leaving the UI queued
+    // forever.
+    if (bullJob) {
+      const bullState = await bullJob.getState();
+      if (bullState === 'completed' && job.status !== 'completed') {
+        const value: unknown = bullJob.returnvalue;
+        const result = value && typeof value === 'object'
+          ? value as Record<string, unknown>
+          : { value };
+        await this.markCompleted(job.id, result);
+      } else if (
+        bullState === 'failed' &&
+        bullJob.attemptsMade >= Number(bullJob.opts.attempts || 1) &&
+        job.status !== 'failed' &&
+        job.status !== 'completed'
+      ) {
+        await this.markFailedAndRefund(job.id, new Error(bullJob.failedReason || 'AI worker failed'));
+      } else if (bullState === 'active' && job.status === 'queued') {
+        await this.jobs.update({ id: job.id, status: 'queued' }, { status: 'active' });
+      } else if (
+        ['waiting', 'delayed', 'waiting-children', 'paused'].includes(bullState) &&
+        job.status === 'active'
+      ) {
+        await this.jobs.update({ id: job.id, status: 'active' }, { status: 'queued' });
+      }
+    } else if (this.queue && ['queued', 'active'].includes(job.status)) {
+      // A DB outbox row may survive while its Redis entry is lost. Re-enqueue
+      // it on demand so a user's open screen can recover without an operator.
+      await this.queue.add(job.jobType, { jobId: job.id }, {
+        jobId: job.id,
+        priority: job.priority ?? (job.userId ? 20 : 100),
+      });
+      await this.jobs.update({ id: job.id }, { status: 'queued', queueEnqueuedAt: new Date() });
+    }
+
+    job = await this.getOwnedJob(userId, jobId);
+    bullJob = this.queue ? await this.queue.getJob(job.id) : null;
     return {
       jobId: job.id,
       status: job.status,
-      progress: bullJob?.progress ?? { step: job.status === 'queued' ? 'uploading' : job.status },
+      progress: bullJob?.progress ?? { step: job.status === 'queued' ? 'queued' : job.status },
       result: job.status === 'completed' ? job.result : undefined,
       error: job.status === 'failed' ? job.error : undefined,
       createdAt: job.createdAt,
