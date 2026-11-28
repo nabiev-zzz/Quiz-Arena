@@ -1,7 +1,7 @@
 import { LocalizedText, LocalizedTextInput, showLocalizedAlert } from '../i18n/LocalizedText';
 import React, { useEffect, useState } from 'react';
 import Animated, { useAnimatedScrollHandler, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text as NativeText, View } from 'react-native';
+import { ActivityIndicator, AppState, Image, Modal, Pressable, ScrollView, StyleSheet, Text as NativeText, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
@@ -114,12 +114,30 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
   useEffect(() => {
     if (activeTab !== 'missions' || !user) return;
     let active = true;
-    setDailyTasksLoading(true);
-    getDailyTasks()
-      .then((result) => { if (active) setDailyTasks(result.tasks); })
-      .catch((error) => { if (active) showLocalizedAlert('Vazifalar xatosi', error instanceof Error ? error.message : 'Vazifalar yuklanmadi'); })
-      .finally(() => { if (active) setDailyTasksLoading(false); });
-    return () => { active = false; };
+    let firstLoad = true;
+    const refreshDailyTasks = () => {
+      if (firstLoad) setDailyTasksLoading(true);
+      getDailyTasks()
+        .then((result) => { if (active) setDailyTasks(result.tasks); })
+        .catch((error) => {
+          if (active && firstLoad) showLocalizedAlert('Vazifalar xatosi', error instanceof Error ? error.message : 'Vazifalar yuklanmadi');
+        })
+        .finally(() => {
+          if (active && firstLoad) setDailyTasksLoading(false);
+          firstLoad = false;
+        });
+    };
+    refreshDailyTasks();
+    // Refresh while this screen stays open across midnight, and whenever the app resumes.
+    const interval = setInterval(refreshDailyTasks, 60_000);
+    const appStateSubscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshDailyTasks();
+    });
+    return () => {
+      active = false;
+      clearInterval(interval);
+      appStateSubscription.remove();
+    };
   }, [activeTab, user?.id]);
 
 
