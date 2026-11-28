@@ -229,7 +229,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
         completedAt: new Date(),
         fileBuffer: null,
       });
-      if (usage && input.quotaFeature && input.userId) {
+      if (usage && input.quotaFeature && input.userId && input.quotaFeature !== 'documentQuiz') {
         const claim = await this.jobs.update(
           { id: persistedJob.id, quotaConsumed: true, quotaRefunded: false },
           { quotaRefunded: true },
