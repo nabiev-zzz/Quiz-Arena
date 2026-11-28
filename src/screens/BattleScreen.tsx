@@ -56,14 +56,14 @@ interface BattleScreenProps {
 }
 
 const COLORS = {
-  background: '#F3F5FC',
+  background: '#F5F8F4',
   card: '#FFFFFF',
-  text: '#172033',
-  muted: '#748096',
-  primary: '#6558E8',
-  border: '#E5E8F0',
-  success: '#159B68',
-  danger: '#DC4C64',
+  text: '#202B24',
+  muted: '#7D8C80',
+  primary: '#A8324B',
+  border: '#E2EAE1',
+  success: '#287D59',
+  danger: '#B83D52',
 };
 
 export default function BattleScreen({
