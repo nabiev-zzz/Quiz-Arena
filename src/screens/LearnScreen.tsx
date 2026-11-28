@@ -8,6 +8,11 @@ import type { Subject, Topic } from '../types';
 import { useTheme } from '../theme/ThemeContext';
 import { getLearningHistory, getLearningHistoryItem, type LearningHistorySummary } from '../services/learningService';
 import { exportLearningAttempt, TEST_EXPORT_FORMATS, type TestExportFormat } from '../services/testExportService';
+import { useAuth } from '../context/AuthContext';
+import { getLearningStats } from '../services/learningService';
+import { getBattleStats } from '../services/battleService';
+import { getPremiumStatus } from '../services/subscriptionService';
+import { shareStatisticsPdf } from '../services/statisticsReportService';
 
 interface LearnScreenProps {
   initialSubject?: Subject | null;
@@ -19,6 +24,7 @@ const normalize = (value: string) => value.trim().normalize('NFD').replace(/[\u0
 
 export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch }: LearnScreenProps) {
   const { tokens } = useTheme();
+  const { user } = useAuth();
   const colors = tokens.colors;
   const styles = makeStyles(colors);
   const lastDockScrollY = useSharedValue(0);
@@ -28,6 +34,8 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [historyExportKey, setHistoryExportKey] = useState<string | null>(null);
   const [historyExportError, setHistoryExportError] = useState('');
+  const [statsExporting, setStatsExporting] = useState(false);
+  const [statsExportError, setStatsExportError] = useState('');
 
   const dockScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -64,6 +72,39 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
     }
   };
 
+  const exportStatistics = async () => {
+    if (statsExporting) return;
+    setStatsExporting(true);
+    setStatsExportError('');
+    try {
+      const [learningResult, battleResult, premiumResult] = await Promise.allSettled([
+        getLearningStats(),
+        getBattleStats(),
+        getPremiumStatus(),
+      ]);
+      if (learningResult.status !== 'fulfilled') {
+        throw learningResult.reason instanceof Error
+          ? learningResult.reason
+          : new Error('Ta’lim statistikasini yuklab bo‘lmadi.');
+      }
+      await shareStatisticsPdf({
+        user: {
+          displayName: user?.displayName,
+          username: user?.username,
+          level: user?.level,
+          xp: user?.xp,
+          rankPoints: user?.rankPoints,
+        },
+        learning: learningResult.value,
+        battle: battleResult.status === 'fulfilled' ? battleResult.value : null,
+        tier: premiumResult.status === 'fulfilled' ? premiumResult.value.tier : 'free',
+      });
+    } catch (failure) {
+      setStatsExportError(failure instanceof Error ? failure.message : 'PDF eksport qilishda xatolik yuz berdi.');
+    } finally {
+      setStatsExporting(false);
+    }
+  };
   const filteredSubjects = useMemo(() => {
     const query = normalize(searchQuery);
     return query ? subjects.filter((subject) => normalize(subject.name + ' ' + subject.description).includes(query)) : subjects;
@@ -128,13 +169,21 @@ export default function LearnScreen({ initialSubject, onTopicSelect, dockStretch
             <LocalizedText style={styles.subtitle}>O‘zingizga kerakli fanni tanlang va bilim sari yo‘l oling.</LocalizedText>
           </View>
           <View style={styles.historyPanel}>
-            <Pressable style={styles.historyHeader} onPress={() => setHistoryExpanded((value) => !value)}>
+            <View style={styles.historyHeader}>
               <View style={{ flex: 1 }}>
                 <LocalizedText style={styles.sectionTitle}>TESTLAR TARIXI</LocalizedText>
                 <LocalizedText style={styles.historySubtitle}>{history.length} ta saqlangan test · avvalgi natijalarni eksport qilish</LocalizedText>
               </View>
-              <Ionicons name={historyExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={colors.primary} />
+              <Pressable onPress={() => setHistoryExpanded((value) => !value)} hitSlop={10}>
+                <Ionicons name={historyExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={colors.primary} />
+              </Pressable>
+            </View>
+            <Pressable style={styles.statsExportButton} onPress={() => void exportStatistics()} disabled={statsExporting}>
+              <Ionicons name="document-text-outline" size={17} color="#FFFFFF" />
+              <LocalizedText style={styles.statsExportButtonText}>{statsExporting ? 'PDF tayyorlanmoqda…' : 'Umumiy statistikani PDF eksport qilish'}</LocalizedText>
+              {statsExporting ? null : <Ionicons name="download-outline" size={17} color="#FFFFFF" />}
             </Pressable>
+            {!!statsExportError && <LocalizedText style={styles.historyError}>{statsExportError}</LocalizedText>}
             {historyExpanded ? (
               history.length ? history.slice(0, 100).map((item) => (
                 <View key={item.id} style={styles.historyItem}>
@@ -211,6 +260,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     subjectDescription: { color: colors.textMuted, fontSize: 10, lineHeight: 14, minHeight: 28 },
     subjectCount: { color: colors.primary, fontSize: 10, fontWeight: '800', marginTop: 9 },
     historyPanel: { marginBottom: 18, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.surface, gap: 11 },
+    statsExportButton: { minHeight: 43, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 12, borderRadius: 12, backgroundColor: '#6653D8' },
+    statsExportButtonText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
     historyHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     historySubtitle: { color: colors.textMuted, fontSize: 10, lineHeight: 15, marginTop: 3 },
     historyItem: { paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border, gap: 8 },
