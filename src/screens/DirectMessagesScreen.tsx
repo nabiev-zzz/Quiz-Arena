@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Socket } from 'socket.io-client';
 import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
@@ -38,6 +38,8 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
   const [chatLoading, setChatLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const socketRef = useRef<Socket | null>(null);
+  const messageListRef = useRef<FlatList<DirectMessage>>(null);
+  const stickToBottomRef = useRef(true);
 
   const loadConversations = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -50,7 +52,12 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
   const loadMessages = useCallback(async (conversationId: string) => {
     try {
       const rows = await getDirectMessages(conversationId);
-      setMessages(rows);
+      setMessages((current) => {
+        if (current.length === 0) return rows;
+        const byId = new Map(current.map((item) => [item.id, item]));
+        rows.forEach((item) => byId.set(item.id, item));
+        return Array.from(byId.values()).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      });
       await markDirectRead(conversationId);
       setConversations((current) => current.map((item) => item.id === conversationId ? { ...item, unreadCount: 0 } : item));
     } catch (error) { showLocalizedAlert('Chat', error instanceof Error ? error.message : 'Xabarlar yuklanmadi'); }
@@ -68,6 +75,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
         setActive((current) => {
           if (current?.id === message.conversationId) {
             setMessages((rows) => rows.some((row) => row.id === message.id) ? rows : [...rows, message]);
+            if (stickToBottomRef.current) requestAnimationFrame(() => messageListRef.current?.scrollToEnd({ animated: true }));
             if (!message.isMine) void markDirectRead(message.conversationId);
           }
           return current;
@@ -85,7 +93,6 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
   useEffect(() => {
     const timer = setInterval(() => {
       void loadConversations(true);
-      if (active) void loadMessages(active.id);
     }, 5000);
     return () => clearInterval(timer);
   }, [active, loadConversations, loadMessages]);
@@ -122,6 +129,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
     try {
       const message = await sendDirectMessage(active.id, text);
       setMessages((rows) => rows.some((row) => row.id === message.id) ? rows : [...rows, message]);
+      requestAnimationFrame(() => messageListRef.current?.scrollToEnd({ animated: true }));
       setDraft('');
       void loadConversations(true);
     } catch (error) { showLocalizedAlert('Xabar yuborilmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring'); }
@@ -169,20 +177,33 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
             <LocalizedText style={styles.contextText}>Shaxsiy suhbat</LocalizedText>
           </View>
           {chatLoading && messages.length === 0 ? <ActivityIndicator color={c.primary} style={{ flex: 1 }} /> : (
-            <ScrollView
+            <FlatList
+              ref={messageListRef}
               style={styles.messageList}
-              contentContainerStyle={styles.messageContent}
+              contentContainerStyle={[styles.messageContent, messages.length === 0 && { flexGrow: 1 }]}
+              data={messages}
+              keyExtractor={(message) => message.id}
               keyboardShouldPersistTaps="handled"
-            >
-              {messages.length === 0 && (
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              initialNumToRender={30}
+              windowSize={9}
+              onScroll={(event) => {
+                const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+                stickToBottomRef.current = contentSize.height - (contentOffset.y + layoutMeasurement.height) < 120;
+              }}
+              scrollEventThrottle={16}
+              onContentSizeChange={() => {
+                if (stickToBottomRef.current) messageListRef.current?.scrollToEnd({ animated: false });
+              }}
+              ListEmptyComponent={
                 <View style={styles.firstMessage}>
                   <View style={styles.firstIcon}><Ionicons name="chatbubble-ellipses-outline" size={27} color={c.primary} /></View>
                   <LocalizedText style={styles.firstTitle}>Suhbatni boshlang</LocalizedText>
                   <LocalizedText style={styles.firstHint}>Salom deb yozing — muloqot shu yerdan boshlanadi.</LocalizedText>
                 </View>
-              )}
-              {messages.map((message) => (
-                <View key={message.id} style={[styles.messageRow, message.isMine ? styles.myRow : styles.theirRow]}>
+              }
+              renderItem={({ item: message }) => (
+                <View style={[styles.messageRow, message.isMine ? styles.myRow : styles.theirRow]}>
                   <View style={[styles.bubble, message.isMine ? styles.myBubble : styles.theirBubble]}>
                     <LocalizedText style={[styles.messageText, message.isMine && styles.myMessageText]}>{message.content}</LocalizedText>
                     <View style={styles.messageMeta}>
@@ -191,8 +212,8 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
                     </View>
                   </View>
                 </View>
-              ))}
-            </ScrollView>
+              )}
+            />
           )}
           <View style={styles.composer}>
             <View style={styles.inputShell}>
