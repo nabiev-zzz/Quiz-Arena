@@ -51,14 +51,31 @@ async function tutorRequest<T>(
   return data as T;
 }
 
-async function waitForTutorJob(jobId: string): Promise<AiTutorChatResponse> {
+function waitWithAbort(milliseconds: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) return Promise.reject(new Error('So‘rov bekor qilindi.'));
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, milliseconds);
+    const onAbort = () => {
+      clearTimeout(timeout);
+      signal?.removeEventListener('abort', onAbort);
+      reject(new Error('So‘rov bekor qilindi.'));
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+async function waitForTutorJob(jobId: string, signal?: AbortSignal): Promise<AiTutorChatResponse> {
+  if (!jobId.trim()) throw new Error('AI navbat identifikatori kelmadi. Qayta urinib ko‘ring.');
   for (let attempt = 0; attempt < 120; attempt += 1) {
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await waitWithAbort(3000, signal);
     const status = await tutorRequest<{
       status: 'queued' | 'active' | 'completed' | 'failed';
       result?: AiTutorChatResponse;
       error?: string;
-    }>(`/api/ai/jobs/${encodeURIComponent(jobId)}`);
+    }>(`/api/ai/jobs/${encodeURIComponent(jobId)}`, { signal });
     if (status.status === 'completed' && status.result) return status.result;
     if (status.status === 'failed') throw new Error(status.error || 'AI Ustoz javob bera olmadi.');
   }
@@ -78,7 +95,7 @@ export async function sendTutorMessage(
     }),
   });
   if (queued.status === 'queued' || queued.status === 'active') {
-    return waitForTutorJob(String(queued.jobId));
+    return waitForTutorJob(queued.jobId || '', signal);
   }
   if (queued.status === 'completed' && queued.result) return queued.result;
   return queued;
