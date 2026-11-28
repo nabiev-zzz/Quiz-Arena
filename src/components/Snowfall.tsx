@@ -1,5 +1,5 @@
 import React, { memo, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -7,6 +7,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import { useTheme } from '../theme/ThemeContext';
 
 type FlakeConfig = {
   id: number;
@@ -16,28 +17,31 @@ type FlakeConfig = {
   drift: number;
   phase: number;
   opacity: number;
+  glyph: string;
+  rotation: number;
 };
 
-const FLAKES: FlakeConfig[] = [
-  { id: 1, left: '4%', size: 3, duration: 12500, drift: 18, phase: 0.2, opacity: 0.62 },
-  { id: 2, left: '11%', size: 2, duration: 15800, drift: 12, phase: 1.1, opacity: 0.48 },
-  { id: 3, left: '18%', size: 4, duration: 14200, drift: 22, phase: 2.2, opacity: 0.58 },
-  { id: 4, left: '26%', size: 2, duration: 17100, drift: 14, phase: 0.8, opacity: 0.45 },
-  { id: 5, left: '34%', size: 3, duration: 13200, drift: 19, phase: 2.8, opacity: 0.56 },
-  { id: 6, left: '42%', size: 2, duration: 16400, drift: 13, phase: 1.7, opacity: 0.48 },
-  { id: 7, left: '50%', size: 4, duration: 14800, drift: 24, phase: 0.4, opacity: 0.60 },
-  { id: 8, left: '58%', size: 2, duration: 17800, drift: 15, phase: 2.5, opacity: 0.46 },
-  { id: 9, left: '66%', size: 3, duration: 13700, drift: 20, phase: 1.4, opacity: 0.55 },
-  { id: 10, left: '73%', size: 2, duration: 16800, drift: 12, phase: 0.9, opacity: 0.45 },
-  { id: 11, left: '81%', size: 4, duration: 15100, drift: 21, phase: 2.1, opacity: 0.58 },
-  { id: 12, left: '89%', size: 2, duration: 18300, drift: 14, phase: 1.8, opacity: 0.46 },
-  { id: 13, left: '96%', size: 3, duration: 14500, drift: 17, phase: 0.6, opacity: 0.54 },
-  { id: 14, left: '22%', size: 2, duration: 19000, drift: 16, phase: 2.9, opacity: 0.42 },
-  { id: 15, left: '61%', size: 3, duration: 17600, drift: 18, phase: 1.3, opacity: 0.48 },
-  { id: 16, left: '92%', size: 2, duration: 16000, drift: 11, phase: 2.4, opacity: 0.43 },
-];
+// Different six-armed crystal forms keep the snowfall natural rather than dot-like.
+const CRYSTALS = ['❄', '❅', '❆'];
+const FLAKES: FlakeConfig[] = Array.from({ length: 24 }, (_, index) => ({
+  id: index + 1,
+  left: `${(index * 37 + 5) % 97}%`,
+  size: 17 + ((index * 11) % 19),
+  duration: 12500 + ((index * 1379) % 8500),
+  drift: 10 + ((index * 7) % 19),
+  phase: (index * 0.73) % (Math.PI * 2),
+  opacity: 0.48 + ((index * 13) % 34) / 100,
+  glyph: CRYSTALS[index % CRYSTALS.length],
+  rotation: (index * 29) % 360,
+}));
 
-const Snowflake = memo(function Snowflake({ flake }: { flake: FlakeConfig }) {
+const Snowflake = memo(function Snowflake({
+  flake,
+  color,
+}: {
+  flake: FlakeConfig;
+  color: string;
+}) {
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -54,13 +58,11 @@ const Snowflake = memo(function Snowflake({ flake }: { flake: FlakeConfig }) {
   const animatedStyle = useAnimatedStyle(() => {
     const travel = (progress.value + ((flake.id * 0.618) % 1)) % 1;
     return {
-      opacity: flake.opacity * Math.max(0, 1 - Math.abs(travel - 0.5) * 2),
+      opacity: flake.opacity * Math.max(0.16, 1 - Math.abs(travel - 0.5) * 1.35),
       transform: [
-        { translateY: -36 + travel * 980 },
-        {
-          translateX:
-            Math.sin(progress.value * Math.PI * 2 + flake.phase) * flake.drift,
-        },
+        { translateY: -48 + travel * 1040 },
+        { translateX: Math.sin(progress.value * Math.PI * 2 + flake.phase) * flake.drift },
+        { rotate: `${flake.rotation + progress.value * 115}deg` },
       ],
     };
   });
@@ -68,35 +70,34 @@ const Snowflake = memo(function Snowflake({ flake }: { flake: FlakeConfig }) {
   return (
     <Animated.View
       pointerEvents="none"
-      style={[
-        styles.flake,
-        {
-          left: flake.left,
-          width: flake.size,
-          height: flake.size,
-          borderRadius: flake.size,
-        },
-        animatedStyle,
-      ]}
-    />
+      style={[styles.flake, { left: flake.left }, animatedStyle]}
+    >
+      <Text
+        allowFontScaling={false}
+        style={[
+          styles.crystal,
+          {
+            color,
+            fontSize: flake.size,
+            textShadowColor: color,
+          },
+        ]}
+      >
+        {flake.glyph}
+      </Text>
+    </Animated.View>
   );
 });
 
-/**
- * Decorative winter layer. It is deliberately non-interactive and must be
- * rendered before screen content so controls always stay above the snowfall.
- */
+/** Theme-aware, non-interactive winter layer. Keep it behind screen content. */
 export default function Snowfall() {
+  const { isDark } = useTheme();
+  // Dark surfaces get icy white crystals; light surfaces get slate-blue crystals.
+  const crystalColor = isDark ? '#F4F8FF' : '#71839D';
   return (
     <View pointerEvents="none" accessible={false} style={styles.layer}>
-      <View style={styles.garland}>
-        <View style={styles.garlandWire} />
-        {['#F06B78', '#F4D36B', '#66D5A1', '#8BB8FF', '#F4D36B', '#F06B78', '#66D5A1'].map((color, index) => (
-          <View key={index} style={[styles.garlandBulb, { backgroundColor: color, shadowColor: color }]} />
-        ))}
-      </View>
       {FLAKES.map((flake) => (
-        <Snowflake key={flake.id} flake={flake} />
+        <Snowflake key={flake.id} flake={flake} color={crystalColor} />
       ))}
     </View>
   );
@@ -109,39 +110,18 @@ const styles = StyleSheet.create({
     zIndex: 0,
     elevation: 0,
   },
-  garland: {
-    position: 'absolute',
-    top: 0,
-    left: '12%',
-    right: '12%',
-    height: 12,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    opacity: 0.72,
-  },
-  garlandWire: {
-    position: 'absolute',
-    top: 3,
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: 'rgba(220, 226, 255, 0.42)',
-  },
-  garlandBulb: {
-    width: 5,
-    height: 7,
-    borderRadius: 4,
-    shadowOpacity: 0.7,
-    shadowRadius: 5,
-    elevation: 1,
-  },
   flake: {
     position: 'absolute',
     top: 0,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#FFFFFF',
-    shadowOpacity: 0.7,
-    shadowRadius: 4,
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  crystal: {
+    includeFontPadding: false,
+    fontWeight: '400',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
   },
 });
