@@ -30,7 +30,7 @@ async function bootstrap() {
       return callback(null, false);
     },
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'Range'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Range', 'Cache-Control', 'Pragma'],
     exposedHeaders: ['Accept-Ranges', 'Content-Length', 'Content-Range', 'Content-Type'],
   });
 
