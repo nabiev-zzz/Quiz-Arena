@@ -517,6 +517,8 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
 
       {active ? (
         <>
+          <View style={styles.messagesArea}>
+          <View pointerEvents="none" style={styles.wallpaper}>{[['happy-outline','4%','8%'],['game-controller-outline','28%','16%'],['planet-outline','72%','7%'],['heart-outline','88%','24%'],['musical-notes-outline','12%','39%'],['moon-outline','58%','34%'],['leaf-outline','82%','49%'],['star-outline','30%','57%'],['cafe-outline','7%','72%'],['paw-outline','68%','78%'],['gift-outline','91%','88%'],['sunny-outline','40%','91%']].map(([name,left,top],i)=><View key={i} style={[styles.wallpaperIcon,{left:left as `${number}%`,top:top as `${number}%` }]}><Ionicons name={name as any} size={24} color={isDark?'#8AA4B8':'#5B7D91'} /></View>)}</View>
           {chatLoading && messages.length === 0 ? <ActivityIndicator color={c.primary} style={{ flex: 1 }} /> : (
             <FlatList
               ref={messageListRef}
@@ -538,7 +540,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
               }}
               ListEmptyComponent={
                 <View style={styles.firstMessage}>
-                  <View style={styles.firstIcon}><Ionicons name="chatbubble-ellipses-outline" size={27} color={c.primary} /></View>
+                  <View style={styles.firstIcon}><Ionicons name="chatbubble-ellipses-outline" size={27} color={c.primary} /></View>
                   <LocalizedText style={styles.firstTitle}>Suhbatni boshlang</LocalizedText>
                   <LocalizedText style={styles.firstHint}>Salom deb yozing — muloqot shu yerdan boshlanadi.</LocalizedText>
                 </View>
@@ -563,29 +565,16 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
               )}
             />
           )}
+          </View>
           <View style={styles.composer}>
             {editingMessageId && <View style={styles.editingBanner}><LocalizedText style={styles.editingLabel}>Xabar tahrirlanmoqda</LocalizedText><Pressable onPress={() => { setEditingMessageId(null); setDraft(''); }} accessibilityRole="button" accessibilityLabel="Tahrirlashni bekor qilish"><Ionicons name="close-circle" size={19} color={c.primary} /></Pressable></View>}
-            <Pressable onPress={() => void chooseImage()} disabled={sending || voiceUploading || attachmentUploading || recordingSession} style={[styles.attachButton, (sending || voiceUploading || attachmentUploading || recordingSession) && { opacity: 0.45 }]} accessibilityRole="button" accessibilityLabel="Rasm yuborish"><Ionicons name="image-outline" size={19} color={c.primary} /></Pressable>
-            <Pressable onPress={() => void chooseDocument()} disabled={sending || voiceUploading || attachmentUploading || recordingSession} style={[styles.attachButton, (sending || voiceUploading || attachmentUploading || recordingSession) && { opacity: 0.45 }]} accessibilityRole="button" accessibilityLabel="Hujjat yuborish"><Ionicons name="attach" size={19} color={c.primary} /></Pressable>
-            <Pressable onPress={() => recordingSession ? void stopAndSendVoice() : void startVoiceRecording()} disabled={sending || voiceUploading || attachmentUploading} style={[styles.voiceRecordButton, recordingSession && styles.voiceRecordActive, (sending || voiceUploading) && { opacity: 0.5 }]} accessibilityRole="button" accessibilityLabel={recordingSession ? 'Ovozli xabarni yuborish' : 'Ovozli xabar yozish'}>
-              {voiceUploading || attachmentUploading ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Ionicons name={recordingSession ? (recorderState.isRecording ? 'stop' : 'send') : 'mic'} size={19} color="#FFFFFF" />}
-            </Pressable>
-            {recordingSession && <LocalizedText style={styles.recordingTimer}>{Math.floor(recorderState.durationMillis / 60000)}:{String(Math.floor((recorderState.durationMillis % 60000) / 1000)).padStart(2, '0')}</LocalizedText>}
             <View style={styles.inputShell}>
-              <TextInput
-                value={draft}
-                onChangeText={setDraft}
-                placeholder="Xabar yozing..."
-                placeholderTextColor={c.textMuted}
-                style={styles.input}
-                multiline
-                maxLength={4000}
-                accessibilityLabel="Xabar matni"
-              />
+              <Pressable onPress={() => void chooseImage()} disabled={sending || voiceUploading || attachmentUploading || recordingSession} style={styles.innerAction} accessibilityRole="button" accessibilityLabel="Rasm yuborish"><Ionicons name="image-outline" size={22} color={c.primary} /></Pressable>
+              <TextInput value={draft} onChangeText={setDraft} placeholder="Xabar" placeholderTextColor={c.textMuted} style={styles.input} multiline maxLength={4000} accessibilityLabel="Xabar matni" />
+              <Pressable onPress={() => void chooseDocument()} disabled={sending || voiceUploading || attachmentUploading || recordingSession} style={styles.innerAction} accessibilityRole="button" accessibilityLabel="Fayl biriktirish"><Ionicons name="attach" size={23} color={c.textMuted} /></Pressable>
             </View>
-            <Pressable onPress={() => void send()} disabled={!draft.trim() || sending} style={[styles.sendButton, (!draft.trim() || sending) && styles.sendDisabled]} accessibilityRole="button" accessibilityLabel="Xabarni yuborish">
-              {sending ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Ionicons name={editingMessageId ? 'checkmark' : 'arrow-up'} size={20} color="#FFFFFF" />}
-            </Pressable>
+            {recordingSession && <LocalizedText style={styles.recordingTimer}>{Math.floor(recorderState.durationMillis / 60000)}:{String(Math.floor((recorderState.durationMillis % 60000) / 1000)).padStart(2, '0')}</LocalizedText>}
+            {draft.trim() ? <Pressable onPress={() => void send()} disabled={sending} style={[styles.sendButton, sending && styles.sendDisabled]} accessibilityRole="button" accessibilityLabel="Xabarni yuborish">{sending ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Ionicons name={editingMessageId ? 'checkmark' : 'send'} size={19} color="#FFFFFF" />}</Pressable> : <Pressable onPress={() => recordingSession ? void stopAndSendVoice() : void startVoiceRecording()} disabled={sending || voiceUploading || attachmentUploading} style={[styles.voiceRecordButton, recordingSession && styles.voiceRecordActive, (sending || voiceUploading || attachmentUploading) && { opacity: 0.5 }]} accessibilityRole="button" accessibilityLabel={recordingSession ? 'Ovozli xabarni yuborish' : 'Ovozli xabar yozish'}>{voiceUploading || attachmentUploading ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Ionicons name={recordingSession ? (recorderState.isRecording ? 'stop' : 'send') : 'mic'} size={20} color="#FFFFFF" />}</Pressable>}
           </View>
         </>
       ) : (
@@ -645,43 +634,47 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
 
 function makeStyles(c: CommunityColors, isDark: boolean) {
   return StyleSheet.create({
-    screen: { flex: 1, minHeight: 0, backgroundColor: isDark ? '#0E1621' : c.background },
-    header: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 14, paddingTop: 5, paddingBottom: 7, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDark ? '#263544' : c.glassBorder, backgroundColor: isDark ? '#17212B' : c.background },
+    screen: { flex: 1, minHeight: 0, backgroundColor: '#0E1621' },
+    header: { minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingTop: 3, paddingBottom: 5, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#263544', backgroundColor: '#17212B' },
     back: { width: 38, height: 38, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
     headerIdentity: { flex: 1, minWidth: 0, gap: 2 },
     eyebrow: { color: c.primary, fontSize: 11, fontWeight: '800', letterSpacing: 1.1 },
-    title: { color: c.text, fontSize: 18, fontWeight: '700', letterSpacing: -0.25 },
+    title: { color: '#F5F7FA', fontSize: 18, fontWeight: '700', letterSpacing: -0.2 },
     headerChatMark: { width: 38, height: 38, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
     avatarShell: { overflow: 'hidden', backgroundColor: c.surfaceElevated },
     avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#1B3651' : '#E5F2FA' },
     avatarInitial: { color: c.primary, fontWeight: '900' },
-    personHandle: { color: c.textMuted, fontSize: 12, marginTop: 1 },
+    personHandle: { color: '#A5B4C0', fontSize: 12, marginTop: 1 },
     chatContext: { display: 'none' },
     contextIcon: { width: 23, height: 23, borderRadius: 8, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
     contextText: { color: c.textMuted, fontSize: 12, fontWeight: '600' },
-    messageList: { flex: 1, minHeight: 0 },
+    messagesArea: { flex: 1, minHeight: 0, position: 'relative' },
+    messageList: { flex: 1, minHeight: 0, backgroundColor: 'transparent' },
+    wallpaper: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
+    wallpaperIcon: { position: 'absolute', opacity: 0.075 },
     messageContent: { paddingHorizontal: 10, paddingTop: 10, paddingBottom: 12, flexGrow: 1, justifyContent: 'flex-end' },
     messageRow: { width: '100%', flexDirection: 'row', marginBottom: 5 },
     myRow: { justifyContent: 'flex-end' },
     theirRow: { justifyContent: 'flex-start' },
-    bubble: { maxWidth: '82%', paddingHorizontal: 12, paddingTop: 8, paddingBottom: 6, borderRadius: 18 },
-    myBubble: { backgroundColor: isDark ? '#2B5278' : c.primary, borderBottomRightRadius: 5 },
-    theirBubble: { backgroundColor: isDark ? '#182533' : c.surface, borderWidth: isDark ? 0 : 1, borderColor: c.glassBorder, borderBottomLeftRadius: 5 },
-    messageText: { color: c.text, fontSize: 15, lineHeight: 22 },
+    bubble: { maxWidth: '86%', paddingHorizontal: 12, paddingTop: 8, paddingBottom: 6, borderRadius: 18 },
+    myBubble: { backgroundColor: '#6650B8', borderBottomRightRadius: 5 },
+    theirBubble: { backgroundColor: '#202B36', borderWidth: 0, borderBottomLeftRadius: 5 },
+    messageText: { color: '#F5F7FA', fontSize: 16, lineHeight: 22 },
     deletedMessageText: { fontStyle: 'italic', opacity: 0.8 },
     editingBanner: { position: 'absolute', bottom: '100%', left: 16, right: 16, minHeight: 34, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: c.surfaceElevated, borderWidth: 1, borderColor: c.glassBorder },
     editingLabel: { color: c.primary, fontSize: 12, fontWeight: '800' },
     myMessageText: { color: '#FFFFFF' },
     messageMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 5 },
-    messageTime: { color: c.textMuted, fontSize: 11 },
-    myMessageTime: { color: 'rgba(255,255,255,0.76)' },
+    messageTime: { color: '#B8C5D0', fontSize: 11 },
+    myMessageTime: { color: isDark ? 'rgba(255,255,255,0.76)' : '#557181' },
     firstMessage: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, paddingVertical: 45 },
     firstIcon: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(154,216,255,0.14)' : 'rgba(52,126,169,0.09)' },
     firstTitle: { color: c.text, fontSize: 17, fontWeight: '900', marginTop: 15 },
     firstHint: { color: c.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 6 },
-    composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 5, paddingHorizontal: 9, paddingTop: 8, paddingBottom: Platform.OS === 'ios' ? 10 : 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: isDark ? '#263544' : c.glassBorder, backgroundColor: isDark ? '#17212B' : c.surface, flexShrink: 0 },
-    inputShell: { flex: 1, minHeight: 42, maxHeight: 116, justifyContent: 'center', borderRadius: 22, paddingHorizontal: 14, backgroundColor: isDark ? '#0E1621' : c.background, borderWidth: 1, borderColor: isDark ? '#263544' : c.glassBorder },
-    input: { minHeight: 38, maxHeight: 100, paddingVertical: 8, color: c.text, fontSize: 15, lineHeight: 20 },
+    composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 7, paddingHorizontal: 9, paddingTop: 7, paddingBottom: Platform.OS === 'ios' ? 9 : 7, borderTopWidth: 0, backgroundColor: '#17212B', flexShrink: 0 },
+    inputShell: { flex: 1, minWidth: 0, minHeight: 44, maxHeight: 116, flexDirection: 'row', alignItems: 'center', borderRadius: 23, paddingHorizontal: 6, backgroundColor: '#202C38', borderWidth: 1, borderColor: '#344454' },
+    innerAction: { width: 34, height: 38, alignItems: 'center', justifyContent: 'center' },
+    input: { flex: 1, minWidth: 0, minHeight: 38, maxHeight: 104, paddingHorizontal: 5, paddingVertical: 8, color: '#F5F7FA', fontSize: 16, lineHeight: 21 },
     attachButton: { width: 36, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
     imageAttachment: { width: 220, maxWidth: '100%', gap: 6 },
     attachmentImage: { width: 220, height: 170, borderRadius: 14, backgroundColor: c.surfaceElevated },
@@ -692,7 +685,7 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     documentIconMine: { backgroundColor: 'rgba(255,255,255,0.18)' },
     documentCopy: { flex: 1, minWidth: 0, gap: 4 },
     documentType: { color: c.textMuted, fontSize: 10, fontWeight: '700' },
-    voiceRecordButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#2B5278', alignItems: 'center', justifyContent: 'center' },
+    voiceRecordButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#3390EC', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     voiceRecordActive: { backgroundColor: '#DC5656' },
     recordingTimer: { color: '#DC5656', fontSize: 12, fontWeight: '800', alignSelf: 'center' },
     voiceMessage: { minWidth: 190, flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -700,9 +693,9 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     voicePlayMine: { backgroundColor: 'rgba(255,255,255,0.2)' },
     voiceTrackWrap: { flex: 1, gap: 5 },
     voiceTrack: { height: 4, borderRadius: 3, backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(20,40,60,0.16)', overflow: 'hidden' },
-    voiceProgress: { height: 4, borderRadius: 3, backgroundColor: c.primary },
+    voiceProgress: { height: 4, borderRadius: 3, backgroundColor: '#3390EC' },
     voiceDuration: { color: c.textMuted, fontSize: 10, fontWeight: '700' },
-    sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#2B5278', alignItems: 'center', justifyContent: 'center', shadowOpacity: 0, elevation: 0 },
+    sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#3390EC', alignItems: 'center', justifyContent: 'center', shadowOpacity: 0, elevation: 0, flexShrink: 0 },
     sendDisabled: { opacity: 0.42, shadowOpacity: 0 },
     list: { flex: 1 },
     listContent: { paddingHorizontal: 17, paddingTop: 21, paddingBottom: 130 },
