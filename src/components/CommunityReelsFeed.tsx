@@ -2,7 +2,8 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from '
 import { useEvent, useEventListener } from 'expo';
 import { ActivityIndicator, AppState, FlatList, Image, Modal, Pressable, RefreshControl, Share, StyleSheet, View, type ListViewToken } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { VideoView, useVideoPlayer, type VideoPlayer } from 'expo-video';
+import { VideoView, useVideoPlayer, type VideoContentFit, type VideoPlayer } from 'expo-video';
+import { getDisplayVideoSize, resolveCommunityVideoFit } from '../utils/communityVideoFit.mjs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import * as Clipboard from 'expo-clipboard';
@@ -199,12 +200,14 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
   clipId: string; uri: string; active: boolean; muted: boolean; paused: boolean; registerPlayer: RegisterPlayer;
   onProgressChange: (progress: number) => void; onSkip: () => void;
 }) {
-  const [firstFrame, setFirstFrame] = useState(false);
+  const [firstFrameRendered, setFirstFrameRendered] = useState(false);
   const [loadTimedOut, setLoadTimedOut] = useState(false);
   const [playbackReady, setPlaybackReady] = useState(false);
   const [playbackRequestError, setPlaybackRequestError] = useState(false);
   const [videoSize, setVideoSize] = useState<{ width: number; height: number } | null>(null);
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  const [contentFit, setContentFit] = useState<VideoContentFit | null>(null);
+  const fitSourceSizeRef = useRef<{ width: number; height: number } | null>(null);
   const videoOpacity = useSharedValue(0);
   const posterOpacity = useSharedValue(1);
   const player = useVideoPlayer(uri, (instance) => {
@@ -221,31 +224,59 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
   const previousActiveRef = useRef(false);
   const videoStyle = useAnimatedStyle(() => ({ opacity: videoOpacity.value }));
   const posterStyle = useAnimatedStyle(() => ({ opacity: posterOpacity.value }));
-  // expo-video reports the decoded track dimensions. The server's existing FFmpeg
-  // playback derivative applies phone rotation before encoding, so these are display dimensions.
+
+  // expo-video 58.0.14's VideoTrack has size but no rotation/orientation field.
+  // The API serves a transcoded playable MP4; FFmpeg autorotates input metadata
+  // during transcoding, so this decoded track size is already display-oriented.
   useEffect(() => {
-    if (trackWidth > 0 && trackHeight > 0) setVideoSize({ width: trackWidth, height: trackHeight });
-  }, [trackHeight, trackWidth]);
+    if (!playbackReady) return;
+    const nextSize = getDisplayVideoSize(track.videoTrack?.size);
+    if (!nextSize) return;
+    setVideoSize((current) =>
+      current?.width === nextSize.width && current.height === nextSize.height ? current : nextSize,
+    );
+  }, [playbackReady, trackHeight, trackWidth, track.videoTrack]);
+
   const onVideoViewportLayout = useCallback((event: { nativeEvent: { layout: { width: number; height: number } } }) => {
     const { width, height } = event.nativeEvent.layout;
     if (width > 0 && height > 0) setViewportSize((current) =>
       current.width === width && current.height === height ? current : { width, height },
     );
   }, []);
-  const contentFit = viewportSize.width > 0 && viewportSize.height > 0 && videoSize && videoSize.height > videoSize.width
-    ? 'cover'
-    : 'contain';
+
+  // Lock the fit for this source. Re-evaluate only if the actual decoded track
+  // dimensions change (for example, a genuine track/rotation change).
+  useEffect(() => {
+    if (!videoSize || viewportSize.width <= 0 || viewportSize.height <= 0) return;
+    const previousSize = fitSourceSizeRef.current;
+    const sourceSizeChanged = !previousSize || previousSize.width !== videoSize.width || previousSize.height !== videoSize.height;
+    if (contentFit === null || sourceSizeChanged) {
+      const nextFit = resolveCommunityVideoFit(videoSize, viewportSize);
+      if (nextFit) {
+        fitSourceSizeRef.current = videoSize;
+        setContentFit(nextFit);
+      }
+    }
+  }, [contentFit, videoSize, viewportSize]);
+
+  const canRevealVideo = firstFrameRendered && videoSize !== null && contentFit !== null;
   const handleFirstFrameRender = useCallback(() => {
-    const size = player.videoTrack?.size;
-    if (size && size.width > 0 && size.height > 0) setVideoSize({ width: size.width, height: size.height });
-    setFirstFrame(true);
+    const nextSize = getDisplayVideoSize(player.videoTrack?.size);
+    if (nextSize) {
+      setVideoSize((current) =>
+        current?.width === nextSize.width && current.height === nextSize.height ? current : nextSize,
+      );
+    }
+    setFirstFrameRendered(true);
   }, [player]);
   const loadPlayback = useCallback(async () => {
     setPlaybackReady(false);
     setPlaybackRequestError(false);
     setLoadTimedOut(false);
-    setFirstFrame(false);
+    setFirstFrameRendered(false);
     setVideoSize(null);
+    setContentFit(null);
+    fitSourceSizeRef.current = null;
     videoOpacity.value = 0;
     posterOpacity.value = 1;
     try {
@@ -273,13 +304,13 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
   useEventListener(player, 'timeUpdate', onTimeUpdate);
 
   useEffect(() => {
-    if (!active || firstFrame || (playbackReady && status === 'error')) {
+    if (!active || canRevealVideo || (playbackReady && status === 'error')) {
       setLoadTimedOut(false);
       return;
     }
     const timeout = setTimeout(() => setLoadTimedOut(true), 150_000);
     return () => clearTimeout(timeout);
-  }, [active, firstFrame, status, uri, playbackReady]);
+  }, [active, canRevealVideo, status, uri, playbackReady]);
 
   useEffect(() => {
     registerPlayer(clipId, player);
@@ -303,11 +334,11 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
     else if (status === 'readyToPlay') player.play();
   }, [active, paused, playbackReady, player, status]);
   useEffect(() => {
-    if (firstFrame) {
+    if (canRevealVideo) {
       videoOpacity.value = withTiming(1, { duration: 180 });
       posterOpacity.value = withTiming(0, { duration: 180 });
     }
-  }, [firstFrame, posterOpacity, videoOpacity]);
+  }, [canRevealVideo, posterOpacity, videoOpacity]);
 
   const retry = () => {
     if (active) void loadPlayback();
@@ -316,9 +347,9 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
   if (!active) return null;
   return <>
     <Animated.View style={[StyleSheet.absoluteFill, videoStyle]} onLayout={onVideoViewportLayout}>
-      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit={contentFit} nativeControls={false} surfaceType="textureView" onFirstFrameRender={handleFirstFrameRender} />
+      <VideoView player={player} style={[StyleSheet.absoluteFill, styles.videoSurface]} contentFit={contentFit ?? 'contain'} nativeControls={false} surfaceType="textureView" onFirstFrameRender={handleFirstFrameRender} />
     </Animated.View>
-    {!firstFrame ? <Animated.View pointerEvents="none" style={[styles.posterPlaceholder, posterStyle]}><Ionicons name="play-circle" size={48} color="#FFFFFF"/><LocalizedText style={styles.posterTitle}>ZELQEN</LocalizedText><LocalizedText style={styles.statusText}>Lavha yuklanmoqda...</LocalizedText><ActivityIndicator color="#FFFFFF" /></Animated.View> : null}
+    {!canRevealVideo ? <Animated.View pointerEvents="none" style={[styles.posterPlaceholder, posterStyle]}><Ionicons name="play-circle" size={48} color="#FFFFFF"/><LocalizedText style={styles.posterTitle}>ZELQEN</LocalizedText><LocalizedText style={styles.statusText}>Lavha yuklanmoqda...</LocalizedText><ActivityIndicator color="#FFFFFF" /></Animated.View> : null}
     {(playbackReady && status === 'error') || playbackRequestError || loadTimedOut ? <View pointerEvents="box-none" style={styles.videoStatus}><Ionicons name="alert-circle-outline" size={36} color="#FFFFFF"/><LocalizedText style={styles.statusText}>{loadTimedOut ? 'Video yuklanishi uzoq davom etdi' : 'Videoni ochib bo‘lmadi'}</LocalizedText><LocalizedText style={styles.statusHint}>Internetni tekshiring yoki qayta urinib ko‘ring.</LocalizedText><View style={styles.errorActions}><Pressable onPress={retry} style={styles.retry}><LocalizedText style={styles.retryText}>Qayta urinish</LocalizedText></Pressable><Pressable onPress={onSkip} style={styles.skipButton}><LocalizedText style={styles.retryText}>Keyingisi</LocalizedText></Pressable></View></View> : null}
   </>;
 }
@@ -547,7 +578,7 @@ export default function CommunityReelsFeed(props: Props) {
 
 const styles = StyleSheet.create({
   container:{flex:1,backgroundColor:'#05060A',overflow:'hidden'},list:{flex:1},reel:{width:'100%',backgroundColor:'#05060A',overflow:'hidden'},
-  videoTapLayer:{...StyleSheet.absoluteFill,zIndex:3,elevation:3},posterPlaceholder:{...StyleSheet.absoluteFill,zIndex:2,elevation:2,alignItems:'center',justifyContent:'center',gap:9,backgroundColor:'#10121B'},posterTitle:{color:'#FFFFFF',fontSize:18,fontWeight:'900',letterSpacing:3},
+  videoTapLayer:{...StyleSheet.absoluteFill,zIndex:3,elevation:3},videoSurface:{backgroundColor:'#000000'},posterPlaceholder:{...StyleSheet.absoluteFill,zIndex:2,elevation:2,alignItems:'center',justifyContent:'center',gap:9,backgroundColor:'#000000'},posterTitle:{color:'#FFFFFF',fontSize:18,fontWeight:'900',letterSpacing:3},
   shadeTop:{position:'absolute',top:0,left:0,right:0,height:150,zIndex:4,elevation:4,backgroundColor:'rgba(0,0,0,0.22)'},shadeBottom:{position:'absolute',left:0,right:0,bottom:0,height:280,zIndex:4,elevation:4,backgroundColor:'rgba(0,0,0,0.38)'},
   muteButton:{position:'absolute',right:16,width:46,height:46,borderRadius:23,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(0,0,0,0.48)',zIndex:20,elevation:20},
   actions:{position:'absolute',right:10,alignItems:'center',gap:10,zIndex:30,elevation:30},action:{alignItems:'center',gap:4,width:52,minHeight:52,justifyContent:'center',paddingHorizontal:4,paddingVertical:4,borderRadius:15,backgroundColor:'rgba(0,0,0,0.3)'},actionCount:{color:'#FFFFFF',fontSize:12,fontWeight:'900',textShadowColor:'#000',textShadowRadius:4},actionLabel:{color:'#FFFFFF',fontSize:10,fontWeight:'800',textShadowColor:'#000',textShadowRadius:4},
