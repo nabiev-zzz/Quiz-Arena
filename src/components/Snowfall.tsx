@@ -89,6 +89,12 @@ const Snowflake = memo(function Snowflake({ flake }: { flake: FlakeConfig }) {
 export default function Snowfall() {
   return (
     <View pointerEvents="none" accessible={false} style={styles.layer}>
+      <View style={styles.garland}>
+        <View style={styles.garlandWire} />
+        {['#F06B78', '#F4D36B', '#66D5A1', '#8BB8FF', '#F4D36B', '#F06B78', '#66D5A1'].map((color, index) => (
+          <View key={index} style={[styles.garlandBulb, { backgroundColor: color, shadowColor: color }]} />
+        ))}
+      </View>
       {FLAKES.map((flake) => (
         <Snowflake key={flake.id} flake={flake} />
       ))}
@@ -102,6 +108,33 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     zIndex: 0,
     elevation: 0,
+  },
+  garland: {
+    position: 'absolute',
+    top: 0,
+    left: '12%',
+    right: '12%',
+    height: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    opacity: 0.72,
+  },
+  garlandWire: {
+    position: 'absolute',
+    top: 3,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(220, 226, 255, 0.42)',
+  },
+  garlandBulb: {
+    width: 5,
+    height: 7,
+    borderRadius: 4,
+    shadowOpacity: 0.7,
+    shadowRadius: 5,
+    elevation: 1,
   },
   flake: {
     position: 'absolute',
