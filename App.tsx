@@ -105,8 +105,7 @@ function AppContent() {
   const otaCheckStarted = useRef(false);
 
   useEffect(() => {
-    if (otaCheckStarted.current || !Updates.isEnabled) return;
-    otaCheckStarted.current = true;
+    if (!ready || otaCheckStarted.current || !Updates.isEnabled) return;
     let active = true;
 
     const checkForAppUpdate = async () => {
@@ -144,9 +143,13 @@ function AppContent() {
       }
     };
 
-    const timer = setTimeout(() => { void checkForAppUpdate(); }, 1800);
+    const timer = setTimeout(() => {
+      if (!active || otaCheckStarted.current) return;
+      otaCheckStarted.current = true;
+      void checkForAppUpdate();
+    }, 1800);
     return () => { active = false; clearTimeout(timer); };
-  }, [language]);
+  }, [ready, language]);
 
   const dockStretch = useSharedValue(0);
   const lastDockScrollY = useSharedValue(0);
