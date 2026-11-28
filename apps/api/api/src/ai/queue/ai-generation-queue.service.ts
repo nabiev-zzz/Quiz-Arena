@@ -428,9 +428,9 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
         job.quotaConsumed = true;
         job.payload = { ...job.payload, _quotaReceipt: usage };
       } catch (error) {
-        if (!(error instanceof HttpException)) {
-          await this.jobs.update({ id: jobId }, { quotaConsumed: false });
-        }
+        // A failed quota operation must never be treated as a successful charge
+        // and later refunded against somebody else's usage.
+        await this.jobs.update({ id: jobId }, { quotaConsumed: false });
         throw error;
       }
     }
