@@ -69,7 +69,13 @@ export class CommunityService {
   async getClipPlaybackStream(userId: string, postId: string, mediaKey: string, range?: string) {
     const post = await this.posts.findOne({ where: { id: postId, authorId: userId, status: 'active' } });
     if (!post || !post.mediaKey || !post.mediaType?.startsWith('video/')) throw new NotFoundException('Lavha topilmadi');
-    const expectedKey = await this.storage.ensureCompatibleVideo(post.authorId, post.mediaKey);
+    // The signed playback token is issued only after getClipPlaybackAsset has
+    // completed conversion/validation. Re-checking storage with HEAD for every
+    // byte-range request adds latency to every seek and segment; derive the
+    // immutable playback key locally and keep the owner/post checks above.
+    const expectedKey = post.mediaKey.endsWith('.playable.mp4')
+      ? post.mediaKey
+      : post.mediaKey.replace(/\.[^.]+$/, '.playable.mp4');
     if (expectedKey !== mediaKey) throw new NotFoundException('Video havolasi yaroqsiz');
     return this.storage.fetchVideoStream(mediaKey, range);
   }
