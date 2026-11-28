@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -57,6 +57,7 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
   const s = useMemo(() => makeStyles(colors), [colors]);
 
   const [file, setFile] = useState<SelectedFile | null>(null);
+  const generationInFlightRef = useRef(false);
   const [phase, setPhase] = useState<Phase>('setup');
   const [generationProgress, setGenerationProgress] = useState<DocumentQuizProgress>({ stage: 'uploading', percent: 0, message: 'Hujjat serverga yuklanmoqda' });
   const [count, setCount] = useState(10);
@@ -134,10 +135,12 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
   };
 
   const generate = async () => {
+    if (generationInFlightRef.current) return;
     if (!file) {
       showLocalizedAlert('Hujjat tanlanmagan', 'Avval PDF, DOCX yoki matnli faylni tanlang.');
       return;
     }
+    generationInFlightRef.current = true;
     setSavedAttemptId(null);
     setShowExportOptions(false);
     setExportError('');
@@ -155,6 +158,8 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
       setPhase('setup');
       void getFeatureUsage('documentQuiz').then(setDocumentUsage).catch(() => undefined);
       showLocalizedAlert('Test yaratilmadi', error instanceof Error ? error.message : 'AI hujjatni tahlil qila olmadi.');
+    } finally {
+      generationInFlightRef.current = false;
     }
   };
 

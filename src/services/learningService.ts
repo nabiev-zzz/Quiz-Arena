@@ -1,8 +1,9 @@
 import { Platform } from 'react-native';
-import { File as ExpoFile } from 'expo-file-system';
+import { File as ExpoFile, UploadType } from 'expo-file-system';
 import { API_BASE_URL, apiFetch, getToken } from './authService';
 import type { Difficulty } from '../types';
 import type { Question } from '../data/questions';
+import { resolveDocumentMimeType } from '../utils/documentUpload.mjs';
 
 export interface LearningAttemptInput {
   subjectId: string;
@@ -203,7 +204,7 @@ export interface DocumentQuizResult {
 }
 
 export async function createDocumentQuiz(
-  file: { uri: string; name: string; mimeType?: string | null; file?: Blob | null },
+  file: { uri: string; name: string; mimeType?: string | null; file?: Blob | null; size?: number | null },
   options: { count: number; difficulty: Difficulty; language: 'uz' | 'ru' | 'en' },
   onProgress?: (progress: DocumentQuizProgress) => void,
 ): Promise<DocumentQuizResult> {
@@ -211,61 +212,96 @@ export async function createDocumentQuiz(
   if (!token) throw new Error('Tizimga qayta kirishingiz kerak.');
   if (!file.uri?.trim() || !file.name?.trim()) throw new Error('Tanlangan hujjat manzili topilmadi. Faylni qayta tanlang.');
 
-  const extension = file.name.toLowerCase().split('.').pop();
-  const mimeByExtension: Record<string, string> = {
-    pdf: 'application/pdf', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    txt: 'text/plain', md: 'text/markdown', csv: 'text/csv',
-    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
-  };
-  const mimeType = file.mimeType || mimeByExtension[extension || ''] || 'application/octet-stream';
-  const form = new FormData();
+  const mimeType = resolveDocumentMimeType(file.name, file.mimeType);
+  const uploadUrl = `${API_BASE_URL}/api/learning/document-quiz`;
+  const uploadHeaders = { Accept: 'application/json', Authorization: `Bearer ${token}` };
+  let responseStatus = 0;
+  let responseText = '';
+
   if (Platform.OS === 'web') {
+    const form = new FormData();
     let browserFile = file.file;
     if (!(browserFile instanceof Blob)) {
       const fileResponse = await fetch(file.uri);
       if (!fileResponse.ok) throw new Error('Tanlangan hujjatni brauzer xotirasidan o‘qib bo‘lmadi. Faylni qayta tanlang.');
       browserFile = await fileResponse.blob();
     }
-    const uploadBlob = browserFile.type ? browserFile : new Blob([browserFile], { type: mimeType });
+    const uploadBlob = browserFile.type === mimeType ? browserFile : new Blob([browserFile], { type: mimeType });
     form.append('file', uploadBlob, file.name);
+    form.append('count', String(options.count));
+    form.append('difficulty', options.difficulty);
+    form.append('language', options.language);
+    onProgress?.({ stage: 'uploading', percent: 0, message: 'Hujjat serverga yuklanmoqda' });
+    const response = await new Promise<{ status: number; body: string }>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', uploadUrl);
+      xhr.setRequestHeader('Accept', uploadHeaders.Accept);
+      xhr.setRequestHeader('Authorization', uploadHeaders.Authorization);
+      xhr.timeout = 180000;
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable && event.total > 0) {
+          const percent = Math.min(100, Math.round((event.loaded / event.total) * 100));
+          onProgress?.({ stage: 'uploading', percent, message: `Hujjat yuklanmoqda · ${percent}%` });
+        }
+      };
+      xhr.upload.onload = () => onProgress?.({ stage: 'queued', percent: 100, message: 'Yuklash tugadi · Server hujjatni qabul qilmoqda' });
+      xhr.onload = () => resolve({ status: xhr.status, body: xhr.responseText || '' });
+      xhr.onerror = () => reject(new Error('Internet aloqasi uzildi. Yuklashni qayta urinib ko‘ring.'));
+      xhr.ontimeout = () => reject(new Error('Hujjatni yuklash vaqti tugadi. Internetni tekshirib, qayta urinib ko‘ring.'));
+      xhr.onabort = () => reject(new Error('Hujjat yuklash bekor qilindi.'));
+      xhr.send(form);
+    });
+    responseStatus = response.status;
+    responseText = response.body;
   } else {
-    let fileBytes: Uint8Array;
-    try { fileBytes = await new ExpoFile(file.uri).bytes(); }
-    catch { throw new Error('Telefon xotirasidagi hujjatni o‘qib bo‘lmadi. Faylni qayta tanlang.'); }
-    const uploadBuffer = new ArrayBuffer(fileBytes.byteLength);
-    new Uint8Array(uploadBuffer).set(fileBytes);
-    form.append('file', new Blob([uploadBuffer], { type: mimeType }), file.name);
+    // Use Expo's native file uploader for file:// and content:// URIs. This
+    // streams the original file without converting bytes to Blob/ArrayBuffer,
+    // avoiding Hermes' unsupported Blob(ArrayBuffer) path on Android.
+    const nativeFile = new ExpoFile(file.uri);
+    if (!nativeFile.exists) throw new Error('Tanlangan hujjat qurilmada topilmadi. Faylni qayta tanlang.');
+    const nativeSize = nativeFile.size;
+    if (!Number.isFinite(nativeSize) || nativeSize <= 0) throw new Error('Hujjat hajmini o‘qib bo‘lmadi. Faylni qayta tanlang.');
+    if (file.size && file.size > 0 && nativeSize !== file.size) throw new Error('Tanlangan hujjat to‘liq o‘qilmadi. Faylni qayta tanlang.');
+    onProgress?.({ stage: 'uploading', percent: 0, message: 'Hujjat serverga yuklanmoqda' });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 180000);
+    try {
+      const response = await nativeFile.upload(uploadUrl, {
+        httpMethod: 'POST',
+        uploadType: UploadType.MULTIPART,
+        fieldName: 'file',
+        mimeType,
+        headers: uploadHeaders,
+        parameters: {
+          count: String(options.count),
+          difficulty: options.difficulty,
+          language: options.language,
+        },
+        signal: controller.signal,
+        onProgress: ({ bytesSent, totalBytes }) => {
+          if (totalBytes > 0) {
+            const percent = Math.min(100, Math.round((bytesSent / totalBytes) * 100));
+            onProgress?.({ stage: 'uploading', percent, message: `Hujjat yuklanmoqda · ${percent}%` });
+          }
+        },
+      });
+      responseStatus = response.status;
+      responseText = response.body || '';
+      onProgress?.({ stage: 'queued', percent: 100, message: 'Yuklash tugadi · Server hujjatni qabul qilmoqda' });
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error('Hujjatni yuklash vaqti tugadi. Internetni tekshirib, qayta urinib ko‘ring.');
+      throw new Error(error instanceof Error ? error.message : 'Hujjatni yuklab bo‘lmadi. Faylni qayta tanlang.');
+    } finally {
+      clearTimeout(timeout);
+    }
   }
-  form.append('count', String(options.count));
-  form.append('difficulty', options.difficulty);
-  form.append('language', options.language);
 
-  onProgress?.({ stage: 'uploading', percent: 0, message: 'Hujjat serverga yuklanmoqda' });
-  const data = await new Promise<any>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE_URL}/api/learning/document-quiz`);
-    xhr.setRequestHeader('Accept', 'application/json');
-    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-    xhr.timeout = 180000;
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable && event.total > 0) {
-        const percent = Math.min(100, Math.round((event.loaded / event.total) * 100));
-        onProgress?.({ stage: 'uploading', percent, message: `Hujjat yuklanmoqda · ${percent}%` });
-      }
-    };
-    xhr.upload.onload = () => onProgress?.({ stage: 'queued', percent: 100, message: 'Yuklash tugadi · Server hujjatni qabul qilmoqda' });
-    xhr.onload = () => {
-      let body: any = {};
-      try { body = JSON.parse(xhr.responseText || '{}'); } catch { /* handled below */ }
-      if (xhr.status >= 200 && xhr.status < 300) resolve(body);
-      else reject(new Error(typeof body.message === 'string' ? body.message : 'Hujjat serverga yuborilmadi.'));
-    };
-    xhr.onerror = () => reject(new Error('Internet aloqasi uzildi. Yuklashni qayta urinib ko‘ring.'));
-    xhr.ontimeout = () => reject(new Error('Hujjatni yuklash vaqti tugadi. Internetni tekshirib, qayta urinib ko‘ring.'));
-    xhr.onabort = () => reject(new Error('Hujjat yuklash bekor qilindi.'));
-    xhr.send(form);
-  });
+  let data: any = {};
+  try { data = JSON.parse(responseText || '{}'); } catch { /* handled below */ }
+  if (responseStatus < 200 || responseStatus >= 300) {
+    const serverMessage = typeof data.message === 'string' ? data.message : Array.isArray(data.message) ? data.message.join(' · ') : '';
+    throw new Error(serverMessage || (responseStatus ? `Hujjat serverga yuborilmadi (HTTP ${responseStatus}).` : 'Serverdan javob olinmadi.'));
+  }
   if (!data || typeof data !== 'object') throw new Error('Serverdan noto‘g‘ri javob keldi. Qayta urinib ko‘ring.');
   if (data.status === 'failed' || data.status === 'error') throw new Error(data.error || data.message || 'AI test yaratishda xatolik yuz berdi.');
   if (data.status === 'queued' || data.status === 'active') {
