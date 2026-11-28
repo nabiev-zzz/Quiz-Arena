@@ -222,11 +222,19 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
         completedAt: new Date(),
         fileBuffer: null,
       });
-      if (usage && input.quotaFeature) {
-        try {
-          if (input.userId) await this.featureUsage.refund(input.userId, input.quotaFeature as never, (usage as { periodKey?: string } | undefined)?.periodKey);
-          await this.jobs.update({ id: persistedJob.id }, { quotaRefunded: true });
-        } catch { /* Preserve the queue error; refund can be retried operationally. */ }
+      if (usage && input.quotaFeature && input.userId) {
+        const claim = await this.jobs.update(
+          { id: persistedJob.id, quotaConsumed: true, quotaRefunded: false },
+          { quotaRefunded: true },
+        );
+        if (claim.affected) {
+          try {
+            await this.featureUsage.refund(input.userId, input.quotaFeature as never, (usage as { periodKey?: string } | undefined)?.periodKey);
+          } catch {
+            await this.jobs.update({ id: persistedJob.id }, { quotaRefunded: false });
+            // Preserve the queue error; the refund can be retried operationally.
+          }
+        }
       }
       throw new ServiceUnavailableException('AI navbatiga ulanishda xatolik. Qayta urinib ko‘ring.');
     }
