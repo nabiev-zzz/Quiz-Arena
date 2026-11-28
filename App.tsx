@@ -8,6 +8,7 @@ import Animated, {
   FadeInDown,
 } from 'react-native-reanimated';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Updates from 'expo-updates';
 import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
@@ -100,6 +101,51 @@ function AppContent() {
   const { theme, language, ready } = useAppSettings();
   const insets = useSafeAreaInsets();
   const { tokens } = useTheme();
+  const otaCheckStarted = useRef(false);
+
+  useEffect(() => {
+    if (otaCheckStarted.current || !Updates.isEnabled) return;
+    otaCheckStarted.current = true;
+    let active = true;
+
+    const checkForAppUpdate = async () => {
+      try {
+        const result = await Updates.checkForUpdateAsync();
+        if (!active || !result.isAvailable) return;
+        const copy = language === 'ru'
+          ? { title: 'Доступно обновление', body: 'Для QUIZ ARENA доступна новая версия. Обновить приложение сейчас?', update: 'Обновить', later: 'Позже', downloading: 'Загрузка обновления…', ready: 'Обновление загружено. Перезапустить приложение?', restart: 'Перезапустить', error: 'Не удалось загрузить обновление. Попробуйте позже.' }
+          : language === 'en'
+            ? { title: 'Update available', body: 'A new QUIZ ARENA update is ready. Would you like to update now?', update: 'Update', later: 'Later', downloading: 'Downloading update…', ready: 'Update downloaded. Restart the app now?', restart: 'Restart now', error: 'Could not download the update. Please try again later.' }
+            : { title: 'Yangi versiya mavjud', body: 'QUIZ ARENA uchun yangi yangilanish tayyor. Ilovani hozir yangilaysizmi?', update: 'Yangilash', later: 'Keyinroq', downloading: 'Yangilanish yuklanmoqda…', ready: 'Yangilanish yuklandi. Ilovani qayta ochamizmi?', restart: 'Hozir qayta ochish', error: 'Yangilanishni yuklab bo‘lmadi. Keyinroq urinib ko‘ring.' };
+
+        Alert.alert(copy.title, copy.body, [
+          { text: copy.later, style: 'cancel' },
+          {
+            text: copy.update,
+            onPress: () => {
+              void (async () => {
+                try {
+                  const downloaded = await Updates.fetchUpdateAsync();
+                  if (!active || !downloaded.isNew) return;
+                  Alert.alert(copy.title, copy.ready, [
+                    { text: copy.later, style: 'cancel' },
+                    { text: copy.restart, onPress: () => { void Updates.reloadAsync(); } },
+                  ]);
+                } catch {
+                  if (active) Alert.alert(copy.title, copy.error);
+                }
+              })();
+            },
+          },
+        ]);
+      } catch {
+        // OTA checks are optional; network/update-service issues must not block app startup.
+      }
+    };
+
+    const timer = setTimeout(() => { void checkForAppUpdate(); }, 1800);
+    return () => { active = false; clearTimeout(timer); };
+  }, [language]);
 
   const dockStretch = useSharedValue(0);
   const lastDockScrollY = useSharedValue(0);
