@@ -631,7 +631,7 @@ function AppContent() {
       edges={['top', 'left', 'right']}
     >
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <Snowfall />
+      {!(tab === 'profile' && selectedPublicUsername === '__community__') && <Snowfall />}
 
       <Modal
         visible={showNavigationDrawer}
