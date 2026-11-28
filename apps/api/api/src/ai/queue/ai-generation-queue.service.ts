@@ -184,7 +184,11 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
         throw new Error('Quota bilan AI job yaratish uchun userId talab qilinadi.');
       }
       try {
-        usage = await this.featureUsage.consume(input.userId, input.quotaFeature);
+        // Document quiz quota is checked at submission, but only charged after
+        // a complete result has been generated and persisted successfully.
+        usage = input.quotaFeature === 'documentQuiz'
+          ? await this.featureUsage.usage(input.userId, input.quotaFeature)
+          : await this.featureUsage.consume(input.userId, input.quotaFeature);
       } catch (error) {
         await this.jobs.update({ id: persistedJob.id }, { status: 'failed', error: 'Quota tekshiruvi bajarilmadi.', fileBuffer: null, completedAt: new Date() });
         throw error;
@@ -193,7 +197,10 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
         await this.jobs.update({ id: persistedJob.id }, { status: 'failed', error: 'Tarif limitingiz tugagan.', fileBuffer: null, completedAt: new Date() });
         throw new HttpException('Ushbu AI funksiyasi uchun tarif limitingiz tugagan.', HttpStatus.TOO_MANY_REQUESTS);
       }
-      await this.jobs.update({ id: persistedJob.id }, { quotaConsumed: true, payload: { ...input.payload, _jobId: persistedJob.id, ...(usage ? { _quotaReceipt: usage } : {}) } });
+      await this.jobs.update({ id: persistedJob.id }, {
+        ...(input.quotaFeature === 'documentQuiz' ? {} : { quotaConsumed: true }),
+        payload: { ...input.payload, _jobId: persistedJob.id, ...(usage ? { _quotaReceipt: usage } : {}) },
+      });
     } else {
       await this.jobs.update({ id: persistedJob.id }, { payload: { ...input.payload, _jobId: persistedJob.id } });
     }
@@ -222,7 +229,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
         completedAt: new Date(),
         fileBuffer: null,
       });
-      if (usage && input.quotaFeature && input.userId) {
+      if (usage && input.quotaFeature && input.userId && input.quotaFeature !== 'documentQuiz') {
         const claim = await this.jobs.update(
           { id: persistedJob.id, quotaConsumed: true, quotaRefunded: false },
           { quotaRefunded: true },
@@ -396,7 +403,38 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
   async markCompleted(jobId: string, result: Record<string, unknown>): Promise<void> {
     const job = await this.jobs.findOne({ where: { id: jobId } });
     if (!job) throw new Error('AI generation job not found');
-    if (job.status === 'failed') return;
+    if (job.status === 'failed' || job.status === 'completed') return;
+
+    if (job.quotaFeature === 'documentQuiz' && job.userId && !job.quotaConsumed) {
+      // Claim the one-time charge before incrementing usage so duplicate worker
+      // completion events cannot charge the same generated test twice.
+      const claim = await this.jobs.update(
+        { id: jobId, quotaConsumed: false, status: In(['queued', 'active']) },
+        { quotaConsumed: true },
+      );
+      if (!claim.affected) return;
+      try {
+        const usage = await this.featureUsage.consume(job.userId, 'documentQuiz');
+        if (!usage.allowed) {
+          await this.jobs.update({ id: jobId }, {
+            quotaConsumed: false,
+            status: 'failed',
+            error: 'Tarif limitingiz tugadi. Test saqlanmadi.',
+            fileBuffer: null,
+            completedAt: new Date(),
+          });
+          throw new HttpException('Tarif limitingiz tugadi. Test saqlanmadi.', HttpStatus.TOO_MANY_REQUESTS);
+        }
+        job.quotaConsumed = true;
+        job.payload = { ...job.payload, _quotaReceipt: usage };
+      } catch (error) {
+        // A failed quota operation must never be treated as a successful charge
+        // and later refunded against somebody else's usage.
+        await this.jobs.update({ id: jobId }, { quotaConsumed: false });
+        throw error;
+      }
+    }
+
     job.status = 'completed';
     job.result = result;
     job.fileBuffer = null;

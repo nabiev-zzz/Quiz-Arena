@@ -15,6 +15,7 @@ describe('AiGenerationQueueService', () => {
   };
   const featureUsage = {
     consume: jest.fn(),
+    usage: jest.fn(),
     refund: jest.fn(),
   };
   const service = new AiGenerationQueueService(jobRepository as never, featureUsage as never);
@@ -42,6 +43,16 @@ describe('AiGenerationQueueService', () => {
       remaining: 29,
       periodKey: '2026-11',
     });
+    featureUsage.usage.mockResolvedValue({
+      allowed: true,
+      featureKey: 'documentQuiz',
+      tier: 'premium_pro',
+      period: 'monthly',
+      limit: 40,
+      used: 1,
+      remaining: 39,
+      periodKey: '2026-11',
+    });
     featureUsage.refund.mockResolvedValue(undefined);
   });
 
@@ -52,7 +63,12 @@ describe('AiGenerationQueueService', () => {
     await expect(service.assertJobActive('job-1')).rejects.toThrow('bekor qilindi');
   });
 
-  it('persists a durable job and reserves quota once before enqueueing', async () => {
+  it('checks document quota without charging before the test is generated', async () => {
+    featureUsage.usage.mockResolvedValue({
+      allowed: true, featureKey: 'documentQuiz', tier: 'premium_pro',
+      period: 'monthly', limit: 40, used: 2, remaining: 38, periodKey: '2026-11',
+    });
+
     const result = await service.enqueue({
       userId: '11111111-1111-4111-8111-111111111111',
       jobType: 'document_quiz',
@@ -63,16 +79,43 @@ describe('AiGenerationQueueService', () => {
     });
 
     expect(result).toMatchObject({ status: 'queued', jobId: 'job-1' });
-    expect(featureUsage.consume).toHaveBeenCalledTimes(1);
-    expect(jobRepository.save).toHaveBeenCalledTimes(1);
-    expect(jobRepository.update).toHaveBeenCalledWith(
-      { id: 'job-1' },
-      expect.objectContaining({
-        quotaConsumed: true,
-        payload: expect.objectContaining({ _jobId: 'job-1', _quotaReceipt: expect.objectContaining({ allowed: true }) }),
-      }),
+    expect(featureUsage.usage).toHaveBeenCalledTimes(1);
+    expect(featureUsage.consume).not.toHaveBeenCalled();
+    expect(jobRepository.update).not.toHaveBeenCalledWith(
+      { id: 'job-1' }, expect.objectContaining({ quotaConsumed: true }),
     );
-    expect(queue.add).toHaveBeenCalledWith('document_quiz', { jobId: 'job-1' }, { jobId: 'job-1', priority: 5 });
+    expect(queue.add).toHaveBeenCalledWith(
+      'document_quiz', { jobId: 'job-1' }, { jobId: 'job-1', priority: 5 },
+    );
+  });
+
+  it('charges document quota only after successful test generation', async () => {
+    const job = {
+      id: 'job-1',
+      userId: '11111111-1111-4111-8111-111111111111',
+      status: 'active',
+      quotaFeature: 'documentQuiz',
+      quotaConsumed: false,
+      payload: { _quotaReceipt: { periodKey: '2026-11' } },
+      result: null,
+    };
+    jobRepository.findOne.mockResolvedValue(job);
+    featureUsage.consume.mockResolvedValue({
+      allowed: true, featureKey: 'documentQuiz', tier: 'premium_pro',
+      period: 'monthly', limit: 40, used: 3, remaining: 37, periodKey: '2026-11',
+    });
+
+    await service.markCompleted('job-1', { questions: [{ id: 'q1' }] });
+
+    expect(featureUsage.consume).toHaveBeenCalledTimes(1);
+    expect(jobRepository.update).toHaveBeenCalledWith(
+      { id: 'job-1', quotaConsumed: false, status: expect.anything() },
+      { quotaConsumed: true },
+    );
+    expect(jobRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'completed', quotaConsumed: true,
+      result: { questions: [{ id: 'q1' }] },
+    }));
   });
 
   it('returns an existing idempotent job without consuming quota again', async () => {
@@ -109,7 +152,8 @@ describe('AiGenerationQueueService', () => {
     const result = await service.enqueue({ userId: '11111111-1111-4111-8111-111111111111', jobType: 'document_quiz', quotaFeature: 'documentQuiz', idempotencyKey: 'same-document', payload: {}, fileBuffer: Buffer.from('same document') });
     expect(result).toMatchObject({ status: 'queued', jobId: 'job-1' });
     expect(jobRepository.update).toHaveBeenCalledWith({ id: 'old-job' }, { idempotencyKey: null });
-    expect(featureUsage.consume).toHaveBeenCalledTimes(1);
+    expect(featureUsage.usage).toHaveBeenCalledTimes(1);
+    expect(featureUsage.consume).not.toHaveBeenCalled();
     expect(queue.add).toHaveBeenCalledTimes(1);
   });
 
@@ -238,7 +282,7 @@ describe('AiGenerationQueueService', () => {
     expect(featureUsage.refund).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', 'documentQuiz', '2026-11');
   });
 
-  it('refunds quota if BullMQ refuses the newly reserved job', async () => {
+  it('does not refund document quota when BullMQ refuses an uncharged job', async () => {
     queue.add.mockRejectedValue(new Error('Redis unavailable'));
 
     await expect(service.enqueue({
@@ -249,7 +293,8 @@ describe('AiGenerationQueueService', () => {
       fileBuffer: Buffer.from('%PDF-1.4'),
     })).rejects.toThrow('AI navbatiga ulanishda xatolik');
 
-    expect(featureUsage.refund).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', 'documentQuiz', '2026-11');
+    expect(featureUsage.consume).not.toHaveBeenCalled();
+    expect(featureUsage.refund).not.toHaveBeenCalled();
     expect(queue.add).toHaveBeenCalledTimes(1);
   });
 });
