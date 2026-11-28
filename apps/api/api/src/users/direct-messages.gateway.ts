@@ -31,12 +31,27 @@ export class DirectMessagesGateway implements OnGatewayConnection, OnGatewayDisc
     }
   }
 
-  handleDisconnect(client: Socket) { void client.data.userId; }
+  handleDisconnect(_client: Socket) {}
 
   notifyMessage(senderId: string, recipientId: string, message: unknown) {
     if (!this.server) return;
     this.server.to(`user:${senderId}`).emit('direct:message', { ...(message as Record<string, unknown>), isMine: true });
     this.server.to(`user:${recipientId}`).emit('direct:message', { ...(message as Record<string, unknown>), isMine: false });
+  }
+
+  notifyMessageUpdated(senderId: string, recipientId: string, message: unknown) {
+    if (!this.server) return;
+    const payload = message as Record<string, unknown>;
+    this.server.to(`user:${senderId}`).emit('direct:message-updated', { ...payload, isMine: true });
+    this.server.to(`user:${recipientId}`).emit('direct:message-updated', { ...payload, isMine: false });
+  }
+
+  notifyMessageDeleted(userIds: string[], conversationId: string, message: unknown) {
+    if (!this.server) return;
+    for (const userId of new Set(userIds)) {
+      const payload = message as Record<string, unknown>;
+      this.server.to(`user:${userId}`).emit('direct:message-deleted', { ...payload, isMine: payload.senderId === userId, conversationId });
+    }
   }
 
   notifyRead(recipientId: string, conversationId: string) {

@@ -23,7 +23,7 @@ export class CommunityStorageService {
   }
   private hmac(key: Buffer | string, value: string) { return createHmac('sha256', key).update(value).digest(); }
   createKey(userId: string, extension: string) { return `community/${userId}/${randomUUID()}.${extension}`; }
-  sign(method: 'GET' | 'PUT' | 'HEAD', key: string, expiresSeconds = 900) {
+  sign(method: 'GET' | 'PUT' | 'HEAD' | 'DELETE', key: string, expiresSeconds = 900) {
     const { endpoint, bucket, region, accessKey, secretKey } = this.config();
     const base = new URL(endpoint);
     const canonicalUri = `${base.pathname.replace(/\/$/, '')}/${key.split('/').map((part) => this.encode(part)).join('/')}`;
@@ -46,8 +46,19 @@ export class CommunityStorageService {
     const signature = createHmac('sha256', kSigning).update(stringToSign).digest('hex');
     return `${base.protocol}//${host}${canonicalUri}?${canonicalQuery}&X-Amz-Signature=${signature}`;
   }
+  async delete(mediaKey: string) {
+    if (!/^community\/[A-Za-z0-9_-]{1,128}\/[a-f0-9-]{36}(?:\.playable)?\.(?:jpg|png|webp|mp4|mov|webm|pdf|doc|docx|m4a)$/i.test(mediaKey)) {
+      throw new BadRequestException('Media fayl kaliti noto‘g‘ri');
+    }
+    const response = await fetch(this.sign('DELETE', mediaKey, 300), { method: 'DELETE' });
+    if (!response.ok && response.status !== 404) {
+      throw new InternalServerErrorException('O‘chirilgan media faylni saqlash joyidan bekor qilib bo‘lmadi');
+    }
+    return { deleted: response.status !== 404 };
+  }
+
   async verify(userId: string, mediaKey: string, contentType: string, expectedSize: number) {
-    const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm', 'application/pdf': 'pdf', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
+    const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm', 'application/pdf': 'pdf', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx', 'audio/mp4': 'm4a', 'audio/webm': 'webm' };
     const extension = extensions[contentType];
     const prefix = `community/${userId}/`;
     if (!extension || !mediaKey.startsWith(prefix) || !new RegExp(`^[a-f0-9-]{36}\\.${extension}$`, 'i').test(mediaKey.slice(prefix.length))) {
@@ -153,11 +164,11 @@ export class CommunityStorageService {
   }
 
   async upload(userId: string, fileName: string, contentType: string, buffer: Buffer) {
-    const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm', 'application/pdf': 'pdf', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
+    const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm', 'application/pdf': 'pdf', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx', 'audio/mp4': 'm4a', 'audio/webm': 'webm' };
     const extension = extensions[contentType];
     if (!extension || !new RegExp(`^[a-f0-9-]{36}\\.${extension}$`, 'i').test(fileName)) throw new BadRequestException('Media fayl turi yoki nomi noto‘g‘ri');
     const maxBytes = contentType.startsWith('video/') ? 30 * 1024 * 1024 : (contentType.startsWith('application/') ? 15 * 1024 * 1024 : 8 * 1024 * 1024);
-    if (!buffer?.length || buffer.length > maxBytes) throw new BadRequestException(contentType.startsWith('video/') ? 'Video hajmi 30 MB dan oshmasin' : contentType.startsWith('application/') ? 'Hujjat hajmi 15 MB dan oshmasin' : 'Rasm hajmi 8 MB dan oshmasin');
+    if (!buffer?.length || buffer.length > maxBytes) throw new BadRequestException(contentType.startsWith('video/') ? 'Video hajmi 30 MB dan oshmasin' : contentType.startsWith('application/') ? 'Hujjat hajmi 15 MB dan oshmasin' : contentType.startsWith('audio/') ? 'Ovozli xabar hajmi 8 MB dan oshmasin' : 'Rasm hajmi 8 MB dan oshmasin');
     const key = `community/${userId}/${fileName}`;
     const response = await fetch(this.sign('PUT', key, 600), { method: 'PUT', headers: { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=31536000, immutable' }, body: new Uint8Array(buffer) });
     if (!response.ok) throw new InternalServerErrorException('Media faylni saqlashda xatolik yuz berdi');

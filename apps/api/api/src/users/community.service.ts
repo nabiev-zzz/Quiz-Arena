@@ -38,9 +38,9 @@ export class CommunityService {
   }
 
   createUploadFileName(userId: string, contentType: string) {
-    const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm', 'application/pdf': 'pdf', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
+    const extensions: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm', 'application/pdf': 'pdf', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx', 'audio/mp4': 'm4a', 'audio/webm': 'webm' };
     const extension = extensions[contentType];
-    if (!extension) throw new BadRequestException('JPG, PNG, WEBP, PDF, Word, MP4, MOV yoki WEBM fayllar qabul qilinadi');
+    if (!extension) throw new BadRequestException('JPG, PNG, WEBP, PDF, Word, MP4, MOV, WEBM va audio M4A/WEBM fayllar qabul qilinadi');
     const mediaKey = this.storage.createKey(userId, extension);
     return { fileName: mediaKey.split('/').pop(), mediaType: contentType, mediaKey, uploadUrl: this.storage.sign('PUT', mediaKey, 900) };
   }

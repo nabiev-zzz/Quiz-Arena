@@ -1,5 +1,4 @@
 import { describe, expect, it, jest, beforeEach } from '@jest/globals';
-import { deflateRawSync } from 'node:zlib';
 import { getPlanEntitlements } from '../subscriptions/plan-entitlements';
 import { LearningService } from './learning.service';
 import { DocumentExtractionService } from './document-quiz/document-extraction.service';
@@ -33,41 +32,6 @@ function makePdf(text = ''): Buffer {
   const trailer = `\ntrailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
   chunks.push(Buffer.from(`${xref}${trailer}`));
   return Buffer.concat(chunks);
-}
-
-function makeDocx(text: string): Buffer {
-  const fileName = Buffer.from('word/document.xml');
-  const xml = Buffer.from('<w:document xmlns:w="urn:w"><w:body><w:p><w:r><w:t>' + text + '</w:t></w:r></w:p></w:body></w:document>');
-  const compressed = deflateRawSync(xml);
-
-  const local = Buffer.alloc(30);
-  local.writeUInt32LE(0x04034b50, 0);
-  local.writeUInt16LE(20, 4);
-  local.writeUInt16LE(8, 8);
-  local.writeUInt32LE(compressed.length, 18);
-  local.writeUInt32LE(xml.length, 22);
-  local.writeUInt16LE(fileName.length, 26);
-  const localBlock = Buffer.concat([local, fileName, compressed]);
-
-  const central = Buffer.alloc(46);
-  central.writeUInt32LE(0x02014b50, 0);
-  central.writeUInt16LE(20, 4);
-  central.writeUInt16LE(20, 6);
-  central.writeUInt16LE(8, 10);
-  central.writeUInt32LE(compressed.length, 20);
-  central.writeUInt32LE(xml.length, 24);
-  central.writeUInt16LE(fileName.length, 28);
-  central.writeUInt32LE(0, 42);
-  const centralBlock = Buffer.concat([central, fileName]);
-
-  const end = Buffer.alloc(22);
-  end.writeUInt32LE(0x06054b50, 0);
-  end.writeUInt16LE(1, 8);
-  end.writeUInt16LE(1, 10);
-  end.writeUInt32LE(centralBlock.length, 12);
-  end.writeUInt32LE(localBlock.length, 16);
-
-  return Buffer.concat([localBlock, centralBlock, end]);
 }
 
 describe('LearningService document quiz generation', () => {

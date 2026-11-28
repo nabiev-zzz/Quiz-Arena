@@ -145,6 +145,7 @@ function decodeXml(value: string): string {
 }
 
 export function cleanDocumentText(input: string): string {
+  // eslint-disable-next-line no-control-regex -- Strip non-printable control bytes from untrusted document text.
   const normalized = String(input || '').replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
   const lines = normalized.split('\n').map((line) => line.replace(/[\t\f\v ]+/g, ' ').trim());
   const counts = new Map<string, number>();
