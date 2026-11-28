@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, FlatList, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -122,6 +122,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
   const socketRef = useRef<Socket | null>(null);
   const messageListRef = useRef<FlatList<DirectMessage>>(null);
   const messageRequestRef = useRef(0);
+  const realtimeMessageVersionRef = useRef(0);
   const recordingConversationRef = useRef<string | null>(null);
   const stickToBottomRef = useRef(true);
   const activeConversationRef = useRef<DirectConversation | null>(null);
@@ -140,18 +141,28 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
   }, []);
 
   const loadMessages = useCallback(async (conversationId: string, requestId = ++messageRequestRef.current) => {
+    const observedRealtimeVersion = realtimeMessageVersionRef.current;
     try {
       const rows = await getDirectMessages(conversationId);
       if (requestId !== messageRequestRef.current) return;
-      setMessages((current) => {
-        const byId = new Map(rows.map((item) => [item.id, item]));
-        current.filter((item) => item.conversationId === conversationId).forEach((item) => byId.set(item.id, item));
-        return Array.from(byId.values()).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      });
-      await markDirectRead(conversationId);
-      if (requestId === messageRequestRef.current) {
-        setConversations((current) => current.map((item) => item.id === conversationId ? { ...item, unreadCount: 0 } : item));
+      // If a socket event arrived while this snapshot was in flight, fetch again before
+      // applying it so an older response cannot overwrite a new message or moderation event.
+      if (observedRealtimeVersion !== realtimeMessageVersionRef.current) {
+        void loadMessages(conversationId, requestId);
+        return;
       }
+      setMessages((current) => [
+        ...current.filter((item) => item.conversationId !== conversationId),
+        ...rows,
+      ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+      // The server snapshot is authoritative for this conversation: messages deleted
+      // for this participant while offline must not be reintroduced from stale local state.
+      try {
+        await markDirectRead(conversationId);
+        if (requestId === messageRequestRef.current) {
+          setConversations((current) => current.map((item) => item.id === conversationId ? { ...item, unreadCount: 0 } : item));
+        }
+      } catch { /* Message history is still usable when the read receipt endpoint is offline. */ }
     } catch (error) {
       if (requestId === messageRequestRef.current) showLocalizedAlert('Chat', error instanceof Error ? error.message : 'Xabarlar yuklanmadi');
     }
@@ -170,6 +181,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
         if (current) void loadMessages(current.id);
       });
       client.on('direct:message', (message: DirectMessage) => {
+        realtimeMessageVersionRef.current += 1;
         void loadConversations(true);
         setActive((current) => {
           if (current?.id === message.conversationId) {
@@ -185,10 +197,12 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
         });
       });
       client.on('direct:message-updated', (message: DirectMessage) => {
+        realtimeMessageVersionRef.current += 1;
         setMessages((rows) => rows.map((row) => row.id === message.id ? message : row));
         void loadConversations(true);
       });
       client.on('direct:message-deleted', (message: DirectMessage) => {
+        realtimeMessageVersionRef.current += 1;
         setMessages((rows) => message.deletedForMe ? rows.filter((row) => row.id !== message.id) : rows.map((row) => row.id === message.id ? message : row));
         void loadConversations(true);
       });
@@ -201,6 +215,19 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
   // Socket is created once per screen mount.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    let previousState = AppState.currentState;
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      const returnedToForeground = Boolean(previousState && previousState.match(/inactive|background/)) && nextState === 'active';
+      previousState = nextState;
+      if (!returnedToForeground) return;
+      void loadConversations(true);
+      const current = activeConversationRef.current;
+      if (current) void loadMessages(current.id);
+    });
+    return () => subscription.remove();
+  }, [loadConversations, loadMessages]);
 
   useEffect(() => {
     // Active conversations are updated through the authenticated Socket.IO channel.

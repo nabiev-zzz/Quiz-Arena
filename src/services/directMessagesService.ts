@@ -49,5 +49,5 @@ export const markDirectRead = (conversationId: string) =>
 export async function createDirectSocket(): Promise<Socket> {
   const token = await getToken();
   if (!token) throw new Error('Kirish talab qilinadi');
-  return io(`${API_BASE_URL}/direct`, { transports: ['polling', 'websocket'], auth: { token }, reconnection: true, reconnectionAttempts: 10, reconnectionDelay: 1000, timeout: 15000 });
+  return io(`${API_BASE_URL}/direct`, { transports: ['polling', 'websocket'], auth: { token }, reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 1000, reconnectionDelayMax: 10000, timeout: 15000 });
 }
