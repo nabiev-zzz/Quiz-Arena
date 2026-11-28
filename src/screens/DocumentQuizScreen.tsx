@@ -14,7 +14,7 @@ import { useTheme } from '../theme/ThemeContext';
 import type { Difficulty } from '../types';
 import { createDocumentQuiz, getLearningHistoryItem, saveLearningAttempt } from '../services/learningService';
 import { exportLearningAttempt, TEST_EXPORT_FORMATS, type TestExportFormat } from '../services/testExportService';
-import type { DocumentQuizQuestion } from '../services/learningService';
+import type { DocumentQuizQuestion, DocumentQuizProgress } from '../services/learningService';
 import { getFeatureUsage, getPremiumStatus, type FeatureUsageResult } from '../services/subscriptionService';
 
 interface Props {
@@ -58,6 +58,7 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
 
   const [file, setFile] = useState<SelectedFile | null>(null);
   const [phase, setPhase] = useState<Phase>('setup');
+  const [generationProgress, setGenerationProgress] = useState<DocumentQuizProgress>({ stage: 'uploading', percent: 0, message: 'Hujjat serverga yuklanmoqda' });
   const [count, setCount] = useState(10);
   const [maxQuestions, setMaxQuestions] = useState(10);
   const [maxFileSizeMb, setMaxFileSizeMb] = useState(20);
@@ -142,7 +143,8 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
     setExportError('');
     setPhase('loading');
     try {
-      const result = await createDocumentQuiz(file, { count, difficulty, language });
+      setGenerationProgress({ stage: 'uploading', percent: 0, message: 'Hujjat serverga yuklanmoqda' });
+      const result = await createDocumentQuiz(file, { count, difficulty, language }, setGenerationProgress);
       setQuestions(result.questions);
       void refreshQuota();
       setQuestionIndex(0);
@@ -331,8 +333,17 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
           <View style={s.loadingCard}>
             <View style={s.loadingIcon}><Ionicons name="sparkles" size={30} color="#FFFFFF" /></View>
             <ActivityIndicator size="large" color={colors.primary} />
-            <LocalizedText style={s.loadingTitle}>Test tayyorlanmoqda</LocalizedText>
-            <LocalizedText style={s.muted}>Hujjat tahlil qilinmoqda. Tayyor bo‘lgach test avtomatik ochiladi.</LocalizedText>
+            <LocalizedText style={s.loadingTitle}>{generationProgress.stage === 'uploading' ? 'Hujjat yuklanmoqda' : generationProgress.stage === 'queued' ? 'Navbatda kutilmoqda' : generationProgress.stage === 'completed' ? 'Test tayyor' : 'AI tahlil qilmoqda'}</LocalizedText>
+            <LocalizedText style={s.muted}>{generationProgress.message}</LocalizedText>
+            {generationProgress.percent !== null ? (
+              <View style={s.uploadProgressWrap}>
+                <View style={s.uploadProgressTrack}><View style={[s.uploadProgressFill, { width: `${generationProgress.percent}%` }]} /></View>
+                <LocalizedText style={s.uploadProgressPercent}>{generationProgress.percent}%</LocalizedText>
+              </View>
+            ) : (
+              <View style={s.analysisStatus}><Ionicons name="sparkles" size={16} color={colors.primary} /><LocalizedText style={s.muted}>Yuklash 100% yakunlandi · Savollar tayyorlanmoqda</LocalizedText></View>
+            )}
+            <LocalizedText style={s.muted}>Foiz fayl serverga uzatilishini bildiradi. AI tahlili bosqichida server aniq foiz bermaydi, shu sabab holat ko‘rsatiladi.</LocalizedText>
           </View>
         ) : null}
 
@@ -477,6 +488,11 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     loadingCard: { minHeight: 320, alignItems: 'center', justifyContent: 'center', gap: 16, borderRadius: 22, padding: 24, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
     loadingIcon: { width: 64, height: 64, borderRadius: 22, backgroundColor: '#6653D8', alignItems: 'center', justifyContent: 'center' },
     loadingTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
+    uploadProgressWrap: { width: '100%', gap: 8 },
+    uploadProgressTrack: { width: '100%', height: 10, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.border },
+    uploadProgressFill: { height: '100%', borderRadius: 10, backgroundColor: colors.primary },
+    uploadProgressPercent: { color: colors.primary, fontSize: 14, fontWeight: '900', textAlign: 'center' },
+    analysisStatus: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 },
     quizProgressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     progressText: { color: colors.primary, fontSize: 12, fontWeight: '900' },
     progressTrack: { height: 6, borderRadius: 6, backgroundColor: colors.border, overflow: 'hidden' },
