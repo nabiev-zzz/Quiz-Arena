@@ -170,6 +170,20 @@ describe('AiGenerationQueueService', () => {
     }));
   });
 
+  it('claims a quota refund once and uses the original monthly period', async () => {
+    jobRepository.findOne.mockResolvedValue({
+      id: 'job-1', status: 'failed', quotaConsumed: true, quotaRefunded: false,
+      userId: '11111111-1111-4111-8111-111111111111', quotaFeature: 'documentQuiz',
+      payload: { _quotaReceipt: { periodKey: '2026-11' } },
+    });
+    await service.markFailedAndRefund('job-1', new Error('AI failed'));
+    expect(jobRepository.update).toHaveBeenCalledWith(
+      { id: 'job-1', quotaConsumed: true, quotaRefunded: false },
+      { quotaRefunded: true },
+    );
+    expect(featureUsage.refund).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', 'documentQuiz', '2026-11');
+  });
+
   it('refunds quota if BullMQ refuses the newly reserved job', async () => {
     queue.add.mockRejectedValue(new Error('Redis unavailable'));
 
