@@ -24,6 +24,9 @@ import { AddCommunityClipInteractions20261127050000 } from './database/migration
 import { CreateCommunityLearningHub20261126210000 } from './database/migrations/CreateCommunityLearningHub';
 import { AddCommunityMediaAndStories20261126190000 } from './database/migrations/AddCommunityMediaAndStories';
 import { CreateDirectMessages20261126200000 } from './database/migrations/CreateDirectMessages';
+import { AddDirectMessageVoice20261128100000 } from './database/migrations/AddDirectMessageVoice';
+import { AddDirectMessageIdempotency20261128130000 } from './database/migrations/AddDirectMessageIdempotency';
+import { AddDirectMessageModeration20261128150000 } from './database/migrations/AddDirectMessageModeration';
 import { CreateZcStoreItems20261126020000 } from './database/migrations/CreateZcStoreItems';
 import { CreateDailyTaskProgress20261126030000 } from './database/migrations/CreateDailyTaskProgress';
 import { AddZcProfileBadges20261126040000 } from './database/migrations/AddZcProfileBadges';
@@ -76,6 +79,9 @@ import { CreateBattleQuestions20261122220000 } from './battle/database/CreateBat
         CreateCommunityLearningHub20261126210000,
         AddCommunityMediaAndStories20261126190000,
         CreateDirectMessages20261126200000,
+        AddDirectMessageVoice20261128100000,
+        AddDirectMessageIdempotency20261128130000,
+        AddDirectMessageModeration20261128150000,
         CreateZcStoreItems20261126020000,
         CreateDailyTaskProgress20261126030000,
         AddZcProfileBadges20261126040000,
