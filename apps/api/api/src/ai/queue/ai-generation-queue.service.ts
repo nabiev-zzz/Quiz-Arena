@@ -425,9 +425,8 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
           });
           throw new HttpException('Tarif limitingiz tugadi. Test saqlanmadi.', HttpStatus.TOO_MANY_REQUESTS);
         }
-        await this.jobs.update({ id: jobId }, {
-          payload: { ...job.payload, _quotaReceipt: usage },
-        });
+        job.quotaConsumed = true;
+        job.payload = { ...job.payload, _quotaReceipt: usage };
       } catch (error) {
         if (!(error instanceof HttpException)) {
           await this.jobs.update({ id: jobId }, { quotaConsumed: false });
