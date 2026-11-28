@@ -18,6 +18,7 @@ import { followUser, getPublicUserProfile, getUserSuggestions, type PublicUser, 
 import { getProfileAchievements } from '../utils/profileAchievements';
 import { getLearningHistory, getLearningHistoryItem, type LearningHistoryItem, type LearningHistorySummary } from '../services/learningService';
 import { getDailyTasks, claimDailyTask, type DailyTask } from '../services/dailyTasksService';
+import { getCommunityUserPosts, type CommunityPost } from '../services/communityService';
 
 interface ProfileScreenProps {
   onClosePress?: () => void;
@@ -84,6 +85,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
   const [socialProfile, setSocialProfile] = useState<PublicUser | null>(null);
+  const [myCommunityPosts, setMyCommunityPosts] = useState<CommunityPost[]>([]);
   const [followingUserId, setFollowingUserId] = useState<string | null>(null);
   const [learningHistory, setLearningHistory] = useState<LearningHistorySummary[]>([]);
   const [historyDetails, setHistoryDetails] = useState<Record<string, LearningHistoryItem>>({});
@@ -98,6 +100,14 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
     if (!user) return;
     setAvatarUri(user.avatarUrl);
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let active = true;
+    getCommunityUserPosts(user.id).then((rows) => { if (active) setMyCommunityPosts(rows); })
+      .catch(() => { if (active) setMyCommunityPosts([]); });
+    return () => { active = false; };
+  }, [user?.id]);
 
   useEffect(() => {
     if (activeTab !== 'activity') return;
@@ -401,6 +411,20 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
                 <Pressable onPress={() => onUserPress?.('discover')} hitSlop={10}><Ionicons name="chevron-forward" size={19} color={C.muted} /></Pressable>
               </View>,
             )}
+            <View style={styles.sectionHeader}>
+              <LocalizedText style={styles.sectionTitle}>Mening nashrlarim</LocalizedText>
+              <LocalizedText style={styles.cardSubtitle}>{myCommunityPosts.length} ta post</LocalizedText>
+            </View>
+            {myCommunityPosts.length ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 12 }}>
+                {myCommunityPosts.map((post) => (
+                  <View key={post.id} style={{ width: '31.8%', aspectRatio: 1, borderRadius: 12, overflow: 'hidden', backgroundColor: C.surfaceRaised, borderWidth: 1, borderColor: C.border }}>
+                    {post.mediaType?.startsWith('video/') ? <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 7 }}><Ionicons name="play-circle" size={27} color={C.purple} /><LocalizedText numberOfLines={3} style={{ color: C.text, fontSize: 9, marginTop: 4 }}>{post.content || 'Lavha'}</LocalizedText></View> : post.mediaUrl ? <Image source={{ uri: post.mediaUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" /> : <View style={{ flex: 1, padding: 7, justifyContent: 'center' }}><Ionicons name="chatbubble-ellipses-outline" size={17} color={C.purple} /><LocalizedText numberOfLines={4} style={{ color: C.text, fontSize: 10, marginTop: 5 }}>{post.content}</LocalizedText></View>}
+                    {post.mediaType?.startsWith('video/') ? <View style={{ position: 'absolute', right: 6, top: 6 }}><Ionicons name="play" size={17} color="#FFFFFF" /></View> : null}
+                  </View>
+                ))}
+              </View>
+            ) : <LocalizedText style={{ color: C.muted, fontSize: 12, marginBottom: 12 }}>Hozircha nashrlar yo‘q. Lenta orqali birinchi postingizni joylang.</LocalizedText>}
             <View style={styles.memberRow}>
               <Ionicons name="people-outline" size={18} color={C.muted} />
               <LocalizedText style={styles.memberText}>{(socialProfile?.followersCount ?? 0) + ' kuzatuvchi · ' + (socialProfile?.followingCount ?? 0) + ' kuzatilayotgan'}</LocalizedText>

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Image, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView,
+  ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView,
   StyleSheet, TextInput, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,7 +16,7 @@ import Snowfall from '../components/Snowfall';
 import {
   addCommunityComment, createCommunityPost, createCommunityStory, getCommunityComments,
   getCommunityFeed, getCommunityStories, getCommunityClips, createCommunityClip, likeCommunityPost, markCommunityStoryViewed,
-  unlikeCommunityPost, uploadCommunityMedia, getCommunityClipQuiz, createCommunityClipQuiz, answerCommunityClipQuiz, saveCommunityClip, unsaveCommunityClip,
+  unlikeCommunityPost, uploadCommunityMedia, updateCommunityPost, deleteCommunityPost, deleteCommunityStory, getCommunityClipQuiz, createCommunityClipQuiz, answerCommunityClipQuiz, saveCommunityClip, unsaveCommunityClip,
   type CommunityComment, type CommunityPost, type CommunityStory, type CommunityClipQuiz,
 } from '../services/communityService';
 
@@ -71,6 +71,9 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   const [clipCaption, setClipCaption] = useState('');
   const [stories, setStories] = useState<CommunityStory[]>([]);
   const [content, setContent] = useState('');
+  const [editingPost, setEditingPost] = useState<CommunityPost | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [savingPostEdit, setSavingPostEdit] = useState(false);
   const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [loading, setLoading] = useState(true);
   const [feedError, setFeedError] = useState(false);
@@ -332,6 +335,43 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     }
   };
 
+  const openPostActions = (post: CommunityPost) => {
+    if (!post.isOwn) return;
+    Alert.alert('Postni boshqarish', 'O‘zingiz joylagan post uchun amalni tanlang.', [
+      { text: 'Bekor qilish', style: 'cancel' },
+      { text: 'Tahrirlash', onPress: () => { setEditingPost(post); setEditContent(post.content); } },
+      { text: 'O‘chirish', style: 'destructive', onPress: () => Alert.alert('Post o‘chirilsinmi?', 'Post lentadan va profilingizdan olib tashlanadi.', [
+        { text: 'Yo‘q', style: 'cancel' },
+        { text: 'Ha, o‘chirish', style: 'destructive', onPress: () => { void (async () => {
+          try {
+            await deleteCommunityPost(post.id);
+            setPosts((items) => items.filter((item) => item.id !== post.id));
+            setClips((items) => items.filter((item) => item.id !== post.id));
+          } catch (error) { showLocalizedAlert('O‘chirilmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring'); }
+        })(); } },
+      ]) },
+    ]);
+  };
+
+  const savePostEdit = async () => {
+    if (!editingPost || savingPostEdit) return;
+    setSavingPostEdit(true);
+    try {
+      const result = await updateCommunityPost(editingPost.id, editContent);
+      const update = (items: CommunityPost[]) => items.map((item) => item.id === result.id ? { ...item, content: result.content } : item);
+      setPosts(update); setClips(update); setEditingPost(null);
+    } catch (error) { showLocalizedAlert('Tahrirlanmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring'); }
+    finally { setSavingPostEdit(false); }
+  };
+
+  const deleteOwnStory = (story: CommunityStory) => Alert.alert('Story o‘chirilsinmi?', 'Bu story boshqa foydalanuvchilarga ko‘rinmaydi.', [
+    { text: 'Bekor qilish', style: 'cancel' },
+    { text: 'O‘chirish', style: 'destructive', onPress: () => { void (async () => {
+      try { await deleteCommunityStory(story.id); setStories((items) => items.filter((item) => item.id !== story.id)); setSelectedStory(null); }
+      catch (error) { showLocalizedAlert('Story o‘chirilmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring'); }
+    })(); } },
+  ]);
+
   const toggleLike = async (post: CommunityPost) => {
     if (busyPost) return;
     setBusyPost(post.id);
@@ -456,7 +496,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
           onRetry={() => void loadClips()} refreshing={refreshing} onRefresh={() => { setRefreshing(true); void loadClips(true); }}
           hasMore={clipsHasMore} loadingMore={clipsLoadingMore} onLoadMore={() => void loadMoreClips()}
           onLike={(clip) => void toggleLike(clip)} onSave={(clip) => void toggleSaveClip(clip)} onComments={(id) => void openClipComments(id)} overlayOpen={Boolean(expandedPost || quizClip || clipComposerVisible)}
-          onMiniTest={(clip) => void openClipQuiz(clip)} onUserPress={onUserPress} />
+          onMiniTest={(clip) => void openClipQuiz(clip)} onUserPress={onUserPress} onDeleteOwnClip={(clip) => { void (async () => { try { await deleteCommunityPost(clip.id); setClips((items) => items.filter((item) => item.id !== clip.id)); setPosts((items) => items.filter((item) => item.id !== clip.id)); } catch (error) { showLocalizedAlert('Lavha o‘chirilmadi', error instanceof Error ? error.message : 'Qayta urinib ko‘ring'); } })(); }} />
       ) : <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
@@ -562,7 +602,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
           <View key={post.id} style={styles.post}>
             <View style={styles.postHeader}>
               {renderPerson(post.author)}
-              <LocalizedText style={styles.time}>{timeAgo(post.createdAt)}</LocalizedText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><LocalizedText style={styles.time}>{timeAgo(post.createdAt)}</LocalizedText>{post.isOwn ? <Pressable onPress={() => openPostActions(post)} hitSlop={10} accessibilityLabel="Post sozlamalari"><Ionicons name="ellipsis-horizontal" size={20} color={c.textMuted} /></Pressable> : null}</View>
             </View>
             {post.content ? <LocalizedText numberOfLines={5} style={styles.postContent}>{post.content}</LocalizedText> : null}
             {post.mediaUrl ? (post.mediaType?.startsWith('video/') ? <CommunityClipVideo uri={post.mediaUrl} /> : <Image source={{ uri: post.mediaUrl }} style={styles.postImage} resizeMode="cover" />) : null}
@@ -612,6 +652,16 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
       </ScrollView>}
       {activeSection !== 'clips' && <CommunityBottomNavigation active={activeSection} onNavigate={section => { if (section === 'home') setActiveSection('dashboard'); else if (section === 'messages') onMessages(); else setActiveSection(section); }} />}
 
+      <Modal visible={Boolean(editingPost)} transparent animationType="slide" onRequestClose={() => setEditingPost(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.62)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: c.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 34, gap: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}><LocalizedText style={{ color: c.text, fontSize: 18, fontWeight: '900' }}>Postni tahrirlash</LocalizedText><Pressable onPress={() => setEditingPost(null)}><Ionicons name="close" size={23} color={c.text} /></Pressable></View>
+            <TextInput value={editContent} onChangeText={setEditContent} multiline maxLength={2000} placeholder="Post matni..." placeholderTextColor={c.textMuted} style={{ minHeight: 120, maxHeight: 220, color: c.text, backgroundColor: c.surfaceElevated, borderRadius: 14, padding: 13, textAlignVertical: 'top' }} />
+            <Pressable disabled={savingPostEdit} onPress={() => void savePostEdit()} style={{ minHeight: 46, borderRadius: 14, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' }}>{savingPostEdit ? <ActivityIndicator color="#FFFFFF" /> : <LocalizedText style={{ color: '#FFFFFF', fontWeight: '900' }}>Saqlash</LocalizedText>}</Pressable>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={clipComposerVisible} transparent animationType="slide" onRequestClose={() => { if (!clipBusy) setClipComposerVisible(false); }}>
         <View style={{flex:1,backgroundColor:'rgba(5,6,12,0.78)',justifyContent:'flex-end'}}>
           <ScrollView style={{backgroundColor:c.surface,borderTopLeftRadius:24,borderTopRightRadius:24,maxHeight:'90%'}} contentContainerStyle={{padding:20,gap:12}} keyboardShouldPersistTaps="handled">
@@ -645,7 +695,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
               <Pressable onPress={() => setSelectedStory(null)} style={styles.storyClose}><Ionicons name="close" size={24} color="#FFFFFF" /></Pressable>
             </View>
             {selectedStory.caption ? <LocalizedText style={styles.storyCaption}>{selectedStory.caption}</LocalizedText> : null}
-            {selectedStory.isOwn ? <LocalizedText style={styles.storyViews}><Ionicons name="eye-outline" size={14} color="#FFFFFF" />  {selectedStory.viewsCount} ko‘rish</LocalizedText> : null}
+            {selectedStory.isOwn ? <View style={{ position: 'absolute', bottom: 28, left: 22, right: 22, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><LocalizedText style={styles.storyViews}><Ionicons name="eye-outline" size={14} color="#FFFFFF" />  {selectedStory.viewsCount} ko‘rish</LocalizedText><Pressable onPress={() => deleteOwnStory(selectedStory)} style={{ padding: 10, borderRadius: 18, backgroundColor: 'rgba(180,40,60,0.75)' }}><Ionicons name="trash-outline" size={19} color="#FFFFFF" /></Pressable></View> : null}
           </View>
         )}
       </Modal>
