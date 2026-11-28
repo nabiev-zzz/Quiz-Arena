@@ -1,11 +1,11 @@
 FROM node:22-alpine AS web-build
 RUN apk add --no-cache git
-# Always build the browser app from the exact latest main commit.
-# Update this pin whenever main receives a new app change.
-ARG APP_SOURCE_COMMIT=00ba4310c915cad8754282b3fce12fb54199a3ce
+# Build the browser app from the current main branch so app fixes are not hidden
+# behind an old hard-coded source commit.
+ARG APP_SOURCE_REF=main
 RUN git init /workspace \
     && git -C /workspace remote add origin https://github.com/nabiev-zzz/Quiz-Arena.git \
-    && git -C /workspace fetch --depth 1 origin "${APP_SOURCE_COMMIT}" \
+    && git -C /workspace fetch --depth 1 origin "${APP_SOURCE_REF}" \
     && git -C /workspace checkout --detach FETCH_HEAD
 WORKDIR /workspace
 RUN npm ci

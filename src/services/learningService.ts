@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { API_BASE_URL, apiFetch, getToken } from './authService';
 import type { Difficulty } from '../types';
 import type { Question } from '../data/questions';
@@ -189,7 +190,7 @@ export interface DocumentQuizResult {
 }
 
 export async function createDocumentQuiz(
-  file: { uri: string; name: string; mimeType?: string | null },
+  file: { uri: string; name: string; mimeType?: string | null; file?: Blob | null },
   options: { count: number; difficulty: Difficulty; language: 'uz' | 'ru' | 'en' },
 ): Promise<DocumentQuizResult> {
   const token = await getToken();
@@ -208,13 +209,33 @@ export async function createDocumentQuiz(
     txt: 'text/plain',
     md: 'text/markdown',
     csv: 'text/csv',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
   };
+  const mimeType = file.mimeType || mimeByExtension[extension || ''] || 'application/octet-stream';
   const form = new FormData();
-  form.append('file', {
-    uri: file.uri,
-    name: file.name,
-    type: file.mimeType || mimeByExtension[extension || ''] || 'application/octet-stream',
-  } as unknown as Blob);
+
+  if (Platform.OS === 'web') {
+    // Browser FormData requires a real Blob/File. React Native's { uri, name, type }
+    // pseudo-file object is only understood by native networking and is stringified on web.
+    let browserFile = file.file;
+    if (!(browserFile instanceof Blob)) {
+      const fileResponse = await fetch(file.uri);
+      if (!fileResponse.ok) throw new Error('Tanlangan hujjatni brauzer xotirasidan o‘qib bo‘lmadi. Faylni qayta tanlang.');
+      browserFile = await fileResponse.blob();
+    }
+    const uploadBlob = browserFile.type ? browserFile : new Blob([browserFile], { type: mimeType });
+    form.append('file', uploadBlob, file.name);
+  } else {
+    // React Native FormData expects the native { uri, name, type } file descriptor.
+    form.append('file', {
+      uri: file.uri,
+      name: file.name,
+      type: mimeType,
+    } as unknown as Blob);
+  }
   form.append('count', String(options.count));
   form.append('difficulty', options.difficulty);
   form.append('language', options.language);
