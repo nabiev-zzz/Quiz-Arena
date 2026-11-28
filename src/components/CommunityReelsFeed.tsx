@@ -151,7 +151,7 @@ const Reel = memo(function Reel({ clip, index, active, shouldMountPlayer, height
   return (
     <View style={[styles.reel, { height }]}>
       {clip.mediaUrl && shouldMountPlayer ? <ReelVideoPlayer
-        key={clip.id} clipId={clip.id} uri={clip.mediaUrl} active={active} muted={muted}
+        key={clip.id} clipId={clip.id} active={active} muted={muted}
         paused={paused || overlayOpen || shareVisible || shareInProgress || !appIsActive} registerPlayer={registerPlayer}
         onProgressChange={setPlaybackProgress} onSkip={() => onSkip(index)}
       /> : <View style={styles.noVideo}><Ionicons name="play-circle-outline" size={40} color="#FFFFFF"/><LocalizedText style={styles.emptyText}>Keyingi lavha</LocalizedText></View>}
@@ -196,8 +196,8 @@ const Reel = memo(function Reel({ clip, index, active, shouldMountPlayer, height
   );
 });
 
-function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, onProgressChange, onSkip }: {
-  clipId: string; uri: string; active: boolean; muted: boolean; paused: boolean; registerPlayer: RegisterPlayer;
+function ReelVideoPlayer({ clipId, active, muted, paused, registerPlayer, onProgressChange, onSkip }: {
+  clipId: string; active: boolean; muted: boolean; paused: boolean; registerPlayer: RegisterPlayer;
   onProgressChange: (progress: number) => void; onSkip: () => void;
 }) {
   const [firstFrameRendered, setFirstFrameRendered] = useState(false);
@@ -210,12 +210,14 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
   const fitSourceSizeRef = useRef<{ width: number; height: number } | null>(null);
   const videoOpacity = useSharedValue(0);
   const posterOpacity = useSharedValue(1);
-  const player = useVideoPlayer(uri, (instance) => {
+  // Start empty: loading the expiring mediaUrl and then replacing it with the
+  // signed playback URL caused two downloads/decoder initializations per reel.
+  const player = useVideoPlayer(null, (instance) => {
     instance.loop = true;
     instance.muted = muted;
     instance.audioMixingMode = 'doNotMix';
     instance.timeUpdateEventInterval = 0.5;
-    instance.bufferOptions = { preferredForwardBufferDuration: active ? 18 : 8, minBufferForPlayback: 1 };
+    instance.bufferOptions = { preferredForwardBufferDuration: active ? 8 : 2, minBufferForPlayback: 0.5 };
   });
   const { status } = useEvent(player, 'statusChange', { status: player.status });
   const track = useEvent(player, 'videoTrackChange', { videoTrack: player.videoTrack });
@@ -259,7 +261,9 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
     }
   }, [contentFit, videoSize, viewportSize]);
 
-  const canRevealVideo = firstFrameRendered && videoSize !== null && contentFit !== null;
+  // Reveal on the first decoded frame; do not wait for optional track-size
+  // metadata or a second layout pass, which can leave Android on a black poster.
+  const canRevealVideo = firstFrameRendered;
   const handleFirstFrameRender = useCallback(() => {
     const nextSize = getDisplayVideoSize(player.videoTrack?.size);
     if (nextSize) {
@@ -308,9 +312,9 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
       setLoadTimedOut(false);
       return;
     }
-    const timeout = setTimeout(() => setLoadTimedOut(true), 150_000);
+    const timeout = setTimeout(() => setLoadTimedOut(true), 25_000);
     return () => clearTimeout(timeout);
-  }, [active, canRevealVideo, status, uri, playbackReady]);
+  }, [active, canRevealVideo, status, playbackReady]);
 
   useEffect(() => {
     registerPlayer(clipId, player);
@@ -347,7 +351,7 @@ function ReelVideoPlayer({ clipId, uri, active, muted, paused, registerPlayer, o
   if (!active) return null;
   return <>
     <Animated.View style={[StyleSheet.absoluteFill, videoStyle]} onLayout={onVideoViewportLayout}>
-      <VideoView player={player} style={[StyleSheet.absoluteFill, styles.videoSurface]} contentFit={contentFit ?? 'contain'} nativeControls={false} surfaceType="textureView" onFirstFrameRender={handleFirstFrameRender} />
+      <VideoView player={player} style={[StyleSheet.absoluteFill, styles.videoSurface]} contentFit={contentFit ?? 'cover'} nativeControls={false} surfaceType="textureView" onFirstFrameRender={handleFirstFrameRender} />
     </Animated.View>
     {!canRevealVideo ? <Animated.View pointerEvents="none" style={[styles.posterPlaceholder, posterStyle]}><Ionicons name="play-circle" size={48} color="#FFFFFF"/><LocalizedText style={styles.posterTitle}>ZELQEN</LocalizedText><LocalizedText style={styles.statusText}>Lavha yuklanmoqda...</LocalizedText><ActivityIndicator color="#FFFFFF" /></Animated.View> : null}
     {(playbackReady && status === 'error') || playbackRequestError || loadTimedOut ? <View pointerEvents="box-none" style={styles.videoStatus}><Ionicons name="alert-circle-outline" size={36} color="#FFFFFF"/><LocalizedText style={styles.statusText}>{loadTimedOut ? 'Video yuklanishi uzoq davom etdi' : 'Videoni ochib bo‘lmadi'}</LocalizedText><LocalizedText style={styles.statusHint}>Internetni tekshiring yoki qayta urinib ko‘ring.</LocalizedText><View style={styles.errorActions}><Pressable onPress={retry} style={styles.retry}><LocalizedText style={styles.retryText}>Qayta urinish</LocalizedText></Pressable><Pressable onPress={onSkip} style={styles.skipButton}><LocalizedText style={styles.retryText}>Keyingisi</LocalizedText></Pressable></View></View> : null}
