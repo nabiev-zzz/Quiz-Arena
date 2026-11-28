@@ -8,6 +8,7 @@ on:
       - main
     paths:
       - '.github/workflows/zelqen-core-android-apk.yml'
+      - 'src/components/Snowfall.tsx'
 
 permissions:
   contents: read
