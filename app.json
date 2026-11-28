@@ -43,12 +43,17 @@
       "expo-sharing",
       [
         "expo-image-picker",
-        { "photosPermission": "Allow ZELQEN CORE to access your photos so you can send images in private chats." }
+        {
+          "photosPermission": "Allow ZELQEN CORE to access your photos so you can send images in private chats."
+        }
       ],
       [
         "expo-audio",
-        { "microphonePermission": "Allow ZELQEN CORE to access your microphone for voice messages." }
-      ]
+        {
+          "microphonePermission": "Allow ZELQEN CORE to access your microphone for voice messages."
+        }
+      ],
+      "expo-asset"
     ],
     "extra": {
       "eas": {
