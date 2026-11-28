@@ -91,7 +91,7 @@ export const consumePremiumFeature = (featureKey: MeteredFeature) =>
   request<FeatureUsageResult>(`/api/subscriptions/usage/${featureKey}`, { method: 'POST' });
 
 export const getFeatureUsage = (featureKey: MeteredFeature) =>
-  request<FeatureUsageResult>(`/api/subscriptions/usage/${featureKey}`);
+  request<FeatureUsageResult>(`/api/subscriptions/usage/${featureKey}`, { cache: 'no-store' });
 
 
 export interface QaTesterGrantResult {
