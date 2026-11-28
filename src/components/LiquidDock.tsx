@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import Animated, {
   type SharedValue,
   useAnimatedStyle,
@@ -109,7 +110,7 @@ export default function LiquidDock({
   bottomInset,
   scrollStretch,
 }: Props) {
-  const { isDark, tokens } = useTheme();
+  const { isDark, isLiquidGlass, tokens } = useTheme();
   const [dockWidth, setDockWidth] = useState(0);
   const indicatorX = useSharedValue(0);
   const itemWidth = items.length > 0 ? dockWidth / items.length : 0;
@@ -145,6 +146,7 @@ export default function LiquidDock({
           },
         ]}
       >
+        {isLiquidGlass ? <BlurView pointerEvents="none" intensity={48} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} /> : null}
         {itemWidth > 0 && (
           <Animated.View
             pointerEvents="none"

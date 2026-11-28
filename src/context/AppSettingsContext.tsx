@@ -12,11 +12,13 @@ import { setAppLanguage } from '../i18n/LocalizedText';
 
 export type AppLanguage = 'uz' | 'ru' | 'en';
 export type AppTheme = 'dark' | 'light';
+export type AppVisualStyle = 'classic' | 'liquid-glass';
 export type AppFontSize = 'small' | 'medium' | 'large';
 
 interface AppSettings {
   language: AppLanguage;
   theme: AppTheme;
+  visualStyle: AppVisualStyle;
   fontSize: AppFontSize;
   notifications: boolean;
   sound: boolean;
@@ -27,6 +29,7 @@ interface AppSettingsContextValue extends AppSettings {
   ready: boolean;
   setLanguage: (value: AppLanguage) => Promise<void>;
   setTheme: (value: AppTheme) => Promise<void>;
+  setVisualStyle: (value: AppVisualStyle) => Promise<void>;
   setFontSize: (value: AppFontSize) => Promise<void>;
   setNotifications: (value: boolean) => Promise<void>;
   setSound: (value: boolean) => Promise<void>;
@@ -72,6 +75,7 @@ async function writePreferences(value: string) {
 const defaultSettings: AppSettings = {
   language: 'uz',
   theme: 'dark',
+  visualStyle: 'classic',
   fontSize: 'medium',
   notifications: true,
   sound: true,
@@ -109,6 +113,9 @@ export function AppSettingsProvider({
               theme: parsed.theme === 'light' || parsed.theme === 'dark'
                 ? parsed.theme
                 : defaultSettings.theme,
+              visualStyle: parsed.visualStyle === 'liquid-glass' || parsed.visualStyle === 'classic'
+                ? parsed.visualStyle
+                : defaultSettings.visualStyle,
             };
             setAppLanguage(restored.language);
             setSettings(restored);
@@ -155,6 +162,9 @@ export function AppSettingsProvider({
   const setTheme = (value: AppTheme) =>
     updateSettings({ theme: value });
 
+  const setVisualStyle = (value: AppVisualStyle) =>
+    updateSettings({ visualStyle: value });
+
   const setFontSize = (value: AppFontSize) =>
     updateSettings({ fontSize: value });
 
@@ -174,6 +184,7 @@ export function AppSettingsProvider({
         ready,
         setLanguage,
         setTheme,
+        setVisualStyle,
         setFontSize,
         setNotifications,
         setSound,

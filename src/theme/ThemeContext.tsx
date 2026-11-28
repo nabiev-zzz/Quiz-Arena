@@ -13,6 +13,8 @@ import {
 
 interface ThemeContextValue {
   mode: ThemeMode;
+  visualStyle: 'classic' | 'liquid-glass';
+  isLiquidGlass: boolean;
   isDark: boolean;
   tokens: ThemeTokens;
 }
@@ -26,13 +28,32 @@ export function ThemeProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { theme } = useAppSettings();
+  const { theme, visualStyle } = useAppSettings();
 
-  const value = useMemo<ThemeContextValue>(() => ({
-    mode: theme,
-    isDark: theme === 'dark',
-    tokens: themeTokens[theme],
-  }), [theme]);
+  const value = useMemo<ThemeContextValue>(() => {
+    const isLiquidGlass = visualStyle === 'liquid-glass';
+    const base = themeTokens[isLiquidGlass ? 'light' : theme];
+    const glassColors = isLiquidGlass ? {
+      ...base.colors,
+      background: '#EAF2FA',
+      backgroundSecondary: '#F4F8FC',
+      surface: 'rgba(255,255,255,0.76)',
+      surfaceElevated: '#FFFFFF',
+      surfaceGlass: 'rgba(255,255,255,0.68)',
+      text: '#172638',
+      textSecondary: '#4F6277',
+      textMuted: '#6A7E91',
+      border: 'rgba(255,255,255,0.78)',
+      borderStrong: 'rgba(255,255,255,0.95)',
+      glassBorder: 'rgba(255,255,255,0.82)',
+      inputBackground: 'rgba(255,255,255,0.88)',
+    } : base.colors;
+    return {
+      mode: theme, visualStyle, isLiquidGlass,
+      isDark: !isLiquidGlass && theme === 'dark',
+      tokens: { ...base, colors: glassColors } as ThemeTokens,
+    };
+  }, [theme, visualStyle]);
 
   return (
     <ThemeContext.Provider value={value}>

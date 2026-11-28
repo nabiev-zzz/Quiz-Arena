@@ -80,24 +80,26 @@ export default function SettingsScreen({
   dockStretch,
 }: SettingsScreenProps) {
   const { user } = useAuth();
-  const { tokens } = useTheme();
+  const { tokens, isLiquidGlass } = useTheme();
 
   const {
     language,
     theme,
+    visualStyle,
     fontSize,
     notifications,
     sound,
     vibration,
     setLanguage,
     setTheme,
+    setVisualStyle,
     setFontSize,
     setNotifications,
     setSound,
     setVibration,
   } = useAppSettings();
 
-  const isDark = theme === 'dark';
+  const isDark = theme === 'dark' && !isLiquidGlass;
   const lastDockScrollY = useSharedValue(0);
   const dockScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -206,17 +208,18 @@ export default function SettingsScreen({
       >
         <View style={styles.optionHeader}>
           <Ionicons
-            name={theme === 'dark' ? 'moon' : 'sunny'}
+            name={isDark ? 'moon' : 'sunny'}
             size={22}
             color={colors.accent}
           />
 
           <LocalizedText style={[styles.optionTitle, { color: colors.text }]}>
-            {theme === 'dark' ? 'Qorong‘i rejim' : 'Yorug‘ rejim'}
+            {isDark ? 'Qorong‘i rejim' : 'Yorug‘ rejim'}
           </LocalizedText>
 
           <Switch
-            value={theme === 'dark'}
+            value={isDark}
+            disabled={isLiquidGlass}
             onValueChange={(value) =>
               void handleChange(() =>
                 setTheme(value ? 'dark' : 'light'),
@@ -228,8 +231,42 @@ export default function SettingsScreen({
         </View>
 
         <LocalizedText style={[styles.helperText, { color: colors.muted }]}>
-          Qorong‘i yoki yorug‘ ko‘rinishni tanlang.
+          {isLiquidGlass ? 'Liquid Glass uslubida yorug‘ shisha ko‘rinishi ishlatiladi.' : 'Qorong‘i yoki yorug‘ ko‘rinishni tanlang.'}
         </LocalizedText>
+      </View>
+
+      <LocalizedText style={[styles.sectionTitle, { color: colors.muted }]}>
+        DIZAYN USLUBI
+      </LocalizedText>
+
+      <View style={[styles.groupCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: visualStyle === 'classic' }}
+          onPress={() => void handleChange(() => setVisualStyle('classic'))}
+          style={[styles.languageRow, visualStyle === 'classic' && styles.selectedVisualStyle]}
+        >
+          <View style={[styles.rowIcon, { backgroundColor: 'rgba(120,140,160,0.12)' }]}><Ionicons name="layers-outline" size={21} color={colors.accent} /></View>
+          <View style={styles.rowContent}>
+            <LocalizedText style={[styles.optionTitle, { color: colors.text }]}>Classic</LocalizedText>
+            <LocalizedText style={[styles.rowDescription, { color: colors.muted }]}>Oddiy, an’anaviy ko‘rinish</LocalizedText>
+          </View>
+          <Ionicons name={visualStyle === 'classic' ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={colors.accent} />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: visualStyle === 'liquid-glass' }}
+          onPress={() => void handleChange(() => setVisualStyle('liquid-glass'))}
+          style={[styles.languageRow, visualStyle === 'liquid-glass' && styles.selectedVisualStyle]}
+        >
+          <View style={[styles.rowIcon, { backgroundColor: 'rgba(130,190,225,0.20)' }]}><Ionicons name="water-outline" size={21} color={colors.accent} /></View>
+          <View style={styles.rowContent}>
+            <LocalizedText style={[styles.optionTitle, { color: colors.text }]}>Liquid Glass</LocalizedText>
+            <LocalizedText style={[styles.rowDescription, { color: colors.muted }]}>Shaffof oynalar, xiralashtirilgan fon va oppoq tugmalar</LocalizedText>
+          </View>
+          <Ionicons name={visualStyle === 'liquid-glass' ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={colors.accent} />
+        </Pressable>
+        <LocalizedText style={[styles.helperText, { color: colors.muted }]}>Dizayn tanlovi shu qurilmada saqlanadi va barcha bo‘limlarga qo‘llanadi.</LocalizedText>
       </View>
 
       <LocalizedText style={[styles.sectionTitle, { color: colors.muted }]}>
@@ -567,6 +604,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  selectedVisualStyle: { backgroundColor: 'rgba(130,190,225,0.10)', borderRadius: 14 },
   row: {
     minHeight: 72,
     flexDirection: 'row',

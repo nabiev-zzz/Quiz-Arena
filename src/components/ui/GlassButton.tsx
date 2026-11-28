@@ -28,13 +28,12 @@ export default function GlassButton({
   loading = false,
   style,
 }: Props) {
-  const { isDark, tokens } = useTheme();
+  const { isDark, isLiquidGlass, tokens } = useTheme();
   const inactive = disabled || loading;
 
-  const contentColor =
-    variant === 'primary'
-      ? '#FFFFFF'
-      : tokens.colors.text;
+  const contentColor = isLiquidGlass
+    ? '#172638'
+    : variant === 'primary' ? '#FFFFFF' : tokens.colors.text;
 
   return (
     <Pressable
@@ -50,16 +49,20 @@ export default function GlassButton({
           opacity: inactive ? tokens.opacity.disabled : 1,
           transform: [{ scale: pressed && !inactive ? 0.985 : 1 }],
           borderWidth: variant === 'outline' ? 1 : 0,
-          borderColor: tokens.colors.borderStrong,
-          backgroundColor:
-            variant === 'secondary'
-              ? tokens.colors.surfaceElevated
-              : 'transparent',
+          backgroundColor: isLiquidGlass
+            ? '#FFFFFF'
+            : variant === 'secondary' ? tokens.colors.surfaceElevated : 'transparent',
+          borderColor: isLiquidGlass ? 'rgba(255,255,255,0.96)' : tokens.colors.borderStrong,
+          shadowColor: isLiquidGlass ? '#6C8BA8' : 'transparent',
+          shadowOpacity: isLiquidGlass ? 0.20 : 0,
+          shadowRadius: isLiquidGlass ? 16 : 0,
+          shadowOffset: { width: 0, height: isLiquidGlass ? 7 : 0 },
+          elevation: isLiquidGlass ? 4 : 0,
         },
         style,
       ]}
     >
-      {variant === 'primary' ? (
+      {variant === 'primary' && !isLiquidGlass ? (
         <LinearGradient
           colors={[...tokens.gradients.primary]}
           style={styles.gradient}

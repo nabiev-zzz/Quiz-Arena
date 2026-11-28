@@ -1,4 +1,5 @@
-﻿import React from 'react';
+import React from 'react';
+import { BlurView } from 'expo-blur';
 import {
   StyleProp,
   StyleSheet,
@@ -20,7 +21,7 @@ export default function GlassSurface({
   intensity,
   bordered = true,
 }: Props) {
-  const { tokens } = useTheme();
+  const { tokens, isLiquidGlass, isDark } = useTheme();
 
   return (
     <View
@@ -36,6 +37,9 @@ export default function GlassSurface({
         style,
       ]}
     >
+      {isLiquidGlass ? (
+        <BlurView pointerEvents="none" intensity={intensity ?? 42} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+      ) : null}
       <View style={styles.content}>{children}</View>
     </View>
   );
