@@ -1,4 +1,5 @@
 name: ZELQEN CORE Android APK
+# Trigger the release APK workflow when a verified feature release is merged to main.
 
 on:
   workflow_dispatch:
