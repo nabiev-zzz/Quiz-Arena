@@ -102,7 +102,7 @@ describe('AiTutorService tier-aware progress context', () => {
     expect(aiQueue.enqueue).toHaveBeenCalledTimes(1);
   });
 
-  it('limits basic AI Tutor history to 20 messages and returns the newest messages in order', async () => {
+  it('provides full AI Tutor history and returns the newest messages in order', async () => {
     subscriptions.current.mockResolvedValue({
       tier: 'free',
       entitlements: getPlanEntitlements(null),
@@ -112,7 +112,7 @@ describe('AiTutorService tier-aware progress context', () => {
     const result = await service.getHistory('user-1');
 
     expect(messages.find).toHaveBeenCalledWith(expect.objectContaining({
-      take: 20,
+      take: 100,
       order: { createdAt: 'DESC' },
     }));
     expect(result.messages.map((item) => item.id)).toEqual(['older', 'newest']);
