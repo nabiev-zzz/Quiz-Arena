@@ -7,7 +7,7 @@ export interface PremiumEntitlements {
   label: string;
   statsPdf: { monthlyLimit: number | null; includeAiInsights: boolean };
   documentQuiz: { monthlyLimit: number; maxQuestionsPerDocument: number; maxFileSizeMb: number };
-  privateBattle: { dailyLimit: number; maxPlayers: number };
+  privateBattle: { dailyLimit: number | null; maxPlayers: number };
   smartPractice: { dailyLimit: number | null; aiPersonalized: boolean };
   aiTutor: { available: boolean; dailyMessages: number | null; errorAnalysis: boolean; fullHistory: boolean };
   cosmetics: { premiumBadge: boolean; exclusiveItems: boolean; rareItems: boolean; animatedGoldFrame: boolean };
