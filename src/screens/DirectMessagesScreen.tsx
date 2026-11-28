@@ -540,7 +540,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
               }}
               ListEmptyComponent={
                 <View style={styles.firstMessage}>
-                  <View style={styles.firstIcon}><Ionicons name="chatbubble-ellipses-outline" size={27} color={c.primary} /></View>
+                  <View style={styles.firstIcon}><Ionicons name="chatbubble-ellipses-outline" size={27} color={c.primary} /></View>
                   <LocalizedText style={styles.firstTitle}>Suhbatni boshlang</LocalizedText>
                   <LocalizedText style={styles.firstHint}>Salom deb yozing — muloqot shu yerdan boshlanadi.</LocalizedText>
                 </View>
