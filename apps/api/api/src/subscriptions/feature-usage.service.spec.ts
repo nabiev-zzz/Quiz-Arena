@@ -3,53 +3,60 @@ import { BadRequestException } from '@nestjs/common';
 import { getPlanEntitlements } from './plan-entitlements';
 import { FeatureUsageService } from './feature-usage.service';
 
-describe('FeatureUsageService', () => {
+describe('FeatureUsageService document quiz allowances', () => {
   const query = jest.fn();
   const current = jest.fn();
-  const service = new FeatureUsageService(
-    { query } as never,
-    { current } as never,
-  );
+  const service = new FeatureUsageService({ query } as never, { current } as never);
 
   beforeEach(() => {
     jest.clearAllMocks();
+    query.mockResolvedValue([{ usageCount: 1 }]);
   });
 
-  it('atomically consumes a monthly PDF quota', async () => {
-    current.mockResolvedValue({ tier: 'free', entitlements: getPlanEntitlements(null) });
-    query.mockResolvedValue([{ usageCount: 1 }]);
-
-    await expect(service.consume('user-1', 'statsPdf')).resolves.toMatchObject({
-      allowed: true, featureKey: 'statsPdf', limit: 1, used: 1, remaining: 0,
+  it.each([
+    [null, 5, 'free'],
+    ['premium_monthly', 20, 'premium'],
+    ['premium_pro_monthly', 40, 'premium_pro'],
+    ['legenda_plus_monthly', null, 'legenda_plus'],
+  ] as const)('consumes document quota for %s', async (planKey, limit, tier) => {
+    const entitlements = getPlanEntitlements(planKey);
+    current.mockResolvedValue({ tier, entitlements });
+    await expect(service.consume('user-1', 'documentQuiz')).resolves.toMatchObject({
+      allowed: true, featureKey: 'documentQuiz', tier, limit, used: 1,
+      remaining: limit === null ? null : limit - 1,
+      period: limit === null ? 'unlimited' : 'monthly',
     });
     expect(query).toHaveBeenCalledTimes(1);
   });
 
-  it('rejects quota consumption when the server-side limit is reached', async () => {
+  it('blocks FREE users after five accepted document jobs', async () => {
     current.mockResolvedValue({ tier: 'free', entitlements: getPlanEntitlements(null) });
     query.mockResolvedValue([]);
-
-    await expect(service.consume('user-1', 'statsPdf')).resolves.toMatchObject({
-      allowed: false, limit: 1, remaining: 0,
+    await expect(service.consume('user-1', 'documentQuiz')).resolves.toMatchObject({
+      allowed: false, limit: 5, used: 5, remaining: 0,
     });
   });
 
-  it('does not query usage storage for unlimited LEGENDA+ exports', async () => {
-    current.mockResolvedValue({ tier: 'legenda_plus', entitlements: getPlanEntitlements('legenda_plus_yearly') });
-
-    await expect(service.consume('user-1', 'statsPdf')).resolves.toMatchObject({
-      allowed: true, tier: 'legenda_plus', period: 'unlimited', limit: null,
-    });
-    expect(query).not.toHaveBeenCalled();
-  });
-
-  it('enforces the FREE daily AI Tutor message limit', async () => {
+  it('returns usage without consuming an additional document', async () => {
     current.mockResolvedValue({ tier: 'free', entitlements: getPlanEntitlements(null) });
-    query.mockResolvedValue([{ usageCount: 1 }]);
-
-    await expect(service.consume('user-1', 'aiTutor')).resolves.toMatchObject({
-      allowed: true, featureKey: 'aiTutor', limit: 3, used: 1, remaining: 2, period: 'daily',
+    query.mockResolvedValue([{ usageCount: 3 }]);
+    await expect(service.usage('user-1', 'documentQuiz')).resolves.toMatchObject({
+      allowed: true, featureKey: 'documentQuiz', limit: 5, used: 3, remaining: 2, period: 'monthly',
     });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows unlimited LEGENDA+ usage while still counting documents', async () => {
+    current.mockResolvedValue({ tier: 'legenda_plus', entitlements: getPlanEntitlements('legenda_plus_monthly') });
+    query.mockResolvedValue([{ usageCount: 12 }]);
+    await expect(service.usage('user-1', 'documentQuiz')).resolves.toMatchObject({
+      allowed: true, limit: null, used: 12, remaining: null, period: 'unlimited',
+    });
+  });
+
+  it('refunds the original month when a queued job fails after the month changes', async () => {
+    await service.refund('user-1', 'documentQuiz', '2026-11');
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('UPDATE "feature_usage"'), ['user-1', 'documentQuiz', '2026-11']);
   });
 
   it('rejects unsupported feature keys', async () => {

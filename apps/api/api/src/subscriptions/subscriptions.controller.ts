@@ -42,6 +42,12 @@ export class SubscriptionsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('usage/:featureKey')
+  featureUsage(@Request() request: AuthRequest, @Param('featureKey') featureKey: string) {
+    return this.featureUsageService.usage(request.user.id, featureKey);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('usage/:featureKey')
   consumeFeature(@Request() request: AuthRequest, @Param('featureKey') featureKey: string) {
     return this.featureUsageService.consume(request.user.id, featureKey);

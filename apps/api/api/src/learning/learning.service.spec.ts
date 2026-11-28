@@ -160,11 +160,11 @@ describe('LearningService document quiz generation', () => {
     expect(aiService.generateDocumentQuestions).not.toHaveBeenCalled();
   });
 
-  it('does not accept an invalid question count or exceed the active plan file limit', async () => {
+  it('rejects invalid question counts and enforces the technical document file-size ceiling', async () => {
     await expect(service.createDocumentQuiz('user-1', { buffer: Buffer.from(sourceText), originalname: 'x.txt', mimetype: 'text/plain', size: 100 }, { count: '0' })).rejects.toThrow('Savollar soni');
     subscriptionsService.current.mockResolvedValue({ tier: 'free', entitlements: getPlanEntitlements(null) });
-    const large = Buffer.alloc(6 * 1024 * 1024, 65);
-    await expect(service.createDocumentQuiz('user-1', { buffer: large, originalname: 'x.txt', mimetype: 'text/plain', size: large.length }, { count: '5' })).rejects.toThrow('5 MB');
+    const large = Buffer.alloc(21 * 1024 * 1024, 65);
+    await expect(service.createDocumentQuiz('user-1', { buffer: large, originalname: 'x.txt', mimetype: 'text/plain', size: large.length }, { count: '5' })).rejects.toThrow('20 MB');
     expect(featureUsageService.consume).not.toHaveBeenCalled();
   });
 

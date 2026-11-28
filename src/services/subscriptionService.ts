@@ -6,7 +6,7 @@ export interface PremiumEntitlements {
   tier: SubscriptionTier;
   label: string;
   statsPdf: { monthlyLimit: number | null; includeAiInsights: boolean };
-  documentQuiz: { monthlyLimit: number; maxQuestionsPerDocument: number; maxFileSizeMb: number };
+  documentQuiz: { monthlyLimit: number | null; maxQuestionsPerDocument: number; maxFileSizeMb: number };
   privateBattle: { dailyLimit: number | null; maxPlayers: number };
   smartPractice: { dailyLimit: number | null; aiPersonalized: boolean };
   aiTutor: { available: boolean; dailyMessages: number | null; errorAnalysis: boolean; fullHistory: boolean };
@@ -84,10 +84,14 @@ export interface FeatureUsageResult {
   limit: number | null;
   used: number | null;
   remaining: number | null;
+  periodKey?: string;
 }
 
 export const consumePremiumFeature = (featureKey: MeteredFeature) =>
   request<FeatureUsageResult>(`/api/subscriptions/usage/${featureKey}`, { method: 'POST' });
+
+export const getFeatureUsage = (featureKey: MeteredFeature) =>
+  request<FeatureUsageResult>(`/api/subscriptions/usage/${featureKey}`, { cache: 'no-store' });
 
 
 export interface QaTesterGrantResult {

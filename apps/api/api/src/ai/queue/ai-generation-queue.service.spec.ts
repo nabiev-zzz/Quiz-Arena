@@ -40,6 +40,7 @@ describe('AiGenerationQueueService', () => {
       limit: 30,
       used: 1,
       remaining: 29,
+      periodKey: '2026-11',
     });
     featureUsage.refund.mockResolvedValue(undefined);
   });
@@ -93,6 +94,23 @@ describe('AiGenerationQueueService', () => {
     expect(featureUsage.consume).not.toHaveBeenCalled();
     expect(jobRepository.save).not.toHaveBeenCalled();
     expect(queue.add).not.toHaveBeenCalled();
+  });
+
+  it('returns a recently completed identical request without consuming quota twice', async () => {
+    jobRepository.findOne.mockResolvedValue({ id: 'recent-job', status: 'completed', createdAt: new Date(), result: { questions: [] } });
+    const result = await service.enqueue({ userId: '11111111-1111-4111-8111-111111111111', jobType: 'document_quiz', quotaFeature: 'documentQuiz', idempotencyKey: 'same-document', payload: {} });
+    expect(result).toMatchObject({ status: 'completed', jobId: 'recent-job' });
+    expect(featureUsage.consume).not.toHaveBeenCalled();
+    expect(jobRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('allows an intentional regeneration after the duplicate-submit window', async () => {
+    jobRepository.findOne.mockResolvedValue({ id: 'old-job', status: 'completed', createdAt: new Date(Date.now() - 31_000), result: { questions: [] } });
+    const result = await service.enqueue({ userId: '11111111-1111-4111-8111-111111111111', jobType: 'document_quiz', quotaFeature: 'documentQuiz', idempotencyKey: 'same-document', payload: {}, fileBuffer: Buffer.from('same document') });
+    expect(result).toMatchObject({ status: 'queued', jobId: 'job-1' });
+    expect(jobRepository.update).toHaveBeenCalledWith({ id: 'old-job' }, { idempotencyKey: null });
+    expect(featureUsage.consume).toHaveBeenCalledTimes(1);
+    expect(queue.add).toHaveBeenCalledTimes(1);
   });
 
   it('does not enqueue or consume quota when the plan limit is exhausted', async () => {
@@ -169,6 +187,20 @@ describe('AiGenerationQueueService', () => {
     }));
   });
 
+  it('claims a quota refund once and uses the original monthly period', async () => {
+    jobRepository.findOne.mockResolvedValue({
+      id: 'job-1', status: 'failed', quotaConsumed: true, quotaRefunded: false,
+      userId: '11111111-1111-4111-8111-111111111111', quotaFeature: 'documentQuiz',
+      payload: { _quotaReceipt: { periodKey: '2026-11' } },
+    });
+    await service.markFailedAndRefund('job-1', new Error('AI failed'));
+    expect(jobRepository.update).toHaveBeenCalledWith(
+      { id: 'job-1', quotaConsumed: true, quotaRefunded: false },
+      { quotaRefunded: true },
+    );
+    expect(featureUsage.refund).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', 'documentQuiz', '2026-11');
+  });
+
   it('refunds quota if BullMQ refuses the newly reserved job', async () => {
     queue.add.mockRejectedValue(new Error('Redis unavailable'));
 
@@ -180,7 +212,7 @@ describe('AiGenerationQueueService', () => {
       fileBuffer: Buffer.from('%PDF-1.4'),
     })).rejects.toThrow('AI navbatiga ulanishda xatolik');
 
-    expect(featureUsage.refund).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', 'documentQuiz');
+    expect(featureUsage.refund).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', 'documentQuiz', '2026-11');
     expect(queue.add).toHaveBeenCalledTimes(1);
   });
 });

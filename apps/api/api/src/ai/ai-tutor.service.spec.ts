@@ -38,7 +38,7 @@ describe('AiTutorService tier-aware progress context', () => {
     }]);
   });
 
-  it('shares verified totals but hides detailed mistake analysis from FREE users', async () => {
+  it('shares verified totals and detailed mistake analysis with FREE users during free access', async () => {
     subscriptions.current.mockResolvedValue({
       tier: 'free',
       entitlements: getPlanEntitlements(null),
@@ -52,8 +52,9 @@ describe('AiTutorService tier-aware progress context', () => {
       correctAnswers: 3,
       accuracy: 60,
     });
-    expect(progress.learningStats).not.toHaveProperty('weakTopics');
-    expect(progress.entitlements.detailedErrorAnalysis).toBe(false);
+    expect(progress.learningStats.weakTopics).toEqual([{ subjectName: 'Matematika', topicName: 'Kasrlar', mistakes: 1 }]);
+    expect(progress.learningStats.recentMistakes).toHaveLength(1);
+    expect(progress.entitlements.detailedErrorAnalysis).toBe(true);
   });
 
   it('provides weak-topic and mistake details to PREMIUM PRO users', async () => {
@@ -102,7 +103,7 @@ describe('AiTutorService tier-aware progress context', () => {
     expect(aiQueue.enqueue).toHaveBeenCalledTimes(1);
   });
 
-  it('limits basic AI Tutor history to 20 messages and returns the newest messages in order', async () => {
+  it('provides full AI Tutor history and returns the newest messages in order', async () => {
     subscriptions.current.mockResolvedValue({
       tier: 'free',
       entitlements: getPlanEntitlements(null),
@@ -112,7 +113,7 @@ describe('AiTutorService tier-aware progress context', () => {
     const result = await service.getHistory('user-1');
 
     expect(messages.find).toHaveBeenCalledWith(expect.objectContaining({
-      take: 20,
+      take: 100,
       order: { createdAt: 'DESC' },
     }));
     expect(result.messages.map((item) => item.id)).toEqual(['older', 'newest']);

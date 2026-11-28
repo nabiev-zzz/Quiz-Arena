@@ -239,7 +239,9 @@ export async function createDocumentQuiz(
     } catch {
       throw new Error('Telefon xotirasidagi hujjatni o‘qib bo‘lmadi. Faylni qayta tanlang.');
     }
-    const uploadBlob = new Blob([fileBytes], { type: mimeType });
+    const uploadBuffer = new ArrayBuffer(fileBytes.byteLength);
+    new Uint8Array(uploadBuffer).set(fileBytes);
+    const uploadBlob = new Blob([uploadBuffer], { type: mimeType });
     form.append('file', uploadBlob, file.name);
   }
   form.append('count', String(options.count));

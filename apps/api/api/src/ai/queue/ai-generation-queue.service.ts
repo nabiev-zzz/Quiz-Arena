@@ -110,13 +110,22 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     const ownerWhere = input.userId ? { userId: input.userId } : { userId: IsNull() };
     if (idempotencyKey) {
       const existing = await this.jobs.findOne({ where: { ...ownerWhere, idempotencyKey } });
-      if (existing && ['queued', 'active', 'completed'].includes(existing.status)) {
+      const recentlySubmitted = existing?.createdAt
+        ? Date.now() - new Date(existing.createdAt).getTime() < 30 * 1000
+        : true;
+      if (existing && ['queued', 'active'].includes(existing.status)) {
         return {
-          status: existing.status as 'queued' | 'active' | 'completed',
+          status: existing.status as 'queued' | 'active',
           jobId: existing.id,
-          message: existing.status === 'completed' ? 'Natija tayyor.' : 'Test tayyorlanmoqda',
+          message: 'Test tayyorlanmoqda',
           result: existing.result,
         };
+      }
+      if (existing?.status === 'completed' && recentlySubmitted) {
+        return { status: 'completed', jobId: existing.id, message: 'Natija tayyor.', result: existing.result };
+      }
+      if (existing?.status === 'completed') {
+        await this.jobs.update({ id: existing.id }, { idempotencyKey: null });
       }
       if (existing?.status === 'failed') {
         const oldBullJob = await this.queue.getJob(existing.id);
@@ -213,11 +222,19 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
         completedAt: new Date(),
         fileBuffer: null,
       });
-      if (usage && input.quotaFeature) {
-        try {
-          if (input.userId) await this.featureUsage.refund(input.userId, input.quotaFeature as never);
-          await this.jobs.update({ id: persistedJob.id }, { quotaRefunded: true });
-        } catch { /* Preserve the queue error; refund can be retried operationally. */ }
+      if (usage && input.quotaFeature && input.userId) {
+        const claim = await this.jobs.update(
+          { id: persistedJob.id, quotaConsumed: true, quotaRefunded: false },
+          { quotaRefunded: true },
+        );
+        if (claim.affected) {
+          try {
+            await this.featureUsage.refund(input.userId, input.quotaFeature as never, (usage as { periodKey?: string } | undefined)?.periodKey);
+          } catch {
+            await this.jobs.update({ id: persistedJob.id }, { quotaRefunded: false });
+            // Preserve the queue error; the refund can be retried operationally.
+          }
+        }
       }
       throw new ServiceUnavailableException('AI navbatiga ulanishda xatolik. Qayta urinib ko‘ring.');
     }
@@ -368,12 +385,19 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
       });
     }
     if (job.quotaConsumed && job.quotaFeature && !job.quotaRefunded) {
-      try {
-        if (!job.userId) throw new Error('Quota job owner is missing');
-        await this.featureUsage.refund(job.userId, job.quotaFeature as never);
-        await this.jobs.update({ id: jobId }, { quotaRefunded: true });
-      } catch (refundError) {
-        this.logger.error(`AI job quota refund failed for ${jobId}: ${refundError instanceof Error ? refundError.message : String(refundError)}`);
+      const claim = await this.jobs.update(
+        { id: jobId, quotaConsumed: true, quotaRefunded: false },
+        { quotaRefunded: true },
+      );
+      if (claim.affected) {
+        try {
+          if (!job.userId) throw new Error('Quota job owner is missing');
+          const receipt = job.payload?._quotaReceipt as { periodKey?: string } | undefined;
+          await this.featureUsage.refund(job.userId, job.quotaFeature as never, receipt?.periodKey);
+        } catch (refundError) {
+          await this.jobs.update({ id: jobId }, { quotaRefunded: false });
+          this.logger.error(`AI job quota refund failed for ${jobId}: ${refundError instanceof Error ? refundError.message : String(refundError)}`);
+        }
       }
     }
   }
