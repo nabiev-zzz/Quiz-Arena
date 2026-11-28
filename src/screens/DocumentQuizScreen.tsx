@@ -15,7 +15,7 @@ import type { Difficulty } from '../types';
 import { createDocumentQuiz, getLearningHistoryItem, saveLearningAttempt } from '../services/learningService';
 import { exportLearningAttempt, TEST_EXPORT_FORMATS, type TestExportFormat } from '../services/testExportService';
 import type { DocumentQuizQuestion } from '../services/learningService';
-import { getPremiumStatus } from '../services/subscriptionService';
+import { getFeatureUsage, getPremiumStatus, type FeatureUsageResult } from '../services/subscriptionService';
 
 interface Props {
   onBack: () => void;
@@ -60,7 +60,8 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
   const [phase, setPhase] = useState<Phase>('setup');
   const [count, setCount] = useState(10);
   const [maxQuestions, setMaxQuestions] = useState(10);
-  const [maxFileSizeMb, setMaxFileSizeMb] = useState(5);
+  const [maxFileSizeMb, setMaxFileSizeMb] = useState(20);
+  const [documentUsage, setDocumentUsage] = useState<FeatureUsageResult | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [questions, setQuestions] = useState<DocumentQuizQuestion[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -74,13 +75,14 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
 
   useEffect(() => {
     let active = true;
-    getPremiumStatus()
-      .then((status) => {
+    Promise.all([getPremiumStatus(), getFeatureUsage('documentQuiz')])
+      .then(([status, usage]) => {
         if (!active) return;
-        const limit = status.entitlements.documentQuiz.maxQuestionsPerDocument;
-        setMaxQuestions(limit);
+        const questionLimit = status.entitlements.documentQuiz.maxQuestionsPerDocument;
+        setMaxQuestions(questionLimit);
         setMaxFileSizeMb(status.entitlements.documentQuiz.maxFileSizeMb);
-        setCount(Math.min(10, limit));
+        setCount(Math.min(10, questionLimit));
+        setDocumentUsage(usage);
       })
       .catch(() => undefined);
     return () => { active = false; };
@@ -128,12 +130,14 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
     try {
       const result = await createDocumentQuiz(file, { count, difficulty, language });
       setQuestions(result.questions);
+      void getFeatureUsage('documentQuiz').then(setDocumentUsage).catch(() => undefined);
       setQuestionIndex(0);
       setAnswers([]);
       setSelectedAnswer(null);
       setPhase('quiz');
     } catch (error) {
       setPhase('setup');
+      void getFeatureUsage('documentQuiz').then(setDocumentUsage).catch(() => undefined);
       showLocalizedAlert('Test yaratilmadi', error instanceof Error ? error.message : 'AI hujjatni tahlil qila olmadi.');
     }
   };
@@ -242,6 +246,30 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
               </View>
             </View>
 
+            <View style={s.quotaCard}>
+              <View style={s.quotaHeading}>
+                <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+                <LocalizedText style={s.quotaTitle}>Hujjatdan test yaratish — oylik limit</LocalizedText>
+              </View>
+              <LocalizedText style={s.quotaPlanLine}>
+                Tarifingiz: {documentUsage ? (documentUsage.tier === 'premium_pro' ? 'PREMIUM PRO' : documentUsage.tier === 'legenda_plus' ? 'LEGENDA+' : documentUsage.tier.toUpperCase()) : 'aniqlanmoqda'}
+              </LocalizedText>
+              <LocalizedText style={s.quotaCurrent}>
+                {documentUsage
+                  ? documentUsage.limit === null
+                    ? `${documentUsage.used ?? 0} ta hujjat ishlatildi · Cheksiz`
+                    : `${documentUsage.used ?? 0} / ${documentUsage.limit} ta ishlatildi · ${documentUsage.remaining ?? 0} ta qoldi`
+                  : 'Joriy tarif limiti yuklanmoqda...'}
+              </LocalizedText>
+              <View style={s.quotaList}>
+                <View style={s.quotaRow}><LocalizedText style={s.quotaPlan}>FREE</LocalizedText><LocalizedText style={s.quotaAmount}>5 ta / oy</LocalizedText></View>
+                <View style={s.quotaRow}><LocalizedText style={s.quotaPlan}>PREMIUM</LocalizedText><LocalizedText style={s.quotaAmount}>20 ta / oy</LocalizedText></View>
+                <View style={s.quotaRow}><LocalizedText style={s.quotaPlan}>PREMIUM PRO</LocalizedText><LocalizedText style={s.quotaAmount}>40 ta / oy</LocalizedText></View>
+                <View style={s.quotaRow}><LocalizedText style={s.quotaPlan}>LEGENDA+</LocalizedText><LocalizedText style={s.quotaUnlimited}>Cheksiz</LocalizedText></View>
+              </View>
+              <LocalizedText style={s.quotaFootnote}>Limit har oyning 1-kunida Toshkent vaqti bilan yangilanadi. Test yaratish navbatga muvaffaqiyatli qabul qilinganda bitta hujjat hisoblanadi. AI xatosi bo‘lsa, limit qaytariladi.</LocalizedText>
+            </View>
+
             <Pressable onPress={() => void pickDocument()} style={s.uploadCard}>
               <View style={s.uploadIcon}><Ionicons name="cloud-upload-outline" size={27} color={colors.primary} /></View>
               <View style={s.uploadCopy}>
@@ -272,12 +300,12 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
               </View>
             </View>
 
-            <Pressable onPress={() => void generate()} disabled={!file} style={[s.primaryButton, !file && s.disabledButton]}>
+            <Pressable onPress={() => void generate()} disabled={!file || documentUsage?.allowed === false} style={[s.primaryButton, (!file || documentUsage?.allowed === false) && s.disabledButton]}>
               <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-              <LocalizedText style={s.primaryButtonText}>AI bilan test yaratish</LocalizedText>
+              <LocalizedText style={s.primaryButtonText}>{documentUsage?.allowed === false ? 'Oylik limit tugagan' : 'AI bilan test yaratish'}</LocalizedText>
               <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
             </Pressable>
-            <LocalizedText style={s.footerNote}>Yaratilgan savollarni yechganingizdan so‘ng natija test tarixingizga saqlanadi.</LocalizedText>
+            <LocalizedText style={s.footerNote}>{documentUsage?.allowed === false ? 'Bu oy uchun hujjat limiti tugadi. Ko‘proq hujjat bilan test yaratish uchun tarifingizni yangilang.' : 'Yaratilgan savollarni yechganingizdan so‘ng natija test tarixingizga saqlanadi.'}</LocalizedText>
           </>
         ) : null}
 
@@ -388,6 +416,17 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     formatRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 4 },
     formatChip: { borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: 'rgba(255,255,255,0.12)' },
     formatText: { color: '#F4F0FF', fontSize: 9, fontWeight: '900' },
+    quotaCard: { borderRadius: 18, padding: 15, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primary + '55', gap: 9 },
+    quotaHeading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    quotaTitle: { color: colors.text, fontSize: 13, fontWeight: '900', flex: 1 },
+    quotaPlanLine: { color: colors.textMuted, fontSize: 11, fontWeight: '700' },
+    quotaCurrent: { color: colors.primary, fontSize: 13, fontWeight: '900' },
+    quotaList: { gap: 6, paddingTop: 5 },
+    quotaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: colors.border },
+    quotaPlan: { color: colors.text, fontSize: 11, fontWeight: '800' },
+    quotaAmount: { color: colors.textMuted, fontSize: 11, fontWeight: '700' },
+    quotaUnlimited: { color: '#159B68', fontSize: 11, fontWeight: '900' },
+    quotaFootnote: { color: colors.textMuted, fontSize: 10, lineHeight: 15 },
     uploadCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, padding: 15, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
     uploadIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: colors.primary + '20', alignItems: 'center', justifyContent: 'center' },
     uploadCopy: { flex: 1, gap: 4 },
