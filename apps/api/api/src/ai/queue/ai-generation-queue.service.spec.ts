@@ -282,7 +282,7 @@ describe('AiGenerationQueueService', () => {
     expect(featureUsage.refund).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', 'documentQuiz', '2026-11');
   });
 
-  it('refunds quota if BullMQ refuses the newly reserved job', async () => {
+  it('does not refund document quota when BullMQ refuses an uncharged job', async () => {
     queue.add.mockRejectedValue(new Error('Redis unavailable'));
 
     await expect(service.enqueue({
