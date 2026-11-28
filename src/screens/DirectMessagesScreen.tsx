@@ -547,7 +547,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
                 <View style={[styles.messageRow, message.isMine ? styles.myRow : styles.theirRow]}>
                   <Pressable onLongPress={() => showMessageActions(message)} delayLongPress={350} style={[styles.bubble, message.isMine ? styles.myBubble : styles.theirBubble]}>
                     {message.isDeleted
-                      ? <LocalizedText style={[styles.messageText, styles.deletedMessageText, message.isMine && styles.myMessageTime]}>Bu xabar o‘chirildi</LocalizedText>
+                      ? <LocalizedText style={[styles.messageText, styles.deletedMessageText, message.isMine && styles.myMessageTime]}>Bu xabar o‘chirildi</LocalizedText>
                       : message.mediaType?.startsWith('audio/')
                       ? <VoiceMessageBubble message={message} conversationId={active.id} isMine={message.isMine} colors={c} styles={styles} />
                       : message.mediaType
