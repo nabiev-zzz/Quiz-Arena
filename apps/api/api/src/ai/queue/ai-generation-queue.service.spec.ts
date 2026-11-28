@@ -65,15 +65,58 @@ describe('AiGenerationQueueService', () => {
 
   it('checks document quota without charging before the test is generated', async () => {
     featureUsage.usage.mockResolvedValue({
-      allowed: true,
-      featureKey: 'documentQuiz',
-      tier: 'premium_pro',
-      period: 'monthly',
-      limit: 40,
-      used: 2,
-      remaining: 38,
-      periodKey: '2026-11',
+      allowed: true, featureKey: 'documentQuiz', tier: 'premium_pro',
+      period: 'monthly', limit: 40, used: 2, remaining: 38, periodKey: '2026-11',
     });
+
+    const result = await service.enqueue({
+      userId: '11111111-1111-4111-8111-111111111111',
+      jobType: 'document_quiz',
+      quotaFeature: 'documentQuiz',
+      idempotencyKey: 'same-document-request',
+      payload: { fileName: 'lesson.txt' },
+      fileBuffer: Buffer.from('document'),
+    });
+
+    expect(result).toMatchObject({ status: 'queued', jobId: 'job-1' });
+    expect(featureUsage.usage).toHaveBeenCalledTimes(1);
+    expect(featureUsage.consume).not.toHaveBeenCalled();
+    expect(jobRepository.update).not.toHaveBeenCalledWith(
+      { id: 'job-1' }, expect.objectContaining({ quotaConsumed: true }),
+    );
+    expect(queue.add).toHaveBeenCalledWith(
+      'document_quiz', { jobId: 'job-1' }, { jobId: 'job-1', priority: 5 },
+    );
+  });
+
+  it('charges document quota only after successful test generation', async () => {
+    const job = {
+      id: 'job-1',
+      userId: '11111111-1111-4111-8111-111111111111',
+      status: 'active',
+      quotaFeature: 'documentQuiz',
+      quotaConsumed: false,
+      payload: { _quotaReceipt: { periodKey: '2026-11' } },
+      result: null,
+    };
+    jobRepository.findOne.mockResolvedValue(job);
+    featureUsage.consume.mockResolvedValue({
+      allowed: true, featureKey: 'documentQuiz', tier: 'premium_pro',
+      period: 'monthly', limit: 40, used: 3, remaining: 37, periodKey: '2026-11',
+    });
+
+    await service.markCompleted('job-1', { questions: [{ id: 'q1' }] });
+
+    expect(featureUsage.consume).toHaveBeenCalledTimes(1);
+    expect(jobRepository.update).toHaveBeenCalledWith(
+      { id: 'job-1', quotaConsumed: false, status: expect.anything() },
+      { quotaConsumed: true },
+    );
+    expect(jobRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'completed', quotaConsumed: true,
+      result: { questions: [{ id: 'q1' }] },
+    }));
+  });
 
   it('returns an existing idempotent job without consuming quota again', async () => {
     jobRepository.findOne.mockResolvedValue({
