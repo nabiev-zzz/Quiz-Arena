@@ -40,6 +40,7 @@ describe('AiGenerationQueueService', () => {
       limit: 30,
       used: 1,
       remaining: 29,
+      periodKey: '2026-11',
     });
     featureUsage.refund.mockResolvedValue(undefined);
   });
@@ -180,7 +181,7 @@ describe('AiGenerationQueueService', () => {
       fileBuffer: Buffer.from('%PDF-1.4'),
     })).rejects.toThrow('AI navbatiga ulanishda xatolik');
 
-    expect(featureUsage.refund).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', 'documentQuiz');
+    expect(featureUsage.refund).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', 'documentQuiz', '2026-11');
     expect(queue.add).toHaveBeenCalledTimes(1);
   });
 });
