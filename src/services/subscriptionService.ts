@@ -84,6 +84,7 @@ export interface FeatureUsageResult {
   limit: number | null;
   used: number | null;
   remaining: number | null;
+  periodKey?: string;
 }
 
 export const consumePremiumFeature = (featureKey: MeteredFeature) =>
