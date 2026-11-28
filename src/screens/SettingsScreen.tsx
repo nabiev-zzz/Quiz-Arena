@@ -99,7 +99,7 @@ export default function SettingsScreen({
     setVibration,
   } = useAppSettings();
 
-  const isDark = theme === 'dark' && !isLiquidGlass;
+  const isDark = theme === 'dark';
   const lastDockScrollY = useSharedValue(0);
   const dockScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -219,7 +219,6 @@ export default function SettingsScreen({
 
           <Switch
             value={isDark}
-            disabled={isLiquidGlass}
             onValueChange={(value) =>
               void handleChange(() =>
                 setTheme(value ? 'dark' : 'light'),
@@ -231,7 +230,7 @@ export default function SettingsScreen({
         </View>
 
         <LocalizedText style={[styles.helperText, { color: colors.muted }]}>
-          {isLiquidGlass ? 'Liquid Glass uslubida yorug‘ shisha ko‘rinishi ishlatiladi.' : 'Qorong‘i yoki yorug‘ ko‘rinishni tanlang.'}
+          {isLiquidGlass ? 'Liquid Glass uslubida ham qorong‘i yoki yorug‘ rejimni tanlashingiz mumkin.' : 'Qorong‘i yoki yorug‘ ko‘rinishni tanlang.'}
         </LocalizedText>
       </View>
 

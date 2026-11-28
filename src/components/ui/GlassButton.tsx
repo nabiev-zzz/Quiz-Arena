@@ -32,8 +32,10 @@ export default function GlassButton({
   const inactive = disabled || loading;
 
   const contentColor = isLiquidGlass
-    ? '#172638'
+    ? (isDark ? '#F4F8FC' : '#172638')
     : variant === 'primary' ? '#FFFFFF' : tokens.colors.text;
+  const glassButtonBackground = isDark ? 'rgba(225,238,250,0.16)' : 'rgba(255,255,255,0.88)';
+  const glassButtonBorder = isDark ? 'rgba(220,236,250,0.34)' : 'rgba(255,255,255,0.96)';
 
   return (
     <Pressable
@@ -50,11 +52,11 @@ export default function GlassButton({
           transform: [{ scale: pressed && !inactive ? 0.985 : 1 }],
           borderWidth: variant === 'outline' ? 1 : 0,
           backgroundColor: isLiquidGlass
-            ? '#FFFFFF'
+            ? glassButtonBackground
             : variant === 'secondary' ? tokens.colors.surfaceElevated : 'transparent',
-          borderColor: isLiquidGlass ? 'rgba(255,255,255,0.96)' : tokens.colors.borderStrong,
-          shadowColor: isLiquidGlass ? '#6C8BA8' : 'transparent',
-          shadowOpacity: isLiquidGlass ? 0.20 : 0,
+          borderColor: isLiquidGlass ? glassButtonBorder : tokens.colors.borderStrong,
+          shadowColor: isLiquidGlass ? (isDark ? '#000000' : '#6C8BA8') : 'transparent',
+          shadowOpacity: isLiquidGlass ? (isDark ? 0.32 : 0.20) : 0,
           shadowRadius: isLiquidGlass ? 16 : 0,
           shadowOffset: { width: 0, height: isLiquidGlass ? 7 : 0 },
           elevation: isLiquidGlass ? 4 : 0,

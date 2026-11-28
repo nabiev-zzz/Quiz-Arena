@@ -172,7 +172,7 @@ function AppContent() {
     },
   });
 
-  const isDark = theme === 'dark' && !isLiquidGlass;
+  const isDark = theme === 'dark';
   const [homeDailyTasks, setHomeDailyTasks] = useState<DailyTask[]>([]);
   const homeDailyDateRef = useRef('');
   const [homeDailyLoading, setHomeDailyLoading] = useState(false);
@@ -326,7 +326,7 @@ function AppContent() {
       <>
         <View style={styles.homeHeader}>
           <Pressable
-            style={[styles.homeMenuButton, { backgroundColor: isLiquidGlass ? '#FFFFFF' : tokens.colors.surfaceElevated, borderColor: isLiquidGlass ? 'rgba(255,255,255,0.95)' : borderColor, ...(isLiquidGlass ? { shadowColor: '#7895AE', shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3 } : {}) }]}
+            style={[styles.homeMenuButton, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(225,238,250,0.16)' : '#FFFFFF') : tokens.colors.surfaceElevated, borderColor: isLiquidGlass ? (isDark ? 'rgba(220,236,250,0.34)' : 'rgba(255,255,255,0.95)') : borderColor, ...(isLiquidGlass ? { shadowColor: '#7895AE', shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3 } : {}) }]}
             onPress={() => setShowNavigationDrawer(true)}
             accessibilityRole="button"
             accessibilityLabel="Yon menyuni ochish"
@@ -346,7 +346,7 @@ function AppContent() {
           </Pressable>
         </View>
 
-        <View style={[styles.homeSearch, { borderColor: isLiquidGlass ? 'rgba(255,255,255,0.9)' : borderColor, backgroundColor: isLiquidGlass ? 'rgba(255,255,255,0.66)' : tokens.colors.surface }]}>
+        <View style={[styles.homeSearch, { borderColor: isLiquidGlass ? (isDark ? 'rgba(210,230,248,0.24)' : 'rgba(255,255,255,0.9)') : borderColor, backgroundColor: isLiquidGlass ? (isDark ? 'rgba(18,31,49,0.72)' : 'rgba(255,255,255,0.66)') : tokens.colors.surface }]}>
           <Ionicons name="search-outline" size={19} color={mutedColor} />
           <LocalizedTextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Funksiya, fan yoki mavzuni qidiring" placeholderTextColor={mutedColor} style={[styles.homeSearchInput, { color: textColor }]} returnKeyType="search" autoCorrect={false} accessibilityLabel="Ilova bo‘ylab qidirish" />
           {searchQuery.length > 0 && <Pressable onPress={() => setSearchQuery('')} hitSlop={10}><Ionicons name="close-circle" size={18} color={mutedColor} /></Pressable>}
@@ -354,7 +354,7 @@ function AppContent() {
 
         {normalizedQuery.length === 0 && (
           <Pressable
-            style={[styles.dailyHomeCard, { backgroundColor: isLiquidGlass ? 'rgba(255,255,255,0.76)' : isDark ? tokens.colors.surface : '#F0E9FF', borderColor: isLiquidGlass ? 'rgba(255,255,255,0.94)' : isDark ? borderColor : 'rgba(148,99,213,0.16)' }]}
+            style={[styles.dailyHomeCard, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(25,40,61,0.78)' : 'rgba(255,255,255,0.76)') : isDark ? tokens.colors.surface : '#F0E9FF', borderColor: isLiquidGlass ? (isDark ? 'rgba(210,230,248,0.28)' : 'rgba(255,255,255,0.94)') : isDark ? borderColor : 'rgba(148,99,213,0.16)' }]}
             onPress={() => setShowDailyTasks(true)}
             accessibilityRole="button"
             accessibilityLabel="Barcha kunlik vazifalarni ochish"
@@ -404,17 +404,17 @@ function AppContent() {
 
         {normalizedQuery.length === 0 && (
           <View style={styles.homeStatsRow}>
-            <View style={[styles.homeStatCard, { backgroundColor: isLiquidGlass ? 'rgba(255,255,255,0.72)' : isDark ? tokens.colors.surface : '#E9E4FA' }]}>
+            <View style={[styles.homeStatCard, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(25,40,61,0.74)' : 'rgba(255,255,255,0.72)') : isDark ? tokens.colors.surface : '#E9E4FA' }]}>
               <View style={[styles.homeStatIcon, { backgroundColor: 'rgba(148,99,213,0.14)' }]}><Ionicons name="school-outline" size={17} color="#9463D5" /></View>
               <LocalizedText style={[styles.homeStatValue, { color: textColor }]}>LVL {user?.level ?? 1}</LocalizedText>
               <LocalizedText style={[styles.homeStatLabel, { color: mutedColor }]}>Daraja</LocalizedText>
             </View>
-            <View style={[styles.homeStatCard, { backgroundColor: isLiquidGlass ? 'rgba(255,255,255,0.72)' : isDark ? tokens.colors.surface : '#E2F3ED' }]}>
+            <View style={[styles.homeStatCard, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(25,40,61,0.74)' : 'rgba(255,255,255,0.72)') : isDark ? tokens.colors.surface : '#E2F3ED' }]}>
               <View style={[styles.homeStatIcon, { backgroundColor: 'rgba(50,156,131,0.14)' }]}><Ionicons name="sparkles-outline" size={17} color="#329C83" /></View>
               <LocalizedText style={[styles.homeStatValue, { color: textColor }]}>{user?.xp ?? 0}</LocalizedText>
               <LocalizedText style={[styles.homeStatLabel, { color: mutedColor }]}>XP ball</LocalizedText>
             </View>
-            <View style={[styles.homeStatCard, { backgroundColor: isLiquidGlass ? 'rgba(255,255,255,0.72)' : isDark ? tokens.colors.surface : '#FFF1D6' }]}>
+            <View style={[styles.homeStatCard, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(25,40,61,0.74)' : 'rgba(255,255,255,0.72)') : isDark ? tokens.colors.surface : '#FFF1D6' }]}>
               <View style={[styles.homeStatIcon, { backgroundColor: 'rgba(192,138,36,0.14)' }]}><Ionicons name="wallet-outline" size={17} color="#C08A24" /></View>
               <LocalizedText style={[styles.homeStatValue, { color: textColor }]}>{user?.zcBalance ?? 0}</LocalizedText>
               <LocalizedText style={[styles.homeStatLabel, { color: mutedColor }]}>ZC balans</LocalizedText>
@@ -426,7 +426,7 @@ function AppContent() {
           <View style={styles.homeSearchResults}>
             {featureMatches.length > 0 && <LocalizedText style={[styles.homeSectionTitle, { color: mutedColor }]}>FUNKSIYALAR</LocalizedText>}
             {featureMatches.map((item) => (
-              <Pressable key={item.key} style={[styles.homeSearchRow, { backgroundColor: isLiquidGlass ? 'rgba(255,255,255,0.72)' : tokens.colors.surface, borderColor: isLiquidGlass ? 'rgba(255,255,255,0.90)' : borderColor }]} onPress={() => openFeature(item.key)}>
+              <Pressable key={item.key} style={[styles.homeSearchRow, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(25,40,61,0.74)' : 'rgba(255,255,255,0.72)') : tokens.colors.surface, borderColor: isLiquidGlass ? (isDark ? 'rgba(210,230,248,0.24)' : 'rgba(255,255,255,0.90)') : borderColor }]} onPress={() => openFeature(item.key)}>
                 <View style={[styles.homeSearchIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}><Ionicons name={item.icon} size={19} color={tokens.colors.primaryLight} /></View>
                 <View style={styles.homeFeatureCopy}><LocalizedText style={[styles.homeFeatureTitle, { color: textColor }]}>{item.title}</LocalizedText><LocalizedText style={[styles.homeFeatureDescription, { color: mutedColor }]}>{item.detail}</LocalizedText></View>
                 <Ionicons name="chevron-forward" size={17} color={mutedColor} />
@@ -434,7 +434,7 @@ function AppContent() {
             ))}
             {subjectMatches.length > 0 && <LocalizedText style={[styles.homeSectionTitle, { color: mutedColor }]}>FANLAR</LocalizedText>}
             {subjectMatches.map((subject) => (
-              <Pressable key={subject.id} style={[styles.homeSearchRow, { backgroundColor: isLiquidGlass ? 'rgba(255,255,255,0.72)' : tokens.colors.surface, borderColor: isLiquidGlass ? 'rgba(255,255,255,0.9)' : borderColor }]} onPress={() => { openTab('learn'); setSelectedSubject(subject); }}>
+              <Pressable key={subject.id} style={[styles.homeSearchRow, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(25,40,61,0.74)' : 'rgba(255,255,255,0.72)') : tokens.colors.surface, borderColor: isLiquidGlass ? (isDark ? 'rgba(210,230,248,0.24)' : 'rgba(255,255,255,0.9)') : borderColor }]} onPress={() => { openTab('learn'); setSelectedSubject(subject); }}>
                 <View style={[styles.homeSearchIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}><LocalizedText style={styles.homeSearchGlyph}>{subject.icon}</LocalizedText></View>
                 <View style={styles.homeFeatureCopy}><LocalizedText style={[styles.homeFeatureTitle, { color: textColor }]}>{subject.name}</LocalizedText><LocalizedText style={[styles.homeFeatureDescription, { color: mutedColor }]}>{subject.description}</LocalizedText></View>
                 <Ionicons name="chevron-forward" size={17} color={mutedColor} />
@@ -442,7 +442,7 @@ function AppContent() {
             ))}
             {topicMatches.length > 0 && <LocalizedText style={[styles.homeSectionTitle, { color: mutedColor }]}>MAVZULAR</LocalizedText>}
             {topicMatches.map(({ subject, topic }) => (
-              <Pressable key={subject.id + ':' + topic.id} style={[styles.homeSearchRow, { backgroundColor: isLiquidGlass ? 'rgba(255,255,255,0.76)' : tokens.colors.surface, borderColor: isLiquidGlass ? 'rgba(255,255,255,0.94)' : borderColor }]} onPress={() => { setSelectedSubject(subject); setSelectedTopic(topic); setTab('learn'); }}>
+              <Pressable key={subject.id + ':' + topic.id} style={[styles.homeSearchRow, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(25,40,61,0.78)' : 'rgba(255,255,255,0.76)') : tokens.colors.surface, borderColor: isLiquidGlass ? (isDark ? 'rgba(210,230,248,0.28)' : 'rgba(255,255,255,0.94)') : borderColor }]} onPress={() => { setSelectedSubject(subject); setSelectedTopic(topic); setTab('learn'); }}>
                 <View style={[styles.homeSearchIcon, { backgroundColor: 'rgba(88,101,242,0.14)' }]}><Ionicons name="book-outline" size={18} color={tokens.colors.primaryLight} /></View>
                 <View style={styles.homeFeatureCopy}><LocalizedText style={[styles.homeFeatureTitle, { color: textColor }]}>{topic.name}</LocalizedText><LocalizedText style={[styles.homeFeatureDescription, { color: mutedColor }]}>{subject.name} · {topic.description}</LocalizedText></View>
                 <Ionicons name="chevron-forward" size={17} color={mutedColor} />
@@ -464,7 +464,7 @@ function AppContent() {
                 const pastel = ['#F0E8FF', '#E5F5F0', '#FFF3D6', '#FCE9F0'][index % 4];
                 const accent = ['#9363D5', '#329C83', '#C08A24', '#C66B91'][index % 4];
                 return (
-                <Pressable key={item.key} style={({ pressed }) => [styles.homeFeatureCard, { backgroundColor: isLiquidGlass ? 'rgba(255,255,255,0.78)' : isDark ? tokens.colors.surface : pastel, borderColor: isLiquidGlass ? 'rgba(255,255,255,0.96)' : isDark ? borderColor : 'transparent', ...(isLiquidGlass ? { shadowColor: '#7895AE', shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 7 }, elevation: 3 } : {}) }, pressed && styles.homeFeaturePressed]} onPress={() => openFeature(item.key)}>{isLiquidGlass ? <BlurView pointerEvents="none" intensity={36} tint="light" style={StyleSheet.absoluteFill} /> : null}
+                <Pressable key={item.key} style={({ pressed }) => [styles.homeFeatureCard, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(25,40,61,0.80)' : 'rgba(255,255,255,0.78)') : isDark ? tokens.colors.surface : pastel, borderColor: isLiquidGlass ? (isDark ? 'rgba(210,230,248,0.28)' : 'rgba(255,255,255,0.96)') : isDark ? borderColor : 'transparent', ...(isLiquidGlass ? { shadowColor: '#7895AE', shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 7 }, elevation: 3 } : {}) }, pressed && styles.homeFeaturePressed]} onPress={() => openFeature(item.key)}>{isLiquidGlass ? <BlurView pointerEvents="none" intensity={36} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} /> : null}
                   <View style={[styles.homeFeatureIcon, { backgroundColor: isDark ? 'rgba(88,101,242,0.14)' : 'rgba(255,255,255,0.78)' }]}>
                     <Ionicons name={item.icon} size={21} color={isDark ? tokens.colors.primaryLight : accent} />
                   </View>
@@ -699,9 +699,9 @@ function AppContent() {
           />
           <SafeAreaView
             edges={['top', 'bottom']}
-            style={[styles.drawerPanel, { backgroundColor: isLiquidGlass ? 'rgba(235,244,252,0.84)' : tokens.colors.background, borderColor: isLiquidGlass ? 'rgba(255,255,255,0.9)' : borderColor }]}
+            style={[styles.drawerPanel, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(9,17,31,0.90)' : 'rgba(235,244,252,0.84)') : tokens.colors.background, borderColor: isLiquidGlass ? (isDark ? 'rgba(210,230,248,0.24)' : 'rgba(255,255,255,0.9)') : borderColor }]}
           >
-            {isLiquidGlass ? <BlurView pointerEvents="none" intensity={46} tint="light" style={StyleSheet.absoluteFill} /> : null}
+            {isLiquidGlass ? <BlurView pointerEvents="none" intensity={46} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} /> : null}
             <View style={styles.drawerTopRow}>
               <LocalizedText style={[styles.drawerBrand, { color: textColor }]}>ZELQEN CORE</LocalizedText>
               <Pressable onPress={() => setShowNavigationDrawer(false)} style={styles.drawerClose} accessibilityRole="button" accessibilityLabel="Yopish">
@@ -709,7 +709,7 @@ function AppContent() {
               </Pressable>
             </View>
             <Pressable
-              style={[styles.drawerProfile, { backgroundColor: isLiquidGlass ? 'rgba(255,255,255,0.76)' : tokens.colors.surface, borderColor: isLiquidGlass ? 'rgba(255,255,255,0.94)' : borderColor }]}
+              style={[styles.drawerProfile, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(25,40,61,0.78)' : 'rgba(255,255,255,0.76)') : tokens.colors.surface, borderColor: isLiquidGlass ? (isDark ? 'rgba(210,230,248,0.28)' : 'rgba(255,255,255,0.94)') : borderColor }]}
               onPress={() => openTab('profile')}
               accessibilityRole="button"
               accessibilityLabel="Profilni ochish"
@@ -738,7 +738,7 @@ function AppContent() {
             <Animated.ScrollView style={styles.drawerScroll} contentContainerStyle={styles.drawerScrollContent} showsVerticalScrollIndicator={false}>
               <LocalizedText style={[styles.drawerSectionLabel, { color: mutedColor }]}>BUGUNGI FAOLLIK</LocalizedText>
               <Pressable
-                style={[styles.drawerItem, { backgroundColor: isLiquidGlass ? 'rgba(255,255,255,0.74)' : tokens.colors.surface }]}
+                style={[styles.drawerItem, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(25,40,61,0.78)' : 'rgba(255,255,255,0.74)') : tokens.colors.surface }]}
                 onPress={() => { setShowNavigationDrawer(false); setShowDailyTasks(true); }}
                 accessibilityRole="button"
                 accessibilityLabel="Kunlik vazifalarni ochish"
@@ -757,7 +757,7 @@ function AppContent() {
               </Pressable>
 
               <LocalizedText style={[styles.drawerSectionLabel, { color: mutedColor }]}>FANLAR</LocalizedText>
-              <Pressable style={[styles.drawerItem, { backgroundColor: isLiquidGlass ? 'rgba(255,255,255,0.74)' : tokens.colors.surface }]} onPress={() => openTab('learn')}>
+              <Pressable style={[styles.drawerItem, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(25,40,61,0.78)' : 'rgba(255,255,255,0.74)') : tokens.colors.surface }]} onPress={() => openTab('learn')}>
                 <View style={[styles.drawerItemIcon, { backgroundColor: 'rgba(139,115,230,0.16)' }]}><Ionicons name="book-outline" size={19} color={tokens.colors.primary} /></View>
                 <View style={styles.drawerItemCopy}>
                   <LocalizedText style={[styles.drawerItemTitle, { color: textColor }]}>Barcha fanlar</LocalizedText>
@@ -765,7 +765,7 @@ function AppContent() {
                 </View>
                 <Ionicons name="chevron-forward" size={17} color={mutedColor} />
               </Pressable>
-              <Pressable style={[styles.drawerItem, { backgroundColor: isLiquidGlass ? 'rgba(255,255,255,0.74)' : tokens.colors.surface }]} onPress={() => { setShowNavigationDrawer(false); openTab('learn'); setShowSmartPractice(true); }}>
+              <Pressable style={[styles.drawerItem, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(25,40,61,0.78)' : 'rgba(255,255,255,0.74)') : tokens.colors.surface }]} onPress={() => { setShowNavigationDrawer(false); openTab('learn'); setShowSmartPractice(true); }}>
                 <View style={[styles.drawerItemIcon, { backgroundColor: 'rgba(39,185,138,0.16)' }]}><Ionicons name="bulb-outline" size={19} color="#27B98A" /></View>
                 <View style={styles.drawerItemCopy}>
                   <LocalizedText style={[styles.drawerItemTitle, { color: textColor }]}>Smart Practice</LocalizedText>
@@ -773,7 +773,7 @@ function AppContent() {
                 </View>
                 <Ionicons name="chevron-forward" size={17} color={mutedColor} />
               </Pressable>
-              <Pressable style={[styles.drawerItem, { backgroundColor: isLiquidGlass ? 'rgba(255,255,255,0.74)' : tokens.colors.surface }]} onPress={() => { setShowNavigationDrawer(false); openTab('learn'); setShowDocumentQuiz(true); }}>
+              <Pressable style={[styles.drawerItem, { backgroundColor: isLiquidGlass ? (isDark ? 'rgba(25,40,61,0.78)' : 'rgba(255,255,255,0.74)') : tokens.colors.surface }]} onPress={() => { setShowNavigationDrawer(false); openTab('learn'); setShowDocumentQuiz(true); }}>
                 <View style={[styles.drawerItemIcon, { backgroundColor: 'rgba(121,88,201,0.16)' }]}><Ionicons name="document-text-outline" size={19} color="#A78BFA" /></View>
                 <View style={styles.drawerItemCopy}>
                   <LocalizedText style={[styles.drawerItemTitle, { color: textColor }]}>Hujjatdan test yaratish</LocalizedText>
