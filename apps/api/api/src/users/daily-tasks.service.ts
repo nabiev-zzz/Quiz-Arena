@@ -5,11 +5,44 @@ import { User } from './entities/user.entity';
 import { ZcTransaction } from './entities/zc-transaction.entity';
 import { DailyTaskProgress } from './entities/daily-task-progress.entity';
 
-const TASKS = [
-  { id: 'ranked_battle_1', title: 'Birinchi jang', description: 'Bugun 1 ta Ranked Battle yakunlang', target: 1, reward: 10 },
-  { id: 'ranked_win_1', title: 'G‘alaba sari', description: 'Bugun 1 ta Ranked Battle yuting', target: 1, reward: 15 },
-  { id: 'ranked_battle_3', title: 'Faol jangchi', description: 'Bugun 3 ta Ranked Battle yakunlang', target: 3, reward: 20 },
+type DailyTaskDefinition = {
+  id: string;
+  title: string;
+  description: string;
+  target: number;
+  reward: number;
+};
+
+// The task IDs remain stable so existing per-day progress and reward claims stay compatible.
+// Targets and rewards rotate deterministically by Tashkent calendar date; no cron job is required.
+const DAILY_TASK_ROTATIONS: DailyTaskDefinition[][] = [
+  [
+    { id: 'ranked_battle_1', title: 'Birinchi jang', description: 'Bugun 1 ta Ranked Battle yakunlang', target: 1, reward: 10 },
+    { id: 'ranked_win_1', title: 'G‘alaba sari', description: 'Bugun 1 ta Ranked Battle yuting', target: 1, reward: 15 },
+    { id: 'ranked_battle_3', title: 'Faol jangchi', description: 'Bugun 2 ta Ranked Battle yakunlang', target: 2, reward: 14 },
+  ],
+  [
+    { id: 'ranked_battle_1', title: 'Jangni boshlang', description: 'Bugun 1 ta Ranked Battle yakunlang', target: 1, reward: 10 },
+    { id: 'ranked_win_1', title: 'Ketma-ket g‘alaba', description: 'Bugun 2 ta Ranked Battle yuting', target: 2, reward: 22 },
+    { id: 'ranked_battle_3', title: 'Maydonda faol', description: 'Bugun 3 ta Ranked Battle yakunlang', target: 3, reward: 20 },
+  ],
+  [
+    { id: 'ranked_battle_1', title: 'Bugungi start', description: 'Bugun 1 ta Ranked Battle yakunlang', target: 1, reward: 10 },
+    { id: 'ranked_win_1', title: 'Chempion ruhi', description: 'Bugun 3 ta Ranked Battle yuting', target: 3, reward: 30 },
+    { id: 'ranked_battle_3', title: 'Tirishqoq jangchi', description: 'Bugun 4 ta Ranked Battle yakunlang', target: 4, reward: 26 },
+  ],
+  [
+    { id: 'ranked_battle_1', title: 'Birinchi qadam', description: 'Bugun 1 ta Ranked Battle yakunlang', target: 1, reward: 10 },
+    { id: 'ranked_win_1', title: 'G‘alabalar seriyasi', description: 'Bugun 1 ta Ranked Battle yuting', target: 1, reward: 18 },
+    { id: 'ranked_battle_3', title: 'Faollik sinovi', description: 'Bugun 5 ta Ranked Battle yakunlang', target: 5, reward: 32 },
+  ],
 ];
+
+function tasksForDate(date: string): DailyTaskDefinition[] {
+  const dayNumber = Math.floor(Date.parse(`${date}T00:00:00.000Z`) / 86_400_000);
+  const rotationIndex = ((dayNumber % DAILY_TASK_ROTATIONS.length) + DAILY_TASK_ROTATIONS.length) % DAILY_TASK_ROTATIONS.length;
+  return DAILY_TASK_ROTATIONS[rotationIndex];
+}
 
 function tashkentDate(): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -35,7 +68,7 @@ export class DailyTasksService {
     return {
       date,
       timezone: 'Asia/Tashkent',
-      tasks: TASKS.map((task) => {
+      tasks: tasksForDate(date).map((task) => {
         const row = byId.get(task.id);
         const progress = Math.min(task.target, row?.progress ?? 0);
         return {
@@ -69,9 +102,6 @@ export class DailyTasksService {
   }
 
   async claim(userId: string, taskId: string) {
-    const task = TASKS.find((item) => item.id === taskId);
-    if (!task) throw new NotFoundException('Kunlik vazifa topilmadi');
-
     return this.dataSource.transaction(async (manager) => {
       const user = await manager.findOne(User, {
         where: { id: userId },
@@ -80,6 +110,8 @@ export class DailyTasksService {
       if (!user) throw new NotFoundException('Foydalanuvchi topilmadi');
 
       const date = tashkentDate();
+      const task = tasksForDate(date).find((item) => item.id === taskId);
+      if (!task) throw new NotFoundException('Kunlik vazifa topilmadi');
       const repo = manager.getRepository(DailyTaskProgress);
       const row = await repo.findOne({
         where: { userId, taskDate: date, taskId },
