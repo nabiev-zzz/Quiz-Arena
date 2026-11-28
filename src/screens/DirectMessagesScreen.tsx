@@ -517,10 +517,6 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
 
       {active ? (
         <>
-          <View style={styles.chatContext}>
-            <View style={styles.contextIcon}><Ionicons name="lock-closed-outline" size={14} color={c.textMuted} /></View>
-            <LocalizedText style={styles.contextText}>Shaxsiy suhbat</LocalizedText>
-          </View>
           {chatLoading && messages.length === 0 ? <ActivityIndicator color={c.primary} style={{ flex: 1 }} /> : (
             <FlatList
               ref={messageListRef}
@@ -551,7 +547,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
                 <View style={[styles.messageRow, message.isMine ? styles.myRow : styles.theirRow]}>
                   <Pressable onLongPress={() => showMessageActions(message)} delayLongPress={350} style={[styles.bubble, message.isMine ? styles.myBubble : styles.theirBubble]}>
                     {message.isDeleted
-                      ? <LocalizedText style={[styles.messageText, styles.deletedMessageText, message.isMine && styles.myMessageTime]}>Bu xabar o‘chirildi</LocalizedText>
+                      ? <LocalizedText style={[styles.messageText, styles.deletedMessageText, message.isMine && styles.myMessageTime]}>Bu xabar o‘chirildi</LocalizedText>
                       : message.mediaType?.startsWith('audio/')
                       ? <VoiceMessageBubble message={message} conversationId={active.id} isMine={message.isMine} colors={c} styles={styles} />
                       : message.mediaType
@@ -649,28 +645,28 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
 
 function makeStyles(c: CommunityColors, isDark: boolean) {
   return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: 'transparent' },
-    header: { minHeight: 80, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 9, paddingBottom: 11, borderBottomWidth: 1, borderBottomColor: c.glassBorder, backgroundColor: c.background },
-    back: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder },
+    screen: { flex: 1, minHeight: 0, backgroundColor: isDark ? '#0E1621' : c.background },
+    header: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 14, paddingTop: 5, paddingBottom: 7, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDark ? '#263544' : c.glassBorder, backgroundColor: isDark ? '#17212B' : c.background },
+    back: { width: 38, height: 38, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
     headerIdentity: { flex: 1, minWidth: 0, gap: 2 },
     eyebrow: { color: c.primary, fontSize: 11, fontWeight: '800', letterSpacing: 1.1 },
-    title: { color: c.text, fontSize: 21, fontWeight: '900', letterSpacing: -0.55 },
-    headerChatMark: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(154,216,255,0.14)' : 'rgba(52,126,169,0.09)' },
+    title: { color: c.text, fontSize: 18, fontWeight: '700', letterSpacing: -0.25 },
+    headerChatMark: { width: 38, height: 38, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
     avatarShell: { overflow: 'hidden', backgroundColor: c.surfaceElevated },
     avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#1B3651' : '#E5F2FA' },
     avatarInitial: { color: c.primary, fontWeight: '900' },
     personHandle: { color: c.textMuted, fontSize: 12, marginTop: 1 },
-    chatContext: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 9 },
+    chatContext: { display: 'none' },
     contextIcon: { width: 23, height: 23, borderRadius: 8, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
     contextText: { color: c.textMuted, fontSize: 12, fontWeight: '600' },
-    messageList: { flex: 1 },
-    messageContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 22, flexGrow: 1, justifyContent: 'flex-end' },
-    messageRow: { width: '100%', flexDirection: 'row', marginBottom: 10 },
+    messageList: { flex: 1, minHeight: 0 },
+    messageContent: { paddingHorizontal: 10, paddingTop: 10, paddingBottom: 12, flexGrow: 1, justifyContent: 'flex-end' },
+    messageRow: { width: '100%', flexDirection: 'row', marginBottom: 5 },
     myRow: { justifyContent: 'flex-end' },
     theirRow: { justifyContent: 'flex-start' },
-    bubble: { maxWidth: '84%', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 9, borderRadius: 23 },
-    myBubble: { backgroundColor: c.primary, borderBottomRightRadius: 6 },
-    theirBubble: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.glassBorder, borderBottomLeftRadius: 6 },
+    bubble: { maxWidth: '82%', paddingHorizontal: 12, paddingTop: 8, paddingBottom: 6, borderRadius: 18 },
+    myBubble: { backgroundColor: isDark ? '#2B5278' : c.primary, borderBottomRightRadius: 5 },
+    theirBubble: { backgroundColor: isDark ? '#182533' : c.surface, borderWidth: isDark ? 0 : 1, borderColor: c.glassBorder, borderBottomLeftRadius: 5 },
     messageText: { color: c.text, fontSize: 15, lineHeight: 22 },
     deletedMessageText: { fontStyle: 'italic', opacity: 0.8 },
     editingBanner: { position: 'absolute', bottom: '100%', left: 16, right: 16, minHeight: 34, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: c.surfaceElevated, borderWidth: 1, borderColor: c.glassBorder },
@@ -683,10 +679,10 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     firstIcon: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(154,216,255,0.14)' : 'rgba(52,126,169,0.09)' },
     firstTitle: { color: c.text, fontSize: 17, fontWeight: '900', marginTop: 15 },
     firstHint: { color: c.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 6 },
-    composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, paddingHorizontal: 15, paddingTop: 13, paddingBottom: Platform.OS === 'ios' ? 14 : 12, borderTopWidth: 1, borderTopColor: c.glassBorder, backgroundColor: c.surface },
-    inputShell: { flex: 1, minHeight: 48, maxHeight: 125, justifyContent: 'center', borderRadius: 20, paddingHorizontal: 14, backgroundColor: c.background, borderWidth: 1, borderColor: c.glassBorder },
-    input: { minHeight: 42, maxHeight: 108, paddingVertical: 10, color: c.text, fontSize: 14, lineHeight: 19 },
-    attachButton: { width: 34, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(154,216,255,0.12)' : 'rgba(52,126,169,0.08)' },
+    composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 5, paddingHorizontal: 9, paddingTop: 8, paddingBottom: Platform.OS === 'ios' ? 10 : 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: isDark ? '#263544' : c.glassBorder, backgroundColor: isDark ? '#17212B' : c.surface, flexShrink: 0 },
+    inputShell: { flex: 1, minHeight: 42, maxHeight: 116, justifyContent: 'center', borderRadius: 22, paddingHorizontal: 14, backgroundColor: isDark ? '#0E1621' : c.background, borderWidth: 1, borderColor: isDark ? '#263544' : c.glassBorder },
+    input: { minHeight: 38, maxHeight: 100, paddingVertical: 8, color: c.text, fontSize: 15, lineHeight: 20 },
+    attachButton: { width: 36, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
     imageAttachment: { width: 220, maxWidth: '100%', gap: 6 },
     attachmentImage: { width: 220, height: 170, borderRadius: 14, backgroundColor: c.surfaceElevated },
     attachmentLoading: { width: 220, height: 130, alignItems: 'center', justifyContent: 'center' },
@@ -696,7 +692,7 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     documentIconMine: { backgroundColor: 'rgba(255,255,255,0.18)' },
     documentCopy: { flex: 1, minWidth: 0, gap: 4 },
     documentType: { color: c.textMuted, fontSize: 10, fontWeight: '700' },
-    voiceRecordButton: { width: 44, height: 46, borderRadius: 16, backgroundColor: '#64748B', alignItems: 'center', justifyContent: 'center' },
+    voiceRecordButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#2B5278', alignItems: 'center', justifyContent: 'center' },
     voiceRecordActive: { backgroundColor: '#DC5656' },
     recordingTimer: { color: '#DC5656', fontSize: 12, fontWeight: '800', alignSelf: 'center' },
     voiceMessage: { minWidth: 190, flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -706,7 +702,7 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     voiceTrack: { height: 4, borderRadius: 3, backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(20,40,60,0.16)', overflow: 'hidden' },
     voiceProgress: { height: 4, borderRadius: 3, backgroundColor: c.primary },
     voiceDuration: { color: c.textMuted, fontSize: 10, fontWeight: '700' },
-    sendButton: { width: 46, height: 46, borderRadius: 16, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center', shadowColor: c.primary, shadowOpacity: 0.25, shadowRadius: 9, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
+    sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#2B5278', alignItems: 'center', justifyContent: 'center', shadowOpacity: 0, elevation: 0 },
     sendDisabled: { opacity: 0.42, shadowOpacity: 0 },
     list: { flex: 1 },
     listContent: { paddingHorizontal: 17, paddingTop: 21, paddingBottom: 130 },
