@@ -111,7 +111,7 @@ export async function uploadCommunityMedia(uri: string, contentType: string, onP
   const isVideo = contentType.startsWith('video/');
   const isDocument = contentType.startsWith('application/');
   const maxBytes = isVideo ? 30 * 1024 * 1024 : isDocument ? 15 * 1024 * 1024 : 8 * 1024 * 1024;
-  const sizeError = isVideo ? 'Video hajmi 30 MB dan oshmasin' : isDocument ? 'Hujjat hajmi 15 MB dan oshmasin' : 'Rasm hajmi 8 MB dan oshmasin';
+  const sizeError = isVideo ? 'Video hajmi 30 MB dan oshmasin' : isDocument ? 'Hujjat hajmi 15 MB dan oshmasin' : contentType.startsWith('audio/') ? 'Ovozli xabar hajmi 8 MB dan oshmasin' : 'Rasm hajmi 8 MB dan oshmasin';
   const mediaHeaders = { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=31536000, immutable' };
 
   if (Platform.OS !== 'web') {
@@ -124,12 +124,12 @@ export async function uploadCommunityMedia(uri: string, contentType: string, onP
     if (fileSize > maxBytes) throw new Error(sizeError);
     if (expectedSize && fileSize !== expectedSize) throw new Error('Tanlangan video hajmi manba fayliga mos kelmadi. Videoni qayta tanlang.');
     onProgress?.(3);
-    const verifyVideo = async (mediaKey: string): Promise<{ mediaKey: string; mediaType: string }> => {
-      if (!isVideo) return { mediaKey, mediaType: key.mediaType };
+    const verifyVideo = async (mediaKey: string): Promise<{ mediaKey: string; mediaType: string; size: number }> => {
+      if (!isVideo) return { mediaKey, mediaType: key.mediaType, size: fileSize };
       onProgress?.(99);
       const result = await request<{ verified: boolean; size: number; playbackMediaKey?: string; playbackMediaType?: string }>('/api/community/media/verify', 'POST', { mediaKey, contentType, expectedSize: fileSize });
       if (!result.verified || result.size !== fileSize || !result.playbackMediaKey || result.playbackMediaType !== 'video/mp4') throw new Error('Video serverda to‘liq saqlanmadi yoki ijro uchun moslashtirilmadi. Qayta yuklang.');
-      return { mediaKey: result.playbackMediaKey, mediaType: result.playbackMediaType };
+      return { mediaKey: result.playbackMediaKey, mediaType: result.playbackMediaType, size: fileSize };
     };
 
     const uploadNative = async (url: string, headers: Record<string, string>) => file.upload(url, {
@@ -203,7 +203,7 @@ export async function uploadCommunityMedia(uri: string, contentType: string, onP
     finalMediaType = result.playbackMediaType;
   }
   onProgress?.(100);
-  return { mediaKey: finalMediaKey, mediaType: finalMediaType };
+  return { mediaKey: finalMediaKey, mediaType: finalMediaType, size: blob.size };
 }
 
 export interface LearningGroup { id:string; name:string; description:string; subject:string; visibility:'public'|'private'; members_count:number; joined:boolean; is_owner:boolean; display_name:string; username:string; avatar_url:string|null; }
