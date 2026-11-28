@@ -4,6 +4,7 @@ import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Vie
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedBadge from '../components/AnimatedBadge';
 import ProfileEffect from '../components/ProfileEffect';
+import { RankBadge3D } from '../components/RankBadge3D';
 import ProfileAtmosphere from '../components/ProfileAtmosphere';
 import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
@@ -87,7 +88,7 @@ export default function PublicProfileScreen({ username, onBack, onMessagePress }
               </View>
             </ProfileEffect>
             <View style={styles.identityText}>
-              <LocalizedText style={styles.name}>{profile.displayName}</LocalizedText>
+              <View style={styles.publicNameLine}><LocalizedText style={styles.name}>{profile.displayName}</LocalizedText><RankBadge3D tier={profile.rankTier} compact /></View>
               <LocalizedText style={styles.username}>@{profile.username}</LocalizedText>
               {!!profile.bio && <LocalizedText style={styles.bio}>{profile.bio}</LocalizedText>}
               {!profile.bio && <LocalizedText style={styles.bioPlaceholder}>Hozircha bio qo‘shilmagan</LocalizedText>}
@@ -204,6 +205,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     avatarEffectStage: { width: 154, height: 154, alignItems: 'center', justifyContent: 'center' },
     identityRow: { flexDirection: 'row', alignItems: 'center', gap: 13, width: '100%' },
     identityText: { flex: 1, minWidth: 0, alignItems: 'flex-start' },
+    publicNameLine: { flexDirection: 'row', alignItems: 'center', gap: 7, maxWidth: '100%' },
     avatarRing: { width: 122, height: 122, borderRadius: 61, padding: 4, borderWidth: 2, borderColor: 'rgba(157,133,232,0.65)', flexShrink: 0 },
     frameAurora: { borderColor: '#A78BFA', borderWidth: 4 },
     frameRoyal: { borderColor: '#EFCB78', borderWidth: 4 },
@@ -233,35 +235,4 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     followingButton: { backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border },
     followButtonText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
     followingText: { color: colors.text },
-    sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 22, marginBottom: 10 },
-    stats: { flexDirection: 'row', gap: 9 },
-    stat: { flex: 1, alignItems: 'center', paddingVertical: 16, borderRadius: 21, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: isDark ? 'rgba(35,31,57,0.4)' : 'rgba(255,255,255,0.52)' },
-    statValue: { color: colors.text, fontSize: 20, fontWeight: '800' },
-    statLabel: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
-    achievementCard: { width: 142, minHeight: 94, padding: 13, borderRadius: 20, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: isDark ? 'rgba(35,31,57,0.4)' : 'rgba(255,255,255,0.52)' },
-    rankCard: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 17, borderRadius: 23, borderWidth: 1, borderColor: colors.glassBorder, marginTop: 12, backgroundColor: isDark ? 'rgba(35,31,57,0.4)' : 'rgba(255,255,255,0.52)' },
-    rankText: { flex: 1 },
-    rankName: { color: colors.text, fontSize: 14, fontWeight: '700' },
-    rankHint: { color: colors.textMuted, fontSize: 11, marginTop: 4 },
-    cosmeticRow: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 16, borderRadius: 22, borderWidth: 1, borderColor: colors.glassBorder, marginBottom: 9, backgroundColor: isDark ? 'rgba(35,31,57,0.4)' : 'rgba(255,255,255,0.52)' },
-    modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.58)' },
-    modalDismiss: { flex: 1 },
-    connectionSheet: { maxHeight: '72%', minHeight: 270, backgroundColor: colors.background, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingHorizontal: 19, paddingTop: 10, paddingBottom: 24, borderWidth: 1, borderColor: colors.glassBorder },
-    sheetHandle: { width: 38, height: 4, borderRadius: 4, alignSelf: 'center', backgroundColor: colors.textMuted, opacity: 0.45, marginBottom: 15 },
-    sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-    sheetTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
-    sheetSubtitle: { color: colors.textMuted, fontSize: 11, marginTop: 3 },
-    sheetClose: { width: 34, height: 34, borderRadius: 12, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-    connectionList: { flexGrow: 0 },
-    connectionRow: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.glassBorder },
-    connectionAvatar: { width: 44, height: 44, borderRadius: 16, backgroundColor: colors.surfaceElevated },
-    connectionAvatarFallback: { width: 44, height: 44, borderRadius: 16, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center' },
-    connectionInitials: { color: colors.text, fontSize: 14, fontWeight: '900' },
-    connectionCopy: { flex: 1, minWidth: 0, gap: 2 },
-    connectionName: { color: colors.text, fontSize: 12, fontWeight: '800' },
-    connectionHandle: { color: colors.primary, fontSize: 10 },
-    connectionBio: { color: colors.textMuted, fontSize: 10 },
-    connectionEmpty: { alignItems: 'center', gap: 9, paddingVertical: 35 },
-    connectionEmptyText: { color: colors.textMuted, fontSize: 12 },
-  });
-}
+   
