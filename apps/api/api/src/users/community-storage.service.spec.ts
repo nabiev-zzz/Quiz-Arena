@@ -35,6 +35,26 @@ describe('CommunityStorageService video uploads', () => {
     expect(url).toContain('X-Amz-Expires=900');
   });
 
+  it('immediately revokes an existing signed attachment URL by deleting its storage object', async () => {
+    Object.assign(process.env, {
+      COMMUNITY_S3_ENDPOINT: 'https://storage.example.test',
+      COMMUNITY_S3_BUCKET: 'zelqen-media',
+      COMMUNITY_S3_REGION: 'auto',
+      COMMUNITY_S3_ACCESS_KEY_ID: 'test-access',
+      COMMUNITY_S3_SECRET_ACCESS_KEY: 'test-secret',
+    });
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
+    const service = new CommunityStorageService();
+    await expect(service.delete('community/user-123/123e4567-e89b-12d3-a456-426614174000.pdf'))
+      .resolves.toEqual({ deleted: true });
+    expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('X-Amz-Expires=300'), { method: 'DELETE' });
+  });
+
+  it('rejects storage deletion keys outside the owned community media namespace', async () => {
+    const service = new CommunityStorageService();
+    await expect(service.delete('invalid-storage-key')).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('stores uploaded video with a playable content type and long-lived cache metadata', async () => {
     Object.assign(process.env, {
       COMMUNITY_S3_ENDPOINT: 'https://storage.example.test',
