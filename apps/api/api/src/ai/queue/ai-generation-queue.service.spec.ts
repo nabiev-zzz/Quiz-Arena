@@ -43,6 +43,16 @@ describe('AiGenerationQueueService', () => {
       remaining: 29,
       periodKey: '2026-11',
     });
+    featureUsage.usage.mockResolvedValue({
+      allowed: true,
+      featureKey: 'documentQuiz',
+      tier: 'premium_pro',
+      period: 'monthly',
+      limit: 40,
+      used: 1,
+      remaining: 39,
+      periodKey: '2026-11',
+    });
     featureUsage.refund.mockResolvedValue(undefined);
   });
 
