@@ -116,7 +116,7 @@ function AppContent() {
           ? { title: 'Доступно обновление', body: 'Для QUIZ ARENA доступна новая версия. Обновить приложение сейчас?', update: 'Обновить', later: 'Позже', downloading: 'Загрузка обновления…', ready: 'Обновление загружено. Перезапустить приложение?', restart: 'Перезапустить', error: 'Не удалось загрузить обновление. Попробуйте позже.' }
           : language === 'en'
             ? { title: 'Update available', body: 'A new QUIZ ARENA update is ready. Would you like to update now?', update: 'Update', later: 'Later', downloading: 'Downloading update…', ready: 'Update downloaded. Restart the app now?', restart: 'Restart now', error: 'Could not download the update. Please try again later.' }
-            : { title: 'Yangi versiya mavjud', body: 'QUIZ ARENA uchun yangi yangilanish tayyor. Ilovani hozir yangilaysizmi?', update: 'Yangilash', later: 'Keyinroq', downloading: 'Yangilanish yuklanmoqda…', ready: 'Yangilanish yuklandi. Ilovani qayta ochamizmi?', restart: 'Hozir qayta ochish', error: 'Yangilanishni yuklab bo‘lmadi. Keyinroq urinib ko‘ring.' };
+            : { title: 'Yangi versiya mavjud', body: 'QUIZ ARENA uchun sinov yangilanishi tayyor. Yangilash tugmasi orqali o‘rnating.', update: 'Yangilash', later: 'Keyinroq', downloading: 'Yangilanish yuklanmoqda…', ready: 'Yangilanish yuklandi. Ilovani qayta ochamizmi?', restart: 'Hozir qayta ochish', error: 'Yangilanishni yuklab bo‘lmadi. Keyinroq urinib ko‘ring.' };
 
         Alert.alert(copy.title, copy.body, [
           { text: copy.later, style: 'cancel' },
