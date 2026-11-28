@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { File as ExpoFile } from 'expo-file-system';
 import { API_BASE_URL, apiFetch, getToken } from './authService';
 import type { Difficulty } from '../types';
 import type { Question } from '../data/questions';
@@ -229,12 +230,15 @@ export async function createDocumentQuiz(
     const uploadBlob = browserFile.type ? browserFile : new Blob([browserFile], { type: mimeType });
     form.append('file', uploadBlob, file.name);
   } else {
-    // React Native FormData expects the native { uri, name, type } file descriptor.
-    form.append('file', {
-      uri: file.uri,
-      name: file.name,
-      type: mimeType,
-    } as unknown as Blob);
+    // Expo SDK 58 patches fetch/FormData and serializes Blob/Expo File bytes.
+    // React Native's legacy { uri, name, type } part is rejected by Expo's
+    // FormData converter with "Unsupported FormDataPart implementation".
+    // Read the picker cache file and append a real Blob so the multipart body
+    // is encoded consistently on Android and iOS.
+    const localFile = new ExpoFile(file.uri);
+    const fileBytes = await localFile.bytes();
+    const uploadBlob = new Blob([fileBytes], { type: mimeType });
+    form.append('file', uploadBlob, file.name);
   }
   form.append('count', String(options.count));
   form.append('difficulty', options.difficulty);
