@@ -56,14 +56,14 @@ interface BattleScreenProps {
 }
 
 const COLORS = {
-  background: '#F3F5FC',
+  background: '#F5F8F4',
   card: '#FFFFFF',
-  text: '#172033',
-  muted: '#748096',
-  primary: '#6558E8',
-  border: '#E5E8F0',
-  success: '#159B68',
-  danger: '#DC4C64',
+  text: '#202B24',
+  muted: '#7D8C80',
+  primary: '#A8324B',
+  border: '#E2EAE1',
+  success: '#287D59',
+  danger: '#B83D52',
 };
 
 export default function BattleScreen({
@@ -143,13 +143,13 @@ export default function BattleScreen({
   const dark = isDark;
 
   const colors = {
-    background: dark ? '#0B1020' : '#F1F2FA',
-    card: dark ? '#171E31' : 'rgba(255,255,255,0.86)',
-    text: dark ? '#F3F5FC' : COLORS.text,
-    muted: dark ? '#A1ABC0' : COLORS.muted,
-    primary: '#7568F5',
-    border: dark ? 'rgba(164,176,215,0.18)' : 'rgba(117,104,245,0.14)',
-    success: COLORS.success,
+    background: dark ? '#091410' : COLORS.background,
+    card: dark ? '#15241D' : 'rgba(255,255,255,0.90)',
+    text: dark ? '#F7F8F3' : COLORS.text,
+    muted: dark ? '#91A69A' : COLORS.muted,
+    primary: dark ? '#E5B95C' : COLORS.primary,
+    border: dark ? 'rgba(193,218,198,0.17)' : 'rgba(48,92,61,0.14)',
+    success: dark ? '#65C99A' : COLORS.success,
     danger: COLORS.danger,
   };
 
