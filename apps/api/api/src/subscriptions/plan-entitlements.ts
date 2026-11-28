@@ -17,7 +17,7 @@ const PLAN_ENTITLEMENTS: Record<SubscriptionTier, PlanEntitlements> = {
   free: {
     tier: 'free', label: 'FREE',
     statsPdf: { monthlyLimit: null, includeAiInsights: true },
-    documentQuiz: { monthlyLimit: null, maxQuestionsPerDocument: 100, maxFileSizeMb: 20 },
+    documentQuiz: { monthlyLimit: 5, maxQuestionsPerDocument: 100, maxFileSizeMb: 20 },
     privateBattle: { dailyLimit: null, maxPlayers: 2 },
     smartPractice: { dailyLimit: null, aiPersonalized: true },
     aiTutor: { available: true, dailyMessages: null, errorAnalysis: true, fullHistory: true },
@@ -27,7 +27,7 @@ const PLAN_ENTITLEMENTS: Record<SubscriptionTier, PlanEntitlements> = {
   premium: {
     tier: 'premium', label: 'PREMIUM',
     statsPdf: { monthlyLimit: null, includeAiInsights: true },
-    documentQuiz: { monthlyLimit: null, maxQuestionsPerDocument: 100, maxFileSizeMb: 20 },
+    documentQuiz: { monthlyLimit: 20, maxQuestionsPerDocument: 100, maxFileSizeMb: 20 },
     privateBattle: { dailyLimit: null, maxPlayers: 2 },
     smartPractice: { dailyLimit: null, aiPersonalized: true },
     aiTutor: { available: true, dailyMessages: null, errorAnalysis: true, fullHistory: true },
@@ -37,7 +37,7 @@ const PLAN_ENTITLEMENTS: Record<SubscriptionTier, PlanEntitlements> = {
   premium_pro: {
     tier: 'premium_pro', label: 'PREMIUM PRO',
     statsPdf: { monthlyLimit: null, includeAiInsights: true },
-    documentQuiz: { monthlyLimit: null, maxQuestionsPerDocument: 100, maxFileSizeMb: 20 },
+    documentQuiz: { monthlyLimit: 40, maxQuestionsPerDocument: 100, maxFileSizeMb: 20 },
     privateBattle: { dailyLimit: null, maxPlayers: 2 },
     smartPractice: { dailyLimit: null, aiPersonalized: true },
     aiTutor: { available: true, dailyMessages: null, errorAnalysis: true, fullHistory: true },
