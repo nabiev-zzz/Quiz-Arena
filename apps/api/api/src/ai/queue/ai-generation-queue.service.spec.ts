@@ -187,6 +187,43 @@ describe('AiGenerationQueueService', () => {
     }));
   });
 
+  it('repairs a BullMQ-completed job when the database completion write was missed', async () => {
+    const job = {
+      id: 'document-job',
+      userId: '11111111-1111-4111-8111-111111111111',
+      jobType: 'document_quiz',
+      status: 'active',
+      result: null,
+      fileBuffer: Buffer.from('document'),
+      error: null,
+      completedAt: null,
+      queueEnqueuedAt: new Date(),
+    };
+    const completedResult = { questions: [{ id: 'question-1' }] };
+    const bullJob = {
+      getState: jest.fn().mockResolvedValue('completed'),
+      returnvalue: completedResult,
+      progress: { step: 'generating' },
+      attemptsMade: 1,
+      opts: { attempts: 3 },
+    };
+    queue.getJob.mockResolvedValue(bullJob);
+    jobRepository.findOne
+      .mockResolvedValueOnce(job)
+      .mockResolvedValueOnce(job)
+      .mockResolvedValueOnce({ ...job, status: 'completed', result: completedResult });
+
+    const status = await service.getStatus(job.userId, job.id);
+
+    expect(status).toMatchObject({ status: 'completed', result: completedResult });
+    expect(jobRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+      id: job.id,
+      status: 'completed',
+      result: completedResult,
+      fileBuffer: null,
+    }));
+  });
+
   it('claims a quota refund once and uses the original monthly period', async () => {
     jobRepository.findOne.mockResolvedValue({
       id: 'job-1', status: 'failed', quotaConsumed: true, quotaRefunded: false,
