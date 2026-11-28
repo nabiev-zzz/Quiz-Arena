@@ -377,13 +377,19 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
       });
     }
     if (job.quotaConsumed && job.quotaFeature && !job.quotaRefunded) {
-      try {
-        if (!job.userId) throw new Error('Quota job owner is missing');
-        const receipt = job.payload?._quotaReceipt as { periodKey?: string } | undefined;
-        await this.featureUsage.refund(job.userId, job.quotaFeature as never, receipt?.periodKey);
-        await this.jobs.update({ id: jobId }, { quotaRefunded: true });
-      } catch (refundError) {
-        this.logger.error(`AI job quota refund failed for ${jobId}: ${refundError instanceof Error ? refundError.message : String(refundError)}`);
+      const claim = await this.jobs.update(
+        { id: jobId, quotaConsumed: true, quotaRefunded: false },
+        { quotaRefunded: true },
+      );
+      if (claim.affected) {
+        try {
+          if (!job.userId) throw new Error('Quota job owner is missing');
+          const receipt = job.payload?._quotaReceipt as { periodKey?: string } | undefined;
+          await this.featureUsage.refund(job.userId, job.quotaFeature as never, receipt?.periodKey);
+        } catch (refundError) {
+          await this.jobs.update({ id: jobId }, { quotaRefunded: false });
+          this.logger.error(`AI job quota refund failed for ${jobId}: ${refundError instanceof Error ? refundError.message : String(refundError)}`);
+        }
       }
     }
   }
