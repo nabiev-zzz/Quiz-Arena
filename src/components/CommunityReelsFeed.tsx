@@ -8,7 +8,6 @@ import * as SecureStore from 'expo-secure-store';
 import * as Clipboard from 'expo-clipboard';
 import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
-import Snowfall from './Snowfall';
 import { followUser, getPublicUserProfile, unfollowUser, type PublicUser } from '../services/userService';
 import { LocalizedText, showLocalizedAlert } from '../i18n/LocalizedText';
 import { getDirectConversations, sendDirectMessage, startDirectConversation, type DirectConversation } from '../services/directMessagesService';
@@ -155,7 +154,6 @@ const Reel = memo(function Reel({ clip, index, active, shouldMountPlayer, height
         paused={paused || overlayOpen || shareVisible || shareInProgress || !appIsActive} registerPlayer={registerPlayer}
         onProgressChange={setPlaybackProgress} onSkip={() => onSkip(index)}
       /> : <View style={styles.noVideo}><Ionicons name="play-circle-outline" size={40} color="#FFFFFF"/><LocalizedText style={styles.emptyText}>Keyingi lavha</LocalizedText></View>}
-      <Snowfall />
       <Pressable style={styles.videoTapLayer} onPress={handleVideoTap} accessibilityRole="button" accessibilityLabel={paused ? 'Videoni davom ettirish' : 'Videoni pauza qilish'} />
       {active ? <View pointerEvents="none" style={styles.progressTrack}><View style={[styles.progressFill, { width: `${playbackProgress}%` }]} /></View> : null}
       {tapFeedback ? <View pointerEvents="none" style={styles.pauseMark}><Ionicons name={tapFeedback === 'play' ? 'play' : 'pause'} size={52} color="#FFFFFF" /></View> : null}
