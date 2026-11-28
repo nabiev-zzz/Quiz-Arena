@@ -289,7 +289,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
     try {
       const history = await getDirectMessageHistory(active.id, message.id);
       if (!history.entries.length) { showLocalizedAlert('Xabar tarixi', 'Bu xabarda avvalgi tahrirlar yo‘q.'); return; }
-      const lines = history.entries.map((entry, index) => `${index + 1}. ${entry.action === 'edited' ? 'Avvalgi matn' : entry.action === 'deleted_for_everyone' ? 'Hamma uchun o‘chirilgan matn' : 'O‘chirish hodisasi'}\n${entry.content || 'Matn saqlanmagan'}\n${new Date(entry.at).toLocaleString()}`);
+      const lines = history.entries.map((entry, index) => `${index + 1}. ${entry.action === 'edited' ? 'Avvalgi matn' : entry.action === 'deleted_for_everyone' ? 'Hamma uchun o‘chirilgan matn' : 'O‘chirish hodisasi'}\n${entry.content || 'Matn saqlanmagan'}\n${new Date(entry.at).toLocaleString()}`);
       showLocalizedAlert('Xabar tarixi', lines.join('\n\n'));
     } catch (error) { showLocalizedAlert('Xabar tarixi', error instanceof Error ? error.message : 'Tarixni yuklab bo‘lmadi'); }
   };
@@ -533,7 +533,7 @@ export default function DirectMessagesScreen({ onBack, initialUserId }: Props) {
                     <View style={styles.messageMeta}>
                       <LocalizedText style={[styles.messageTime, message.isMine && styles.myMessageTime]}>{timeLabel(message.createdAt)}</LocalizedText>
                       {message.isEdited && <LocalizedText style={[styles.messageTime, message.isMine && styles.myMessageTime]}>tahrirlangan</LocalizedText>}
-                      {message.isMine && <Ionicons name={message.readAt ? 'checkmark-done' : 'checkmark'} size={14} color={message.readAt ? '#A7F3D0' : 'rgba(255,255,255,0.72)'} />}
+                      {message.isMine && <Ionicons name={message.readAt ? 'checkmark-done' : 'checkmark'} size={14} color={message.readAt ? '#A7F3D0' : 'rgba(255,255,255,0.72)'} />}
                     </View>
                     </Pressable>
                 </View>
@@ -701,7 +701,7 @@ function makeStyles(c: CommunityColors, isDark: boolean) {
     unreadDot: { position: 'absolute', right: 0, top: 0, width: 13, height: 13, borderRadius: 7, backgroundColor: '#35C99A', borderWidth: 2, borderColor: c.surface },
     conversationBody: { flex: 1, minWidth: 0 },
     conversationTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-    conversationBottom: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
+    conversationBottom: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
     personName: { color: c.text, fontSize: 15, fontWeight: '700', flex: 1 },
     time: { color: c.textMuted, fontSize: 12, fontWeight: '600' },
     unreadTime: { color: c.primary, fontWeight: '800' },
