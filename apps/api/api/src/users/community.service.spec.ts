@@ -64,10 +64,10 @@ describe('CommunityService clip interactions', () => {
   it('streams only the current owner-scoped playable asset and forwards byte ranges', async () => {
     const playableKey = 'community/user-2/123e4567-e89b-12d3-a456-426614174000.playable.mp4';
     posts.findOne.mockResolvedValue(Object.assign({}, post, { mediaKey: 'community/user-2/123e4567-e89b-12d3-a456-426614174000.mov' }) as CommunityPost);
-    storage.ensureCompatibleVideo.mockResolvedValue(playableKey);
     storage.fetchVideoStream.mockResolvedValue({ status: 206, contentRange: 'bytes 0-99/1000' });
     await service.getClipPlaybackStream('user-2', 'clip-1', playableKey, 'bytes=0-99');
     expect(storage.fetchVideoStream).toHaveBeenCalledWith(playableKey, 'bytes=0-99');
+    expect(storage.ensureCompatibleVideo).not.toHaveBeenCalled();
   });
 
   it('rejects playback tokens that point to another media object', async () => {
