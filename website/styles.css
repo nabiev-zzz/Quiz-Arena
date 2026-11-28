@@ -51,7 +51,7 @@ body:before{
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
 }
 .language-picker select{padding:0 11px}
-.theme-toggle{width:38px;display:grid;place-items:center;font-size:19px;cursor:pointer;transition:transform .2s,background .2s,border-color .2s}
+.theme-toggle{width:38px;display:grid;place-items:center;font-size:19px;cursor:pointer;transition:transform .2s,background .2s,border-color .2s}
 .theme-toggle:hover{transform:translateY(-2px);background:rgba(167,139,250,.16);border-color:rgba(180,154,255,.5)}
 .hero{min-height:690px;position:relative;padding-top:72px;padding-bottom:75px}
 .hero:before{
@@ -277,7 +277,7 @@ h1{max-width:590px;font-size:clamp(42px,5.2vw,70px);line-height:1.06;letter-spac
 .feature-card{padding:25px;min-height:238px}
 .feature-card h3{font-size:17px;line-height:1.35}
 .feature-card p{font-size:12px;line-height:1.75}
-.how-inner{padding-block:clamp(68px,8vw,92px)}
+.how-inner{padding-block:clamp(68px,8vw,92px)}
 .steps{gap:clamp(16px,3vw,30px)}
 .steps article{padding:22px;border-radius:15px;background:rgba(255,255,255,.025)}
 .steps h3{font-size:17px}
@@ -368,13 +368,18 @@ html[data-theme="light"] .learning-card,html[data-theme="light"] .feature-card,h
 }
 
 
-/* New Year visual refresh: evergreen, cranberry and champagne */
-:root{--bg:#0c1712;--panel:rgba(244,232,210,.055);--line:rgba(232,205,160,.16);--text:#fbf7ef;--muted:#c0b8a9;--purple:#c77d88;--mint:#d8c28f;--gold:#e7c88f}
-body{background:radial-gradient(ellipse at 50% -20%,#294536 0,transparent 48%),linear-gradient(180deg,#0c1712,#101b15 65%,#0c1712)}
-.ambient-one{background:#a94e60}.ambient-two{background:#b89b5c}
-.site-header{border-bottom-color:rgba(232,205,160,.13)}
-.button-primary{background:linear-gradient(115deg,#f0d9c1,#c77d88 58%,#d8c28f);color:#1a211a;box-shadow:0 10px 35px #9b59662b}
-.phone-frame{background:linear-gradient(145deg,#f5e7d3,#9b6870 28%,#1b3026 65%,#d2b77f)}
-.phone-screen{background:linear-gradient(155deg,#20392e,#101b15 65%)}
-.battle-card{border-color:#d8c28f55;background:radial-gradient(circle at 90% 5%,#b98c5360,transparent 40%),linear-gradient(140deg,#344b38,#1c3025 75%)}
-.feature-card:after{background:#c77d88}.download-panel{border-color:#d8c28f55;background:radial-gradient(circle at 85% 45%,#b89b5c30,transparent 36%),linear-gradient(115deg,#20392e,#111e18)}
+/* ZELQEN CORE New Year 2027 — midnight navy, ice blue, silver and restrained gold. */
+:root{color-scheme:dark;--bg:#081321;--panel:rgba(210,232,250,.055);--line:rgba(173,205,235,.15);--text:#F4F8FC;--muted:#9FB1C5;--purple:#9AD8FF;--mint:#B8C7D8;--gold:#E8C77A;--glass:rgba(13,27,45,.82);--surface-1:#122238;--surface-2:#192C45}
+body{background:radial-gradient(ellipse at 50% -20%,#1A3552 0,transparent 48%),linear-gradient(180deg,#081321,#0D1B2D 65%,#081321);color:var(--text)}
+.ambient-one{background:#4D9CCB}.ambient-two{background:#B8C7D8}.site-header{border-bottom-color:rgba(173,205,235,.15)}
+.brand b,.mini-brand b{color:var(--purple)}.button-primary{background:linear-gradient(115deg,#D7F0FF,#79BDE5 58%,#E8C77A);color:#102338;box-shadow:0 10px 35px rgba(77,156,203,.24)}
+.eyebrow,.section-kicker{color:#B8E5FF}h1 span,h2 span{background:linear-gradient(100deg,#D7F0FF,#9AD8FF 60%,#E8C77A);background-clip:text;-webkit-background-clip:text;color:transparent}
+.text-link{color:#C8E9FF}.proof-avatars span{background:linear-gradient(140deg,#79BDE5,#345C7C)}.proof-avatars span:nth-child(2){background:linear-gradient(140deg,#B8C7D8,#526B82)}
+.orbit{border-color:rgba(154,216,255,.13)}.phone-frame{background:linear-gradient(145deg,#E6F5FF,#5C9EC6 28%,#122238 65%,#C6D5E2);box-shadow:0 35px 90px #0009,0 0 70px rgba(77,156,203,.2)}.phone-screen{background:linear-gradient(155deg,#17324E,#0D1B2D 65%)}.mini-avatar{background:#34516D}.welcome-line{color:#AFC4D8}
+.battle-card{border-color:rgba(154,216,255,.32);background:radial-gradient(circle at 90% 5%,rgba(77,156,203,.42),transparent 40%),linear-gradient(140deg,#1B3A57,#122238 75%)}.battle-tag{color:#E8C77A;background:rgba(184,199,216,.12)}.battle-spark{color:#D7F0FF}.battle-sub{color:#B8C7D8}.battle-players{color:#E8C77A}.phone-tiles span,.chip-icon{color:#9AD8FF}.phone-tabbar{color:#9FB5CC}
+.float-chip{background:rgba(13,27,45,.88);border-color:rgba(173,205,235,.18)}.feature-card:after{background:#4D9CCB}.icon-purple,.icon-blue,.icon-lilac{background:rgba(154,216,255,.14);color:#B8E5FF}.icon-mint{background:rgba(184,199,216,.14);color:#B8C7D8}.icon-gold{background:rgba(232,199,122,.14);color:#E8C77A}.icon-pink{background:rgba(154,216,255,.12);color:#9AD8FF}.card-label{color:#AFC4D8}.mini-battle{color:#D7F0FF}.versus-line{background:linear-gradient(90deg,#E8C77A,#9AD8FF)}.versus-line b{background:#172C43;border-color:#6FAFD5}
+.how-section{background:linear-gradient(100deg,rgba(154,216,255,.06),rgba(232,199,122,.04));border-block-color:rgba(173,205,235,.12)}.steps article{border-top-color:rgba(154,216,255,.35)}.steps article>b{color:#E8C77A}.plan-name,.plan-link{color:#E8C77A}.plan-featured{border-color:rgba(154,216,255,.48);background:linear-gradient(145deg,rgba(154,216,255,.12),rgba(255,255,255,.035))}.plan-badge{background:rgba(154,216,255,.14);color:#D7F0FF}
+.download-panel{border-color:rgba(154,216,255,.32);background:radial-gradient(circle at 85% 45%,rgba(77,156,203,.24),transparent 36%),linear-gradient(115deg,#142C45,#0D1B2D)}.download-glow{background:#4D9CCB}.learning-section:before{background:radial-gradient(ellipse at 15% 15%,rgba(154,216,255,.08),transparent 48%),radial-gradient(ellipse at 90% 80%,rgba(232,199,122,.06),transparent 42%)}.learning-card{border-color:rgba(154,216,255,.20)}.learning-card:hover{border-color:rgba(154,216,255,.5);background:linear-gradient(145deg,rgba(154,216,255,.12),rgba(255,255,255,.035))}.learning-icon{background:rgba(154,216,255,.14);color:#B8E5FF}.learning-benefits span{color:#B8C7D8}:focus-visible{outline-color:rgba(154,216,255,.85)}
+html[data-theme="light"]{color-scheme:light;--bg:#F2F7FC;--panel:rgba(255,255,255,.78);--line:rgba(65,111,151,.15);--text:#172638;--muted:#62768B;--purple:#347EA9;--mint:#71869B;--gold:#9A741F;--glass:rgba(255,255,255,.86);--surface-1:#FFFFFF;--surface-2:#E7F0F8}
+html[data-theme="light"] body{background:radial-gradient(ellipse at 12% 0%,rgba(105,169,207,.16),transparent 34%),radial-gradient(ellipse at 88% 34%,rgba(184,199,216,.18),transparent 30%),var(--bg);color:var(--text)}html[data-theme="light"] .site-header{border-bottom-color:rgba(65,111,151,.14)}html[data-theme="light"] .button-glass{color:#23425E;background:rgba(255,255,255,.72);border-color:rgba(65,111,151,.18)}html[data-theme="light"] .button-primary{color:#102338}html[data-theme="light"] .eyebrow,html[data-theme="light"] .section-kicker{color:#347EA9}html[data-theme="light"] .text-link{color:#315E80}
+html[data-theme="light"] .phone-frame{background:linear-gradient(145deg,#FFFFFF,#8ABAD8 28%,#DCEAF5 65%,#E8C77A)}html[data-theme="light"] .phone-screen{background:linear-gradient(155deg,#FFFFFF,#E7F0F8 65%);color:#172638}html[data-theme="light"] .welcome-line,html[data-theme="light"] .battle-sub{color:#62768B}html[data-theme="light"] .battle-card{background:linear-gradient(140deg,#D9ECF8,#C4D9E8 75%)}html[data-theme="light"] .battle-title,html[data-theme="light"] .battle-players b{color:#172638}html[data-theme="light"] .float-chip{background:rgba(255,255,255,.9);border-color:rgba(65,111,151,.16);color:#172638}html[data-theme="light"] .download-panel{background:radial-gradient(circle at 82% 42%,rgba(105,169,207,.16),transparent 34%),linear-gradient(115deg,#E7F0F8,#FFFFFF);border-color:rgba(52,126,169,.2)}html[data-theme="light"] .download-panel h2{color:#172638}html[data-theme="light"] .download-panel p{color:#52677D}html[data-theme="light"] .store-button{background:rgba(255,255,255,.72);border-color:rgba(65,111,151,.16);color:#23425E}html[data-theme="light"] .footer-inner p,html[data-theme="light"] .footer-inner>span{color:#62768B}
