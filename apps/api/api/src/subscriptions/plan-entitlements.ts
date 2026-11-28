@@ -16,13 +16,13 @@ export interface PlanEntitlements {
 const PLAN_ENTITLEMENTS: Record<SubscriptionTier, PlanEntitlements> = {
   free: {
     tier: 'free', label: 'FREE',
-    statsPdf: { monthlyLimit: 1, includeAiInsights: false },
-    documentQuiz: { monthlyLimit: 1, maxQuestionsPerDocument: 10, maxFileSizeMb: 5 },
-    privateBattle: { dailyLimit: 3, maxPlayers: 2 },
-    smartPractice: { dailyLimit: 1, aiPersonalized: false },
-    aiTutor: { available: true, dailyMessages: 3, errorAnalysis: false, fullHistory: false },
-    cosmetics: { premiumBadge: false, exclusiveItems: false, rareItems: false, animatedGoldFrame: false },
-    tournaments: { special: false, elite: false }, rank: { legendStatus: false },
+    statsPdf: { monthlyLimit: null, includeAiInsights: true },
+    documentQuiz: { monthlyLimit: null, maxQuestionsPerDocument: 100, maxFileSizeMb: 20 },
+    privateBattle: { dailyLimit: null, maxPlayers: 2 },
+    smartPractice: { dailyLimit: null, aiPersonalized: true },
+    aiTutor: { available: true, dailyMessages: null, errorAnalysis: true, fullHistory: true },
+    cosmetics: { premiumBadge: true, exclusiveItems: true, rareItems: true, animatedGoldFrame: true },
+    tournaments: { special: true, elite: true }, rank: { legendStatus: true },
   },
   premium: {
     tier: 'premium', label: 'PREMIUM',
