@@ -214,6 +214,13 @@ export class DirectMessagesService {
       if (now.getTime() - new Date(message.createdAt).getTime() > 60 * 60 * 1000) throw new ConflictException('Xabarni hamma uchun faqat 1 soat ichida o‘chirish mumkin');
       const history = Array.isArray(message.history) ? message.history : [];
       message.history = [...history, { action: 'deleted_for_everyone', content: message.content, at: now.toISOString(), actorId: userId }];
+      if (message.mediaKey) {
+        await this.storage.delete(message.mediaKey);
+        if (message.mediaType?.startsWith('video/')) {
+          const playbackKey = message.mediaKey.replace(/\.[^.]+$/, '.playable.mp4');
+          if (playbackKey !== message.mediaKey) await this.storage.delete(playbackKey);
+        }
+      }
       message.content = '';
       message.mediaKey = null;
       message.mediaType = null;
