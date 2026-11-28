@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { File as ExpoFile } from 'expo-file-system';
 import { API_BASE_URL, apiFetch, getToken } from './authService';
 import type { Difficulty } from '../types';
 import type { Question } from '../data/questions';
