@@ -12,6 +12,25 @@ describe('DailyTasksService', () => {
     expect(result.tasks.every((task: any) => task.progress === 0 && !task.claimed)).toBe(true);
   });
 
+  it('rotates the daily mission set at midnight in the Tashkent timezone', async () => {
+    jest.useFakeTimers();
+    try {
+      const dataSource: any = { getRepository: () => ({ find: async () => [] }) };
+      const service = new DailyTasksService(dataSource);
+      jest.setSystemTime(new Date('2026-11-28T18:59:59.000Z'));
+      const beforeMidnight = await service.getToday('user-1');
+      jest.setSystemTime(new Date('2026-11-28T19:00:00.000Z'));
+      const afterMidnight = await service.getToday('user-1');
+
+      expect(beforeMidnight.date).toBe('2026-11-28');
+      expect(afterMidnight.date).toBe('2026-11-29');
+      expect(afterMidnight.tasks.map((task: any) => task.description))
+        .not.toEqual(beforeMidnight.tasks.map((task: any) => task.description));
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('rejects claiming a mission before it is completed', async () => {
     const row = { userId: 'user-1', progress: 0, claimedAt: null };
     const manager: any = {
