@@ -51,7 +51,7 @@ body:before{
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
 }
 .language-picker select{padding:0 11px}
-.theme-toggle{width:38px;display:grid;place-items:center;font-size:19px;cursor:pointer;transition:transform .2s,background .2s,border-color .2s}
+.theme-toggle{width:38px;display:grid;place-items:center;font-size:19px;cursor:pointer;transition:transform .2s,background .2s,border-color .2s}
 .theme-toggle:hover{transform:translateY(-2px);background:rgba(167,139,250,.16);border-color:rgba(180,154,255,.5)}
 .hero{min-height:690px;position:relative;padding-top:72px;padding-bottom:75px}
 .hero:before{
@@ -277,7 +277,7 @@ h1{max-width:590px;font-size:clamp(42px,5.2vw,70px);line-height:1.06;letter-spac
 .feature-card{padding:25px;min-height:238px}
 .feature-card h3{font-size:17px;line-height:1.35}
 .feature-card p{font-size:12px;line-height:1.75}
-.how-inner{padding-block:clamp(68px,8vw,92px)}
+.how-inner{padding-block:clamp(68px,8vw,92px)}
 .steps{gap:clamp(16px,3vw,30px)}
 .steps article{padding:22px;border-radius:15px;background:rgba(255,255,255,.025)}
 .steps h3{font-size:17px}
