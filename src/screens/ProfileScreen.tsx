@@ -9,6 +9,7 @@ import BookWingsAvatar from '../components/BookWingsAvatar';
 import LaurelWreathAvatar from '../components/LaurelWreathAvatar';
 import AnimatedBadge from '../components/AnimatedBadge';
 import ProfileEffect from '../components/ProfileEffect';
+import { RankBadge3D } from '../components/RankBadge3D';
 import ProfileAtmosphere from '../components/ProfileAtmosphere';
 
 import { useAuth } from '../context/AuthContext';
@@ -316,6 +317,7 @@ export default function ProfileScreen({ onClosePress, onSettingsPress, onEditPre
               <Ionicons name="copy-outline" size={13} color={C.subtle} />
             </Pressable>
             <View style={styles.badges}>
+              <RankBadge3D tier={rankInfo.name} compact />
               {user.profileBadge ? <View style={styles.profileBadgeChip}><AnimatedBadge value={user.profileBadge} size={34} /><LocalizedText style={styles.profileBadgeText}>{user.profileBadge.toUpperCase()}</LocalizedText></View> : <LocalizedText style={styles.cardSubtitle}>Profil nishoni hali tanlanmagan</LocalizedText>}
             </View>
           </View>

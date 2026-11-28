@@ -4,6 +4,7 @@ import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Vie
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedBadge from '../components/AnimatedBadge';
 import ProfileEffect from '../components/ProfileEffect';
+import { RankBadge3D } from '../components/RankBadge3D';
 import ProfileAtmosphere from '../components/ProfileAtmosphere';
 import { useTheme } from '../theme/ThemeContext';
 import { GlassSurface } from '../components/ui';
@@ -87,7 +88,7 @@ export default function PublicProfileScreen({ username, onBack, onMessagePress }
               </View>
             </ProfileEffect>
             <View style={styles.identityText}>
-              <LocalizedText style={styles.name}>{profile.displayName}</LocalizedText>
+              <View style={styles.publicNameLine}><LocalizedText style={styles.name}>{profile.displayName}</LocalizedText><RankBadge3D tier={profile.rankTier} compact /></View>
               <LocalizedText style={styles.username}>@{profile.username}</LocalizedText>
               {!!profile.bio && <LocalizedText style={styles.bio}>{profile.bio}</LocalizedText>}
               {!profile.bio && <LocalizedText style={styles.bioPlaceholder}>Hozircha bio qo‘shilmagan</LocalizedText>}
@@ -204,6 +205,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors'], isD
     avatarEffectStage: { width: 154, height: 154, alignItems: 'center', justifyContent: 'center' },
     identityRow: { flexDirection: 'row', alignItems: 'center', gap: 13, width: '100%' },
     identityText: { flex: 1, minWidth: 0, alignItems: 'flex-start' },
+    publicNameLine: { flexDirection: 'row', alignItems: 'center', gap: 7, maxWidth: '100%' },
     avatarRing: { width: 122, height: 122, borderRadius: 61, padding: 4, borderWidth: 2, borderColor: 'rgba(157,133,232,0.65)', flexShrink: 0 },
     frameAurora: { borderColor: '#A78BFA', borderWidth: 4 },
     frameRoyal: { borderColor: '#EFCB78', borderWidth: 4 },
