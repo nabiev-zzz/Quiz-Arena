@@ -230,11 +230,17 @@ export async function createDocumentQuiz(
     const uploadBlob = browserFile.type ? browserFile : new Blob([browserFile], { type: mimeType });
     form.append('file', uploadBlob, file.name);
   } else {
-    // Expo SDK 58 uses expo/fetch on native. Its multipart converter rejects
-    // React Native's legacy { uri, name, type } objects. expo-file-system's
-    // File extends Blob and is explicitly supported by Expo FormData/fetch.
-    const localFile = new ExpoFile(file.uri);
-    form.append('file', localFile, file.name);
+    // expo-file-system File is not a native FormData Blob part on every RN
+    // runtime. Read its bytes and wrap them in a real JS Blob; Expo's patched
+    // FormData/fetch supports Blob and avoids the unsupported-part converter.
+    let fileBytes: Uint8Array;
+    try {
+      fileBytes = await new ExpoFile(file.uri).bytes();
+    } catch {
+      throw new Error('Telefon xotirasidagi hujjatni o‘qib bo‘lmadi. Faylni qayta tanlang.');
+    }
+    const uploadBlob = new Blob([fileBytes], { type: mimeType });
+    form.append('file', uploadBlob, file.name);
   }
   form.append('count', String(options.count));
   form.append('difficulty', options.difficulty);
