@@ -111,7 +111,7 @@ export class AiGenerationQueueService implements OnModuleInit, OnModuleDestroy {
     if (idempotencyKey) {
       const existing = await this.jobs.findOne({ where: { ...ownerWhere, idempotencyKey } });
       const recentlySubmitted = existing?.createdAt
-        ? Date.now() - new Date(existing.createdAt).getTime() < 2 * 60 * 1000
+        ? Date.now() - new Date(existing.createdAt).getTime() < 30 * 1000
         : true;
       if (existing && ['queued', 'active'].includes(existing.status)) {
         return {
