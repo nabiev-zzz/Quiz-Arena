@@ -23,7 +23,7 @@ function setup() {
     create: jest.fn((value) => value),
     save: jest.fn(async (value) => ({ ...value, id: 'message-new', createdAt: new Date() })),
   };
-  const storage = { verify: jest.fn().mockResolvedValue({ verified: true }), sign: jest.fn() };
+  const storage = { verify: jest.fn().mockResolvedValue({ verified: true }), sign: jest.fn(), delete: jest.fn().mockResolvedValue({ deleted: true }) };
   const service = new DirectMessagesService(users as never, conversations as never, messages as never, storage as never);
   return { service, users, conversations, messages, storage };
 }
@@ -116,6 +116,31 @@ describe('DirectMessagesService moderation', () => {
       content: '', deletedForEveryone: true, deletedBy: 'user-1',
       history: [expect.objectContaining({ action: 'deleted_for_everyone', content: 'Hello' })],
     }));
+  });
+
+  it('revokes stored attachment objects before marking a message deleted for everyone', async () => {
+    const { service, messages, storage } = setup();
+    const mediaKey = 'community/user-1/123e4567-e89b-12d3-a456-426614174000.mp4';
+    const original = { ...priorMessage, createdAt: new Date(), history: [], mediaKey, mediaType: 'video/mp4', durationSeconds: null, deletedForEveryone: false };
+    messages.findOne.mockResolvedValueOnce(original as never);
+    messages.save.mockImplementationOnce(async (value) => value as never);
+
+    const result = await service.deleteMessage('user-1', 'conversation-1', 'message-existing', 'everyone');
+
+    expect(storage.delete).toHaveBeenNthCalledWith(1, mediaKey);
+    expect(storage.delete).toHaveBeenNthCalledWith(2, 'community/user-1/123e4567-e89b-12d3-a456-426614174000.playable.mp4');
+    expect(result.isDeleted).toBe(true);
+    expect(messages.save).toHaveBeenCalledWith(expect.objectContaining({ mediaKey: null, deletedForEveryone: true }));
+  });
+
+  it('does not mark a message deleted when attachment revocation fails', async () => {
+    const { service, messages, storage } = setup();
+    const original = { ...priorMessage, createdAt: new Date(), history: [], mediaKey: 'community/user-1/123e4567-e89b-12d3-a456-426614174000.pdf', mediaType: 'application/pdf', deletedForEveryone: false };
+    messages.findOne.mockResolvedValueOnce(original as never);
+    storage.delete.mockRejectedValueOnce(new Error('storage delete failed'));
+
+    await expect(service.deleteMessage('user-1', 'conversation-1', 'message-existing', 'everyone')).rejects.toThrow('storage delete failed');
+    expect(messages.save).not.toHaveBeenCalled();
   });
 
   it('does not allow a recipient to delete a message for everyone', async () => {
