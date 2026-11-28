@@ -53,8 +53,12 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
   const [clips, setClips] = useState<CommunityPost[]>([]);
   const [clipsHasMore, setClipsHasMore] = useState(false);
   const [clipsLoadingMore, setClipsLoadingMore] = useState(false);
+  const [clipsLoading, setClipsLoading] = useState(false);
+  const [clipsError, setClipsError] = useState(false);
+  const [clipsLoaded, setClipsLoaded] = useState(false);
   const [clipsServerOffset, setClipsServerOffset] = useState(0);
   const clipsLoadingMoreRef = useRef(false);
+  const clipsLoadingRef = useRef(false);
   const commentSheetStartY = useRef(0);
   const [activeSection, setActiveSection] = useState<'dashboard' | 'feed' | 'clips' | 'groups' | 'questions' | 'library' | 'portfolio' | 'mentors' | 'marathons' | 'competitions'>('dashboard');
   const [clipBusy, setClipBusy] = useState(false);
@@ -97,27 +101,50 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     if (!quiet) setLoading(true);
     setFeedError(false);
     try {
-      const [feed, activeStories, videoClips] = await Promise.all([getCommunityFeed(), getCommunityStories(), getCommunityClips()]);
+      const [feed, activeStories] = await Promise.all([getCommunityFeed(), getCommunityStories()]);
       setPosts(feed);
       setStories(activeStories);
-      setClips(videoClips);
-      setClipsServerOffset(videoClips.length);
-      setClipsHasMore(videoClips.length === 40);
     } catch {
       setFeedError(true);
     } finally { setLoading(false); setRefreshing(false); }
+  }, []);
+
+  // Load the Reels feed only when the user opens it. The home/community screen
+  // should not wait for dozens of video records before becoming interactive.
+  const loadClips = useCallback(async (quiet = false) => {
+    if (clipsLoadingRef.current) return;
+    clipsLoadingRef.current = true;
+    if (!quiet) setClipsLoading(true);
+    setClipsError(false);
+    try {
+      const firstPage = await getCommunityClips(8, 0);
+      setClips(firstPage);
+      setClipsServerOffset(firstPage.length);
+      setClipsHasMore(firstPage.length === 8);
+      setClipsLoaded(true);
+    } catch {
+      setClipsError(true);
+    } finally {
+      clipsLoadingRef.current = false;
+      setClipsLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   // Initial async fetch; state updates occur after the network request resolves.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
 
+  useEffect(() => {
+    if (activeSection === 'clips' && !clipsLoaded && !clipsLoadingRef.current) void loadClips();
+  }, [activeSection, clipsLoaded, loadClips]);
+
   const loadMoreClips = useCallback(async () => {
     if (clipsLoadingMoreRef.current || !clipsHasMore) return;
     clipsLoadingMoreRef.current = true;
     setClipsLoadingMore(true);
     try {
-      const next = await getCommunityClips(40, clipsServerOffset);
+      const next = await getCommunityClips(8, clipsServerOffset);
       setClips((current) => {
         const known = new Set(current.map((clip) => clip.id));
         const uniqueNext: CommunityPost[] = [];
@@ -129,7 +156,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
         return [...current, ...uniqueNext];
       });
       setClipsServerOffset((current) => current + next.length);
-      setClipsHasMore(next.length === 40);
+      setClipsHasMore(next.length === 8);
     } catch (error) {
       showLocalizedAlert('Lavhalar', error instanceof Error ? error.message : 'Keyingi videolar yuklanmadi');
     } finally { clipsLoadingMoreRef.current = false; setClipsLoadingMore(false); }
@@ -233,6 +260,7 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
       setClipUploadProgress(100);
       const created = await createCommunityClip(clipCaption.trim(), media.mediaKey, media.mediaType, clipSubject);
       setClips((current) => [created, ...current]);
+      setClipsLoaded(true);
       setPosts((current) => [created, ...current]);
       setClipCaption('');
       setClipSubject('Boshqa');
@@ -423,9 +451,9 @@ export default function CommunityScreen({ onBack, onDiscoverUsers, onMessages, o
     <View style={{ flex: 1, backgroundColor: activeSection === 'clips' ? '#05060A' : c.background }}>
       {activeSection !== 'feed' && activeSection !== 'clips' ? <Snowfall /> : null}
       {activeSection === 'clips' ? (
-        <CommunityReelsFeed clips={clips} loading={loading} error={feedError}
+        <CommunityReelsFeed clips={clips} loading={clipsLoading} error={clipsError}
           onBack={() => setActiveSection('dashboard')} onUpload={() => void chooseClip()}
-          onRetry={() => void load()} refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(true); }}
+          onRetry={() => void loadClips()} refreshing={refreshing} onRefresh={() => { setRefreshing(true); void loadClips(true); }}
           hasMore={clipsHasMore} loadingMore={clipsLoadingMore} onLoadMore={() => void loadMoreClips()}
           onLike={(clip) => void toggleLike(clip)} onSave={(clip) => void toggleSaveClip(clip)} onComments={(id) => void openClipComments(id)} overlayOpen={Boolean(expandedPost || quizClip || clipComposerVisible)}
           onMiniTest={(clip) => void openClipQuiz(clip)} onUserPress={onUserPress} />
