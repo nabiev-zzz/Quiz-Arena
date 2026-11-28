@@ -16,11 +16,11 @@ describe('CommunityService clip interactions', () => {
   const post = { id: 'clip-1', status: 'active', mediaType: 'video/mp4', authorId: 'user-2' } as CommunityPost;
   const saveBuilder = { insert: jest.fn().mockReturnThis(), values: jest.fn().mockReturnThis(), orIgnore: jest.fn().mockReturnThis(), execute: jest.fn().mockResolvedValue(undefined) };
   const users = { findOne: jest.fn() };
-  const posts = { findOne: jest.fn(), exists: jest.fn() };
+  const posts = { findOne: jest.fn(), exists: jest.fn(), save: jest.fn((value) => Promise.resolve(value)) };
   const likes = {};
   const comments = { findOne: jest.fn(), find: jest.fn(), create: jest.fn((value) => value), save: jest.fn() };
   const saves = { createQueryBuilder: jest.fn(() => saveBuilder), delete: jest.fn().mockResolvedValue(undefined), exists: jest.fn() };
-  const stories = {};
+  const stories = { findOne: jest.fn(), save: jest.fn((value) => Promise.resolve(value)) };
   const storyViews = {};
   const storage = { ensureCompatibleVideo: jest.fn(), sign: jest.fn(), fetchVideoStream: jest.fn() };
   const dataSource = {};
@@ -41,6 +41,31 @@ describe('CommunityService clip interactions', () => {
       dataSource as DataSource,
       wallet as ZcWalletService,
     );
+  });
+
+  it('allows an owner to edit only their active post', async () => {
+    posts.findOne.mockResolvedValue({ id: 'post-1', authorId: 'user-1', status: 'active', mediaKey: null, content: 'old' });
+    await expect(service.updatePost('user-1', 'post-1', '  updated  ')).resolves.toEqual({ id: 'post-1', content: 'updated', updated: true });
+    expect(posts.save).toHaveBeenCalledWith(expect.objectContaining({ content: 'updated' }));
+  });
+
+  it('rejects editing a post owned by another user', async () => {
+    posts.findOne.mockResolvedValue(null);
+    await expect(service.updatePost('user-1', 'post-2', 'attempt')).rejects.toThrow('Post topilmadi yoki sizga tegishli emas');
+    expect(posts.save).not.toHaveBeenCalled();
+  });
+
+  it('soft-deletes an owned post so dependent social records remain intact', async () => {
+    posts.findOne.mockResolvedValue({ id: 'post-1', authorId: 'user-1', status: 'active' });
+    await expect(service.deletePost('user-1', 'post-1')).resolves.toEqual({ deleted: true, id: 'post-1' });
+    expect(posts.save).toHaveBeenCalledWith(expect.objectContaining({ status: 'hidden' }));
+  });
+
+  it("expires only the owner story instead of deleting referenced story-view data", async () => {
+    const story = { id: 'story-1', authorId: 'user-1', expiresAt: new Date(Date.now() + 60_000) };
+    stories.findOne.mockResolvedValue(story);
+    await expect(service.deleteStory('user-1', 'story-1')).resolves.toEqual({ deleted: true, id: 'story-1' });
+    expect(stories.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'story-1', expiresAt: expect.any(Date) }));
   });
 
   it('lazily converts older clips to a compatible MP4 playback asset', async () => {

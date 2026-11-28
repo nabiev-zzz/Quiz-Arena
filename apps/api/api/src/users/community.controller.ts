@@ -40,6 +40,8 @@ export class CommunityController {
   createClipQuiz(@Request() request: AuthRequest, @Param('id') id: string, @Body() body: { question?: string; options?: string[]; correctOption?: number }) { return this.community.createClipQuiz(request.user.id,id,body); }
   @Post('clips/:id/quiz/answer')
   answerClipQuiz(@Request() request: AuthRequest, @Param('id') id: string, @Body() body: { selectedOption?: number }) { return this.community.answerClipQuiz(request.user.id,id,body?.selectedOption); }
+  @Get('users/:id/posts')
+  userPosts(@Request() request: AuthRequest, @Param('id') id: string) { return this.community.userPosts(request.user.id, id); }
   @Get('posts')
   feed(@Request() request: AuthRequest, @Query('limit') limit?: string) { return this.community.feed(request.user.id, Number(limit) || 30); }
   @Post('posts')
@@ -52,8 +54,14 @@ export class CommunityController {
   createStory(@Request() request: AuthRequest, @Body() body: { mediaKey?: string; mediaType?: string; caption?: string }) {
     return this.community.createStory(request.user.id, body?.mediaKey ?? '', body?.mediaType ?? '', body?.caption);
   }
+  @Delete('stories/:id')
+  deleteStory(@Request() request: AuthRequest, @Param('id') id: string) { return this.community.deleteStory(request.user.id, id); }
   @Post('stories/:id/view')
   viewStory(@Request() request: AuthRequest, @Param('id') id: string) { return this.community.markStoryViewed(request.user.id, id); }
+  @Put('posts/:id')
+  updatePost(@Request() request: AuthRequest, @Param('id') id: string, @Body() body: { content?: string }) { return this.community.updatePost(request.user.id, id, body?.content ?? ''); }
+  @Delete('posts/:id')
+  deletePost(@Request() request: AuthRequest, @Param('id') id: string) { return this.community.deletePost(request.user.id, id); }
   @Post('posts/:id/like')
   like(@Request() request: AuthRequest, @Param('id') id: string) { return this.community.toggleLike(request.user.id, id, true); }
   @Post('posts/:id/unlike')

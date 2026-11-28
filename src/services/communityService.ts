@@ -74,6 +74,10 @@ export const createCommunityClip = (content: string, mediaKey: string, mediaType
   request<CommunityPost>('/api/community/clips', 'POST', { content, mediaKey, mediaType, subject });
 export const createCommunityPost = (content: string, mediaKey?: string, mediaType?: string) =>
   request<CommunityPost>('/api/community/posts', 'POST', { content, mediaKey, mediaType });
+export const getCommunityUserPosts = (userId: string) => request<CommunityPost[]>(`/api/community/users/${encodeURIComponent(userId)}/posts`);
+export const updateCommunityPost = (id: string, content: string) => request<{ id: string; content: string; updated: boolean }>(`/api/community/posts/${encodeURIComponent(id)}`, 'PUT', { content });
+export const deleteCommunityPost = (id: string) => request<{ deleted: boolean; id: string }>(`/api/community/posts/${encodeURIComponent(id)}`, 'DELETE');
+export const deleteCommunityStory = (id: string) => request<{ deleted: boolean; id: string }>(`/api/community/stories/${encodeURIComponent(id)}`, 'DELETE');
 export const likeCommunityPost = (id: string) => request<{ isLiked: boolean; likesCount: number }>(`/api/community/posts/${encodeURIComponent(id)}/like`, 'POST');
 export const unlikeCommunityPost = (id: string) => request<{ isLiked: boolean; likesCount: number }>(`/api/community/posts/${encodeURIComponent(id)}/unlike`, 'POST');
 export const getCommunityComments = (id: string) => request<CommunityComment[]>(`/api/community/posts/${encodeURIComponent(id)}/comments`);

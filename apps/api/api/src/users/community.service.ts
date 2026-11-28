@@ -111,6 +111,60 @@ export class CommunityService {
     }));
   }
 
+  async userPosts(viewerId: string, userId: string) {
+    const author = await this.users.findOne({ where: { id: userId, status: 'active' } });
+    if (!author) throw new NotFoundException('Foydalanuvchi topilmadi');
+    const posts = await this.posts.find({
+      where: { authorId: userId, status: 'active' },
+      order: { createdAt: 'DESC' },
+      take: 100,
+    });
+    return Promise.all(posts.map(async (post) => {
+      const [likesCount, commentsCount, liked, saved, mediaUrl] = await Promise.all([
+        this.likes.count({ where: { postId: post.id } }),
+        this.comments.count({ where: { postId: post.id } }),
+        this.likes.exists({ where: { postId: post.id, userId: viewerId } }),
+        this.saves.exists({ where: { postId: post.id, userId: viewerId } }),
+        this.mediaUrl(post.mediaKey),
+      ]);
+      return {
+        id: post.id, content: post.content, createdAt: post.createdAt,
+        mediaUrl, mediaType: post.mediaType, subject: post.subject,
+        author: this.safePerson(author), likesCount, commentsCount,
+        isLiked: liked, isSaved: saved, isOwn: post.authorId === viewerId,
+      };
+    }));
+  }
+
+  async updatePost(authorId: string, postId: string, rawContent: string) {
+    const post = await this.posts.findOne({ where: { id: postId, authorId, status: 'active' } });
+    if (!post) throw new NotFoundException('Post topilmadi yoki sizga tegishli emas');
+    const content = typeof rawContent === 'string' ? rawContent.trim() : '';
+    if (!content && !post.mediaKey) throw new BadRequestException('Matn yoki media qoldiring');
+    if (content.length > 2000) throw new BadRequestException('Post 2000 belgidan oshmasin');
+    post.content = content;
+    await this.posts.save(post);
+    return { id: post.id, content: post.content, updated: true };
+  }
+
+  async deletePost(authorId: string, postId: string) {
+    const post = await this.posts.findOne({ where: { id: postId, authorId, status: 'active' } });
+    if (!post) throw new NotFoundException('Post topilmadi yoki sizga tegishli emas');
+    // Soft-delete keeps foreign-key dependent likes, comments, saves and clip quizzes intact.
+    post.status = 'hidden';
+    await this.posts.save(post);
+    return { deleted: true, id: post.id };
+  }
+
+  async deleteStory(authorId: string, storyId: string) {
+    const story = await this.stories.findOne({ where: { id: storyId, authorId } });
+    if (!story) throw new NotFoundException('Story topilmadi yoki sizga tegishli emas');
+    // Expire instead of hard-delete because story-view rows reference this record.
+    story.expiresAt = new Date();
+    await this.stories.save(story);
+    return { deleted: true, id: storyId };
+  }
+
   async createPost(authorId: string, rawContent: string, mediaKey?: string, mediaType?: string) {
     const content = typeof rawContent === 'string' ? rawContent.trim() : '';
     if (!content && !mediaKey) throw new BadRequestException('Matn yoki media qo‘shing');

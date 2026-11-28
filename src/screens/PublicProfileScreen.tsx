@@ -13,6 +13,7 @@ import {
   type PublicUser,
 } from '../services/userService';
 import { getProfileAchievements } from '../utils/profileAchievements';
+import { getCommunityUserPosts, type CommunityPost } from '../services/communityService';
 
 interface Props {
   username: string;
@@ -30,6 +31,8 @@ export default function PublicProfileScreen({ username, onBack, onMessagePress }
   const [connectionTab, setConnectionTab] = useState<ConnectionTab | null>(null);
   const [connections, setConnections] = useState<PublicUser[]>([]);
   const [connectionsLoading, setConnectionsLoading] = useState(false);
+  const [profilePosts, setProfilePosts] = useState<CommunityPost[]>([]);
+  const [postsLoading, setPostsLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -40,6 +43,16 @@ export default function PublicProfileScreen({ username, onBack, onMessagePress }
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [username]);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    let active = true;
+    setPostsLoading(true);
+    getCommunityUserPosts(profile.id).then((rows) => { if (active) setProfilePosts(rows); })
+      .catch(() => { if (active) setProfilePosts([]); })
+      .finally(() => { if (active) setPostsLoading(false); });
+    return () => { active = false; };
+  }, [profile?.id]);
 
   useEffect(() => {
     if (!connectionTab || !profile) return;
@@ -118,6 +131,21 @@ export default function PublicProfileScreen({ username, onBack, onMessagePress }
             </View>
           )}
         </GlassSurface>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 22, marginBottom: 10 }}>
+          <LocalizedText style={styles.sectionTitle}>Nashrlar</LocalizedText>
+          <LocalizedText style={{ color: colors.textMuted, fontSize: 11 }}>{profilePosts.length} ta post</LocalizedText>
+        </View>
+        {postsLoading ? <ActivityIndicator color={colors.primary} style={{ marginVertical: 18 }} /> : profilePosts.length ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+            {profilePosts.map((post) => (
+              <View key={post.id} style={{ width: '31.8%', aspectRatio: 1, borderRadius: 12, overflow: 'hidden', backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border }}>
+                {post.mediaType?.startsWith('video/') ? <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 7 }}><Ionicons name="play-circle" size={27} color={colors.primary} /><LocalizedText numberOfLines={3} style={{ color: colors.text, fontSize: 9, marginTop: 4 }}>{post.content || 'Lavha'}</LocalizedText></View> : post.mediaUrl ? <Image source={{ uri: post.mediaUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" /> : <View style={{ flex: 1, padding: 7, justifyContent: 'center' }}><Ionicons name="chatbubble-ellipses-outline" size={17} color={colors.primary} /><LocalizedText numberOfLines={4} style={{ color: colors.text, fontSize: 10, marginTop: 5 }}>{post.content}</LocalizedText></View>}
+                {post.mediaType?.startsWith('video/') ? <View style={{ position: 'absolute', right: 6, top: 6 }}><Ionicons name="play" size={17} color="#FFFFFF" /></View> : null}
+              </View>
+            ))}
+          </View>
+        ) : <LocalizedText style={{ color: colors.textMuted, fontSize: 12, paddingVertical: 12 }}>Hozircha nashrlar yo‘q</LocalizedText>}
 
         <LocalizedText style={styles.sectionTitle}>Natijalar</LocalizedText>
         <View style={styles.stats}>

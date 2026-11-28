@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useEvent, useEventListener } from 'expo';
-import { ActivityIndicator, AppState, FlatList, Image, Modal, Pressable, RefreshControl, Share, StyleSheet, View, type ListViewToken } from 'react-native';
+import { ActivityIndicator, Alert, AppState, FlatList, Image, Modal, Pressable, RefreshControl, Share, StyleSheet, View, type ListViewToken } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer, type VideoContentFit, type VideoPlayer } from 'expo-video';
 import { getDisplayVideoSize, resolveCommunityVideoFit } from '../utils/communityVideoFit.mjs';
@@ -18,7 +18,7 @@ type Props = {
   clips: CommunityPost[]; loading: boolean; error: boolean; onBack: () => void; onUpload: () => void; onRetry: () => void;
   refreshing: boolean; onRefresh: () => void; hasMore: boolean; loadingMore: boolean; onLoadMore: () => void;
   onLike: (clip: CommunityPost) => void; onSave: (clip: CommunityPost) => void; overlayOpen: boolean;
-  onComments: (id: string) => void; onMiniTest: (clip: CommunityPost) => void; onUserPress: (username: string) => void;
+  onComments: (id: string) => void; onMiniTest: (clip: CommunityPost) => void; onUserPress: (username: string) => void; onDeleteOwnClip: (clip: CommunityPost) => void;
 };
 type RegisterPlayer = (clipId: string, player: VideoPlayer | null) => void;
 
@@ -45,10 +45,10 @@ function formatCount(value: number) {
   return String(Math.max(0, value));
 }
 
-const Reel = memo(function Reel({ clip, index, active, shouldMountPlayer, height, topInset, bottomInset, muted, onMutedChange, onLike, onSave, onComments, onMiniTest, onUserPress, overlayOpen, appIsActive, registerPlayer, onSkip }: {
+const Reel = memo(function Reel({ clip, index, active, shouldMountPlayer, height, topInset, bottomInset, muted, onMutedChange, onLike, onSave, onComments, onMiniTest, onUserPress, onDeleteOwnClip, overlayOpen, appIsActive, registerPlayer, onSkip }: {
   clip: CommunityPost; index: number; active: boolean; shouldMountPlayer: boolean; height: number; topInset: number; bottomInset: number; muted: boolean;
   onMutedChange: (muted: boolean) => void; onLike: Props['onLike']; onSave: Props['onSave']; onComments: Props['onComments'];
-  onMiniTest: Props['onMiniTest']; onUserPress: Props['onUserPress']; overlayOpen: boolean; appIsActive: boolean;
+  onMiniTest: Props['onMiniTest']; onUserPress: Props['onUserPress']; onDeleteOwnClip: Props['onDeleteOwnClip']; overlayOpen: boolean; appIsActive: boolean;
   registerPlayer: RegisterPlayer; onSkip: (index: number) => void;
 }) {
   const [paused, setPaused] = useState(false);
@@ -161,6 +161,7 @@ const Reel = memo(function Reel({ clip, index, active, shouldMountPlayer, height
       {heartVisible ? <Animated.View pointerEvents="none" style={[styles.heartMark, heartAnimatedStyle]}><Ionicons name="heart" size={92} color="#FFFFFF" /></Animated.View> : null}
       <View pointerEvents="none" style={styles.shadeTop} /><View pointerEvents="none" style={styles.shadeBottom} />
       <Pressable onPress={() => onMutedChange(!muted)} style={[styles.muteButton, { top: topInset + 56 }]} accessibilityRole="button" accessibilityLabel={muted ? 'Ovozni yoqish' : 'Ovozni o‘chirish'}><Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={20} color="#FFFFFF" /></Pressable>
+      {clip.isOwn ? <Pressable onPress={() => Alert.alert('Lavhani o‘chirish', 'Bu lavha lentadan va profilingizdan olib tashlanadi.', [{ text: 'Bekor qilish', style: 'cancel' }, { text: 'O‘chirish', style: 'destructive', onPress: () => onDeleteOwnClip(clip) }])} style={[styles.muteButton, { top: topInset + 104, backgroundColor: 'rgba(150,35,55,0.72)' }]} accessibilityRole="button" accessibilityLabel="O‘z lavhangizni o‘chirish"><Ionicons name="trash-outline" size={19} color="#FFFFFF" /></Pressable> : null}
       <View style={[styles.actions, { bottom: bottomInset + Math.max(104, height * 0.17) }]}>
         <Pressable onPress={handleLike} style={styles.action} accessibilityRole="button" accessibilityLabel={clip.isLiked ? 'Laykni olib tashlash' : 'Layk qo‘yish'} accessibilityState={{ selected: clip.isLiked }}><Animated.View style={likeAnimatedStyle}><Ionicons name={clip.isLiked ? 'heart' : 'heart-outline'} size={31} color={clip.isLiked ? '#FF4778' : '#FFFFFF'} /></Animated.View><LocalizedText style={styles.actionCount}>{formatCount(clip.likesCount)}</LocalizedText></Pressable>
         <Pressable onPress={() => onComments(clip.id)} style={styles.action}><Ionicons name="chatbubble-ellipses-outline" size={29} color="#FFFFFF"/><LocalizedText style={styles.actionCount}>{formatCount(clip.commentsCount)}</LocalizedText></Pressable>
@@ -548,10 +549,10 @@ export default function CommunityReelsFeed(props: Props) {
       shouldMountPlayer={index === activeIndex || (goodConnection && index === activeIndex + 1)}
       height={height} topInset={insets.top} bottomInset={insets.bottom} muted={muted} onMutedChange={setMuted}
       onLike={props.onLike} onSave={props.onSave} onComments={props.onComments} onMiniTest={props.onMiniTest}
-      onUserPress={props.onUserPress} overlayOpen={props.overlayOpen} appIsActive={appIsActive}
+      onUserPress={props.onUserPress} onDeleteOwnClip={props.onDeleteOwnClip} overlayOpen={props.overlayOpen} appIsActive={appIsActive}
       registerPlayer={registerPlayer} onSkip={onSkip}
     />
-  ), [activeIndex, appIsActive, goodConnection, height, insets.bottom, muted, onSkip, props.onComments, props.onLike, props.onMiniTest, props.onSave, props.onUserPress, props.overlayOpen, registerPlayer]);
+  ), [activeIndex, appIsActive, goodConnection, height, insets.bottom, muted, onSkip, props.onComments, props.onLike, props.onMiniTest, props.onSave, props.onUserPress, props.onDeleteOwnClip, props.overlayOpen, registerPlayer]);
 
   return (
     <View style={styles.container} onLayout={onListLayout}>
