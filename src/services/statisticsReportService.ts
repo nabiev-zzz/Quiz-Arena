@@ -31,7 +31,7 @@ function formatNumber(value: unknown): string {
   return number(value).toLocaleString('uz-UZ');
 }
 
-function buildReportHtml(input: {
+export function buildStatisticsReportHtml(input: {
   user: StatisticsReportUser;
   learning: LearningStats | null;
   battle: BattleStats | null;
@@ -53,6 +53,7 @@ function buildReportHtml(input: {
     <tr><td>${escapeHtml(item.mode === 'ranked' ? 'Ranked' : 'Casual')}</td><td>${escapeHtml(item.result === 'win' ? 'G‘alaba' : item.result === 'loss' ? 'Mag‘lubiyat' : 'Durang')}</td><td>${formatNumber(item.myScore)}</td><td>${escapeHtml(item.finishedAt ? new Date(item.finishedAt).toLocaleDateString('uz-UZ') : '—')}</td></tr>
   `).join('');
   const generatedAt = new Date().toLocaleString('uz-UZ');
+  const documentTitle = `QUIZ ARENA - ${name} - Statistika`;
   const hasLearning = Boolean(learning);
   const hasBattle = Boolean(battle);
 
@@ -61,10 +62,11 @@ function buildReportHtml(input: {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${documentTitle}</title>
 <style>
 @page { size: A4; margin: 22mm 16mm; }
 * { box-sizing: border-box; }
-body { font-family: Arial, "DejaVu Sans", sans-serif; color: #211B35; margin: 0; font-size: 11px; line-height: 1.55; }
+body { font-family: Arial, "DejaVu Sans", sans-serif; color: #211B35; margin: 0; font-size: 11px; line-height: 1.55; user-select: text; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .hero { background: #21133F; color: #fff; padding: 24px; border-radius: 16px; }
 .brand { color: #C9B7FF; font-size: 10px; font-weight: 800; letter-spacing: 2px; }
 h1 { font-size: 25px; margin: 8px 0 4px; }
@@ -80,6 +82,15 @@ th { text-align: left; background: #F0EBFC; color: #51378D; font-size: 9px; }
 th, td { padding: 8px 7px; border-bottom: 1px solid #E9E3F5; vertical-align: top; }
 .footer { margin-top: 28px; padding-top: 12px; border-top: 1px solid #E9E3F5; color: #8B829D; font-size: 9px; }
 .empty { padding: 12px; border: 1px dashed #D8CDEA; border-radius: 10px; color: #786F8E; }
+@media print {
+  html, body { background: #FFFFFF !important; }
+  .hero, .metric, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  h2 { break-after: avoid; page-break-after: avoid; }
+  tr, .metric, .hero { break-inside: avoid; page-break-inside: avoid; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  a { color: inherit; text-decoration: none; }
+}
 </style>
 </head>
 <body>
@@ -133,10 +144,12 @@ export async function shareStatisticsPdf(input: {
   battle: BattleStats | null;
   tier: SubscriptionTier;
 }): Promise<void> {
-  const html = buildReportHtml(input);
+  const html = buildStatisticsReportHtml(input);
 
   if (Platform.OS === 'web') {
-    await Print.printAsync({ html });
+    // Browser-native print-to-PDF keeps HTML text and tables selectable/searchable.
+    // No screenshot, canvas capture, or raster image is used.
+    await Print.printAsync({ html, width: 595, height: 842 });
     return;
   }
 
