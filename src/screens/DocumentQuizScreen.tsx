@@ -62,6 +62,7 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
   const [maxQuestions, setMaxQuestions] = useState(10);
   const [maxFileSizeMb, setMaxFileSizeMb] = useState(20);
   const [documentUsage, setDocumentUsage] = useState<FeatureUsageResult | null>(null);
+  const [quotaRefreshing, setQuotaRefreshing] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [questions, setQuestions] = useState<DocumentQuizQuestion[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -89,6 +90,17 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
       .catch(() => undefined);
     return () => { active = false; };
   }, []);
+
+  const refreshQuota = async () => {
+    setQuotaRefreshing(true);
+    try {
+      setDocumentUsage(await getFeatureUsage('documentQuiz'));
+    } catch {
+      // The API enforces the limit even if the display refresh is temporarily unavailable.
+    } finally {
+      setQuotaRefreshing(false);
+    }
+  };
 
   const pickDocument = async () => {
     try {
@@ -132,7 +144,7 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
     try {
       const result = await createDocumentQuiz(file, { count, difficulty, language });
       setQuestions(result.questions);
-      void getFeatureUsage('documentQuiz').then(setDocumentUsage).catch(() => undefined);
+      void refreshQuota();
       setQuestionIndex(0);
       setAnswers([]);
       setSelectedAnswer(null);
@@ -252,10 +264,14 @@ export default function DocumentQuizScreen({ onBack, language }: Props) {
               <View style={s.quotaHeading}>
                 <Ionicons name="calendar-outline" size={18} color={colors.primary} />
                 <LocalizedText style={s.quotaTitle}>Hujjatdan test yaratish — oylik limit</LocalizedText>
+                <Pressable onPress={() => void refreshQuota()} disabled={quotaRefreshing} accessibilityRole="button" accessibilityLabel="Limitni yangilash" style={s.quotaRefresh}>
+                  {quotaRefreshing ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="refresh" size={17} color={colors.primary} />}
+                </Pressable>
               </View>
               <LocalizedText style={s.quotaPlanLine}>
                 Tarifingiz: {documentUsage ? (documentUsage.tier === 'premium_pro' ? 'PREMIUM PRO' : documentUsage.tier === 'legenda_plus' ? 'LEGENDA+' : documentUsage.tier.toUpperCase()) : 'aniqlanmoqda'}
               </LocalizedText>
+              {documentUsage?.periodKey ? <LocalizedText style={s.quotaPeriod}>Hisob davri: {documentUsage.periodKey}</LocalizedText> : null}
               <LocalizedText style={s.quotaCurrent}>
                 {documentUsage
                   ? documentUsage.limit === null
@@ -421,6 +437,8 @@ function makeStyles(colors: ReturnType<typeof useTheme>['tokens']['colors']) {
     quotaCard: { borderRadius: 18, padding: 15, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primary + '55', gap: 9 },
     quotaHeading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     quotaTitle: { color: colors.text, fontSize: 13, fontWeight: '900', flex: 1 },
+    quotaRefresh: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: colors.primary + '16' },
+    quotaPeriod: { color: colors.textMuted, fontSize: 10, fontWeight: '600' },
     quotaPlanLine: { color: colors.textMuted, fontSize: 11, fontWeight: '700' },
     quotaCurrent: { color: colors.primary, fontSize: 13, fontWeight: '900' },
     quotaList: { gap: 6, paddingTop: 5 },
