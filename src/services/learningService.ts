@@ -107,7 +107,13 @@ async function learningRequest<T>(
   return data as T;
 }
 
-async function waitForLearningJob<T>(jobId: string): Promise<T> {
+export type DocumentQuizProgress = {
+  stage: 'uploading' | 'queued' | 'analyzing' | 'completed';
+  percent: number | null;
+  message: string;
+};
+
+async function waitForLearningJob<T>(jobId: string, onProgress?: (progress: DocumentQuizProgress) => void): Promise<T> {
   for (let attempt = 0; attempt < 120; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 3000));
     const status = await learningRequest<{
@@ -115,8 +121,14 @@ async function waitForLearningJob<T>(jobId: string): Promise<T> {
       result?: T;
       error?: string;
     }>(`/api/learning/jobs/${encodeURIComponent(jobId)}`);
-    if (status.status === 'completed' && status.result) return status.result;
+    if (status.status === 'completed' && status.result) {
+      onProgress?.({ stage: 'completed', percent: 100, message: 'Test tayyor — ochilmoqda' });
+      return status.result;
+    }
     if (status.status === 'failed') throw new Error(status.error || 'AI test yaratishda xatolik yuz berdi.');
+    onProgress?.(status.status === 'queued'
+      ? { stage: 'queued', percent: null, message: 'Vazifa navbatda — AI bo‘shashini kutmoqda' }
+      : { stage: 'analyzing', percent: null, message: 'AI hujjatni o‘qib, savollarni tayyorlamoqda' });
   }
   throw new Error('AI navbatida kutish vaqti tugadi. Keyinroq test tarixidan tekshirib ko‘ring.');
 }
@@ -193,34 +205,22 @@ export interface DocumentQuizResult {
 export async function createDocumentQuiz(
   file: { uri: string; name: string; mimeType?: string | null; file?: Blob | null },
   options: { count: number; difficulty: Difficulty; language: 'uz' | 'ru' | 'en' },
+  onProgress?: (progress: DocumentQuizProgress) => void,
 ): Promise<DocumentQuizResult> {
   const token = await getToken();
   if (!token) throw new Error('Tizimga qayta kirishingiz kerak.');
-  if (!file.uri?.trim() || !file.name?.trim()) {
-    throw new Error('Tanlangan hujjat manzili topilmadi. Faylni qayta tanlang.');
-  }
+  if (!file.uri?.trim() || !file.name?.trim()) throw new Error('Tanlangan hujjat manzili topilmadi. Faylni qayta tanlang.');
 
-  // React Native FormData accepts native file parts ({ uri, name, type }).
-  // Expo DocumentPicker's optional asset.file is a Blob on some platforms;
-  // appending that Blob causes "Unsupported FormDataPart implementation" on Android.
   const extension = file.name.toLowerCase().split('.').pop();
   const mimeByExtension: Record<string, string> = {
-    pdf: 'application/pdf',
-    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    txt: 'text/plain',
-    md: 'text/markdown',
-    csv: 'text/csv',
+    pdf: 'application/pdf', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    txt: 'text/plain', md: 'text/markdown', csv: 'text/csv',
     pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
   };
   const mimeType = file.mimeType || mimeByExtension[extension || ''] || 'application/octet-stream';
   const form = new FormData();
-
   if (Platform.OS === 'web') {
-    // Browser FormData requires a real Blob/File. React Native's { uri, name, type }
-    // pseudo-file object is only understood by native networking and is stringified on web.
     let browserFile = file.file;
     if (!(browserFile instanceof Blob)) {
       const fileResponse = await fetch(file.uri);
@@ -230,45 +230,56 @@ export async function createDocumentQuiz(
     const uploadBlob = browserFile.type ? browserFile : new Blob([browserFile], { type: mimeType });
     form.append('file', uploadBlob, file.name);
   } else {
-    // expo-file-system File is not a native FormData Blob part on every RN
-    // runtime. Read its bytes and wrap them in a real JS Blob; Expo's patched
-    // FormData/fetch supports Blob and avoids the unsupported-part converter.
     let fileBytes: Uint8Array;
-    try {
-      fileBytes = await new ExpoFile(file.uri).bytes();
-    } catch {
-      throw new Error('Telefon xotirasidagi hujjatni o‘qib bo‘lmadi. Faylni qayta tanlang.');
-    }
+    try { fileBytes = await new ExpoFile(file.uri).bytes(); }
+    catch { throw new Error('Telefon xotirasidagi hujjatni o‘qib bo‘lmadi. Faylni qayta tanlang.'); }
     const uploadBuffer = new ArrayBuffer(fileBytes.byteLength);
     new Uint8Array(uploadBuffer).set(fileBytes);
-    const uploadBlob = new Blob([uploadBuffer], { type: mimeType });
-    form.append('file', uploadBlob, file.name);
+    form.append('file', new Blob([uploadBuffer], { type: mimeType }), file.name);
   }
   form.append('count', String(options.count));
   form.append('difficulty', options.difficulty);
   form.append('language', options.language);
 
-  const response = await apiFetch(`${API_BASE_URL}/api/learning/document-quiz`, {
-    method: 'POST',
-    // Do not set Content-Type manually: fetch must add the multipart boundary.
-    headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
-    body: form,
+  onProgress?.({ stage: 'uploading', percent: 0, message: 'Hujjat serverga yuklanmoqda' });
+  const data = await new Promise<any>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE_URL}/api/learning/document-quiz`);
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.timeout = 180000;
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) {
+        const percent = Math.min(100, Math.round((event.loaded / event.total) * 100));
+        onProgress?.({ stage: 'uploading', percent, message: `Hujjat yuklanmoqda · ${percent}%` });
+      }
+    };
+    xhr.upload.onload = () => onProgress?.({ stage: 'queued', percent: 100, message: 'Yuklash tugadi · Server hujjatni qabul qilmoqda' });
+    xhr.onload = () => {
+      let body: any = {};
+      try { body = JSON.parse(xhr.responseText || '{}'); } catch { /* handled below */ }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(body);
+      else reject(new Error(typeof body.message === 'string' ? body.message : 'Hujjat serverga yuborilmadi.'));
+    };
+    xhr.onerror = () => reject(new Error('Internet aloqasi uzildi. Yuklashni qayta urinib ko‘ring.'));
+    xhr.ontimeout = () => reject(new Error('Hujjatni yuklash vaqti tugadi. Internetni tekshirib, qayta urinib ko‘ring.'));
+    xhr.onabort = () => reject(new Error('Hujjat yuklash bekor qilindi.'));
+    xhr.send(form);
   });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message = typeof data.message === 'string'
-      ? data.message
-      : Array.isArray(data.message) ? data.message.join(', ')
-      : 'Hujjatdan test yaratib bo‘lmadi.';
-    throw new Error(message);
+  if (!data || typeof data !== 'object') throw new Error('Serverdan noto‘g‘ri javob keldi. Qayta urinib ko‘ring.');
+  if (data.status === 'failed' || data.status === 'error') throw new Error(data.error || data.message || 'AI test yaratishda xatolik yuz berdi.');
+  if (data.status === 'queued' || data.status === 'active') {
+    onProgress?.(data.status === 'queued'
+      ? { stage: 'queued', percent: 100, message: 'Hujjat yuklandi · Navbatda kutilmoqda' }
+      : { stage: 'analyzing', percent: 100, message: 'AI hujjatni tahlil qilmoqda' });
+    return waitForLearningJob<DocumentQuizResult>(String(data.jobId), onProgress);
   }
-  if ((data.status === 'queued' || data.status === 'active') && data.jobId) {
-    return waitForLearningJob<DocumentQuizResult>(String(data.jobId));
+  if (data.status === 'completed' && data.result) {
+    onProgress?.({ stage: 'completed', percent: 100, message: 'Test tayyor — ochilmoqda' });
+    return data.result as DocumentQuizResult;
   }
-  if (data.status === 'completed' && data.result) return data.result as DocumentQuizResult;
-  if (!Array.isArray(data.questions) || data.questions.length === 0) {
-    throw new Error('AI hujjatdan savollar qaytarmadi. Boshqa hujjat tanlab ko‘ring.');
-  }
+  if (!Array.isArray(data.questions) || data.questions.length === 0) throw new Error('AI hujjatdan savollar qaytarmadi. Boshqa hujjat tanlab ko‘ring.');
+  onProgress?.({ stage: 'completed', percent: 100, message: 'Test tayyor — ochilmoqda' });
   return data as DocumentQuizResult;
 }
 
